@@ -26,8 +26,36 @@ body {
   font-family: Inter, 'Segoe UI', sans-serif;
   color: var(--yp-color-text);
   background:
-    radial-gradient(circle at top left, rgba(45, 212, 191, 0.18), transparent 28%),
-    linear-gradient(180deg, #fbfffe 0%, #f3f4f6 100%);
+    radial-gradient(circle at top left, rgba(45, 212, 191, 0.2), transparent 26%),
+    radial-gradient(circle at 85% 20%, rgba(6, 95, 70, 0.08), transparent 18%),
+    linear-gradient(180deg, #fcfffe 0%, #f3f4f6 56%, #eef8f6 100%);
+}
+
+body::before,
+body::after {
+  content: '';
+  position: fixed;
+  inset: auto;
+  pointer-events: none;
+  z-index: -1;
+  border-radius: 999px;
+  filter: blur(8px);
+}
+
+body::before {
+  width: 18rem;
+  height: 18rem;
+  top: 32rem;
+  left: -6rem;
+  background: rgba(45, 212, 191, 0.1);
+}
+
+body::after {
+  width: 16rem;
+  height: 16rem;
+  right: -5rem;
+  top: 8rem;
+  background: rgba(6, 95, 70, 0.08);
 }
 
 button,

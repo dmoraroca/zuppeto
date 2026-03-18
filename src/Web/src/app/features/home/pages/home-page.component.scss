@@ -1,5 +1,6 @@
 .home-page {
   min-height: 100vh;
+  overflow-x: clip;
 }
 
 .hero {
@@ -28,12 +29,60 @@
   letter-spacing: -0.06em;
 }
 
+.hero__yes {
+  display: inline-block;
+  color: var(--yp-color-primary-dark);
+  text-shadow: 0 0 0 rgba(45, 212, 191, 0);
+  transition:
+    transform 180ms ease,
+    text-shadow 180ms ease,
+    color 180ms ease;
+}
+
+.hero h1:hover .hero__yes {
+  color: #0f766e;
+  transform: translateY(-2px) scale(1.03);
+  text-shadow: 0 8px 24px rgba(45, 212, 191, 0.4);
+}
+
 .hero__copy {
   max-width: 42rem;
   margin: 1.5rem 0 0;
   font-size: 1.1rem;
   line-height: 1.7;
   color: var(--yp-color-text-muted);
+  text-wrap: balance;
+}
+
+.hero__chips {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 1.75rem;
+}
+
+.hero__chip {
+  padding: 0.72rem 0.95rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(45, 212, 191, 0.35);
+  color: var(--yp-color-primary-dark);
+  font-weight: 700;
+  box-shadow: 0 14px 35px -28px rgba(6, 95, 70, 0.7);
+  animation: chip-float 5s ease-in-out infinite;
+  white-space: nowrap;
+}
+
+.hero__chip:nth-child(2) {
+  animation-delay: 200ms;
+}
+
+.hero__chip:nth-child(3) {
+  animation-delay: 400ms;
+}
+
+.hero__chip:nth-child(4) {
+  animation-delay: 600ms;
 }
 
 .hero__actions {
@@ -45,9 +94,16 @@
 
 .hero__primary,
 .hero__secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 0.9rem 1.2rem;
   border-radius: 999px;
   font-weight: 700;
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease;
 }
 
 .hero__primary {
@@ -56,17 +112,129 @@
   box-shadow: var(--yp-shadow-soft);
 }
 
+.hero__primary:hover,
+.hero__secondary:hover {
+  transform: translateY(-3px);
+}
+
 .hero__secondary {
   border: 1px solid var(--yp-color-border);
   background: rgba(255, 255, 255, 0.72);
 }
 
-.hero__card {
-  padding: 1.5rem;
-  border-radius: 1.5rem;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(243, 244, 246, 0.92));
+.hero__secondary:hover {
+  border-color: rgba(45, 212, 191, 0.45);
+}
+
+.hero__visual {
+  position: relative;
+  min-height: 28rem;
+  min-width: 0;
+}
+
+.hero__map {
+  position: absolute;
+  inset: 1.5rem 0 2rem 2rem;
+  border-radius: 2rem;
   border: 1px solid rgba(209, 213, 219, 0.8);
+  background:
+    radial-gradient(circle at 20% 20%, rgba(45, 212, 191, 0.18), transparent 22%),
+    radial-gradient(circle at 80% 30%, rgba(45, 212, 191, 0.14), transparent 20%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(243, 244, 246, 0.92));
   box-shadow: var(--yp-shadow-soft);
+  overflow: hidden;
+}
+
+.hero__map::before,
+.hero__map::after {
+  content: '';
+  position: absolute;
+  inset: auto;
+  background: rgba(15, 23, 42, 0.04);
+  border-radius: 999px;
+}
+
+.hero__map::before {
+  width: 16rem;
+  height: 16rem;
+  top: 1.5rem;
+  left: -2rem;
+}
+
+.hero__map::after {
+  width: 18rem;
+  height: 18rem;
+  right: -4rem;
+  bottom: -5rem;
+}
+
+.hero__pin {
+  position: absolute;
+  padding: 0.55rem 0.75rem;
+  border-radius: 999px;
+  background: var(--yp-color-surface);
+  border: 1px solid rgba(45, 212, 191, 0.45);
+  color: var(--yp-color-primary-dark);
+  font-size: 0.9rem;
+  font-weight: 800;
+  box-shadow: 0 16px 32px -24px rgba(6, 95, 70, 0.8);
+  animation: pin-bounce 3.2s ease-in-out infinite;
+}
+
+.hero__pin--barcelona {
+  top: 56%;
+  left: 30%;
+}
+
+.hero__pin--madrid {
+  top: 48%;
+  left: 22%;
+  animation-delay: 350ms;
+}
+
+.hero__pin--lisboa {
+  top: 60%;
+  left: 14%;
+  animation-delay: 700ms;
+}
+
+.hero__pin--berlin {
+  top: 28%;
+  left: 58%;
+  animation-delay: 1s;
+}
+
+.hero__floating-card {
+  position: absolute;
+  display: grid;
+  gap: 0.45rem;
+  max-width: 15rem;
+  padding: 1rem 1.1rem;
+  border-radius: 1.25rem;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(209, 213, 219, 0.8);
+  box-shadow: 0 20px 40px -30px rgba(6, 95, 70, 0.8);
+  backdrop-filter: blur(12px);
+}
+
+.hero__floating-card strong {
+  font-size: 1rem;
+}
+
+.hero__floating-card span {
+  color: var(--yp-color-text-muted);
+  line-height: 1.5;
+  font-size: 0.95rem;
+}
+
+.hero__floating-card--top {
+  top: 0;
+  right: 0;
+}
+
+.hero__floating-card--bottom {
+  bottom: 0;
+  left: 0;
 }
 
 .hero__card-label {
@@ -77,32 +245,147 @@
   letter-spacing: 0.08em;
 }
 
-.hero__card ul {
-  list-style: none;
-  padding: 0;
-  margin: 1rem 0;
+.section-heading {
   display: grid;
   gap: 0.75rem;
+  max-width: 42rem;
 }
 
-.hero__card li {
-  padding: 0.85rem 1rem;
-  border-radius: 1rem;
-  background: var(--yp-color-surface);
-  border: 1px solid rgba(209, 213, 219, 0.65);
-  font-weight: 700;
-}
-
-.hero__card-note {
+.section-heading h2 {
   margin: 0;
-  color: var(--yp-color-text-muted);
-  line-height: 1.6;
+  font-size: clamp(1.8rem, 3vw, 2.7rem);
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
 }
 
+.section-heading__eyebrow {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--yp-color-primary-dark);
+}
+
+.cities,
+.why,
 .overview {
   max-width: var(--yp-max-width);
   margin: 0 auto;
   padding: 0 1.5rem 4rem;
+}
+
+.cities__grid,
+.why__grid,
+.overview {
+  margin-top: 1.75rem;
+}
+
+.cities__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.city-card {
+  position: relative;
+  overflow: hidden;
+  min-height: 14rem;
+  padding: 1.35rem;
+  border-radius: 1.4rem;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(243, 244, 246, 0.95));
+  border: 1px solid rgba(209, 213, 219, 0.8);
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease;
+}
+
+.city-card:hover {
+  transform: translateY(-5px);
+  border-color: rgba(45, 212, 191, 0.45);
+  box-shadow: var(--yp-shadow-soft);
+}
+
+.city-card__glow {
+  position: absolute;
+  width: 9rem;
+  height: 9rem;
+  top: -2.5rem;
+  right: -2rem;
+  border-radius: 999px;
+  background: rgba(45, 212, 191, 0.18);
+  filter: blur(6px);
+}
+
+.city-card__country {
+  position: relative;
+  margin: 0;
+  color: var(--yp-color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.city-card h3 {
+  position: relative;
+  margin: 0.75rem 0 0.6rem;
+  font-size: 1.5rem;
+}
+
+.city-card p:last-child {
+  position: relative;
+  margin: 0;
+  color: var(--yp-color-text-muted);
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+
+.why__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.why__card {
+  padding: 1.4rem;
+  border-radius: 1.25rem;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(209, 213, 219, 0.7);
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.why__card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--yp-shadow-soft);
+}
+
+.why__check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3.4rem;
+  margin-bottom: 1rem;
+  padding: 0.45rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(45, 212, 191, 0.16);
+  color: var(--yp-color-primary-dark);
+  font-weight: 900;
+  letter-spacing: 0.05em;
+}
+
+.why__card p {
+  margin: 0;
+  line-height: 1.7;
+  color: var(--yp-color-text-muted);
+  text-wrap: pretty;
+}
+
+.overview {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1rem;
@@ -126,9 +409,204 @@
   line-height: 1.6;
 }
 
+@keyframes chip-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes pin-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
 @media (max-width: 900px) {
-  .hero,
+  .hero {
+    padding-top: 3rem;
+    gap: 1.5rem;
+  }
+
+  .cities__grid,
+  .why__grid,
   .overview {
     grid-template-columns: 1fr;
+  }
+
+  .hero__visual {
+    min-height: 24rem;
+  }
+
+  .hero__map {
+    inset: 1rem 0 1rem 1rem;
+  }
+
+  .hero__floating-card {
+    max-width: 14rem;
+  }
+}
+
+@media (max-width: 720px) {
+  .hero {
+    padding: 2.5rem 1rem 2rem;
+  }
+
+  .cities,
+  .why,
+  .overview {
+    padding: 0 1rem 3rem;
+  }
+
+  .hero__copy {
+    font-size: 1rem;
+  }
+
+  .hero__chips {
+    gap: 0.6rem;
+  }
+
+  .hero__chip {
+    padding: 0.65rem 0.85rem;
+    font-size: 0.92rem;
+  }
+
+  .hero__actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .hero__primary,
+  .hero__secondary {
+    width: 100%;
+  }
+
+  .hero__visual {
+    min-height: 22rem;
+  }
+
+  .hero__map {
+    inset: 0.5rem;
+    border-radius: 1.5rem;
+  }
+
+  .hero__floating-card {
+    position: relative;
+    max-width: none;
+    width: calc(100% - 2rem);
+  }
+
+  .hero__floating-card--top {
+    top: auto;
+    right: auto;
+    margin: 0 1rem 0 auto;
+  }
+
+  .hero__floating-card--bottom {
+    left: auto;
+    bottom: auto;
+    margin: 7.5rem auto 0 1rem;
+  }
+
+  .city-card {
+    min-height: auto;
+  }
+}
+
+@media (max-width: 540px) {
+  .hero h1 {
+    font-size: clamp(2.6rem, 14vw, 3.5rem);
+    line-height: 0.98;
+  }
+
+  .hero__visual {
+    min-height: 24rem;
+  }
+
+  .hero__pin {
+    padding: 0.45rem 0.6rem;
+    font-size: 0.78rem;
+  }
+
+  .hero__pin--barcelona {
+    top: 58%;
+    left: 28%;
+  }
+
+  .hero__pin--madrid {
+    top: 46%;
+    left: 17%;
+  }
+
+  .hero__pin--lisboa {
+    top: 67%;
+    left: 10%;
+  }
+
+  .hero__pin--berlin {
+    top: 24%;
+    left: 55%;
+  }
+
+  .hero__floating-card {
+    width: calc(100% - 1rem);
+    padding: 0.9rem 1rem;
+    border-radius: 1rem;
+  }
+
+  .hero__floating-card--top {
+    margin-right: 0.5rem;
+  }
+
+  .hero__floating-card--bottom {
+    margin-top: 8.25rem;
+    margin-left: 0.5rem;
+  }
+
+  .section-heading h2 {
+    font-size: 1.7rem;
+  }
+
+  .city-card h3 {
+    font-size: 1.3rem;
+  }
+
+  .why__card,
+  .overview article {
+    padding: 1.1rem;
+  }
+}
+
+@media (max-width: 390px) {
+  .hero {
+    padding-top: 2rem;
+  }
+
+  .hero__chips {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .hero__chip {
+    min-width: 0;
+    text-align: center;
+    white-space: normal;
+  }
+
+  .hero__visual {
+    min-height: 25rem;
+  }
+
+  .hero__floating-card--bottom {
+    margin-top: 9rem;
   }
 }
