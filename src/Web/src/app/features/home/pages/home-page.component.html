@@ -1,0 +1,48 @@
+<app-site-header />
+
+<main class="home-page">
+  <section class="hero">
+    <div class="hero__content">
+      <p class="hero__eyebrow">YepPet · Fase 1</p>
+      <h1>Places that say YES to pets.</h1>
+      <p class="hero__copy">
+        Base inicial per validar la UX, l’arquitectura Angular i el model funcional de la
+        plataforma pet-friendly.
+      </p>
+
+      <div class="hero__actions">
+        <a class="hero__primary" href="#">Explore places</a>
+        <a class="hero__secondary" href="#">How it works</a>
+      </div>
+    </div>
+
+    <aside class="hero__card">
+      <p class="hero__card-label">Cobertura inicial</p>
+      <ul>
+        @for (category of categories; track category) {
+          <li>{{ category }}</li>
+        }
+      </ul>
+      <p class="hero__card-note">Mock-first architecture ready for future API integration.</p>
+    </aside>
+  </section>
+
+  <section class="overview">
+    <article>
+      <h2>Arquitectura</h2>
+      <p>`core`, `shared` i `features` des del primer dia.</p>
+    </article>
+
+    <article>
+      <h2>Dades</h2>
+      <p>Mock services substituibles més endavant per `HttpClient`.</p>
+    </article>
+
+    <article>
+      <h2>Objectiu</h2>
+      <p>Veure producte real a pantalla abans de modelar backend i BD.</p>
+    </article>
+  </section>
+</main>
+
+<app-site-footer />

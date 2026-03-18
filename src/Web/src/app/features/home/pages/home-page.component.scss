@@ -1,0 +1,134 @@
+.home-page {
+  min-height: 100vh;
+}
+
+.hero {
+  max-width: var(--yp-max-width);
+  margin: 0 auto;
+  padding: 4rem 1.5rem 3rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.8fr);
+  gap: 2rem;
+  align-items: center;
+}
+
+.hero__eyebrow {
+  margin: 0 0 0.75rem;
+  color: var(--yp-color-primary-dark);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.85rem;
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: clamp(3rem, 8vw, 5.5rem);
+  line-height: 0.94;
+  letter-spacing: -0.06em;
+}
+
+.hero__copy {
+  max-width: 42rem;
+  margin: 1.5rem 0 0;
+  font-size: 1.1rem;
+  line-height: 1.7;
+  color: var(--yp-color-text-muted);
+}
+
+.hero__actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 2rem;
+}
+
+.hero__primary,
+.hero__secondary {
+  padding: 0.9rem 1.2rem;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+.hero__primary {
+  background: var(--yp-color-primary);
+  color: var(--yp-color-primary-dark);
+  box-shadow: var(--yp-shadow-soft);
+}
+
+.hero__secondary {
+  border: 1px solid var(--yp-color-border);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.hero__card {
+  padding: 1.5rem;
+  border-radius: 1.5rem;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(243, 244, 246, 0.92));
+  border: 1px solid rgba(209, 213, 219, 0.8);
+  box-shadow: var(--yp-shadow-soft);
+}
+
+.hero__card-label {
+  margin: 0;
+  color: var(--yp-color-text-muted);
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.hero__card ul {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.hero__card li {
+  padding: 0.85rem 1rem;
+  border-radius: 1rem;
+  background: var(--yp-color-surface);
+  border: 1px solid rgba(209, 213, 219, 0.65);
+  font-weight: 700;
+}
+
+.hero__card-note {
+  margin: 0;
+  color: var(--yp-color-text-muted);
+  line-height: 1.6;
+}
+
+.overview {
+  max-width: var(--yp-max-width);
+  margin: 0 auto;
+  padding: 0 1.5rem 4rem;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.overview article {
+  padding: 1.5rem;
+  border-radius: 1.25rem;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(209, 213, 219, 0.7);
+}
+
+.overview h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.1rem;
+}
+
+.overview p {
+  margin: 0;
+  color: var(--yp-color-text-muted);
+  line-height: 1.6;
+}
+
+@media (max-width: 900px) {
+  .hero,
+  .overview {
+    grid-template-columns: 1fr;
+  }
+}
