@@ -1,0 +1,48 @@
+<section class="hero">
+  <div class="hero__stage">
+    <div class="hero__backdrop" aria-hidden="true"></div>
+    <div class="hero__wash" aria-hidden="true"></div>
+
+    <div class="hero__content">
+      <p class="hero__eyebrow">{{ content().eyebrow }}</p>
+      <h1>
+        {{ content().titleStart }}
+        <span class="hero__yes">{{ content().titleHighlight }}</span>
+        {{ content().titleEnd }}
+      </h1>
+      <p class="hero__copy">{{ content().copy }}</p>
+
+      <div class="hero__chips" aria-label="Pet-friendly highlights">
+        @for (chip of content().chips; track chip) {
+          <span class="hero__chip">{{ chip }}</span>
+        }
+      </div>
+
+      <div class="hero__actions">
+        <a class="hero__primary" href="#">Explore places</a>
+        <a class="hero__secondary" href="#">How it works</a>
+      </div>
+    </div>
+
+    <aside class="hero__visual" aria-label="YepPet preview">
+      <div class="hero__map">
+        <span class="hero__pin hero__pin--barcelona">Barcelona</span>
+        <span class="hero__pin hero__pin--madrid">Madrid</span>
+        <span class="hero__pin hero__pin--lisboa">Lisboa</span>
+        <span class="hero__pin hero__pin--berlin">Berlin</span>
+      </div>
+
+      <div class="hero__floating-card hero__floating-card--top">
+        <p class="hero__card-label">Quick match</p>
+        <strong>{{ content().quickMatchTitle }}</strong>
+        <span>{{ content().quickMatchCopy }}</span>
+      </div>
+
+      <div class="hero__floating-card hero__floating-card--bottom">
+        <p class="hero__card-label">Future-ready</p>
+        <strong>{{ content().futureReadyTitle }}</strong>
+        <span>{{ content().futureReadyCopy }}</span>
+      </div>
+    </aside>
+  </div>
+</section>

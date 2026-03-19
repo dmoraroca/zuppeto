@@ -1,0 +1,15 @@
+<section class="why">
+  <div class="section-heading">
+    <p class="section-heading__eyebrow">{{ content().eyebrow }}</p>
+    <h2>{{ content().title }}</h2>
+  </div>
+
+  <div class="why__grid">
+    @for (reason of content().reasons; track reason) {
+      <article class="why__card">
+        <span class="why__check">YES</span>
+        <p>{{ reason }}</p>
+      </article>
+    }
+  </div>
+</section>

@@ -1,91 +1,9 @@
 <app-site-header />
 
 <main class="home-page">
-  <section class="hero">
-    <div class="hero__stage">
-      <div class="hero__backdrop" aria-hidden="true"></div>
-      <div class="hero__wash" aria-hidden="true"></div>
-
-      <div class="hero__content">
-        <p class="hero__eyebrow">YepPet · Fase 1</p>
-        <h1>
-          Llocs que diuen
-          <span class="hero__yes">SÍ</span>
-          a les mascotes.
-        </h1>
-        <p class="hero__copy">
-          Plataforma pet-friendly per descobrir llocs, estades i serveis que realment accepten
-          mascotes, amb una experiència més visual i més clara des de la primera pantalla.
-        </p>
-
-        <div class="hero__chips" aria-label="Pet-friendly highlights">
-          @for (category of categories; track category) {
-            <span class="hero__chip">{{ category }}</span>
-          }
-        </div>
-
-        <div class="hero__actions">
-          <a class="hero__primary" href="#">Explore places</a>
-          <a class="hero__secondary" href="#">How it works</a>
-        </div>
-      </div>
-
-      <aside class="hero__visual" aria-label="YepPet preview">
-        <div class="hero__map">
-          <span class="hero__pin hero__pin--barcelona">Barcelona</span>
-          <span class="hero__pin hero__pin--madrid">Madrid</span>
-          <span class="hero__pin hero__pin--lisboa">Lisboa</span>
-          <span class="hero__pin hero__pin--berlin">Berlin</span>
-        </div>
-
-        <div class="hero__floating-card hero__floating-card--top">
-          <p class="hero__card-label">Quick match</p>
-          <strong>Pet-friendly terrace for brunch</strong>
-          <span>Dogs welcome · Outdoor seating</span>
-        </div>
-
-        <div class="hero__floating-card hero__floating-card--bottom">
-          <p class="hero__card-label">Future-ready</p>
-          <strong>Mock-first architecture</strong>
-          <span>Ready to swap services for API later</span>
-        </div>
-      </aside>
-    </div>
-  </section>
-
-  <section class="cities">
-    <div class="section-heading">
-      <p class="section-heading__eyebrow">Trending cities</p>
-      <h2>Europa comença a sentir-se real des de la primera pantalla.</h2>
-    </div>
-
-    <div class="cities__grid">
-      @for (city of cities; track city.name) {
-        <article class="city-card">
-          <div class="city-card__glow"></div>
-          <p class="city-card__country">{{ city.country }}</p>
-          <h3>{{ city.name }}</h3>
-          <p>{{ city.vibe }}</p>
-        </article>
-      }
-    </div>
-  </section>
-
-  <section class="why">
-    <div class="section-heading">
-      <p class="section-heading__eyebrow">Why YepPet</p>
-      <h2>Una experiència pensada per reduir fricció, no només per llistar llocs.</h2>
-    </div>
-
-    <div class="why__grid">
-      @for (reason of reasons; track reason) {
-        <article class="why__card">
-          <span class="why__check">YES</span>
-          <p>{{ reason }}</p>
-        </article>
-      }
-    </div>
-  </section>
+  <app-home-hero-section [content]="heroContent" />
+  <app-trending-cities-section [cities]="cities" />
+  <app-why-yeppet-section [content]="whyContent" />
 </main>
 
 <app-site-footer />
