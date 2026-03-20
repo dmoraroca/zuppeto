@@ -1,0 +1,37 @@
+.permissions-page {
+  max-width: var(--yp-max-width);
+  margin: 0 auto;
+  padding: 3rem 1.5rem 4rem;
+}
+
+.permissions-hero {
+  max-width: 44rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.permissions-hero__copy {
+  margin: 0;
+  color: var(--yp-color-text-muted);
+  line-height: 1.7;
+  font-size: 1.05rem;
+}
+
+.permissions-grid {
+  margin-top: 2rem;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+@media (max-width: 900px) {
+  .permissions-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .permissions-page {
+    padding: 2.5rem 1rem 3rem;
+  }
+}

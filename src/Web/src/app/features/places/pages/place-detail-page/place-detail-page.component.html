@@ -1,0 +1,59 @@
+<app-site-header />
+
+<main class="place-detail-page">
+  @if (place(); as selectedPlace) {
+    <section class="place-detail-page__hero">
+      <img [src]="selectedPlace.imageUrl" [alt]="selectedPlace.name" />
+
+      <div class="place-detail-page__hero-content">
+        <p class="place-detail-page__eyebrow">
+          {{ getTypeLabel(selectedPlace.type) }} · {{ selectedPlace.city }}, {{ selectedPlace.country }}
+        </p>
+        <h1>{{ selectedPlace.name }}</h1>
+        <p class="place-detail-page__copy">{{ selectedPlace.description }}</p>
+
+        <div class="place-detail-page__actions">
+          <app-favorite-toggle-button
+            [active]="isFavorite(selectedPlace.id)"
+            (toggled)="toggleFavorite(selectedPlace.id)"
+          />
+          <a routerLink="/places">Tornar al llistat</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="place-detail-page__grid">
+      <article class="place-detail-page__card">
+        <h2>Detalls</h2>
+        <p><strong>Adreça:</strong> {{ selectedPlace.address }}</p>
+        <p><strong>Valoració:</strong> {{ selectedPlace.rating }}</p>
+        <p><strong>Notes per mascotes:</strong> {{ selectedPlace.petNotes }}</p>
+      </article>
+
+      <article class="place-detail-page__card">
+        <h2>Característiques</h2>
+        <div class="place-detail-page__tags">
+          @for (feature of selectedPlace.features; track feature) {
+            <span>{{ feature }}</span>
+          }
+        </div>
+      </article>
+
+      <article class="place-detail-page__card">
+        <h2>Tags</h2>
+        <div class="place-detail-page__tags">
+          @for (tag of selectedPlace.tags; track tag) {
+            <span>{{ tag }}</span>
+          }
+        </div>
+      </article>
+    </section>
+  } @else {
+    <section class="place-detail-page__missing">
+      <h1>No hem trobat aquest lloc.</h1>
+      <a routerLink="/places">Tornar a Llocs</a>
+    </section>
+  }
+</main>
+
+<app-site-footer />

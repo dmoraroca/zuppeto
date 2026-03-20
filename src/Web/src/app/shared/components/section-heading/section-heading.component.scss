@@ -1,0 +1,22 @@
+.section-heading {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 42rem;
+}
+
+.section-heading h2 {
+  margin: 0;
+  font-size: clamp(1.8rem, 3vw, 2.7rem);
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+}
+
+.section-heading__eyebrow {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--yp-color-primary-dark);
+}

@@ -1,0 +1,39 @@
+<app-site-header />
+
+<main class="contact-page">
+  <section class="contact-page__hero">
+    <div class="contact-page__copy">
+      <app-section-heading
+        eyebrow="Contacta'ns"
+        title="Una via clara per parlar amb YepPet sense convertir la web en un formulari corporatiu."
+      />
+      <p>
+        Aquesta pàgina continua sent part de la fase I, així que les dades són simulades, però la
+        intenció és validar el to, l’estructura i els punts de contacte que tindrà el producte.
+      </p>
+
+      <div class="contact-page__chips" aria-label="Tipus de contacte">
+        <span>Partnerships</span>
+        <span>Feedback de producte</span>
+        <span>Noves ciutats</span>
+      </div>
+    </div>
+
+    <aside class="contact-page__panel">
+      <p class="contact-page__panel-label">Canal recomanat</p>
+      <h2>hola@yeppet.fake</h2>
+      <p>
+        Pensat com a punt d’entrada simple mentre validem fluxos, copies i tipus de consultes més
+        habituals.
+      </p>
+    </aside>
+  </section>
+
+  <section class="contact-page__grid">
+    @for (channel of channels; track channel.title) {
+      <app-generic-info-card [badge]="channel.title" [body]="channel.body" />
+    }
+  </section>
+</main>
+
+<app-site-footer />

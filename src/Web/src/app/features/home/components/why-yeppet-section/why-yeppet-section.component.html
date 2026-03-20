@@ -1,0 +1,9 @@
+<section class="why" id="why-yeppet">
+  <app-section-heading [eyebrow]="content().eyebrow" [title]="content().title" />
+
+  <div class="why__grid">
+    @for (reason of content().reasons; track reason) {
+      <app-generic-info-card badge="SÍ" [body]="reason" />
+    }
+  </div>
+</section>

@@ -1,0 +1,11 @@
+<button
+  type="button"
+  class="favorite-toggle-button"
+  [class.favorite-toggle-button--active]="active()"
+  [class.favorite-toggle-button--compact]="compact()"
+  [attr.aria-pressed]="active()"
+  [attr.aria-label]="active() ? 'Treure de favorits' : 'Afegir a favorits'"
+  (click)="onToggle($event)"
+>
+  <span>{{ active() ? 'Guardat' : 'Favorit' }}</span>
+</button>

@@ -1,0 +1,55 @@
+<app-site-header />
+
+<main class="places-page">
+  <section class="places-page__hero">
+    <app-section-heading eyebrow="Llocs" [title]="pageTitle()" />
+    <p>{{ pageCopy() }}</p>
+  </section>
+
+  <app-place-filters
+    [filters]="filters()"
+    [cities]="cities"
+    [types]="types"
+    (filtersChanged)="updateFilters($event)"
+  />
+
+  @if (activeFilterLabels().length) {
+    <section class="places-page__active-filters" aria-label="Filtres actius">
+      <div class="places-page__active-filters-header">
+        <strong>Filtres escollits</strong>
+        <button type="button" (click)="clearAllFilters()">Netejar tots els filtres</button>
+      </div>
+
+      <div class="places-page__active-filters-list">
+        @for (label of activeFilterLabels(); track label) {
+          <span>{{ label }}</span>
+        }
+      </div>
+    </section>
+  }
+
+  <section class="places-page__results">
+    <div class="places-page__summary">
+      <strong>{{ places().length }} llocs</strong>
+      <a routerLink="/favorites">Veure favorits</a>
+    </div>
+
+    <div class="places-page__grid">
+      @for (place of places(); track place.id) {
+        <app-place-card
+          [place]="place"
+          [typeLabel]="getTypeLabel(place.type)"
+          [favorite]="isFavorite(place.id)"
+          (favoriteToggled)="toggleFavorite($event)"
+        />
+      } @empty {
+        <article class="places-page__empty">
+          <h3>No hi ha resultats amb aquest filtre.</h3>
+          <p>Prova una altra ciutat o neteja els filtres per tornar a començar.</p>
+        </article>
+      }
+    </div>
+  </section>
+</main>
+
+<app-site-footer />

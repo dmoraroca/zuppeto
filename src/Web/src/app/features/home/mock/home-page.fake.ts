@@ -7,38 +7,38 @@ export const HOME_HERO_FAKE: HomeHeroContent = {
   titleEnd: 'a les mascotes.',
   copy:
     'Plataforma pet-friendly per descobrir llocs, estades i serveis que realment accepten mascotes, amb una experiència més visual i més clara des de la primera pantalla.',
-  chips: ['Dogs welcome', 'Cats welcome', 'Outdoor friendly', 'Long stays'],
-  quickMatchTitle: 'Pet-friendly terrace for brunch',
-  quickMatchCopy: 'Dogs welcome · Outdoor seating',
-  futureReadyTitle: 'Mock-first architecture',
-  futureReadyCopy: 'Ready to swap services for API later'
+  chips: ['Gossos benvinguts', 'Gats benvinguts', 'Terrassa exterior', 'Estades llargues'],
+  quickMatchTitle: 'Terrassa pet-friendly per fer brunch',
+  quickMatchCopy: 'Gossos benvinguts · Seients exteriors',
+  futureReadyTitle: 'Arquitectura basada en mocks',
+  futureReadyCopy: 'Preparada per canviar dades simulades per API real'
 };
 
 export const HOME_TRENDING_CITIES_FAKE: HomeCity[] = [
   {
     name: 'Barcelona',
-    country: 'Spain',
-    vibe: 'Terraces, urban walks and weekend escapes'
+    country: 'Espanya',
+    vibe: 'Terrasses, passejos urbans i escapades de cap de setmana'
   },
   {
     name: 'Madrid',
-    country: 'Spain',
-    vibe: 'Hotels, brunch spots and dog-friendly parks'
+    country: 'Espanya',
+    vibe: 'Hotels, brunch i parcs pensats per sortir amb gos'
   },
   {
     name: 'Lisboa',
     country: 'Portugal',
-    vibe: 'Sunny stays and relaxed neighborhoods'
+    vibe: 'Estades lluminoses i barris tranquils per anar sense presses'
   },
   {
     name: 'Berlin',
-    country: 'Germany',
-    vibe: 'Independent cafes and pet-friendly apartments'
+    country: 'Alemanya',
+    vibe: 'Cafès independents i apartaments que realment accepten mascotes'
   }
 ];
 
 export const HOME_WHY_FAKE: HomeWhyContent = {
-  eyebrow: 'Why YepPet',
+  eyebrow: 'Per què YepPet',
   title: 'Una experiència pensada per reduir fricció, no només per llistar llocs.',
   reasons: [
     'No més trucades per confirmar si accepten mascotes.',

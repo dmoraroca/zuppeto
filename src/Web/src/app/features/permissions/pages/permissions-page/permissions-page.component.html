@@ -1,0 +1,22 @@
+<app-site-header />
+
+<main class="permissions-page">
+  <section class="permissions-hero">
+    <app-section-heading
+      eyebrow="Permissions"
+      title="Vista separada per informació de sistema, accés i capes internes."
+    />
+    <p class="permissions-hero__copy">
+      Aquesta pàgina recull la informació que no ha d’aparèixer a la portada principal i que
+      més endavant es pot governar per permisos.
+    </p>
+  </section>
+
+  <section class="permissions-grid">
+    @for (section of sections; track section.title) {
+      <app-generic-info-card [badge]="section.title" [body]="section.body" />
+    }
+  </section>
+</main>
+
+<app-site-footer />

@@ -1,0 +1,30 @@
+.favorite-toggle-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.7rem 1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(6, 95, 70, 0.18);
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--yp-color-primary-dark);
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease;
+}
+
+.favorite-toggle-button:hover {
+  transform: translateY(-2px);
+  border-color: rgba(45, 212, 191, 0.45);
+}
+
+.favorite-toggle-button--active {
+  background: rgba(45, 212, 191, 0.18);
+}
+
+.favorite-toggle-button--compact {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+}

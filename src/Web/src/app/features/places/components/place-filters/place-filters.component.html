@@ -1,0 +1,42 @@
+<section class="place-filters">
+  <label>
+    <span>Cerca</span>
+    <input
+      type="search"
+      placeholder="Ciutat, tag o lloc"
+      [value]="filters().search"
+      (input)="onSearch($event)"
+    />
+  </label>
+
+  <label>
+    <span>Ciutat</span>
+    <select [value]="filters().city" (change)="onCity($event)">
+      <option value="">Totes</option>
+      @for (city of cities(); track city) {
+        <option [value]="city">{{ city }}</option>
+      }
+    </select>
+  </label>
+
+  <label>
+    <span>Tipus</span>
+    <select [value]="filters().type" (change)="onType($event)">
+      <option value="">Tots</option>
+      @for (type of types(); track type.value) {
+        <option [value]="type.value">{{ type.label }}</option>
+      }
+    </select>
+  </label>
+
+  <label>
+    <span>Mascota</span>
+    <select [value]="filters().pet" (change)="onPet($event)">
+      <option value="all">Totes</option>
+      <option value="dogs">Només gossos</option>
+      <option value="cats">Només gats</option>
+    </select>
+  </label>
+
+  <button type="button" (click)="clear()">Netejar</button>
+</section>

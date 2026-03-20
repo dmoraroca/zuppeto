@@ -1,0 +1,29 @@
+<app-site-header />
+
+<main class="favorites-page">
+  <section>
+    <app-section-heading eyebrow="Favorits" title="Els teus llocs guardats a la fase I" />
+    <p class="favorites-page__copy">
+      Aquesta vista funciona amb estat simulat i et permet validar el flux de guardar i revisar llocs.
+    </p>
+  </section>
+
+  <section class="favorites-page__grid">
+    @for (place of places(); track place.id) {
+      <app-place-card
+        [place]="place"
+        [typeLabel]="getTypeLabel(place.type)"
+        [favorite]="isFavorite(place.id)"
+        (favoriteToggled)="toggleFavorite($event)"
+      />
+    } @empty {
+      <article class="favorites-page__empty">
+        <h3>Encara no tens favorits.</h3>
+        <p>Quan guardis llocs des de Llocs, t’apareixeran aquí.</p>
+        <a routerLink="/places">Explorar llocs</a>
+      </article>
+    }
+  </section>
+</main>
+
+<app-site-footer />

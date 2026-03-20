@@ -1,0 +1,31 @@
+<article class="place-card">
+  <a class="place-card__image-wrap" [routerLink]="['/places', place().id]">
+    <img [src]="place().imageUrl" [alt]="place().name" />
+  </a>
+
+  <div class="place-card__content">
+    <div class="place-card__meta">
+      <span class="place-card__type">{{ typeLabel() }}</span>
+      <span class="place-card__rating">{{ place().rating }}</span>
+    </div>
+
+    <a class="place-card__title" [routerLink]="['/places', place().id]">{{ place().name }}</a>
+    <p class="place-card__location">{{ place().city }}, {{ place().country }}</p>
+    <p class="place-card__copy">{{ place().shortDescription }}</p>
+
+    <div class="place-card__tags">
+      @for (tag of place().tags; track tag) {
+        <span>{{ tag }}</span>
+      }
+    </div>
+
+    <div class="place-card__actions">
+      <a class="place-card__link" [routerLink]="['/places', place().id]">Veure detall</a>
+      <app-favorite-toggle-button
+        [compact]="true"
+        [active]="favorite()"
+        (toggled)="onFavoriteToggle()"
+      />
+    </div>
+  </div>
+</article>

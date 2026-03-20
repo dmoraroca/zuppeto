@@ -1,0 +1,77 @@
+<section class="hero">
+  <div class="hero__stage">
+    <div class="hero__backdrop" aria-hidden="true"></div>
+    <div class="hero__wash" aria-hidden="true"></div>
+
+    <div class="hero__content">
+      <p class="hero__eyebrow">{{ content().eyebrow }}</p>
+      <h1>
+        {{ content().titleStart }}
+        <span class="hero__yes">{{ content().titleHighlight }}</span>
+        {{ content().titleEnd }}
+      </h1>
+      <p class="hero__copy">{{ content().copy }}</p>
+
+      <div class="hero__chips" aria-label="Pet-friendly highlights">
+        @for (chip of content().chips; track chip) {
+          <a class="hero__chip" [routerLink]="['/places']" [queryParams]="getChipQueryParams(chip)">
+            {{ chip }}
+          </a>
+        }
+      </div>
+
+      <div class="hero__actions">
+        <a class="hero__primary" routerLink="/places">Explora llocs</a>
+      </div>
+    </div>
+
+    <aside class="hero__visual" aria-label="YepPet preview">
+      <div class="hero__map">
+        <a
+          class="hero__pin hero__pin--barcelona"
+          [routerLink]="['/places']"
+          [queryParams]="{ city: 'Barcelona' }"
+        >
+          Barcelona
+        </a>
+        <a
+          class="hero__pin hero__pin--madrid"
+          [routerLink]="['/places']"
+          [queryParams]="{ city: 'Madrid' }"
+        >
+          Madrid
+        </a>
+        <a
+          class="hero__pin hero__pin--lisboa"
+          [routerLink]="['/places']"
+          [queryParams]="{ city: 'Lisboa' }"
+        >
+          Lisboa
+        </a>
+        <a
+          class="hero__pin hero__pin--berlin"
+          [routerLink]="['/places']"
+          [queryParams]="{ city: 'Berlin' }"
+        >
+          Berlin
+        </a>
+      </div>
+
+      <a
+        class="hero__floating-card hero__floating-card--top hero__floating-card--link"
+        [routerLink]="['/places']"
+        [queryParams]="{ city: 'Barcelona', type: 'restaurant', pet: 'dogs', search: 'brunch' }"
+      >
+        <p class="hero__card-label">Coincidència ràpida</p>
+        <strong>{{ content().quickMatchTitle }}</strong>
+        <span>{{ content().quickMatchCopy }}</span>
+      </a>
+
+      <div class="hero__floating-card hero__floating-card--bottom">
+        <p class="hero__card-label">Preparat per créixer</p>
+        <strong>{{ content().futureReadyTitle }}</strong>
+        <span>{{ content().futureReadyCopy }}</span>
+      </div>
+    </aside>
+  </div>
+</section>

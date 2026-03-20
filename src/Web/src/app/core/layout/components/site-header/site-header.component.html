@@ -1,0 +1,52 @@
+<header class="site-header">
+  <div class="site-header__inner">
+    <a class="site-header__brand" routerLink="/" aria-label="YepPet home">
+      <img class="site-header__logo" src="/images/logo.png" alt="YepPet" />
+    </a>
+
+    <nav class="site-header__nav" aria-label="Primary navigation">
+      <a
+        class="site-header__nav-link"
+        routerLink="/"
+        routerLinkActive="site-header__nav-link--active"
+        [routerLinkActiveOptions]="{ exact: true }"
+      >
+        Inici
+      </a>
+      <a
+        class="site-header__nav-link"
+        routerLink="/places"
+        routerLinkActive="site-header__nav-link--active"
+      >
+        Llocs
+      </a>
+      <a
+        class="site-header__nav-link"
+        routerLink="/favorites"
+        routerLinkActive="site-header__nav-link--active"
+      >
+        Favorits
+      </a>
+      <details class="site-header__dropdown">
+        <summary class="site-header__nav-link">
+          Ajuda
+          <span class="site-header__caret" aria-hidden="true"></span>
+        </summary>
+        <div class="site-header__dropdown-menu">
+          <a class="site-header__dropdown-item" routerLink="/" fragment="why-yeppet">
+            <span class="site-header__dropdown-title">Com funciona</span>
+            <span class="site-header__dropdown-copy">
+              Entén la proposta de valor i la lògica de la home.
+            </span>
+          </a>
+          <a class="site-header__dropdown-item" routerLink="/contacte">
+            <span class="site-header__dropdown-title">Contacta'ns</span>
+            <span class="site-header__dropdown-copy">
+              Punt de contacte simulat per feedback, partnerships i noves ciutats.
+            </span>
+          </a>
+        </div>
+      </details>
+    </nav>
+  </div>
+</header>
