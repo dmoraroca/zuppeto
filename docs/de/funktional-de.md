@@ -47,6 +47,11 @@ Fuer spaeter vorgesehene Akteure:
 - `Authentifizierter Benutzer`
 - `Benutzer mit internen Berechtigungen`
 
+Fuer Phase II vorgesehene Rollen:
+
+- `USER`
+- `ADMIN`
+
 ## 4. Aktuelle funktionale Domäne
 
 Hauptelemente:
@@ -306,7 +311,120 @@ Hauptfluss:
 - `permissions` gehoert nicht zum oeffentlichen Hauptfluss
 - die `hero`-Vorschau darf nicht mit allen Staedten skalieren; sie soll nur hervorgehobenen Inhalt zeigen
 
-## 8. Aktuelle Abnahmekriterien
+## 8. Geplante funktionale Erweiterung · Login und Profil
+
+Phase II wird eine funktionale Basis fuer Authentifizierung und Profilpflege einfuehren.
+Sie ist noch nicht als endgueltige Produktionssicherheit gedacht, sondern als Produktbasis, um:
+
+- oeffentlichen und authentifizierten Benutzer zu trennen
+- persistierte Favoriten vorzubereiten
+- Berechtigungen vorzubereiten
+- den kuenftigen internen Administrationsbereich vorzubereiten
+
+Geplante funktionale Punkte:
+
+- Standard-Login mit E-Mail
+- Rollen `USER` und `ADMIN`
+- Benutzersitzung
+- Logout
+- Profilseite
+- grundlegende Profilpflege
+- optionales Profilfoto
+- Placeholder, wenn kein Foto vorhanden ist
+- LGPD/GDPR-Einwilligungen bei Profil-Updates oder Einfuegungen, ausser bei `ADMIN`
+- Basis fuer spaeteres Social Login
+
+### 8.1 Login-Akteure und Zugriffe
+
+<pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">flowchart LR</span>
+  <span style="color:#93c5fd;">PUB[[Oeffentlicher Benutzer]]</span>
+  <span style="color:#86efac;">USR[[USER]]</span>
+  <span style="color:#fcd34d;">ADM[[ADMIN]]</span>
+
+  <span style="color:#93c5fd;">PUB</span> --&gt; <span style="color:#c4b5fd;">LOGIN[Standard-Login]</span>
+  <span style="color:#c4b5fd;">LOGIN</span> --&gt; <span style="color:#86efac;">PROFILE[Profil]</span>
+  <span style="color:#86efac;">USR</span> --&gt; <span style="color:#86efac;">PROFILE</span>
+  <span style="color:#86efac;">USR</span> --&gt; <span style="color:#67e8f9;">FAV[Zukuenftig persistierte Favoriten]</span>
+  <span style="color:#fcd34d;">ADM</span> --&gt; <span style="color:#f9a8d4;">DEV[Entwicklerbereich]</span></code></pre>
+
+Zusammenfassung des Diagramms:
+
+- das Login wandelt den oeffentlichen Benutzer in `USER` oder `ADMIN` um
+- der `USER` gelangt in den Profilfluss und spaeter zu persistierten Favoriten
+- der `ADMIN` erhaelt Zugriff auf interne, vom oeffentlichen Fluss getrennte Funktionen
+
+### 8.2 Funktionaler Standard-Login-Fluss
+
+<pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">flowchart TD</span>
+  <span style="color:#93c5fd;">A[Login-Seite oeffnen]</span> --&gt; <span style="color:#c4b5fd;">B[E-Mail und Passwort eingeben]</span>
+  <span style="color:#c4b5fd;">B</span> --&gt; <span style="color:#86efac;">C[Zugangsdaten validieren]</span>
+  <span style="color:#86efac;">C</span> --&gt; <span style="color:#67e8f9;">D[Sitzung erstellen]</span>
+  <span style="color:#67e8f9;">D</span> --&gt; <span style="color:#fcd34d;">E[Rolle und Profil laden]</span>
+  <span style="color:#fcd34d;">E</span> --&gt; <span style="color:#f9a8d4;">F[Je nach Kontext weiterleiten]</span></code></pre>
+
+Zusammenfassung des Diagramms:
+
+- der erste Schritt wird ein Standard-Login sein, nicht Social Login
+- das System validiert Zugangsdaten, oeffnet eine Sitzung und laedt Rolle und Profil
+- die Weiterleitung haengt vom Kontext und von der Rolle des Benutzers ab
+
+### 8.3 Funktionaler Profilpflege-Fluss
+
+<pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">flowchart TD</span>
+  <span style="color:#93c5fd;">A[Profil aufrufen]</span> --&gt; <span style="color:#c4b5fd;">B[Grunddaten bearbeiten]</span>
+  <span style="color:#c4b5fd;">B</span> --&gt; <span style="color:#86efac;">C[Foto hinzufuegen oder aendern]</span>
+  <span style="color:#86efac;">C</span> --&gt; <span style="color:#67e8f9;">D{Ist ein Foto vorhanden?}</span>
+  <span style="color:#67e8f9;">D</span> --&gt;|Nein| <span style="color:#fcd34d;">E[Placeholder NONE anzeigen]</span>
+  <span style="color:#67e8f9;">D</span> --&gt;|Ja| <span style="color:#fcd34d;">F[Profilfoto anzeigen]</span>
+  <span style="color:#fcd34d;">E</span> --&gt; <span style="color:#f9a8d4;">G[Aenderungen speichern]</span>
+  <span style="color:#fcd34d;">F</span> --&gt; <span style="color:#f9a8d4;">G</span></code></pre>
+
+Zusammenfassung des Diagramms:
+
+- das Profil umfasst Grunddatenpflege und Foto
+- wenn kein Foto vorhanden ist, zeigt die UI einen klaren, sichtbaren Placeholder
+- diese Basis erlaubt die UX-Validierung, bevor reale Persistenz angeschlossen wird
+
+### 8.4 Funktionaler Einwilligungsfluss
+
+<pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">flowchart TD</span>
+  <span style="color:#93c5fd;">A[Profil einfuegen oder aktualisieren]</span> --&gt; <span style="color:#c4b5fd;">B{Ist die Rolle ADMIN?}</span>
+  <span style="color:#c4b5fd;">B</span> --&gt;|Nein| <span style="color:#86efac;">C[LGPD/GDPR-Einwilligung anfordern]</span>
+  <span style="color:#c4b5fd;">B</span> --&gt;|Ja| <span style="color:#67e8f9;">D[Speichern ohne diesen Schritt erlauben]</span>
+  <span style="color:#86efac;">C</span> --&gt; <span style="color:#fcd34d;">E{Einwilligung akzeptiert?}</span>
+  <span style="color:#fcd34d;">E</span> --&gt;|Nein| <span style="color:#f9a8d4;">F[Fehler anzeigen und nicht speichern]</span>
+  <span style="color:#fcd34d;">E</span> --&gt;|Ja| <span style="color:#f9a8d4;">G[Daten speichern]</span>
+  <span style="color:#67e8f9;">D</span> --&gt; <span style="color:#f9a8d4;">G</span></code></pre>
+
+Zusammenfassung des Diagramms:
+
+- die Einwilligung ist als funktionaler Teil der Profilpflege geplant
+- `ADMIN` ist gemaess aktuellem Kriterium ausgenommen
+- alle anderen Benutzer koennen ohne gueltige Zustimmung nicht speichern
+
+### 8.5 Zukuenftiger funktionaler Social-Login-Fluss
+
+<pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">flowchart LR</span>
+  <span style="color:#93c5fd;">A[Oeffentlicher Benutzer]</span> --&gt; <span style="color:#c4b5fd;">B[Social Provider auswaehlen]</span>
+  <span style="color:#c4b5fd;">B</span> --&gt; <span style="color:#86efac;">G[Google]</span>
+  <span style="color:#c4b5fd;">B</span> --&gt; <span style="color:#86efac;">L[LinkedIn]</span>
+  <span style="color:#c4b5fd;">B</span> --&gt; <span style="color:#86efac;">F[Facebook]</span>
+  <span style="color:#c4b5fd;">B</span> --&gt; <span style="color:#86efac;">A2[Apple]</span>
+  <span style="color:#c4b5fd;">B</span> --&gt; <span style="color:#86efac;">M[Microsoft]</span>
+  <span style="color:#86efac;">G</span> --&gt; <span style="color:#67e8f9;">P[Erlaubte Profildaten uebernehmen]</span>
+  <span style="color:#86efac;">L</span> --&gt; <span style="color:#67e8f9;">P</span>
+  <span style="color:#86efac;">F</span> --&gt; <span style="color:#67e8f9;">P</span>
+  <span style="color:#86efac;">A2</span> --&gt; <span style="color:#67e8f9;">P</span>
+  <span style="color:#86efac;">M</span> --&gt; <span style="color:#67e8f9;">P</span>
+  <span style="color:#67e8f9;">P</span> --&gt; <span style="color:#fcd34d;">C[Noetige Einwilligungen einholen]</span>
+  <span style="color:#fcd34d;">C</span> --&gt; <span style="color:#f9a8d4;">D[Profil erstellen oder aktualisieren]</span></code></pre>
+
+Zusammenfassung des Diagramms:
+
+- Social Login ist vorgesehen, aber nicht der erste Implementierungsschritt
+- vor dem Erstellen oder Aktualisieren des Profils muessen Rechte und eingehende Daten kontrolliert werden
+- diese Ebene baut spaeter auf der Standard-Login-Basis auf
+## 9. Aktuelle Abnahmekriterien
 
 - man kann von `home` nach `places` navigieren
 - man kann nach Stadt, Typ, Haustier und Suche filtern
@@ -316,7 +434,7 @@ Hauptfluss:
 - das Dropdown `Hilfe` schliesst sich, wenn es soll
 - die responsive Basis bleibt funktionsfaehig
 
-## 9. Dokumentreferenzen
+## 10. Dokumentreferenzen
 
 Technisches Dokument:
 

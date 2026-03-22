@@ -1,0 +1,93 @@
+<main class="login-page">
+  <section class="login-page__panel">
+    <a class="login-page__brand" routerLink="/" aria-label="Tornar a la home de YepPet">
+      <img src="/images/logo.png" alt="YepPet" />
+    </a>
+
+    <app-section-heading
+      eyebrow="Accés"
+      title="Entra a YepPet i prepara el teu perfil pet-friendly."
+    />
+
+    <p class="login-page__copy">
+      Primera base d’autenticació de la fase II. Comença amb login estàndard i deixa el camí
+      preparat per Google, LinkedIn, Facebook, Apple o Microsoft més endavant.
+    </p>
+
+    <form class="login-form" [formGroup]="form" (ngSubmit)="submit()">
+      <label class="login-form__field">
+        <span>Email</span>
+        <input type="email" formControlName="email" placeholder="admin@admin.adm" />
+      </label>
+
+      <label class="login-form__field">
+        <span>Contrasenya</span>
+        <input type="password" formControlName="password" placeholder="Admin123" />
+      </label>
+
+      <button class="login-form__submit" type="submit">Iniciar sessió</button>
+    </form>
+
+    <section class="login-page__support">
+      <div>
+        <strong>Usuari de proves</strong>
+        <p>`user@user.com` / `Admin123`</p>
+      </div>
+      <div>
+        <strong>Administrador de proves</strong>
+        <p>`admin@admin.adm` / `Admin123`</p>
+      </div>
+      <div>
+        <strong>Necessites accés?</strong>
+        <p><a routerLink="/contacte">Demana usuari o recuperació de contrasenya</a></p>
+      </div>
+    </section>
+
+    <p class="login-page__privacy">
+      Base preparada per tractar consentiments LGPD/GDPR al manteniment de perfil. El login social
+      i la recollida de dades de proveïdors externs s’afegiran només amb permisos explícits.
+    </p>
+  </section>
+
+  <section class="login-page__experience" aria-label="Vista previa del producte">
+    <div class="login-page__experience-copy">
+      <strong>Cerca i mapa en una sola vista</strong>
+      <p>
+        La sessió et permetrà guardar favorits, mantenir perfil i preparar l’accés a capes
+        restringides. La UX es manté alineada amb la cerca real de `places`.
+      </p>
+    </div>
+
+    <div class="login-page__search-shell">
+      <a
+        [routerLink]="['/login']"
+        [queryParams]="{ redirectTo: loginPreviewRoute }"
+        aria-label="Buscar llocs a Barcelona"
+      >
+        Barcelona
+      </a>
+      <a
+        [routerLink]="['/login']"
+        [queryParams]="{ redirectTo: loginPreviewRoute }"
+        aria-label="Filtrar per hotel"
+      >
+        hotel
+      </a>
+      <a
+        [routerLink]="['/login']"
+        [queryParams]="{ redirectTo: loginPreviewRoute }"
+        aria-label="Filtrar per gossos"
+      >
+        gossos
+      </a>
+      <button type="button" (click)="goToPreviewSearch()">Buscar</button>
+    </div>
+
+    <app-place-map
+      [places]="samplePlaces()"
+      height="20rem"
+      emptyTitle="Sense ubicacions"
+      emptyCopy="Quan hi hagi dades, aquí apareixeran les primeres coincidències."
+    />
+  </section>
+</main>

@@ -27,6 +27,23 @@
       >
         Favorits
       </a>
+      @if (isAuthenticated()) {
+        <a
+          class="site-header__nav-link"
+          routerLink="/perfil"
+          routerLinkActive="site-header__nav-link--active"
+        >
+          Perfil
+        </a>
+      } @else {
+        <a
+          class="site-header__nav-link"
+          routerLink="/login"
+          routerLinkActive="site-header__nav-link--active"
+        >
+          Login
+        </a>
+      }
       <details class="site-header__dropdown" #helpDropdown>
         <summary class="site-header__nav-link">
           Ajuda
@@ -52,6 +69,14 @@
           </a>
         </div>
       </details>
+      @if (isAuthenticated()) {
+        <div class="site-header__session">
+          <span class="site-header__session-role">{{ currentUser()?.role }}</span>
+          <button type="button" class="site-header__session-logout" (click)="logout()">
+            Sortir
+          </button>
+        </div>
+      }
     </nav>
   </div>
 </header>

@@ -67,6 +67,12 @@
   font-weight: 700;
 }
 
+.places-page__active-filters-list .places-page__active-filters-empty {
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--yp-color-text-muted);
+  font-weight: 600;
+}
+
 .places-page__summary {
   display: flex;
   justify-content: space-between;

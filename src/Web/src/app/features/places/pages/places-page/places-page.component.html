@@ -31,20 +31,22 @@
     />
   </section>
 
-  @if (activeFilterLabels().length) {
-    <section class="places-page__active-filters" aria-label="Filtres actius">
-      <div class="places-page__active-filters-header">
-        <strong>Filtres escollits</strong>
-        <button type="button" (click)="clearAllFilters()">Netejar tots els filtres</button>
-      </div>
+  <section class="places-page__active-filters" aria-label="Filtres actius">
+    <div class="places-page__active-filters-header">
+      <strong>Filtres escollits</strong>
+      <button type="button" (click)="clearAllFilters()">Netejar tots els filtres</button>
+    </div>
 
-      <div class="places-page__active-filters-list">
+    <div class="places-page__active-filters-list">
+      @if (activeFilterLabels().length) {
         @for (label of activeFilterLabels(); track label) {
           <span>{{ label }}</span>
         }
-      </div>
-    </section>
-  }
+      } @else {
+        <span class="places-page__active-filters-empty">Cap filtre actiu</span>
+      }
+    </div>
+  </section>
 
   <section class="places-page__results">
     <div class="places-page__summary">

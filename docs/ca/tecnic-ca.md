@@ -519,15 +519,106 @@ src/Web/src/app/features/places/pages/place-detail-page/place-detail-page.compon
 - els llocs tenen coordenades simulades precises
 - la `home` no concentra la logica de resultats
 
-## 9. Punts pendents de refinament
+## 9. Capa base d'errors
+
+La fase II ja incorpora una base comuna per gestionar errors sense repetir logica a cada pantalla.
+
+Peces principals:
+
+- `errorInterceptor`
+- `ErrorNotificationsService`
+- `app-error-notifications`
+
+### 9.1 UML de la capa d'errors
+
+<pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">flowchart LR</span>
+  <span style="color:#93c5fd;">HTTP[HttpClient request]</span> --&gt; <span style="color:#fca5a5;">INT[errorInterceptor]</span>
+  <span style="color:#fca5a5;">INT</span> --&gt; <span style="color:#fcd34d;">SRV[ErrorNotificationsService]</span>
+  <span style="color:#fcd34d;">SRV</span> --&gt; <span style="color:#67e8f9;">UI[app-error-notifications]</span>
+  <span style="color:#67e8f9;">UI</span> --&gt; <span style="color:#c4b5fd;">USR[Usuari]</span></code></pre>
+
+Resum del diagrama:
+
+- qualsevol peticio HTTP pot passar per l'interceptor
+- quan hi ha error, l'interceptor delega el missatge al servei central
+- el servei manté l'estat de notificacions
+- la UI global les pinta sense que cada pagina hagi d'implementar la mateixa logica
+
+### 9.2 Interceptor HTTP
+
+L'interceptor es registra globalment a `app.config.ts` amb `provideHttpClient`:
+
+```ts
+provideHttpClient(withInterceptors([errorInterceptor]))
+```
+
+Responsabilitat:
+
+- capturar errors HTTP
+- delegar el tractament d'usuari al servei central
+- reemetre l'error per no amagar-lo a cap capa superior
+
+Ubicacio:
+
+- `src/Web/src/app/core/interceptors/error.interceptor.ts`
+
+### 9.3 Servei central de notificacions
+
+`ErrorNotificationsService` manté una llista reactiva de notificacions mitjançant `signal`.
+
+Responsabilitats:
+
+- traduir `HttpErrorResponse` a missatges entenedors
+- generar notificacions uniformes
+- tancar-les manualment o automaticament
+
+Alguns casos coberts:
+
+- sense connexio
+- `401`
+- `403`
+- `404`
+- errors `500+`
+- error inesperat generic
+
+Ubicacio:
+
+- `src/Web/src/app/core/services/error-notifications.service.ts`
+
+### 9.4 UI global d'errors
+
+La UI global es munta a nivell d'`app` i no depen de cap pagina concreta:
+
+```html
+<app-error-notifications />
+<router-outlet />
+```
+
+Aixo permet:
+
+- veure errors des de qualsevol pantalla
+- no repetir banners o toasts a `home`, `places` o `detail`
+- preparar l'entrada a backend real amb una estrategia comuna
+
+Fitxers implicats:
+
+- `src/Web/src/app/app.config.ts`
+- `src/Web/src/app/app.ts`
+- `src/Web/src/app/app.html`
+- `src/Web/src/app/core/interceptors/error.interceptor.ts`
+- `src/Web/src/app/core/services/error-notifications.service.ts`
+- `src/Web/src/app/core/layout/components/error-notifications/error-notifications.component.ts`
+- `src/Web/src/app/core/layout/components/error-notifications/error-notifications.component.html`
+- `src/Web/src/app/core/layout/components/error-notifications/error-notifications.component.scss`
+
+## 10. Punts pendents de refinament
 
 - millor UX de marcadors
 - popups mes bons
 - mes criteri quan hi hagi moltes dades
 - possible mode `llista / mapa / mixt`
-- capa base de gestio d'errors a fase II
 
-## 10. Referencia documental
+## 11. Referencia documental
 
 Document funcional:
 

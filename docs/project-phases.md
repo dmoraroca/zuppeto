@@ -113,11 +113,11 @@ Convertir la base funcional de la fase I en una aplicació frontend més complet
 - consolidar quins components compartits val la pena fixar definitivament
 - enriquir les dades simulades perquè siguin més realistes
 - preparar els serveis mock per substituir-los per API sense reescriure UI
-- introduir una capa base de gestió d'errors
-- afegir interceptor global per errors HTTP
-- afegir servei central d'errors o notificacions
-- definir una UI comuna per mostrar errors i missatges globals
-- reduir `try/catch` repetits als punts on el problema sigui transversal
+- **introduir una capa base de gestió d'errors**
+- **afegir interceptor global per errors HTTP**
+- **afegir servei central d'errors o notificacions**
+- **definir una UI comuna per mostrar errors i missatges globals**
+- **reduir `try/catch` repetits als punts on el problema sigui transversal**
 - revisar responsive fi de totes les pantalles
 - definir millor `Ajuda`, `Contacta'ns` i les pàgines informatives
 - afinar la navegació general perquè cada CTA tingui una funció clara
@@ -132,7 +132,7 @@ La fase II s'hauria de poder resumir en aquests blocs:
 4. `Home` més madura visualment
 5. Components compartits consolidats
 6. Mocks més rics i preparats per API
-7. Capa base de gestió d'errors
+7. **Capa base de gestió d'errors**
 8. Responsive i UX refinats
 
 ### Estat parcial de la fase II
@@ -145,6 +145,9 @@ Ara mateix, dins de la fase II, ja tenim avançat:
 - **reutilització del mateix mapa a `place detail`**
 - **millora del context de filtres actius i títols dinàmics a `places`**
 - **preview del `hero` més orientada a contingut destacat i no només a ciutats**
+- **interceptor HTTP global per capturar errors de backend**
+- **servei centralitzat de notificacions d'error**
+- **UI global de notificacions per mostrar errors sense repetir lògica a les pàgines**
 
 La resta de punts de la fase II continuen oberts fins que es marquin també en negreta.
 

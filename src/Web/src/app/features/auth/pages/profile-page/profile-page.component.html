@@ -1,0 +1,95 @@
+<app-site-header />
+
+<main class="profile-page">
+  <section class="profile-page__hero">
+    <app-section-heading
+      eyebrow="Perfil"
+      [title]="isAdmin() ? 'Perfil d’administració i accés intern.' : 'Perfil d’usuari i manteniment bàsic.'"
+    />
+    <p>
+      Base fake de fase II per validar sessió, rols, consentiments i manteniment de dades abans de
+      passar a backend real i login social.
+    </p>
+  </section>
+
+  <section class="profile-layout">
+    <aside class="profile-card">
+      <div class="profile-card__avatar">
+        @if (previewAvatarUrl()) {
+          <img [src]="previewAvatarUrl()" [alt]="user()?.name || 'Avatar de perfil'" />
+        } @else {
+          <div class="profile-card__avatar-placeholder" aria-label="Sense foto">
+            <span class="profile-card__avatar-none">NONE</span>
+          </div>
+        }
+      </div>
+
+      <div class="profile-card__meta">
+        <strong>{{ user()?.name }}</strong>
+        <span>{{ user()?.email }}</span>
+        <span class="profile-card__role">{{ user()?.role }}</span>
+      </div>
+
+      <p class="profile-card__copy">
+        @if (isAdmin()) {
+          Perfil intern sense exigència de consentiment en aquesta fase.
+        } @else {
+          Perfil estàndard amb consentiment obligatori per manteniment de dades segons criteri actual.
+        }
+      </p>
+
+      <button type="button" class="profile-card__logout" (click)="logout()">Tancar sessió</button>
+    </aside>
+
+    <section class="profile-form-shell">
+      <form class="profile-form" [formGroup]="form" (ngSubmit)="save()">
+        <label class="profile-form__field">
+          <span>Nom visible</span>
+          <input type="text" formControlName="name" />
+        </label>
+
+        <div class="profile-form__grid">
+          <label class="profile-form__field">
+            <span>Ciutat</span>
+            <input type="text" formControlName="city" />
+          </label>
+
+          <label class="profile-form__field">
+            <span>País</span>
+            <input type="text" formControlName="country" />
+          </label>
+        </div>
+
+        <label class="profile-form__field">
+          <span>URL de foto</span>
+          <input type="url" formControlName="avatarUrl" placeholder="https://..." />
+        </label>
+
+        <label class="profile-form__field">
+          <span>Bio</span>
+          <textarea rows="5" formControlName="bio"></textarea>
+        </label>
+
+        @if (!isAdmin()) {
+          <label class="profile-form__consent">
+            <input type="checkbox" formControlName="privacyAccepted" />
+            <span>
+              Accepto el tractament de les dades del meu perfil per a manteniment, actualitzacions i
+              insercions, d’acord amb el criteri LGPD/GDPR definit per YepPet.
+            </span>
+          </label>
+        } @else {
+          <p class="profile-form__admin-note">
+            L’usuari `ADMIN` queda exempt del consentiment funcional en aquesta fase.
+          </p>
+        }
+
+        <div class="profile-form__actions">
+          <button type="submit">Guardar canvis</button>
+        </div>
+      </form>
+    </section>
+  </section>
+</main>
+
+<app-site-footer />

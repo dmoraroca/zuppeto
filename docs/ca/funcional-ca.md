@@ -47,6 +47,11 @@ Actors previstos mes endavant:
 - `Usuari autenticat`
 - `Usuari amb permisos interns`
 
+Rols previstos per a la fase II:
+
+- `USER`
+- `ADMIN`
+
 ## 4. Domini funcional actual
 
 Elements principals:
@@ -306,7 +311,120 @@ Flux principal:
 - `permissions` no forma part del flux public principal
 - el preview del `hero` no ha d'escalar amb totes les ciutats; nomes ha de mostrar contingut destacat
 
-## 8. Criteris d'acceptacio actuals
+## 8. Extensio funcional prevista · Login i perfil
+
+La fase II incorporara una base funcional d'autenticacio i manteniment de perfil.
+No es planteja encara com a seguretat final de produccio, sino com a base de producte per:
+
+- separar usuari public i usuari autenticat
+- preparar favorits persistits
+- preparar permisos
+- preparar la futura area interna d'administracio
+
+Punts funcionals previstos:
+
+- login estandard amb email
+- rols `USER` i `ADMIN`
+- sessio d'usuari
+- logout
+- pagina de perfil
+- manteniment basic de perfil
+- foto de perfil opcional
+- placeholder si no hi ha foto
+- consentiments LGPD/GDPR en updates o insercions de perfil, excepte `ADMIN`
+- base preparada per login social posterior
+
+### 8.1 Actors i accessos de login
+
+<pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">flowchart LR</span>
+  <span style="color:#93c5fd;">PUB[[Usuari public]]</span>
+  <span style="color:#86efac;">USR[[USER]]</span>
+  <span style="color:#fcd34d;">ADM[[ADMIN]]</span>
+
+  <span style="color:#93c5fd;">PUB</span> --&gt; <span style="color:#c4b5fd;">LOGIN[Login estandard]</span>
+  <span style="color:#c4b5fd;">LOGIN</span> --&gt; <span style="color:#86efac;">PROFILE[Perfil]</span>
+  <span style="color:#86efac;">USR</span> --&gt; <span style="color:#86efac;">PROFILE</span>
+  <span style="color:#86efac;">USR</span> --&gt; <span style="color:#67e8f9;">FAV[Favorits persistits en futur]</span>
+  <span style="color:#fcd34d;">ADM</span> --&gt; <span style="color:#f9a8d4;">DEV[Area del desenvolupador]</span></code></pre>
+
+Resum del diagrama:
+
+- el login converteix l'usuari public en `USER` o `ADMIN`
+- el `USER` entra al flux de perfil i a futur als favorits persistits
+- l'`ADMIN` tindra acces a funcionalitats internes separades del flux public
+
+### 8.2 Flux funcional de login estandard
+
+<pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">flowchart TD</span>
+  <span style="color:#93c5fd;">A[Obrir pantalla de login]</span> --&gt; <span style="color:#c4b5fd;">B[Introduir email i password]</span>
+  <span style="color:#c4b5fd;">B</span> --&gt; <span style="color:#86efac;">C[Validar credencials]</span>
+  <span style="color:#86efac;">C</span> --&gt; <span style="color:#67e8f9;">D[Crear sessio]</span>
+  <span style="color:#67e8f9;">D</span> --&gt; <span style="color:#fcd34d;">E[Carregar rol i perfil]</span>
+  <span style="color:#fcd34d;">E</span> --&gt; <span style="color:#f9a8d4;">F[Redirigir segons context]</span></code></pre>
+
+Resum del diagrama:
+
+- el primer pas sera un login estandard, no social
+- el sistema validara credencials, obrira sessio i carregara rol i perfil
+- la redireccio dependra del context i del rol de l'usuari
+
+### 8.3 Flux funcional de manteniment de perfil
+
+<pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">flowchart TD</span>
+  <span style="color:#93c5fd;">A[Entrar al perfil]</span> --&gt; <span style="color:#c4b5fd;">B[Editar dades basiques]</span>
+  <span style="color:#c4b5fd;">B</span> --&gt; <span style="color:#86efac;">C[Afegir o canviar foto]</span>
+  <span style="color:#86efac;">C</span> --&gt; <span style="color:#67e8f9;">D{Hi ha foto?}</span>
+  <span style="color:#67e8f9;">D</span> --&gt;|No| <span style="color:#fcd34d;">E[Mostrar placeholder NONE]</span>
+  <span style="color:#67e8f9;">D</span> --&gt;|Si| <span style="color:#fcd34d;">F[Mostrar foto de perfil]</span>
+  <span style="color:#fcd34d;">E</span> --&gt; <span style="color:#f9a8d4;">G[Guardar canvis]</span>
+  <span style="color:#fcd34d;">F</span> --&gt; <span style="color:#f9a8d4;">G</span></code></pre>
+
+Resum del diagrama:
+
+- el perfil incloura manteniment basic de dades i foto
+- si no hi ha foto, la UI mostrara un placeholder clar i visible
+- aquesta base permet validar UX abans de connectar persistencia real
+
+### 8.4 Flux funcional de consentiment
+
+<pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">flowchart TD</span>
+  <span style="color:#93c5fd;">A[Inserir o actualitzar perfil]</span> --&gt; <span style="color:#c4b5fd;">B{Rol ADMIN?}</span>
+  <span style="color:#c4b5fd;">B</span> --&gt;|No| <span style="color:#86efac;">C[Demanar consentiment LGPD/GDPR]</span>
+  <span style="color:#c4b5fd;">B</span> --&gt;|Si| <span style="color:#67e8f9;">D[Permetre guardar sense aquest pas]</span>
+  <span style="color:#86efac;">C</span> --&gt; <span style="color:#fcd34d;">E{Consentiment acceptat?}</span>
+  <span style="color:#fcd34d;">E</span> --&gt;|No| <span style="color:#f9a8d4;">F[Mostrar error i no guardar]</span>
+  <span style="color:#fcd34d;">E</span> --&gt;|Si| <span style="color:#f9a8d4;">G[Guardar dades]</span>
+  <span style="color:#67e8f9;">D</span> --&gt; <span style="color:#f9a8d4;">G</span></code></pre>
+
+Resum del diagrama:
+
+- el consentiment es planteja com a part funcional del manteniment de perfil
+- `ADMIN` queda exempt segons el criteri actual acordat
+- la resta d'usuaris no podran desar canvis sense acceptacio valida
+
+### 8.5 Flux funcional futur de login social
+
+<pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">flowchart LR</span>
+  <span style="color:#93c5fd;">A[Usuari public]</span> --&gt; <span style="color:#c4b5fd;">B[Escollir proveidor social]</span>
+  <span style="color:#c4b5fd;">B</span> --&gt; <span style="color:#86efac;">G[Google]</span>
+  <span style="color:#c4b5fd;">B</span> --&gt; <span style="color:#86efac;">L[LinkedIn]</span>
+  <span style="color:#c4b5fd;">B</span> --&gt; <span style="color:#86efac;">F[Facebook]</span>
+  <span style="color:#c4b5fd;">B</span> --&gt; <span style="color:#86efac;">A2[Apple]</span>
+  <span style="color:#c4b5fd;">B</span> --&gt; <span style="color:#86efac;">M[Microsoft]</span>
+  <span style="color:#86efac;">G</span> --&gt; <span style="color:#67e8f9;">P[Recollir dades permeses]</span>
+  <span style="color:#86efac;">L</span> --&gt; <span style="color:#67e8f9;">P</span>
+  <span style="color:#86efac;">F</span> --&gt; <span style="color:#67e8f9;">P</span>
+  <span style="color:#86efac;">A2</span> --&gt; <span style="color:#67e8f9;">P</span>
+  <span style="color:#86efac;">M</span> --&gt; <span style="color:#67e8f9;">P</span>
+  <span style="color:#67e8f9;">P</span> --&gt; <span style="color:#fcd34d;">C[Demana consentiments necessaris]</span>
+  <span style="color:#fcd34d;">C</span> --&gt; <span style="color:#f9a8d4;">D[Crear o actualitzar perfil]</span></code></pre>
+
+Resum del diagrama:
+
+- el login social queda previst, pero no es el primer pas d'implementacio
+- abans de crear o actualitzar perfil s'hauran de controlar permisos i dades rebudes del proveidor
+- aquesta capa encaixara despres sobre la base del login estandard
+## 9. Criteris d'acceptacio actuals
 
 - es pot navegar de `home` a `places`
 - es pot filtrar per ciutat, tipus, mascota i cerca
@@ -316,7 +434,7 @@ Flux principal:
 - el desplegable `Ajuda` es tanca quan toca
 - la base responsive es manté funcional
 
-## 9. Referencia documental
+## 10. Referencia documental
 
 Document tecnic:
 

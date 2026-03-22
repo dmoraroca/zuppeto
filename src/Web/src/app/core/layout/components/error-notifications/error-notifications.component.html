@@ -1,0 +1,21 @@
+@if (errorNotifications.notifications().length) {
+  <aside class="error-notifications" aria-live="assertive" aria-label="Notificacions d'error">
+    @for (notification of errorNotifications.notifications(); track notification.id) {
+      <article class="error-notifications__item">
+        <div class="error-notifications__copy">
+          <strong>{{ notification.title }}</strong>
+          <p>{{ notification.message }}</p>
+        </div>
+
+        <button
+          type="button"
+          class="error-notifications__close"
+          (click)="errorNotifications.dismiss(notification.id)"
+          aria-label="Tancar notificació"
+        >
+          Tancar
+        </button>
+      </article>
+    }
+  </aside>
+}
