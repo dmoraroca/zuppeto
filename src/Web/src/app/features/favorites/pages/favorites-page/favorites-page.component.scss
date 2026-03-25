@@ -2,6 +2,8 @@
   max-width: var(--yp-max-width);
   margin: 0 auto;
   padding: 2rem 1.5rem 4rem;
+  display: grid;
+  gap: 1.5rem;
 }
 
 .favorites-page__hero {
@@ -86,8 +88,79 @@
   cursor: pointer;
 }
 
+.favorites-page__review,
+.favorites-page__empty {
+  padding: 1.5rem;
+  border-radius: 1.4rem;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(209, 213, 219, 0.75);
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.06);
+}
+
+.favorites-page__review {
+  display: grid;
+  gap: 1rem;
+}
+
+.favorites-page__review-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.favorites-page__review-header h2,
+.favorites-page__review-header p {
+  margin: 0;
+}
+
+.favorites-page__review-header h2 {
+  margin-top: 0.45rem;
+  font-size: clamp(1.2rem, 2.2vw, 1.7rem);
+}
+
+.favorites-page__review-meta {
+  text-align: right;
+}
+
+.favorites-page__review-meta strong {
+  display: block;
+  font-size: clamp(1.6rem, 2.8vw, 2.1rem);
+}
+
+.favorites-page__review-meta span {
+  color: var(--yp-color-text-muted);
+}
+
+.favorites-page__review-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 0.8fr));
+  gap: 1rem;
+}
+
+.favorites-page__review-field {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.favorites-page__review-field span {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--yp-color-text-muted);
+}
+
+.favorites-page__review-field input,
+.favorites-page__review-field select {
+  width: 100%;
+  min-height: 3rem;
+  padding: 0.8rem 0.95rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(148, 163, 184, 0.38);
+  background: rgba(248, 250, 252, 0.92);
+  color: var(--yp-color-text);
+}
+
 .favorites-page__spotlight {
-  margin-top: 1.5rem;
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(16rem, 0.8fr);
   gap: 1.5rem;
@@ -123,17 +196,13 @@
 }
 
 .favorites-page__grid {
-  margin-top: 1.5rem;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1rem;
 }
 
 .favorites-page__empty {
-  padding: 1.5rem;
-  border-radius: 1.4rem;
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(209, 213, 219, 0.75);
+  grid-column: 1 / -1;
 }
 
 .favorites-page__empty h3,
@@ -153,9 +222,25 @@
   font-weight: 800;
 }
 
+.favorites-page__empty-button {
+  margin-top: 1rem;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  background: transparent;
+  color: var(--yp-color-primary-dark);
+  font-weight: 800;
+  border-radius: 999px;
+  min-height: 2.9rem;
+  padding: 0.85rem 1.2rem;
+  cursor: pointer;
+}
+
 @media (max-width: 1100px) {
   .favorites-page__summary,
   .favorites-page__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .favorites-page__review-controls {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -170,11 +255,20 @@
   }
 
   .favorites-page__summary,
-  .favorites-page__grid {
+  .favorites-page__grid,
+  .favorites-page__review-controls {
     grid-template-columns: 1fr;
   }
 
   .favorites-page__actions {
     flex-direction: column;
+  }
+
+  .favorites-page__review-header {
+    flex-direction: column;
+  }
+
+  .favorites-page__review-meta {
+    text-align: left;
   }
 }

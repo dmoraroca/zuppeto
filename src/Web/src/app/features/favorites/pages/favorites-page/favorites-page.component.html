@@ -37,6 +37,71 @@
     }
   </section>
 
+  @if (allPlaces().length) {
+    <section class="favorites-page__review">
+      <div class="favorites-page__review-header">
+        <div>
+          <p class="favorites-page__summary-label">Revisar millor el que ja tens</p>
+          <h2>Filtra, ordena i reprèn la cerca sense tornar a començar</h2>
+        </div>
+
+        <div class="favorites-page__review-meta">
+          <strong>{{ visibleCount() }}</strong>
+          <span>de {{ favoritesCount() }} visibles</span>
+        </div>
+      </div>
+
+      <div class="favorites-page__review-controls">
+        <label class="favorites-page__review-field">
+          <span>Cerca dins favorits</span>
+          <input
+            type="search"
+            [ngModel]="reviewFilters().search"
+            (ngModelChange)="updateReviewSearch($event)"
+            placeholder="Nom, ciutat o etiqueta"
+          />
+        </label>
+
+        <label class="favorites-page__review-field">
+          <span>Ciutat</span>
+          <select [ngModel]="reviewFilters().city" (ngModelChange)="updateReviewCity($event)">
+            <option value="">Totes</option>
+            @for (city of favoriteCities(); track city) {
+              <option [value]="city">{{ city }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="favorites-page__review-field">
+          <span>Tipologia</span>
+          <select [ngModel]="reviewFilters().type" (ngModelChange)="updateReviewType($event)">
+            <option value="">Totes</option>
+            @for (type of reviewTypeOptions(); track type.value) {
+              <option [value]="type.value">{{ type.label }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="favorites-page__review-field">
+          <span>Ordre</span>
+          <select [ngModel]="reviewFilters().sort" (ngModelChange)="updateReviewSort($event)">
+            <option value="recent">Més recents primer</option>
+            <option value="rating">Millor valorats primer</option>
+            <option value="name">Nom A-Z</option>
+          </select>
+        </label>
+      </div>
+
+      @if (hasReviewFilters()) {
+        <div class="favorites-page__actions">
+          <button type="button" class="favorites-page__ghost-button" (click)="resetReviewFilters()">
+            Restablir revisió
+          </button>
+        </div>
+      }
+    </section>
+  }
+
   @if (latestFavorite(); as latestPlace) {
     <section class="favorites-page__spotlight">
       <div class="favorites-page__spotlight-copy">
@@ -68,14 +133,27 @@
         (favoriteToggled)="toggleFavorite($event)"
       />
     } @empty {
-      <article class="favorites-page__empty">
-        <h3>Encara no tens favorits.</h3>
-        <p>
-          Comença des de Llocs, guarda hotels, restaurants o serveis, i quan tornis aquí ja tindràs
-          un resum més útil del que t'interessa.
-        </p>
-        <a routerLink="/places">Explorar llocs</a>
-      </article>
+      @if (allPlaces().length) {
+        <article class="favorites-page__empty">
+          <h3>No tens cap favorit que encaixi amb aquesta revisió.</h3>
+          <p>
+            Ajusta la cerca, canvia ciutat o tipologia, o restableix els filtres per recuperar els
+            llocs que ja havies guardat.
+          </p>
+          <button type="button" class="favorites-page__empty-button" (click)="resetReviewFilters()">
+            Restablir revisió
+          </button>
+        </article>
+      } @else {
+        <article class="favorites-page__empty">
+          <h3>Encara no tens favorits.</h3>
+          <p>
+            Comença des de Llocs, guarda hotels, restaurants o serveis, i quan tornis aquí ja
+            tindràs un resum més útil del que t'interessa.
+          </p>
+          <a routerLink="/places">Explorar llocs</a>
+        </article>
+      }
     }
   </section>
 </main>

@@ -106,7 +106,7 @@ Convertir la base funcional de la fase I en una aplicació frontend més complet
 - **decidir si `places` treballarà amb `llista`, `mapa` o mode mixt**
 - **refinar la UX de marcadors, popups i selecció al mapa**
 - decidir com escalar la vista mapa quan hi hagi més densitat de dades
-- refinar `favorites` perquè el flux de guardar i revisar llocs sigui més natural
+- **refinar `favorites` perquè el flux de guardar i revisar llocs sigui més natural**
 - **millorar el `place detail` amb millor jerarquia i més context**
 - **revisar empty states, filtres actius i textos de suport**
 - polir les seccions de la `home` que ara són correctes però encara provisionals
@@ -158,6 +158,7 @@ Ara mateix, dins de la fase II, ja tenim avançat:
 - **pàgina de `Perfil` fake amb manteniment bàsic de dades**
 - **consentiment LGPD/GDPR obligatori per `USER` al manteniment de perfil**
 - **visibilitat i accés de `Del desenvolupador` només per `ADMIN`**
+- **revisió de `favorites` més natural amb resum, guardat recent, filtres locals i ordenació per reprendre la cerca sense tornar a començar**
 - **interceptor HTTP global per capturar errors de backend**
 - **servei centralitzat de notificacions d'error**
 - **UI global de notificacions per mostrar errors sense repetir lògica a les pàgines**
