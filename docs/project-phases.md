@@ -103,7 +103,7 @@ Convertir la base funcional de la fase I en una aplicació frontend més complet
 - **consolidar la feature `places` amb una UX de cerca més rica**
 - **polir la vista mapa ja existent a `places`**
 - **millorar la sincronització entre mapa, filtres i resultats**
-- decidir si `places` treballarà amb `llista`, `mapa` o mode mixt
+- **decidir si `places` treballarà amb `llista`, `mapa` o mode mixt**
 - **refinar la UX de marcadors, popups i selecció al mapa**
 - decidir com escalar la vista mapa quan hi hagi més densitat de dades
 - refinar `favorites` perquè el flux de guardar i revisar llocs sigui més natural
@@ -144,6 +144,7 @@ Ara mateix, dins de la fase II, ja tenim avançat:
 - **coordenades simulades precises als `Place`**
 - **reutilització del mateix mapa a `place detail`**
 - **millora del context de filtres actius i títols dinàmics a `places`**
+- **decisió de producte fixada: `places` treballa en mode mixt amb mapa sota filtres i llistat sincronitzat com a base principal de comparació**
 - **poliment real de la UX del mapa a `places`**
 - **selecció de marcador amb resum contextual del lloc**
 - **accions de mapa per veure tots els resultats o treure la selecció**

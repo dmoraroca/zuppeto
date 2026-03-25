@@ -165,7 +165,7 @@ Resum del diagrama:
 
 - descriu el recorregut principal del producte en l'estat actual
 - la `home` actua com a porta d'entrada cap a `places`
-- `places` es el nucli funcional on conviuen filtres, mapa i llistat
+- `places` es el nucli funcional on conviuen filtres, mapa i llistat en mode mixt
 - des del detall es pot completar l'accio funcional de guardar llocs
 
 ### 5.6 Flux funcional de filtres i mapa
@@ -182,7 +182,7 @@ Resum del diagrama:
 
 - mostra com un canvi de filtre impacta tota la pantalla `places`
 - els query params son la font funcional de l'estat actual de la cerca
-- el mapa i el llistat no van separats: responen al mateix conjunt de filtres
+- el mapa i el llistat no van separats: responen al mateix conjunt de filtres dins un mode mixt
 
 ### 5.7 Flux funcional de favorits
 

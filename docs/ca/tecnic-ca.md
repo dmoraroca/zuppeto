@@ -774,7 +774,7 @@ Fitxers implicats:
 - millor UX de marcadors
 - popups mes bons
 - mes criteri quan hi hagi moltes dades
-- possible mode `llista / mapa / mixt`
+- mode mixt ja fixat: mapa sota filtres i llistat sincronitzat com a patró estable de `places`
 
 ## 11. Referencia documental
 

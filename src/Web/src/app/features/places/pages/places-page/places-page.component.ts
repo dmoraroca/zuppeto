@@ -131,10 +131,10 @@ export class PlacesPageComponent {
     }
 
     if (details.length === 0) {
-      return 'Llistat funcional de la fase I amb filtres, cerca i navegació cap al detall de cada lloc.';
+      return 'Mode mixt validat: filtres, mapa i llistat conviuen a la mateixa pantalla per descobrir i comparar llocs sense canviar de vista.';
     }
 
-    return `Vista filtrada amb dades simulades per situar-te millor: ${details.join(' · ')}.`;
+    return `Mode mixt actiu amb dades simulades: ${details.join(' · ')}. El mapa dona context i la llista facilita comparar i obrir el detall.`;
   });
 
   protected updateFilters(partial: Partial<PlaceFilters>): void {
