@@ -1,0 +1,12 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"FSharp.suggestGitignore": false,
+		"chat.agent.enabled": false,
+		"chat.agent.codeBlockProgress": false
+	}
+}

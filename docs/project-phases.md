@@ -29,6 +29,7 @@ YepPet ha de créixer com una plataforma pet-friendly per descobrir llocs, estad
 - Si no queden punts objectiu pendents dins d'una fase, la fase es considera acabada
 - La Fase III s'ha de construir amb `DDD` com a base arquitectònica
 - El disseny i la implementació han de seguir `SOLID` de manera estricta
+- L'ordre de treball de la Fase III és: tancar el model de domini, després contractes i necessitats de persistència, després model relacional a `PostgreSQL`, `Entity Framework`, mapatges, migracions i connexió amb l'API
 - Es prioritzaran patrons de disseny quan aportin mantenibilitat, claredat i facilitat d'evolució
 - Si apareix una solució més moderna, més simple o tecnològicament millor, s'ha de plantejar abans d'implementar-la
 
@@ -197,11 +198,12 @@ Passar de frontend mock-first a un sistema real amb backend i base de dades.
 
 ### Què entra dins la fase III
 
-- disseny del model de domini real (**PENDENT**)
+- disseny del model de domini real (**EN CURS**)
+- contractes de repositori i necessitats de persistència (**PENDENT**)
+- model relacional a `PostgreSQL` (**PENDENT**)
 - persistència amb `Entity Framework` última versió (**PENDENT**)
-- configuració de mapatge i repositoris (**PENDENT**)
+- configuració de mapatge, migracions i repositoris (**PENDENT**)
 - backend `.NET` (**PENDENT**)
-- PostgreSQL (**PENDENT**)
 - API per `places`, `favorites`, `users`, `reviews` (**PENDENT**)
 - substitució progressiva de serveis mock per serveis reals (**PENDENT**)
 

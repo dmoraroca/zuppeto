@@ -22,6 +22,7 @@ Aquest document funcional es llegeix conjuntament amb `project-phases.md`, que f
 - els punts en negreta dins de cada fase compten com a fets o consolidats
 - una fase es considera acabada quan no queden punts objectiu pendents
 - la Fase III s'ha de fer amb `DDD`, `SOLID` estricte i patrons de disseny orientats a mantenibilitat
+- l'ordre de la Fase III ha de ser: tancar el model de domini, després contractes i persistència, després model relacional a `PostgreSQL`, `Entity Framework`, mapatges, migracions i API
 - si hi ha una opcio mes moderna, mes simple o tecnologicament millor, s'ha de proposar abans d'implementar-la
 
 ## 2. Eines i tecnologia previstes
