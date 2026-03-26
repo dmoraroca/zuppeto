@@ -11,6 +11,7 @@ export interface Place {
   name: string;
   city: string;
   country: string;
+  neighborhood: string;
   type: PlaceType;
   shortDescription: string;
   description: string;
@@ -18,6 +19,9 @@ export interface Place {
   acceptsDogs: boolean;
   acceptsCats: boolean;
   rating: number;
+  reviewCount: number;
+  priceLabel: string;
+  petPolicyLabel: string;
   tags: string[];
   address: string;
   petNotes: string;

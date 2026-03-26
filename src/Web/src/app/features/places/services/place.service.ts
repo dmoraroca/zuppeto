@@ -22,7 +22,7 @@ export class PlaceService {
     return PLACES_FAKE.filter((place) => {
       const matchesSearch =
         search.length === 0 ||
-        [place.name, place.city, place.shortDescription, ...place.tags]
+        [place.name, place.city, place.neighborhood, place.shortDescription, ...place.tags]
           .join(' ')
           .toLowerCase()
           .includes(search);

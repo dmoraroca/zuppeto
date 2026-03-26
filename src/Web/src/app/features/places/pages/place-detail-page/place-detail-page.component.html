@@ -15,7 +15,8 @@
 
       <div class="place-detail-page__hero-content">
         <p class="place-detail-page__eyebrow">
-          {{ getTypeLabel(selectedPlace.type) }} · {{ selectedPlace.city }}, {{ selectedPlace.country }}
+          {{ getTypeLabel(selectedPlace.type) }} · {{ selectedPlace.city }}, {{ selectedPlace.country }} ·
+          {{ selectedPlace.neighborhood }}
         </p>
         <h1>{{ selectedPlace.name }}</h1>
         <p class="place-detail-page__copy">{{ selectedPlace.description }}</p>
@@ -23,15 +24,15 @@
         <div class="place-detail-page__hero-metrics">
           <article>
             <span>Valoració</span>
-            <strong>{{ selectedPlace.rating }}</strong>
+            <strong>{{ selectedPlace.rating }} · {{ selectedPlace.reviewCount }}</strong>
           </article>
           <article>
             <span>Compatibilitat</span>
             <strong>{{ petAccessLabel() }}</strong>
           </article>
           <article>
-            <span>Ubicació</span>
-            <strong>{{ selectedPlace.city }}</strong>
+            <span>Preu orientatiu</span>
+            <strong>{{ selectedPlace.priceLabel }}</strong>
           </article>
         </div>
 
@@ -57,7 +58,10 @@
       <article class="place-detail-page__card">
         <h2>Abans d'anar-hi</h2>
         <p><strong>Adreça:</strong> {{ selectedPlace.address }}</p>
-        <p><strong>Valoració:</strong> {{ selectedPlace.rating }}</p>
+        <p><strong>Barri:</strong> {{ selectedPlace.neighborhood }}</p>
+        <p><strong>Valoració:</strong> {{ selectedPlace.rating }} ({{ selectedPlace.reviewCount }} ressenyes)</p>
+        <p><strong>Preu orientatiu:</strong> {{ selectedPlace.priceLabel }}</p>
+        <p><strong>Política pet:</strong> {{ selectedPlace.petPolicyLabel }}</p>
         <p><strong>Notes per mascotes:</strong> {{ selectedPlace.petNotes }}</p>
       </article>
 

@@ -110,8 +110,8 @@ Convertir la base funcional de la fase I en una aplicació frontend més complet
 - **millorar el `place detail` amb millor jerarquia i més context**
 - **revisar empty states, filtres actius i textos de suport**
 - **polir les seccions de la `home` que ara són correctes però encara provisionals**
-- consolidar quins components compartits val la pena fixar definitivament
-- enriquir les dades simulades perquè siguin més realistes
+- **consolidar quins components compartits val la pena fixar definitivament**
+- **enriquir les dades simulades perquè siguin més realistes**
 - preparar els serveis mock per substituir-los per API sense reescriure UI
 - **introduir una capa base de gestió d'errors**
 - **afegir interceptor global per errors HTTP**
@@ -152,6 +152,8 @@ Ara mateix, dins de la fase II, ja tenim avançat:
 - **header corregit perquè el mapa no el sobreposi en scroll**
 - **preview del `hero` més orientada a contingut destacat i no només a ciutats**
 - **`home` polida amb millor direcció de producte: hero menys provisional, bloc de recorregut funcional, ciutats amb CTA més clar i tancament orientat a `places` i `favorites`**
+- **catàleg de compartits fixat definitivament: `app-section-heading`, `app-generic-info-card`, `app-favorite-toggle-button`, `app-place-card`, `app-place-map` i `app-error-notifications`**
+- **mocks de `places` enriquits amb barri, volum de ressenyes, preu orientatiu i política pet per fer més creïbles el llistat i el detall**
 - **login fake amb email i password**
 - **rols `USER` i `ADMIN` ja operatius**
 - **sessió fake mantinguda amb redirecció automàtica a `login`**

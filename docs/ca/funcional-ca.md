@@ -11,6 +11,7 @@ El focus funcional actual es:
 - navegacio clara entre portada, resultats, detall i favorits
 - filtratge per ciutat, tipus, mascota i text de cerca
 - suport de mapa dins la feature `places` en mode mixt amb llistat sincronitzat
+- dades simulades més riques per entendre millor context, preu i política pet
 - autenticacio fake amb redireccio i manteniment de sessio
 - perfil fake amb consentiment de manteniment de dades
 - ajuda i contacte com a capes informatives
@@ -231,6 +232,7 @@ Resum del diagrama:
 - resumeix el domini funcional visible ara mateix
 - `Place` es la unitat principal del producte
 - la ciutat contextualitza els resultats, els favorits els guarden i els filtres els restringeixen
+- cada lloc fake incorpora prou context per ser més creïble: barri, volum de ressenyes, preu orientatiu i política pet
 
 ## 6. Cataleg resumit de casos d'us
 
@@ -349,6 +351,8 @@ Flux principal:
 - els filtres escollits han de quedar visibles
 - el mateix lloc pot aparèixer al llistat, al detall, a favorits i al mapa
 - `favorites` ha de permetre reprendre la revisio sense tornar a `places`
+- el cataleg de compartits fixat actualment es: `app-section-heading`, `app-generic-info-card`, `app-favorite-toggle-button`, `app-place-card`, `app-place-map` i `app-error-notifications`
+- el llistat i el detall han de mostrar prou context fake per ajudar a decidir sense backend real
 - `permissions` no forma part del flux public principal
 - el preview del `hero` no ha d'escalar amb totes les ciutats; nomes ha de mostrar contingut destacat
 - si no hi ha sessio, les rutes protegides redirigeixen a `Login`

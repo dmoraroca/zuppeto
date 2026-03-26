@@ -10,12 +10,15 @@
 
     <div class="place-card__meta">
       <span class="place-card__type">{{ typeLabel() }}</span>
-      <span class="place-card__rating">{{ place().rating }}</span>
+      <span class="place-card__rating">{{ place().rating }} · {{ place().reviewCount }} ressenyes</span>
     </div>
 
     <a class="place-card__title" [routerLink]="['/places', place().id]">{{ place().name }}</a>
-    <p class="place-card__location">{{ place().city }}, {{ place().country }}</p>
+    <p class="place-card__location">
+      {{ place().city }}, {{ place().country }} · {{ place().neighborhood }}
+    </p>
     <p class="place-card__copy">{{ place().shortDescription }}</p>
+    <p class="place-card__location">{{ place().priceLabel }} · {{ place().petPolicyLabel }}</p>
 
     <div class="place-card__tags">
       @for (tag of place().tags; track tag) {

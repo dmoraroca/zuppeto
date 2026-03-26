@@ -92,6 +92,22 @@ Els components compartits que ja considerem reutilitzables de veritat son:
 - `app-place-map`
 - `app-error-notifications`
 
+Criteri de consolidacio:
+
+- es reutilitzen a mes d'una `feature` o resolen una necessitat transversal real
+- tenen una API prou estable per no dependre d'una sola pagina
+- el valor compartit compensa mantenir-los fora de la `feature`
+
+No consolidem de moment com a compartits:
+
+- `home-hero-section`
+- `trending-cities-section`
+- `why-yeppet-section`
+- `place-filters`
+- `favorites-page`
+
+Aquests continuen sent especifics de la seva `feature` fins que aparegui una necessitat clara de reutilitzacio.
+
 ## 4. UML tecnic
 
 ### 4.1 Components i relacions
@@ -182,6 +198,7 @@ Resum del diagrama:
 - aquest model ja cobreix llistat, detall, favorits i mapa
 - `PlaceCoordinates` permet representar el lloc sobre el mapa
 - `PlaceFilters` defineix el contracte actual de filtratge
+- els mocks actuals ja inclouen context de barri, ressenyes, preu i política pet
 
 ### 4.3 UML del mapa
 
@@ -302,6 +319,7 @@ Responsabilitats:
 - exposar ciutats disponibles
 - exposar tipus disponibles
 - construir etiquetes de tipus
+- filtrar també per context textual enriquit com el barri
 
 Font de dades:
 
@@ -464,7 +482,7 @@ Ubicacio:
 
 ### 7.3 Extensio del model `Place`
 
-El model de `Place` es va ampliar per incloure coordenades:
+El model de `Place` es va ampliar per incloure coordenades i context fake mes creible:
 
 ```ts
 export interface PlaceCoordinates {
@@ -477,6 +495,7 @@ export interface Place {
   name: string;
   city: string;
   country: string;
+  neighborhood: string;
   type: PlaceType;
   shortDescription: string;
   description: string;
@@ -484,6 +503,9 @@ export interface Place {
   acceptsDogs: boolean;
   acceptsCats: boolean;
   rating: number;
+  reviewCount: number;
+  priceLabel: string;
+  petPolicyLabel: string;
   tags: string[];
   address: string;
   petNotes: string;
@@ -498,7 +520,7 @@ Ubicacio:
 
 ### 7.4 Coordenades als mocks
 
-Cada `Place` fake incorpora coordenades precises:
+Cada `Place` fake incorpora coordenades precises i mes context funcional:
 
 ```ts
 coordinates: {
@@ -506,6 +528,13 @@ coordinates: {
   lng: 2.191987
 }
 ```
+
+També hi afegim:
+
+- `neighborhood`
+- `reviewCount`
+- `priceLabel`
+- `petPolicyLabel`
 
 Decisio:
 
