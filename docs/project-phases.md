@@ -200,9 +200,9 @@ Passar de frontend mock-first a un sistema real amb backend i base de dades.
 
 - disseny del model de domini real (**FET**)
 - contractes de repositori i necessitats de persistència (**FET**)
-- model relacional a `PostgreSQL` (**EN CURS**)
-- persistència amb `Entity Framework` última versió (**PENDENT**)
-- configuració de mapatge, migracions i repositoris (**PENDENT**)
+- model relacional a `PostgreSQL` (**FET**)
+- persistència amb `Entity Framework` última versió (**FET**)
+- configuració de mapatge, migracions i repositoris (**EN CURS**)
 - backend `.NET` (**PENDENT**)
 - API per `places`, `favorites`, `users`, `reviews` (**PENDENT**)
 - substitució progressiva de serveis mock per serveis reals (**PENDENT**)
@@ -210,6 +210,41 @@ Passar de frontend mock-first a un sistema real amb backend i base de dades.
 ### Resultat esperat
 
 YepPet deixa de ser una simulació i passa a tenir dades persistides i fluxos reals (**PENDENT**).
+
+### Estat actual del punt tancat
+
+El punt `model relacional a PostgreSQL` queda tancat amb:
+
+- model relacional consolidat a `database-model-ca.md`
+- diagrama relacional ampliat per `users`, `places`, `favorite_lists`, `favorite_entries`, `place_reviews`, `tags`, `features`, `place_tags`, `place_features` i `privacy_consent_events`
+- decisio presa: `tags` i `features` es normalitzen en taules propies i taules d'unio
+- decisio presa: `rating_average` i `review_count` es mantenen a `places` com a snapshot optimitzat, derivat de `place_reviews`
+- decisio presa: el consentiment es manté en estat actual a `users` i amb historial a `privacy_consent_events`
+- base de dades de desenvolupament operativa amb `Docker` i `PostgreSQL`
+- coexistencia resolta amb altres projectes locals fent servir el port extern `5433` per `yepppet`
+- `docker-compose.yml` al repo per poder aixecar la BBDD local sense dependències manuals
+
+### Estat actual del punt tancat
+
+El punt `persistència amb Entity Framework` queda tancat amb:
+
+- base de dades local `yeppet` aixecada en `Docker` a `localhost:5433`
+- `dotnet-ef` 10 configurat localment al repo via `dotnet-tools.json`
+- projecte `Infrastructure` connectat a `Entity Framework Core`
+- `YepPetDbContext` creat com a peça central de persistència
+- models de persistència separats del domini creats a `Infrastructure/Persistence/Entities`
+- configuracions EF creades a `Infrastructure/Persistence/Configurations`
+- `Api` preparada per registrar el `DbContext` i apuntar a PostgreSQL local
+- migració inicial `InitialCreate` generada a `Infrastructure/Persistence/Migrations`
+- base recreada i esquema aplicat des d'`Entity Framework` amb `database update`
+- historial de migracions validat amb la taula `__EFMigrationsHistory`
+- `sql/init` reduit a bootstrap mínim perquè l'esquema el governi EF i no SQL manual
+
+### Nou punt actiu
+
+Ara mateix, el punt actiu passa a ser:
+
+- configuració de mapatge, migracions i repositoris (**EN CURS**)
 
 ## Fase IV · Permisos, administració i operativa (**PENDENT**)
 

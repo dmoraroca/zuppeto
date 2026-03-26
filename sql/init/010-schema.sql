@@ -1,0 +1,2 @@
+-- Schema creation has moved to Entity Framework migrations.
+-- Keep this file only as a historical marker while Fase III transitions from manual SQL to EF-governed persistence.

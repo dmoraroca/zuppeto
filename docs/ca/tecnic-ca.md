@@ -56,6 +56,7 @@ Aixo vol dir que:
 - la persistencia real encara no esta implementada
 - pero el model de domini ja no depen del model fake del frontend
 - el backend comenca pel domini i no per la base de dades
+- el domini continua separat de la persistencia ORM encara que `Entity Framework` ja estigui muntat a `Infrastructure`
 
 ## 2.2 Base backend oberta a Fase III
 
@@ -79,6 +80,74 @@ Decisio tecnica clau:
 - el domini s'ha començat abans que `PostgreSQL`, `Entity Framework` o API
 - la persistencia s'ha d'adaptar al domini
 - el frontend actual segueix sent referència funcional, pero no dicta la forma final de persistencia
+
+## 2.3 Base de dades de desenvolupament
+
+Per poder treballar el model relacional sense dependre d'una instal·lacio manual local, el repo incorpora ja una base de dades de desenvolupament amb `Docker`.
+
+Peces creades:
+
+- `docker-compose.yml`
+- `.env.example`
+- carpeta `sql/init/` reservada per bootstrap SQL futur
+- port extern `5433` per conviure amb altres stacks locals que ja usen `5432`
+- script `sql/init/010-schema.sql` amb l'estructura fisica inicial del model
+
+<pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">flowchart LR</span>
+  <span style="color:#93c5fd;">DEV[Desenvolupament local]</span> --&gt; <span style="color:#c4b5fd;">DC[docker-compose.yml]</span>
+  <span style="color:#c4b5fd;">DC</span> --&gt; <span style="color:#86efac;">PG[(PostgreSQL 17 :5433 extern)]</span>
+  <span style="color:#c4b5fd;">DC</span> --&gt; <span style="color:#fcd34d;">ENV[Variables .env]</span>
+  <span style="color:#86efac;">PG</span> --&gt; <span style="color:#f9a8d4;">SQL[sql/init]</span>
+  <span style="color:#f9a8d4;">SQL</span> --&gt; <span style="color:#a7f3d0;">SCH[Schema real creat]</span></code></pre>
+
+Resum del diagrama:
+
+- el desenvolupament local arrenca la BBDD a traves de `docker-compose`
+- la configuracio sensible queda externalitzada a variables d'entorn
+- `sql/init` queda preparada per scripts inicials futurs
+- la BBDD es un suport operatiu del punt actual, no el centre de l'arquitectura
+- el port `5433` evita conflictes amb altres repos locals que ja fan servir `5432`
+- la validacio del contenidor confirma que la base de dades local de `yepppet` ja esta operativa
+- l'script inicial permet veure les taules reals abans de tenir encara el `DbContext` d'`Entity Framework`
+
+## 2.4 Persistencia ORM en Infrastructure
+
+La implementacio base d'`Entity Framework` ja queda consolidada a `src/Backend/Infrastructure` sense contaminar el domini.
+
+Peces creades:
+
+- `DependencyInjection.cs`
+- `Persistence/YepPetDbContext.cs`
+- `Persistence/YepPetDbContextFactory.cs`
+- `Persistence/Entities/*`
+- `Persistence/Configurations/*`
+- `Persistence/Migrations/*`
+- `dotnet-tools.json` per fixar `dotnet-ef` 10 al repo
+
+Decisio tecnica clau:
+
+- no es mapegen directament els agregats de domini a EF
+- `Infrastructure` manté models de persistencia propis
+- el domini continua net de dependències ORM
+- la creacio d'esquema es governa per migracions EF i no per SQL manual
+- el mapping domini <-> persistencia queda reservat per al punt de mapatges i repositoris
+
+<pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">flowchart LR</span>
+  <span style="color:#93c5fd;">DOM[Domain]</span> -.-> <span style="color:#c4b5fd;">APP[Application]</span>
+  <span style="color:#c4b5fd;">APP</span> -.-> <span style="color:#86efac;">INF[Infrastructure]</span>
+  <span style="color:#86efac;">INF</span> --&gt; <span style="color:#fcd34d;">CTX[YepPetDbContext]</span>
+  <span style="color:#fcd34d;">CTX</span> --&gt; <span style="color:#f9a8d4;">CFG[EF Configurations]</span>
+  <span style="color:#fcd34d;">CTX</span> --&gt; <span style="color:#67e8f9;">REC[Persistence Records]</span>
+  <span style="color:#fcd34d;">CTX</span> --&gt; <span style="color:#a7f3d0;">PG[(PostgreSQL :5433)]</span>
+  <span style="color:#fcd34d;">CTX</span> --&gt; <span style="color:#fde68a;">MIG[EF Migrations]</span></code></pre>
+
+Resum del diagrama:
+
+- `Entity Framework` queda encapsulat dins de `Infrastructure`
+- `DbContext`, configuracions i records de persistencia viuen fora del domini
+- les migracions passen a ser la font de veritat de l'esquema
+- l'arquitectura continua coherent amb `DDD` i evita acoblar negoci i ORM
+- el següent tram ja no és muntar EF, sinó mapar domini i implementar repositoris
 
 ## 3. Arquitectura aplicada
 
@@ -135,13 +204,19 @@ Backend obert a Fase III:
 
 ```text
 src/Backend
-└── Domain/
-    ├── Abstractions/
-    ├── Common/
-    ├── Favorites/
-    ├── Places/
-    ├── Reviews/
-    └── Users/
+├── Api/
+├── Application/
+├── Domain/
+│   ├── Abstractions/
+│   ├── Common/
+│   ├── Favorites/
+│   ├── Places/
+│   ├── Reviews/
+│   └── Users/
+└── Infrastructure/
+    └── Persistence/
+        ├── Configurations/
+        └── Entities/
 ```
 
 ### 3.3 Components compartits consolidats
@@ -406,6 +481,57 @@ La intencio tecnica d'aquesta separacio es:
 - fixar que el domini necessita recuperar i guardar agregats
 - evitar acoblar ara mateix el model a consultes SQL o detalls d'`Entity Framework`
 - preparar el pas següent: model relacional a `PostgreSQL` i mapatge d'infraestructura
+
+### 4.2.4 Model relacional tancat
+
+El model relacional de Fase III ja queda tancat com a traduccio operativa del domini cap a `PostgreSQL`.
+
+Decisions preses:
+
+- `tags` i `features` es normalitzen en taules propies i taules d'unio
+- `rating_average` i `review_count` es mantenen a `places` com a snapshot optimitzat per lectura
+- el consentiment es manté a `users` com a vista actual i a `privacy_consent_events` com a historial
+- el model es treballa sobre `PostgreSQL 17` en `Docker` exposat localment a `5433`
+
+<pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">flowchart LR</span>
+  <span style="color:#93c5fd;">DOMAIN[Aggregats de domini]</span> --&gt; <span style="color:#c4b5fd;">REL[Model relacional tancat]</span>
+  <span style="color:#c4b5fd;">REL</span> --&gt; <span style="color:#86efac;">PG[(PostgreSQL 17 :5433)]</span>
+  <span style="color:#c4b5fd;">REL</span> --&gt; <span style="color:#fcd34d;">JT[place_tags / place_features]</span>
+  <span style="color:#c4b5fd;">REL</span> --&gt; <span style="color:#f9a8d4;">SNAP[rating snapshot a places]</span>
+  <span style="color:#c4b5fd;">REL</span> --&gt; <span style="color:#67e8f9;">CONS[privacy_consent_events]</span>
+  <span style="color:#86efac;">PG</span> -.-> <span style="color:#a7f3d0;">EFNEXT[Entity Framework en curs]</span></code></pre>
+
+Resum del diagrama:
+
+- mostra la traduccio tancada del domini a model relacional
+- deixa visibles les tres decisions que faltaven per tancar el punt
+- marca que el pas seguent ja no es de modelatge, sino d'implementacio amb `Entity Framework`
+
+### 4.2.5 Estat tecnic del punt `Entity Framework`
+
+Aquest punt encara no esta tancat, pero ja te una primera base operativa:
+
+- `PostgreSQL` local en `Docker`
+- schema fisic inicial creat des de `sql/init/010-schema.sql`
+- validacio de claus primaries, claus externes, checks i indexes principals
+- `YepPetDbContext` configurat a `Infrastructure`
+- configuracions EF creades per totes les taules del model
+- `Api` preparada per injectar el `DbContext` amb la cadena de connexio local
+- migracio inicial generada i aplicada a PostgreSQL local
+- taula `__EFMigrationsHistory` validada com a registre de control de schema
+
+<pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">flowchart LR</span>
+  <span style="color:#93c5fd;">MODEL[Model relacional tancat]</span> --&gt; <span style="color:#c4b5fd;">SQL[010-schema.sql]</span>
+  <span style="color:#c4b5fd;">SQL</span> --&gt; <span style="color:#86efac;">PG[(yeppet-db :5433)]</span>
+  <span style="color:#86efac;">PG</span> -.-> <span style="color:#fcd34d;">DBEAVER[Inspeccio a DBeaver]</span>
+  <span style="color:#86efac;">PG</span> -.-> <span style="color:#f9a8d4;">EFNEXT[DbContext i mappings pendents]</span></code></pre>
+
+Resum del diagrama:
+
+- el model relacional ja s'ha materialitzat en SQL executable
+- la BBDD local serveix per validar estructura abans de codificar `Entity Framework`
+- el punt de persistencia EF queda tecnicament tancat
+- el pas pendent continua sent mapatge domini-persistencia i repositoris
 
 ### 4.3 UML del mapa
 

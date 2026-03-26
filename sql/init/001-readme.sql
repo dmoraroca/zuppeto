@@ -1,0 +1,3 @@
+-- Bootstrap SQL is intentionally minimal.
+-- Schema ownership now belongs to Entity Framework migrations.
+-- Leave this folder only for auxiliary bootstrap concerns that are not part of ORM schema evolution.

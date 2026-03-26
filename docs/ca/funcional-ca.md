@@ -76,8 +76,13 @@ En l'estat actual:
 - la Fase III ja esta oberta
 - el disseny del model de domini real ja queda completat com a base del backend
 - els contractes de repositori i les necessitats de persistencia ja queden definits com a base del backend
-- el punt actiu actual de la Fase III es `model relacional a PostgreSQL`
+- el model relacional a `PostgreSQL` ja queda tancat
+- la persistencia amb `Entity Framework` ja queda tancada com a capa ORM base
+- el punt actiu actual de la Fase III es `configuracio de mapatge, migracions i repositoris`
 - la traduccio inicial cap a persistencia relacional es documenta a `database-model-ca.md`
+- la base de dades de desenvolupament ja queda validada amb `Docker`, exposant-se localment pel port `5433`
+- la base de dades local ja te schema governat per `Entity Framework` i historial de migracions real
+- la capa de persistencia ORM ja existeix a `Infrastructure`, pero encara no esta connectada funcionalment a la web
 - el focus funcional visible avui se centra sobretot en `places`, `place detail`, `favorites`, `auth/profile`, la capa base d'errors i les pagines informatives ja refinades, mentre backend i persistencia real entren en construccio
 
 Per tant, aquest document no substitueix el de fases, sino que el complementa des del punt de vista d'us, navegacio i comportament funcional.
@@ -88,14 +93,23 @@ Per tant, aquest document no substitueix el de fases, sino que el complementa de
   <span style="color:#93c5fd;">U[Usuari]</span> --&gt; <span style="color:#c4b5fd;">W[Web Angular actual]</span>
   <span style="color:#c4b5fd;">W</span> --&gt; <span style="color:#86efac;">M[Mocks actuals]</span>
   <span style="color:#c4b5fd;">W</span> -.-> <span style="color:#fcd34d;">D[Domini backend Fase III]</span>
-  <span style="color:#fcd34d;">D</span> -.-> <span style="color:#f9a8d4;">P[Persistencia real futura]</span></code></pre>
+  <span style="color:#fcd34d;">D</span> -.-> <span style="color:#f9a8d4;">P[Persistencia real futura]</span>
+  <span style="color:#f9a8d4;">P</span> -.-> <span style="color:#67e8f9;">DB[(PostgreSQL amb taules locals :5433)]</span>
+  <span style="color:#f9a8d4;">P</span> -.-> <span style="color:#86efac;">EF[Entity Framework tancat]</span>
+  <span style="color:#86efac;">EF</span> -.-> <span style="color:#fcd34d;">SC[Schema governat per migracions]</span>
+  <span style="color:#86efac;">EF</span> -.-> <span style="color:#a7f3d0;">INF[Infrastructure]</span>
+  <span style="color:#86efac;">EF</span> -.-> <span style="color:#67e8f9;">HIST[__EFMigrationsHistory]</span></code></pre>
 
 Resum del diagrama:
 
 - l'usuari continua consumint la mateixa web funcional actual
 - la UI encara treballa amb mocks
 - el domini backend ja s'esta preparant per substituir progressivament aquestes fonts fake
-- la persistencia real encara no es visible funcionalment, pero ja forma part del cami actiu del producte
+- la persistencia real encara no es visible funcionalment, pero el model relacional ja queda fixat
+- la BBDD de desenvolupament ja es pot aixecar sense sortir del repo
+- l'equip ja pot inspeccionar taules reals des de DBeaver sense esperar al backend complet
+- `Entity Framework` ja governa l'esquema local amb migracio inicial aplicada
+- el seguent moviment funcional-tecnic es definir mapatges domini-persistencia i repositoris reals
 
 ## 4. Actors
 

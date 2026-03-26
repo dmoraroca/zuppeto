@@ -1,0 +1,22 @@
+services:
+  db:
+    image: postgres:17
+    container_name: yeppet-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-yeppet}
+      POSTGRES_USER: ${POSTGRES_USER:-app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-app}
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - yeppet_pg_data:/var/lib/postgresql/data
+      - ./sql/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-app} -d ${POSTGRES_DB:-yeppet}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  yeppet_pg_data:

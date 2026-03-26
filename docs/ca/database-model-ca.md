@@ -16,7 +16,12 @@ No substitueix el domini: tradueix el domini actual a una estructura pensada per
 ## Entitats relacionals principals
 
 - `users`
+- `privacy_consent_events`
 - `places`
+- `tags`
+- `place_tags`
+- `features`
+- `place_features`
 - `favorite_lists`
 - `favorite_entries`
 - `place_reviews`
@@ -25,10 +30,15 @@ No substitueix el domini: tradueix el domini actual a una estructura pensada per
 
 <pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">erDiagram</span>
   <span style="color:#86efac;">USERS</span> ||--o| <span style="color:#fcd34d;">FAVORITE_LISTS</span> : owns
+  <span style="color:#86efac;">USERS</span> ||--o{ <span style="color:#a7f3d0;">PRIVACY_CONSENT_EVENTS</span> : records
   <span style="color:#fcd34d;">FAVORITE_LISTS</span> ||--o{ <span style="color:#f9a8d4;">FAVORITE_ENTRIES</span> : contains
   <span style="color:#93c5fd;">PLACES</span> ||--o{ <span style="color:#f9a8d4;">FAVORITE_ENTRIES</span> : targets
   <span style="color:#86efac;">USERS</span> ||--o{ <span style="color:#67e8f9;">PLACE_REVIEWS</span> : writes
   <span style="color:#93c5fd;">PLACES</span> ||--o{ <span style="color:#67e8f9;">PLACE_REVIEWS</span> : receives
+  <span style="color:#93c5fd;">PLACES</span> ||--o{ <span style="color:#fca5a5;">PLACE_TAGS</span> : tagged
+  <span style="color:#d8b4fe;">TAGS</span> ||--o{ <span style="color:#fca5a5;">PLACE_TAGS</span> : catalog
+  <span style="color:#93c5fd;">PLACES</span> ||--o{ <span style="color:#fdba74;">PLACE_FEATURES</span> : offers
+  <span style="color:#fde68a;">FEATURES</span> ||--o{ <span style="color:#fdba74;">PLACE_FEATURES</span> : catalog
 
   <span style="color:#86efac;">USERS</span> {
     uuid id PK
@@ -42,6 +52,14 @@ No substitueix el domini: tradueix el domini actual a una estructura pensada per
     varchar avatar_url
     boolean privacy_accepted
     timestamptz privacy_accepted_at_utc
+  }
+
+  <span style="color:#a7f3d0;">PRIVACY_CONSENT_EVENTS</span> {
+    uuid id PK
+    uuid user_id FK
+    boolean accepted
+    timestamptz registered_at_utc
+    varchar source
   }
 
   <span style="color:#93c5fd;">PLACES</span> {
@@ -64,6 +82,28 @@ No substitueix el domini: tradueix el domini actual a una estructura pensada per
     varchar pricing_label
     numeric rating_average
     int review_count
+  }
+
+  <span style="color:#d8b4fe;">TAGS</span> {
+    uuid id PK
+    varchar code UK
+    varchar display_name
+  }
+
+  <span style="color:#fca5a5;">PLACE_TAGS</span> {
+    uuid place_id FK
+    uuid tag_id FK
+  }
+
+  <span style="color:#fde68a;">FEATURES</span> {
+    uuid id PK
+    varchar code UK
+    varchar display_name
+  }
+
+  <span style="color:#fdba74;">PLACE_FEATURES</span> {
+    uuid place_id FK
+    uuid feature_id FK
   }
 
   <span style="color:#fcd34d;">FAVORITE_LISTS</span> {
@@ -95,6 +135,47 @@ Resum del diagrama:
 - `favorite_lists` separa la llista de favorits del perfil d'usuari
 - `favorite_entries` resol la relacio ordenada entre una llista i molts llocs
 - `place_reviews` relaciona usuaris i llocs amb una ressenya independent
+- `tags` i `features` queden normalitzats per poder filtrar, evolucionar vocabulari i evitar serialitzacions opaques
+- `privacy_consent_events` conserva l'historial de consentiments sense perdre l'estat actual simplificat a `users`
+
+## Suport operatiu del model
+
+Aquest model es treballa ja sobre una base de dades de desenvolupament preparada amb `Docker`:
+
+- `docker-compose.yml`
+- `.env.example`
+- contenidor `yeppet-db`
+- port extern local `5433` cap al `5432` intern del contenidor
+- script executable `sql/init/010-schema.sql`
+
+<pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">flowchart LR</span>
+  <span style="color:#93c5fd;">MODEL[Model relacional]</span> --&gt; <span style="color:#c4b5fd;">PG[PostgreSQL]</span>
+  <span style="color:#c4b5fd;">PG</span> --&gt; <span style="color:#86efac;">DC[docker-compose :5433]</span>
+  <span style="color:#86efac;">DC</span> --&gt; <span style="color:#fcd34d;">ENV[Variables d'entorn]</span>
+  <span style="color:#86efac;">DC</span> --&gt; <span style="color:#f9a8d4;">INIT[sql/init]</span>
+  <span style="color:#f9a8d4;">INIT</span> --&gt; <span style="color:#a7f3d0;">REAL[Schema real local]</span></code></pre>
+
+Resum del diagrama:
+
+- el model relacional ja te una base operativa de desenvolupament
+- `docker-compose` permet iterar el disseny sense instal·lacions manuals
+- els scripts d'inicialitzacio queden separats del domini i preparats per passos futurs
+- `5433` es reserva per `yepppet` per no col·lisionar amb altres BBDD locals del workspace
+- el model ja es pot materialitzar localment per inspeccio i validacio estructural
+- la materialitzacio actual ja la governa `Entity Framework` mitjancant migracions
+
+## Materialitzacio local actual
+
+L'estructura relacional ja existeix a la BBDD local `yeppet` amb:
+
+- taules creades al schema `public`
+- restriccions `CHECK`
+- claus externes
+- indexes principals
+
+Aquesta materialitzacio es fa amb:
+
+- `sql/init/010-schema.sql`
 
 ## Traduccio domini -> model relacional
 
@@ -103,6 +184,9 @@ Resum del diagrama:
 - `FavoriteList` -> `favorite_lists`
 - `FavoriteEntry` -> `favorite_entries`
 - `PlaceReview` -> `place_reviews`
+- cataleg de tags -> `tags` + `place_tags`
+- cataleg de features -> `features` + `place_features`
+- historial de consentiment -> `privacy_consent_events`
 
 `value objects` aplanats inicialment:
 
@@ -121,30 +205,42 @@ Resum del diagrama:
 - una `FavoriteEntry` apunta sempre a un `Place`
 - un `Place` pot tenir moltes `PlaceReviews`
 - un `User` pot escriure moltes `PlaceReviews`
+- un `Place` pot tenir molts `Tags` via `place_tags`
+- un `Place` pot tenir moltes `Features` via `place_features`
+- un `User` pot tenir molts esdeveniments de consentiment via `privacy_consent_events`
 
 ## Restriccions recomanades
 
 - `users.email` unic
 - `favorite_lists.owner_user_id` unic
 - unicitat composta a `favorite_entries` per `favorite_list_id + place_id`
+- unicitat composta a `place_tags` per `place_id + tag_id`
+- unicitat composta a `place_features` per `place_id + feature_id`
 - `place_reviews.score` limitat de 1 a 5
 - index per `places.city`
 - index per `places.type`
 - index per `place_reviews.place_id`
 - index per `favorite_entries.favorite_list_id`
+- index per `place_tags.tag_id`
+- index per `place_features.feature_id`
+- index per `privacy_consent_events.user_id`
 
-## Punts oberts
+## Decisions tancades
 
-- decidir si `places.tags` i `places.features` aniran en taules propies o com a col·leccions serialitzades
-- decidir si el `rating_average` de `places` es deriva sempre de `place_reviews` o es guarda com a snapshot optimitzat
-- decidir si cal historial de consentiments o si n'hi ha prou amb l'estat actual
+- `places.tags` i `places.features` van en taules propies i taules d'unio
+- `rating_average` i `review_count` es guarden a `places` com a snapshot optimitzat, recalculat des de `place_reviews`
+- es conserva historial de consentiments a `privacy_consent_events`
 
 ## Relacio amb la fase
 
 Aquest document serveix com a base del punt:
 
-- `contractes de repositori i necessitats de persistencia` (**EN CURS**)
+- `model relacional a PostgreSQL` (**FET**)
 
 I prepara el següent:
 
-- `model relacional a PostgreSQL` (**PENDENT**)
+- `persistencia amb Entity Framework` (**EN CURS**)
+
+La continuitat tecnica d'aquest punt es documenta a:
+
+- `ef-persistence-ca.md`
