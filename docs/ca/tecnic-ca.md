@@ -372,6 +372,30 @@ Notes tecniques:
 - treballa contra un port injectable (`AUTH_STORE`)
 - el mock actual entra per `MockAuthStoreService`
 
+## 7. Responsive fi de pantalles
+
+En aquesta iteracio s'ha fet un repàs de responsive fi sense canviar l'arquitectura de pantalles.
+
+Cobertura principal:
+
+- `site-header`
+- `site-footer`
+- `login-page`
+- `profile-page`
+- `contact-page`
+- `places-page`
+- `place-detail-page`
+- `favorites-page`
+- `place-card`
+- `place-filters`
+
+Criteri aplicat:
+
+- evitar que accions i navegacio quedin massa estretes en mobil
+- forcar amplada completa en botons i grups d'accions quan la columna cau a una sola peça
+- reduir paddings i radis en pantalles estretes
+- evitar que targetes i mètriques depenguin d'una composicio de desktop
+
 ## 8. Implementacio de l'autenticacio fake
 
 ### 8.1 Usuaris mock

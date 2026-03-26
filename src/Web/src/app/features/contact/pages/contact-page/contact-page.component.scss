@@ -97,3 +97,20 @@
     padding: 1.5rem 1rem 3rem;
   }
 }
+
+@media (max-width: 540px) {
+  .contact-page__copy,
+  .contact-page__panel {
+    padding: 1rem;
+    border-radius: 1.15rem;
+  }
+
+  .contact-page__chips {
+    gap: 0.5rem;
+  }
+
+  .contact-page__chips span {
+    width: 100%;
+    text-align: center;
+  }
+}

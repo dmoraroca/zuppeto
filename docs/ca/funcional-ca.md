@@ -511,6 +511,7 @@ Resum del diagrama:
 - es poden guardar i treure favorits
 - el desplegable `Ajuda` es tanca quan toca
 - la base responsive es manté funcional
+- les pantalles principals continuen sent usables en mòbil estret sense dependre d'un layout de desktop
 
 ## 10. Referencia documental
 

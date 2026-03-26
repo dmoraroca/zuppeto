@@ -204,6 +204,29 @@
   }
 }
 
+@media (max-width: 540px) {
+  .site-header__nav {
+    grid-template-columns: 1fr;
+  }
+
+  .site-header__nav-link,
+  .site-header__dropdown summary,
+  .site-header__session-logout {
+    width: 100%;
+  }
+
+  .site-header__session {
+    width: 100%;
+    justify-content: stretch;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .site-header__session-role {
+    justify-content: center;
+  }
+}
+
 @media (max-width: 420px) {
   .site-header__brand {
     max-width: min(78vw, 15rem);

@@ -243,4 +243,27 @@
   .place-detail-page {
     padding: 1.5rem 1rem 3rem;
   }
+
+  .place-detail-page__hero img {
+    min-height: 16rem;
+    border-radius: 1.2rem;
+  }
+}
+
+@media (max-width: 540px) {
+  .place-detail-page__hero-content,
+  .place-detail-page__card,
+  .place-detail-page__missing,
+  .place-detail-page__related-card {
+    padding: 1rem;
+    border-radius: 1.1rem;
+  }
+
+  .place-detail-page__actions > * {
+    width: 100%;
+  }
+
+  .place-detail-page__from-map {
+    justify-content: center;
+  }
 }

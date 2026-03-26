@@ -202,4 +202,29 @@
   .profile-form__grid {
     grid-template-columns: 1fr;
   }
+
+  .profile-form__actions {
+    justify-content: stretch;
+  }
+
+  .profile-form__actions button,
+  .profile-card__logout {
+    width: 100%;
+  }
+}
+
+@media (max-width: 540px) {
+  .profile-card,
+  .profile-form-shell {
+    padding: 1rem;
+    border-radius: 1.1rem;
+  }
+
+  .profile-form__consent {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-card__avatar {
+    width: min(12rem, 100%);
+  }
 }

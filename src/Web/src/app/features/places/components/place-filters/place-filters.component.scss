@@ -38,3 +38,11 @@
   color: var(--yp-color-primary-dark);
   cursor: pointer;
 }
+
+@media (max-width: 540px) {
+  .place-filters {
+    grid-template-columns: 1fr;
+    padding: 0.9rem;
+    border-radius: 1.1rem;
+  }
+}

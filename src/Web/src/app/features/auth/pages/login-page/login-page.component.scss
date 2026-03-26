@@ -183,4 +183,26 @@
     padding: 1.2rem;
     border-radius: 1.35rem;
   }
+
+  .login-page__search-actions,
+  .login-page__search-button {
+    width: 100%;
+  }
+
+  .login-page__brand img {
+    width: min(12rem, 70%);
+  }
+}
+
+@media (max-width: 420px) {
+  .login-page {
+    gap: 1rem;
+    padding: 0.75rem;
+  }
+
+  .login-page__panel,
+  .login-page__experience {
+    padding: 1rem;
+    border-radius: 1.1rem;
+  }
 }

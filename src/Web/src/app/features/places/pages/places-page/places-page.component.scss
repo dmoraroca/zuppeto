@@ -202,3 +202,22 @@
     flex-direction: column;
   }
 }
+
+@media (max-width: 540px) {
+  .places-page__map-selection-card,
+  .places-page__map-selection-empty,
+  .places-page__active-filters,
+  .places-page__empty {
+    padding: 1rem;
+    border-radius: 1.1rem;
+  }
+
+  .places-page__map-selection-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .places-page__map-selection-actions button {
+    width: 100%;
+  }
+}

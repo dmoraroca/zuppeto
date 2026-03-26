@@ -272,3 +272,21 @@
     text-align: left;
   }
 }
+
+@media (max-width: 540px) {
+  .favorites-page__summary-card,
+  .favorites-page__review,
+  .favorites-page__spotlight,
+  .favorites-page__empty {
+    padding: 1rem;
+    border-radius: 1.1rem;
+  }
+
+  .favorites-page__spotlight img {
+    min-height: 12rem;
+  }
+
+  .favorites-page__actions > * {
+    width: 100%;
+  }
+}
