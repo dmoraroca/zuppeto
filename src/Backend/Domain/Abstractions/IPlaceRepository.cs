@@ -6,7 +6,15 @@ public interface IPlaceRepository
 {
     Task<Place?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyCollection<Place>> SearchAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyCollection<Place>> SearchAsync(
+        PlaceSearchCriteria criteria,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyCollection<Place>> GetByIdsAsync(
+        IReadOnlyCollection<Guid> ids,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyCollection<string>> GetAvailableCitiesAsync(CancellationToken cancellationToken = default);
 
     Task AddAsync(Place place, CancellationToken cancellationToken = default);
 

@@ -6,7 +6,15 @@ public interface IPlaceReviewRepository
 {
     Task<PlaceReview?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyCollection<PlaceReview>> GetVisibleByPlaceAsync(Guid placeId, CancellationToken cancellationToken = default);
+    Task<PlaceReview?> GetByAuthorAndPlaceAsync(
+        Guid authorUserId,
+        Guid placeId,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyCollection<PlaceReview>> GetByPlaceAsync(
+        Guid placeId,
+        PlaceReviewQuery query,
+        CancellationToken cancellationToken = default);
 
     Task AddAsync(PlaceReview review, CancellationToken cancellationToken = default);
 

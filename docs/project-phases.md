@@ -198,9 +198,9 @@ Passar de frontend mock-first a un sistema real amb backend i base de dades.
 
 ### Què entra dins la fase III
 
-- disseny del model de domini real (**EN CURS**)
-- contractes de repositori i necessitats de persistència (**PENDENT**)
-- model relacional a `PostgreSQL` (**PENDENT**)
+- disseny del model de domini real (**FET**)
+- contractes de repositori i necessitats de persistència (**FET**)
+- model relacional a `PostgreSQL` (**EN CURS**)
 - persistència amb `Entity Framework` última versió (**PENDENT**)
 - configuració de mapatge, migracions i repositoris (**PENDENT**)
 - backend `.NET` (**PENDENT**)

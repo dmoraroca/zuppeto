@@ -13,6 +13,7 @@ Objectius:
 - explicar el model de dades actual
 - descriure la base d'autenticacio fake i control d'acces
 - descriure la implementacio del mapa
+- deixar traçabilitat del domini backend que obre la Fase III
 - deixar una base UML tecnica clara i mantenible
 
 ## 2. Esquema tecnic general
@@ -42,6 +43,43 @@ Resum del diagrama:
 - els serveis actuals treballen contra dades simulades
 - el mapa es tracta com una capacitat transversal reutilitzable
 
+## 2.1 Estat tecnic actual
+
+En aquest moment conviuen dues capes amb rols diferents:
+
+- un frontend Angular 21 encara `mock-first`, que continua sent la base executable del producte
+- una primera base de backend a `src/Backend/Domain`, creada per obrir la Fase III amb `DDD`
+
+Aixo vol dir que:
+
+- la UI encara treballa amb mocks
+- la persistencia real encara no esta implementada
+- pero el model de domini ja no depen del model fake del frontend
+- el backend comenca pel domini i no per la base de dades
+
+## 2.2 Base backend oberta a Fase III
+
+La Fase III s'ha obert amb una primera capa `Domain` a:
+
+```text
+src/Backend/Domain
+```
+
+Peces creades:
+
+- `Domain.csproj`
+- base comuna `Entity`, `AggregateRoot`, `ValueObject` i `DomainRuleException`
+- agregats `Place`, `User`, `FavoriteList`, `PlaceReview`
+- `value objects` per adreca, geolocalitzacio, politica pet, preu, rating, perfil i consentiment
+- contractes de repositori com a abstraccions
+- solucio `YepPet.sln` per carregar el backend al workspace i a l'editor
+
+Decisio tecnica clau:
+
+- el domini s'ha començat abans que `PostgreSQL`, `Entity Framework` o API
+- la persistencia s'ha d'adaptar al domini
+- el frontend actual segueix sent referència funcional, pero no dicta la forma final de persistencia
+
 ## 3. Arquitectura aplicada
 
 ### 3.1 Principis
@@ -53,6 +91,18 @@ Resum del diagrama:
 - reutilitzacio real abans que abstraccio prematura
 - dades simulades mentre validem UX i estructura
 - preparar UI i serveis per futura substitucio per API
+- al backend, construir primer domini i despres infraestructura
+
+### 3.1.1 Principis backend de Fase III
+
+Per la Fase III, el backend es regeix per aquests principis addicionals:
+
+- `DDD` com a base del model
+- `SOLID` estricte
+- agregats com a límit de consistencia
+- `value objects` per encapsular regles i evitar primitius dispersos
+- repositoris com a contractes de domini, no com a detalls d'`Entity Framework`
+- cap dependencia de persistencia dins del projecte `Domain`
 
 ### 3.2 Estructura base
 
@@ -79,6 +129,19 @@ src/app
     ├── favorites/
     ├── contact/
     └── permissions/
+```
+
+Backend obert a Fase III:
+
+```text
+src/Backend
+└── Domain/
+    ├── Abstractions/
+    ├── Common/
+    ├── Favorites/
+    ├── Places/
+    ├── Reviews/
+    └── Users/
 ```
 
 ### 3.3 Components compartits consolidats
@@ -199,6 +262,150 @@ Resum del diagrama:
 - `PlaceCoordinates` permet representar el lloc sobre el mapa
 - `PlaceFilters` defineix el contracte actual de filtratge
 - els mocks actuals ja inclouen context de barri, ressenyes, preu i política pet
+
+### 4.2.1 Model de domini backend de Fase III
+
+La primera versio del domini backend ja no es basa en interfaces TypeScript del frontend, sino en agregats de negoci dins de `src/Backend/Domain`.
+
+<pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">classDiagram</span>
+  <span style="color:#c4b5fd;">class</span> <span style="color:#93c5fd;">Place</span> {
+    +Guid Id
+    +string Name
+    +PlaceType Type
+    +PostalAddress Address
+    +GeoLocation Location
+    +PetPolicy PetPolicy
+    +Pricing Pricing
+    +RatingSnapshot Rating
+  }
+
+  <span style="color:#c4b5fd;">class</span> <span style="color:#86efac;">User</span> {
+    +Guid Id
+    +string Email
+    +string PasswordHash
+    +UserRole Role
+    +UserProfile Profile
+    +PrivacyConsent PrivacyConsent
+  }
+
+  <span style="color:#c4b5fd;">class</span> <span style="color:#fcd34d;">FavoriteList</span> {
+    +Guid Id
+    +Guid OwnerUserId
+    +AddPlace(placeId, savedAtUtc)
+    +RemovePlace(placeId)
+  }
+
+  <span style="color:#c4b5fd;">class</span> <span style="color:#f9a8d4;">PlaceReview</span> {
+    +Guid Id
+    +Guid PlaceId
+    +Guid AuthorUserId
+    +int Score
+    +string Comment
+    +bool IsVisible
+  }
+
+  <span style="color:#c4b5fd;">class</span> <span style="color:#67e8f9;">PostalAddress</span>
+  <span style="color:#c4b5fd;">class</span> <span style="color:#67e8f9;">GeoLocation</span>
+  <span style="color:#c4b5fd;">class</span> <span style="color:#67e8f9;">PetPolicy</span>
+  <span style="color:#c4b5fd;">class</span> <span style="color:#67e8f9;">Pricing</span>
+  <span style="color:#c4b5fd;">class</span> <span style="color:#67e8f9;">RatingSnapshot</span>
+  <span style="color:#c4b5fd;">class</span> <span style="color:#67e8f9;">UserProfile</span>
+  <span style="color:#c4b5fd;">class</span> <span style="color:#67e8f9;">PrivacyConsent</span>
+
+  <span style="color:#93c5fd;">Place</span> --&gt; <span style="color:#67e8f9;">PostalAddress</span>
+  <span style="color:#93c5fd;">Place</span> --&gt; <span style="color:#67e8f9;">GeoLocation</span>
+  <span style="color:#93c5fd;">Place</span> --&gt; <span style="color:#67e8f9;">PetPolicy</span>
+  <span style="color:#93c5fd;">Place</span> --&gt; <span style="color:#67e8f9;">Pricing</span>
+  <span style="color:#93c5fd;">Place</span> --&gt; <span style="color:#67e8f9;">RatingSnapshot</span>
+  <span style="color:#86efac;">User</span> --&gt; <span style="color:#67e8f9;">UserProfile</span>
+  <span style="color:#86efac;">User</span> --&gt; <span style="color:#67e8f9;">PrivacyConsent</span>
+  <span style="color:#fcd34d;">FavoriteList</span> --&gt; <span style="color:#86efac;">User</span>
+  <span style="color:#fcd34d;">FavoriteList</span> --&gt; <span style="color:#93c5fd;">Place</span>
+  <span style="color:#f9a8d4;">PlaceReview</span> --&gt; <span style="color:#93c5fd;">Place</span>
+  <span style="color:#f9a8d4;">PlaceReview</span> --&gt; <span style="color:#86efac;">User</span></code></pre>
+
+Resum del diagrama:
+
+- mostra els quatre agregats principals del backend
+- deixa clar quins `value objects` formen part de `Place` i `User`
+- reflecteix que `FavoriteList` i `PlaceReview` es relacionen amb `Place` i `User` per id de domini
+- fixa visualment el nucli del model abans d'entrar en `PostgreSQL` o `Entity Framework`
+
+Agregats definits:
+
+- `Place`
+- `User`
+- `FavoriteList`
+- `PlaceReview`
+
+`value objects` definits:
+
+- `PostalAddress`
+- `GeoLocation`
+- `PetPolicy`
+- `Pricing`
+- `RatingSnapshot`
+- `UserProfile`
+- `PrivacyConsent`
+
+Resum del model:
+
+- `Place` concentra identitat del lloc, tipus, descripcio, imatge, adreca, localitzacio, politica pet, preu, rating, tags i features
+- `User` concentra email, hash de password, rol, perfil i consentiment
+- `FavoriteList` separa els favorits del perfil d'usuari i manté l'ordre temporal de guardat
+- `PlaceReview` modela la ressenya com a peça independent amb autor, puntuacio, comentari i visibilitat
+
+Decisions de modelatge:
+
+- `PlaceReview` s'ha modelat com a agregat propi per facilitar moderacio, persistencia independent i consultes per lloc o usuari
+- `FavoriteList` s'ha separat de `User` per evitar carregar el perfil amb una colleccio que pot créixer i tenir cicle de vida propi
+- el `User` de domini ja no admet password en clar: exigeix `passwordHash`
+- el consentiment deixa de ser un simple `bool` i passa a `PrivacyConsent`, que encapsula si hi ha acceptacio i quan s'ha produït
+- la politica pet deixa de ser dos booleans dispersos sense context i passa a `PetPolicy`, amb acceptacio, etiqueta i notes
+
+### 4.2.2 Regles de negoci implementades al domini
+
+Regles ja codificades:
+
+- un `Place` no es pot crear sense nom
+- un `Place` no es pot crear sense descripcions valides ni imatge
+- una `GeoLocation` obliga a latitud i longitud valides
+- una `PetPolicy` obliga a admetre almenys gossos o gats
+- un `User` obliga a email valid i `passwordHash`
+- un `User` amb rol `User` no pot actualitzar perfil sense consentiment actiu
+- una `FavoriteList` no duplica el mateix lloc
+- una `PlaceReview` obliga a puntuacio entre 1 i 5
+- una `PlaceReview` obliga a comentari no buit
+
+### 4.2.3 Contractes oberts per persistencia
+
+Per preparar la persistencia sense contaminar el domini, s'han definit contractes a `Abstractions/`:
+
+- `IPlaceRepository`
+- `IUserRepository`
+- `IFavoriteListRepository`
+- `IPlaceReviewRepository`
+
+Aquests contractes s'han refinat per respondre als fluxos reals del producte:
+
+- `IPlaceRepository` ja diferencia cerca per criteri, recuperacio per ids i obtencio de ciutats disponibles
+- `IUserRepository` ja cobreix lookup per email i control d'unicitat
+- `IFavoriteListRepository` ja cobreix consulta i existència per propietari
+- `IPlaceReviewRepository` ja separa consulta per lloc i consulta per autor+lloc
+
+Per donar context a aquesta decisio, la necessitat de persistencia s'ha documentat a:
+
+- `persistence-needs-ca.md`
+
+Amb aixo, aquest punt de Fase III es dona per completat i el següent pas passa a ser:
+
+- `model relacional a PostgreSQL`
+
+La intencio tecnica d'aquesta separacio es:
+
+- fixar que el domini necessita recuperar i guardar agregats
+- evitar acoblar ara mateix el model a consultes SQL o detalls d'`Entity Framework`
+- preparar el pas següent: model relacional a `PostgreSQL` i mapatge d'infraestructura
 
 ### 4.3 UML del mapa
 

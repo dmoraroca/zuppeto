@@ -73,9 +73,29 @@ En l'estat actual:
 
 - la Fase I ja queda tancada com a base funcional inicial
 - la Fase II queda recollida com a base funcional ja consolidada segons els punts marcats en negreta a `project-phases.md`
-- el focus funcional visible avui se centra sobretot en `places`, `place detail`, `favorites`, `auth/profile`, la capa base d'errors i les pagines informatives ja refinades
+- la Fase III ja esta oberta
+- el disseny del model de domini real ja queda completat com a base del backend
+- els contractes de repositori i les necessitats de persistencia ja queden definits com a base del backend
+- el punt actiu actual de la Fase III es `model relacional a PostgreSQL`
+- la traduccio inicial cap a persistencia relacional es documenta a `database-model-ca.md`
+- el focus funcional visible avui se centra sobretot en `places`, `place detail`, `favorites`, `auth/profile`, la capa base d'errors i les pagines informatives ja refinades, mentre backend i persistencia real entren en construccio
 
 Per tant, aquest document no substitueix el de fases, sino que el complementa des del punt de vista d'us, navegacio i comportament funcional.
+
+### 3.2 Transicio funcional cap a Fase III
+
+<pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">flowchart LR</span>
+  <span style="color:#93c5fd;">U[Usuari]</span> --&gt; <span style="color:#c4b5fd;">W[Web Angular actual]</span>
+  <span style="color:#c4b5fd;">W</span> --&gt; <span style="color:#86efac;">M[Mocks actuals]</span>
+  <span style="color:#c4b5fd;">W</span> -.-> <span style="color:#fcd34d;">D[Domini backend Fase III]</span>
+  <span style="color:#fcd34d;">D</span> -.-> <span style="color:#f9a8d4;">P[Persistencia real futura]</span></code></pre>
+
+Resum del diagrama:
+
+- l'usuari continua consumint la mateixa web funcional actual
+- la UI encara treballa amb mocks
+- el domini backend ja s'esta preparant per substituir progressivament aquestes fonts fake
+- la persistencia real encara no es visible funcionalment, pero ja forma part del cami actiu del producte
 
 ## 4. Actors
 

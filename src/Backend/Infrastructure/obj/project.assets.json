@@ -1,11 +1,49 @@
 {
   "version": 3,
   "targets": {
-    "net10.0": {}
+    "net10.0": {
+      "Application/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v10.0",
+        "dependencies": {
+          "Domain": "1.0.0"
+        },
+        "compile": {
+          "bin/placeholder/Application.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/Application.dll": {}
+        }
+      },
+      "Domain/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v10.0",
+        "compile": {
+          "bin/placeholder/Domain.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/Domain.dll": {}
+        }
+      }
+    }
   },
-  "libraries": {},
+  "libraries": {
+    "Application/1.0.0": {
+      "type": "project",
+      "path": "../Application/Application.csproj",
+      "msbuildProject": "../Application/Application.csproj"
+    },
+    "Domain/1.0.0": {
+      "type": "project",
+      "path": "../Domain/Domain.csproj",
+      "msbuildProject": "../Domain/Domain.csproj"
+    }
+  },
   "projectFileDependencyGroups": {
-    "net10.0": []
+    "net10.0": [
+      "Application >= 1.0.0",
+      "Domain >= 1.0.0"
+    ]
   },
   "packageFolders": {
     "/home/dmoraroca/.nuget/packages/": {}
@@ -13,11 +51,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/home/dmoraroca/Documents/_DATA/repos/yeppet/src/Backend/Domain/Domain.csproj",
-      "projectName": "Domain",
-      "projectPath": "/home/dmoraroca/Documents/_DATA/repos/yeppet/src/Backend/Domain/Domain.csproj",
+      "projectUniqueName": "/home/dmoraroca/Documents/_DATA/repos/yeppet/src/Backend/Infrastructure/Infrastructure.csproj",
+      "projectName": "Infrastructure",
+      "projectPath": "/home/dmoraroca/Documents/_DATA/repos/yeppet/src/Backend/Infrastructure/Infrastructure.csproj",
       "packagesPath": "/home/dmoraroca/.nuget/packages/",
-      "outputPath": "/home/dmoraroca/Documents/_DATA/repos/yeppet/src/Backend/Domain/obj/",
+      "outputPath": "/home/dmoraroca/Documents/_DATA/repos/yeppet/src/Backend/Infrastructure/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "/home/dmoraroca/.nuget/NuGet/NuGet.Config"
@@ -32,7 +70,14 @@
       "frameworks": {
         "net10.0": {
           "targetAlias": "net10.0",
-          "projectReferences": {}
+          "projectReferences": {
+            "/home/dmoraroca/Documents/_DATA/repos/yeppet/src/Backend/Application/Application.csproj": {
+              "projectPath": "/home/dmoraroca/Documents/_DATA/repos/yeppet/src/Backend/Application/Application.csproj"
+            },
+            "/home/dmoraroca/Documents/_DATA/repos/yeppet/src/Backend/Domain/Domain.csproj": {
+              "projectPath": "/home/dmoraroca/Documents/_DATA/repos/yeppet/src/Backend/Domain/Domain.csproj"
+            }
+          }
         }
       },
       "warningProperties": {
