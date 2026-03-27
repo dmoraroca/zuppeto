@@ -284,6 +284,7 @@ El punt `substitució progressiva de serveis mock per serveis reals` queda tanca
 - `ng build` correcte un cop connectat el frontend a la nova API
 - convivència controlada entre UX existent i dades reals sense reescriure la navegació
 - stack local complet de desenvolupament disponible amb `Docker Compose` per `db`, `api` i `web`
+- perfils de `Run and Debug` de `VS Code` disponibles per aixecar la stack completa o cada servei per separat sobre `Docker`
 
 ## Fase IV · Permisos, administració i operativa (**PENDENT**)
 

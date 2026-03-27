@@ -90,6 +90,7 @@ En l'estat actual:
 - el focus funcional visible avui se centra en `places`, `place detail`, `favorites` i `perfil` recolzats en dades reals, mentre el login continua sent una porta d'entrada controlada i local
 - el producte ja es pot aixecar en local amb `Docker Compose` com a stack complet de desenvolupament
 - l'API també queda consultable des de navegador via `Swagger`
+- `VS Code` ja disposa de perfils de `Run and Debug` per aixecar `db`, `api`, `web` o tota la stack des del workspace
 
 Per tant, aquest document no substitueix el de fases, sino que el complementa des del punt de vista d'us, navegacio i comportament funcional.
 
@@ -118,6 +119,7 @@ Resum del diagrama:
 - `Entity Framework` ja governa l'esquema local amb migracio inicial aplicada
 - el mapatge manual i els repositoris reals ja estan muntats a `Infrastructure`
 - el backend `.NET` i l'API ja estan integrats amb el frontend en els fluxos principals de Fase III
+- el flux operatiu local ja inclou arrencada per `VS Code` amb opcions per stack completa i serveis individuals
 
 ## 4. Actors
 

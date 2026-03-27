@@ -353,6 +353,39 @@ Resum del diagrama:
 - la web Angular s'executa en mode desenvolupament dins de contenidor
 - el flux local queda alineat amb el criteri operatiu usat a `escoles-publiques`
 
+### 2.10.1 Perfils de Run and Debug a VS Code
+
+Per replicar el patró operatiu d'`escoles-publiques`, `yeppet` incorpora ara configuració nativa de `VS Code` a `.vscode/launch.json` i `.vscode/tasks.json`.
+
+Perfils disponibles:
+
+- `Docker: Stack completa`
+- `Docker: DB`
+- `Docker: API + Swagger`
+- `Docker: Web`
+
+Tasques disponibles:
+
+- `docker up all`
+- `docker up db`
+- `docker up api`
+- `docker up web`
+- `docker down`
+
+<pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">flowchart LR</span>
+  <span style="color:#93c5fd;">VS[VS Code Run and Debug]</span> --&gt; <span style="color:#c4b5fd;">LA[launch.json]</span>
+  <span style="color:#c4b5fd;">LA</span> --&gt; <span style="color:#86efac;">TA[tasks.json]</span>
+  <span style="color:#86efac;">TA</span> --&gt; <span style="color:#fcd34d;">DC[docker compose]</span>
+  <span style="color:#fcd34d;">DC</span> --&gt; <span style="color:#f9a8d4;">DB[(db)]</span>
+  <span style="color:#fcd34d;">DC</span> --&gt; <span style="color:#a7f3d0;">API[api + Swagger]</span>
+  <span style="color:#fcd34d;">DC</span> --&gt; <span style="color:#67e8f9;">WEB[web Angular]</span></code></pre>
+
+Resum del diagrama:
+
+- `launch.json` orquestra l'obertura de web o Swagger segons el perfil triat
+- `tasks.json` encapsula les ordres `docker compose` per evitar passos manuals
+- el workspace pot aixecar la stack completa o només el servei que toqui
+
 ## 3. Arquitectura aplicada
 
 ### 3.1 Principis

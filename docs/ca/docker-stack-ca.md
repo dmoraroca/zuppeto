@@ -43,3 +43,33 @@ docker compose up -d --build
 - l'API executa `dotnet ef database update` a l'inici
 - la web conserva hot reload i watch amb polling dins del contenidor
 - el `design-time DbContextFactory` ja respecta `ConnectionStrings__YepPet`, de manera que `dotnet ef` funciona igual en host i en Docker
+
+## Run and Debug a VS Code
+
+El workspace incorpora també `.vscode/launch.json` i `.vscode/tasks.json` per arrencar el stack Docker sense sortir de `VS Code`.
+
+Perfils:
+
+- `Docker: Stack completa`
+- `Docker: DB`
+- `Docker: API + Swagger`
+- `Docker: Web`
+
+Tasques:
+
+- `docker up all`
+- `docker up db`
+- `docker up api`
+- `docker up web`
+- `docker down`
+
+## UML addicional
+
+<pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">flowchart LR</span>
+  <span style="color:#93c5fd;">Usuari</span> --&gt; <span style="color:#c4b5fd;">VSCode[Run and Debug]</span>
+  <span style="color:#c4b5fd;">VSCode</span> --&gt; <span style="color:#86efac;">Launch[launch.json]</span>
+  <span style="color:#86efac;">Launch</span> --&gt; <span style="color:#fcd34d;">Tasks[tasks.json]</span>
+  <span style="color:#fcd34d;">Tasks</span> --&gt; <span style="color:#f9a8d4;">Compose[docker compose]</span>
+  <span style="color:#f9a8d4;">Compose</span> --&gt; <span style="color:#a7f3d0;">DB[(db)]</span>
+  <span style="color:#f9a8d4;">Compose</span> --&gt; <span style="color:#67e8f9;">API[api/swagger]</span>
+  <span style="color:#f9a8d4;">Compose</span> --&gt; <span style="color:#fde68a;">WEB[web]</span></code></pre>

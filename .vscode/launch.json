@@ -1,0 +1,36 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Docker: Stack completa",
+      "type": "pwa-chrome",
+      "request": "launch",
+      "url": "http://localhost:4200",
+      "webRoot": "${workspaceFolder}",
+      "preLaunchTask": "docker up all"
+    },
+    {
+      "name": "Docker: DB",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "echo 'yeppet-db disponible a localhost:5433'",
+      "preLaunchTask": "docker up db"
+    },
+    {
+      "name": "Docker: API + Swagger",
+      "type": "pwa-chrome",
+      "request": "launch",
+      "url": "http://localhost:5211/swagger/index.html",
+      "webRoot": "${workspaceFolder}",
+      "preLaunchTask": "docker up api"
+    },
+    {
+      "name": "Docker: Web",
+      "type": "pwa-chrome",
+      "request": "launch",
+      "url": "http://localhost:4200",
+      "webRoot": "${workspaceFolder}",
+      "preLaunchTask": "docker up web"
+    }
+  ]
+}
