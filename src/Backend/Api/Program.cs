@@ -7,6 +7,15 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddProblemDetails();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new()
+    {
+        Title = "YepPet API",
+        Version = "v1"
+    });
+});
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("web", policy =>
@@ -22,6 +31,12 @@ var app = builder.Build();
 
 app.UseExceptionHandler();
 app.UseCors("web");
+app.UseSwagger();
+app.UseSwaggerUI(options =>
+{
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "YepPet API v1");
+    options.RoutePrefix = "swagger";
+});
 
 app.MapGet("/", () => "Hello World!");
 app.MapGet("/health/db", () => Results.Ok(new { status = "configured" }));

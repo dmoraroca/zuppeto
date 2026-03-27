@@ -18,5 +18,59 @@ services:
       timeout: 5s
       retries: 10
 
+  api:
+    build:
+      context: .
+      dockerfile: docker/api/Dockerfile.dev
+    image: yeppet-api-dev
+    container_name: yeppet-api
+    working_dir: /app
+    volumes:
+      - ./:/app:cached
+    entrypoint: ["/bin/bash", "-lc"]
+    command:
+      [
+        "dotnet restore YepPet.sln && dotnet tool restore && until pg_isready -h db -p 5432 -U ${POSTGRES_USER:-app} -d ${POSTGRES_DB:-yeppet}; do sleep 2; done && dotnet ef database update --project src/Backend/Infrastructure/Infrastructure.csproj --startup-project src/Backend/Api/Api.csproj && dotnet build src/Backend/Api/Api.csproj -c Debug && exec dotnet /app/src/Backend/Api/bin/Debug/net10.0/Api.dll --urls http://0.0.0.0:${API_PORT:-5211}"
+      ]
+    ports:
+      - "${API_PORT:-5211}:${API_PORT:-5211}"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__YepPet: Host=db;Port=5432;Database=${POSTGRES_DB:-yeppet};Username=${POSTGRES_USER:-app};Password=${POSTGRES_PASSWORD:-app}
+      COMPlus_EnableDiagnostics: 1
+    depends_on:
+      db:
+        condition: service_healthy
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp:unconfined
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/web/Dockerfile.dev
+    image: yeppet-web-dev
+    container_name: yeppet-web
+    working_dir: /app/src/Web
+    volumes:
+      - ./:/app:cached
+      - yeppet_web_node_modules:/app/src/Web/node_modules
+    entrypoint: ["/bin/bash", "-lc"]
+    command:
+      [
+        "if [ ! -d node_modules ] || [ -z \"$(ls -A node_modules 2>/dev/null)\" ]; then npm ci; fi && exec npm start -- --host 0.0.0.0 --port ${WEB_PORT:-4200}"
+      ]
+    ports:
+      - "${WEB_PORT:-4200}:${WEB_PORT:-4200}"
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
+      NG_CLI_ANALYTICS: "false"
+    depends_on:
+      api:
+        condition: service_started
+
 volumes:
   yeppet_pg_data:
+  yeppet_web_node_modules:

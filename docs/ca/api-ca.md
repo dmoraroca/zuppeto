@@ -18,6 +18,7 @@ Ja queden exposats:
 L'API s'ha construït amb:
 
 - `minimal APIs`
+- `Swagger` per documentacio i prova manual
 - grups de rutes per recurs
 - serveis d'`Application` com a únic punt d'entrada al negoci
 - persistència real a `PostgreSQL` via `Infrastructure`
@@ -72,6 +73,10 @@ Valors de `type` admesos actualment:
 - `GET /api/reviews/places/{placeId}`
 - `POST /api/reviews`
 - `PUT /api/reviews/{id}`
+
+### Documentacio
+
+- `GET /swagger`
 
 ## Validacio real
 

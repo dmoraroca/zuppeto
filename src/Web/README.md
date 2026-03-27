@@ -12,6 +12,20 @@ ng serve
 
 Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
 
+## Docker development stack
+
+To start the full local stack with PostgreSQL, the .NET API, and Angular web, run from the repo root:
+
+```bash
+docker compose up -d --build
+```
+
+Default ports:
+
+- Web: `http://localhost:4200`
+- API: `http://localhost:5211`
+- PostgreSQL: `localhost:5433`
+
 ## Code scaffolding
 
 Angular CLI includes powerful code scaffolding tools. To generate a new component, run:

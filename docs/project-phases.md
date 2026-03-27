@@ -265,6 +265,7 @@ El punt `backend .NET` queda tancat amb:
 El punt `API per places, favorites, users i reviews` queda tancat amb:
 
 - `Api` exposant rutes HTTP reals via `minimal APIs`
+- documentacio navegable de l'API disponible via `Swagger`
 - grups de rutes separats per `places`, `favorites`, `users` i `reviews`
 - ús exclusiu de serveis d'`Application` des de la capa `Api`
 - sense dependència directa de `DbContext` ni de `Infrastructure` dins dels endpoints
@@ -282,6 +283,7 @@ El punt `substitució progressiva de serveis mock per serveis reals` queda tanca
 - login mantenint porta d'entrada fake però sincronitzant usuaris contra backend per obtenir identitat real
 - `ng build` correcte un cop connectat el frontend a la nova API
 - convivència controlada entre UX existent i dades reals sense reescriure la navegació
+- stack local complet de desenvolupament disponible amb `Docker Compose` per `db`, `api` i `web`
 
 ## Fase IV · Permisos, administració i operativa (**PENDENT**)
 

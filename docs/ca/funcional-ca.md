@@ -88,6 +88,8 @@ En l'estat actual:
 - la capa `Application` ja existeix amb serveis i contractes per les principals funcionalitats del producte
 - ja existeixen consultes i altes basiques reals sobre HTTP per `places`, `favorites`, `users` i `reviews`
 - el focus funcional visible avui se centra en `places`, `place detail`, `favorites` i `perfil` recolzats en dades reals, mentre el login continua sent una porta d'entrada controlada i local
+- el producte ja es pot aixecar en local amb `Docker Compose` com a stack complet de desenvolupament
+- l'API també queda consultable des de navegador via `Swagger`
 
 Per tant, aquest document no substitueix el de fases, sino que el complementa des del punt de vista d'us, navegacio i comportament funcional.
 

@@ -1,10 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "7DU/Gc0XbY8=",
+  "dgSpecHash": "3im3GgtIzzA=",
   "success": true,
-  "projectFilePath": "/home/dmoraroca/Documents/_DATA/repos/yeppet/src/Backend/Application/Application.csproj",
+  "projectFilePath": "/app/src/Backend/Application/Application.csproj",
   "expectedPackageFiles": [
-    "/home/dmoraroca/.nuget/packages/microsoft.extensions.dependencyinjection.abstractions/10.0.0/microsoft.extensions.dependencyinjection.abstractions.10.0.0.nupkg.sha512"
+    "/root/.nuget/packages/microsoft.extensions.dependencyinjection.abstractions/10.0.0/microsoft.extensions.dependencyinjection.abstractions.10.0.0.nupkg.sha512"
   ],
   "logs": []
 }

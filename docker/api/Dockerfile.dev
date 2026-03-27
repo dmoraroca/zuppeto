@@ -1,0 +1,15 @@
+FROM mcr.microsoft.com/dotnet/sdk:10.0
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y \
+    curl \
+    procps \
+    psmisc \
+    iproute2 \
+    lsof \
+    postgresql-client \
+  && rm -rf /var/lib/apt/lists/*
+
+ENV ASPNETCORE_ENVIRONMENT=Development
+ENV DOTNET_USE_POLLING_FILE_WATCHER=1

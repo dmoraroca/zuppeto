@@ -254,6 +254,7 @@ Resum del diagrama:
 El punt d'API ja queda tancat amb:
 
 - `minimal APIs` a la capa `Api`
+- `Swagger` actiu per inspeccio i prova manual d'endpoints
 - grups de rutes per `places`, `favorites`, `users` i `reviews`
 - endpoints HTTP recolzats només en serveis d'`Application`
 - sense accedir directament a `DbContext` des de `Api`
@@ -291,6 +292,10 @@ Rutes reals validades:
 - `POST /api/reviews`
 - `PUT /api/reviews/{id}`
 
+Acces de documentacio navegable:
+
+- `GET /swagger`
+
 ## 2.9 Estat tancat de la integracio frontend -> API
 
 La Fase III queda tancada perquè el frontend ja consumeix la nova API en els fluxos principals.
@@ -320,6 +325,33 @@ Resum del diagrama:
 - favorits i perfil ja escriuen sobre dades persistides
 - el login es manté local però crea o recupera usuari real al backend
 - la Fase III es pot donar per tancada sense obrir encara l'autenticacio completa de Fase IV
+
+## 2.10 Stack Docker local complet
+
+Per mantenir el mateix criteri de treball que a `escoles-publiques`, `yeppet` ja disposa d'un stack Docker complet de desenvolupament.
+
+Peces afegides:
+
+- `docker-compose.yml` ampliat amb `db`, `api` i `web`
+- `docker/api/Dockerfile.dev`
+- `docker/web/Dockerfile.dev`
+- `.dockerignore`
+- `YepPetDbContextFactory` adaptat per llegir `ConnectionStrings__YepPet` també dins de contenidors
+
+<pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">flowchart LR</span>
+  <span style="color:#93c5fd;">DEV[Desenvolupament local]</span> --&gt; <span style="color:#c4b5fd;">DC[docker compose]</span>
+  <span style="color:#c4b5fd;">DC</span> --&gt; <span style="color:#86efac;">WEB[Angular web :4200]</span>
+  <span style="color:#c4b5fd;">DC</span> --&gt; <span style="color:#fcd34d;">API[.NET API :5211]</span>
+  <span style="color:#c4b5fd;">DC</span> --&gt; <span style="color:#f9a8d4;">DB[(PostgreSQL :5433)]</span>
+  <span style="color:#fcd34d;">API</span> --&gt; <span style="color:#f9a8d4;">DB</span>
+  <span style="color:#86efac;">WEB</span> --&gt; <span style="color:#fcd34d;">API</span></code></pre>
+
+Resum del diagrama:
+
+- la BBDD, l'API i la web ja es poden aixecar en una sola ordre
+- l'API aplica migracions d'`Entity Framework` a l'arrencada
+- la web Angular s'executa en mode desenvolupament dins de contenidor
+- el flux local queda alineat amb el criteri operatiu usat a `escoles-publiques`
 
 ## 3. Arquitectura aplicada
 

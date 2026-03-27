@@ -1,34 +1,33 @@
 {
   "format": 1,
   "restore": {
-    "/home/dmoraroca/Documents/_DATA/repos/yeppet/src/Backend/Infrastructure/Infrastructure.csproj": {}
+    "/app/src/Backend/Infrastructure/Infrastructure.csproj": {}
   },
   "projects": {
-    "/home/dmoraroca/Documents/_DATA/repos/yeppet/src/Backend/Application/Application.csproj": {
+    "/app/src/Backend/Application/Application.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/home/dmoraroca/Documents/_DATA/repos/yeppet/src/Backend/Application/Application.csproj",
+        "projectUniqueName": "/app/src/Backend/Application/Application.csproj",
         "projectName": "Application",
-        "projectPath": "/home/dmoraroca/Documents/_DATA/repos/yeppet/src/Backend/Application/Application.csproj",
-        "packagesPath": "/home/dmoraroca/.nuget/packages/",
-        "outputPath": "/home/dmoraroca/Documents/_DATA/repos/yeppet/src/Backend/Application/obj/",
+        "projectPath": "/app/src/Backend/Application/Application.csproj",
+        "packagesPath": "/root/.nuget/packages/",
+        "outputPath": "/app/src/Backend/Application/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "/home/dmoraroca/.nuget/NuGet/NuGet.Config"
+          "/root/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0"
         ],
         "sources": {
-          "/usr/lib/dotnet/library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
           "net10.0": {
             "targetAlias": "net10.0",
             "projectReferences": {
-              "/home/dmoraroca/Documents/_DATA/repos/yeppet/src/Backend/Domain/Domain.csproj": {
-                "projectPath": "/home/dmoraroca/Documents/_DATA/repos/yeppet/src/Backend/Domain/Domain.csproj"
+              "/app/src/Backend/Domain/Domain.csproj": {
+                "projectPath": "/app/src/Backend/Domain/Domain.csproj"
               }
             }
           }
@@ -43,7 +42,7 @@
           "auditLevel": "low",
           "auditMode": "all"
         },
-        "SdkAnalysisLevel": "10.0.100"
+        "SdkAnalysisLevel": "10.0.200"
       },
       "frameworks": {
         "net10.0": {
@@ -70,7 +69,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/usr/lib/dotnet/sdk/10.0.104/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/10.0.201/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.CSharp": "(,4.7.32767]",
             "Microsoft.VisualBasic": "(,10.4.32767]",
@@ -348,23 +347,22 @@
         }
       }
     },
-    "/home/dmoraroca/Documents/_DATA/repos/yeppet/src/Backend/Domain/Domain.csproj": {
+    "/app/src/Backend/Domain/Domain.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/home/dmoraroca/Documents/_DATA/repos/yeppet/src/Backend/Domain/Domain.csproj",
+        "projectUniqueName": "/app/src/Backend/Domain/Domain.csproj",
         "projectName": "Domain",
-        "projectPath": "/home/dmoraroca/Documents/_DATA/repos/yeppet/src/Backend/Domain/Domain.csproj",
-        "packagesPath": "/home/dmoraroca/.nuget/packages/",
-        "outputPath": "/home/dmoraroca/Documents/_DATA/repos/yeppet/src/Backend/Domain/obj/",
+        "projectPath": "/app/src/Backend/Domain/Domain.csproj",
+        "packagesPath": "/root/.nuget/packages/",
+        "outputPath": "/app/src/Backend/Domain/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "/home/dmoraroca/.nuget/NuGet/NuGet.Config"
+          "/root/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0"
         ],
         "sources": {
-          "/usr/lib/dotnet/library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -383,7 +381,7 @@
           "auditLevel": "low",
           "auditMode": "all"
         },
-        "SdkAnalysisLevel": "10.0.100"
+        "SdkAnalysisLevel": "10.0.200"
       },
       "frameworks": {
         "net10.0": {
@@ -404,7 +402,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/usr/lib/dotnet/sdk/10.0.104/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/10.0.201/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.CSharp": "(,4.7.32767]",
             "Microsoft.VisualBasic": "(,10.4.32767]",
@@ -682,34 +680,33 @@
         }
       }
     },
-    "/home/dmoraroca/Documents/_DATA/repos/yeppet/src/Backend/Infrastructure/Infrastructure.csproj": {
+    "/app/src/Backend/Infrastructure/Infrastructure.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/home/dmoraroca/Documents/_DATA/repos/yeppet/src/Backend/Infrastructure/Infrastructure.csproj",
+        "projectUniqueName": "/app/src/Backend/Infrastructure/Infrastructure.csproj",
         "projectName": "Infrastructure",
-        "projectPath": "/home/dmoraroca/Documents/_DATA/repos/yeppet/src/Backend/Infrastructure/Infrastructure.csproj",
-        "packagesPath": "/home/dmoraroca/.nuget/packages/",
-        "outputPath": "/home/dmoraroca/Documents/_DATA/repos/yeppet/src/Backend/Infrastructure/obj/",
+        "projectPath": "/app/src/Backend/Infrastructure/Infrastructure.csproj",
+        "packagesPath": "/root/.nuget/packages/",
+        "outputPath": "/app/src/Backend/Infrastructure/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "/home/dmoraroca/.nuget/NuGet/NuGet.Config"
+          "/root/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0"
         ],
         "sources": {
-          "/usr/lib/dotnet/library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
           "net10.0": {
             "targetAlias": "net10.0",
             "projectReferences": {
-              "/home/dmoraroca/Documents/_DATA/repos/yeppet/src/Backend/Application/Application.csproj": {
-                "projectPath": "/home/dmoraroca/Documents/_DATA/repos/yeppet/src/Backend/Application/Application.csproj"
+              "/app/src/Backend/Application/Application.csproj": {
+                "projectPath": "/app/src/Backend/Application/Application.csproj"
               },
-              "/home/dmoraroca/Documents/_DATA/repos/yeppet/src/Backend/Domain/Domain.csproj": {
-                "projectPath": "/home/dmoraroca/Documents/_DATA/repos/yeppet/src/Backend/Domain/Domain.csproj"
+              "/app/src/Backend/Domain/Domain.csproj": {
+                "projectPath": "/app/src/Backend/Domain/Domain.csproj"
               }
             }
           }
@@ -724,7 +721,7 @@
           "auditLevel": "low",
           "auditMode": "all"
         },
-        "SdkAnalysisLevel": "10.0.100"
+        "SdkAnalysisLevel": "10.0.200"
       },
       "frameworks": {
         "net10.0": {
@@ -761,7 +758,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/usr/lib/dotnet/sdk/10.0.104/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/10.0.201/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.CSharp": "(,4.7.32767]",
             "Microsoft.VisualBasic": "(,10.4.32767]",

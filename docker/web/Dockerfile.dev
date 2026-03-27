@@ -1,0 +1,15 @@
+FROM node:22-bookworm
+
+WORKDIR /app/src/Web
+
+RUN apt-get update && apt-get install -y \
+    curl \
+    procps \
+    psmisc \
+    iproute2 \
+    lsof \
+  && rm -rf /var/lib/apt/lists/*
+
+ENV CHOKIDAR_USEPOLLING=true
+ENV WATCHPACK_POLLING=true
+ENV NG_CLI_ANALYTICS=false
