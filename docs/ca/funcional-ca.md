@@ -73,6 +73,7 @@ En l'estat actual:
 - la Fase II queda recollida com a base funcional ja consolidada segons els punts marcats en negreta a `project-phases.md`
 - la Fase III ja queda tancada
 - la Fase IV ja queda oberta com a nou focus actiu del producte
+- l'autenticacio de Fase IV inclou tant login propi com login federat amb proveidors externs
 - el disseny del model de domini real ja queda completat com a base del backend
 - els contractes de repositori i les necessitats de persistencia ja queden definits com a base del backend
 - el model relacional a `PostgreSQL` ja queda tancat
@@ -93,6 +94,7 @@ En l'estat actual:
 - l'API també queda consultable des de navegador via `Swagger`
 - `VS Code` ja disposa de perfils de `Run and Debug` per aixecar `db`, `api`, `web` o tota la stack des del workspace
 - el següent focus funcional passa a ser l'obertura d'autenticació, permisos, àrees internes i accessos restringits propis de la Fase IV
+- el login futur de Fase IV no queda limitat a credencials pròpies: també ha de contemplar `Google`, `LinkedIn`, `Facebook` i altres proveïdors federats
 
 Per tant, aquest document no substitueix el de fases, sino que el complementa des del punt de vista d'us, navegacio i comportament funcional.
 
@@ -111,6 +113,7 @@ Resum del diagrama:
 - la Fase IV obre el tram de seguretat i govern d'accessos
 - la web continua sent la mateixa base funcional, pero ara passa a requerir autenticació i permisos reals
 - les zones internes i restriccions deixen de ser una idea futura i passen a ser el focus actiu
+- l'entrada d'usuari haurà de poder venir tant de login propi com de proveïdors socials o federats
 
 ### 3.2 Transicio funcional cap a Fase III
 

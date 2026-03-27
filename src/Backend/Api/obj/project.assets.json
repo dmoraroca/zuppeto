@@ -3448,35 +3448,36 @@
     ]
   },
   "packageFolders": {
-    "/root/.nuget/packages/": {}
+    "/home/dmoraroca/.nuget/packages/": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/app/src/Backend/Api/Api.csproj",
+      "projectUniqueName": "/home/dmoraroca/Documents/_DATA/repos/yeppet/src/Backend/Api/Api.csproj",
       "projectName": "Api",
-      "projectPath": "/app/src/Backend/Api/Api.csproj",
-      "packagesPath": "/root/.nuget/packages/",
-      "outputPath": "/app/src/Backend/Api/obj/",
+      "projectPath": "/home/dmoraroca/Documents/_DATA/repos/yeppet/src/Backend/Api/Api.csproj",
+      "packagesPath": "/home/dmoraroca/.nuget/packages/",
+      "outputPath": "/home/dmoraroca/Documents/_DATA/repos/yeppet/src/Backend/Api/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "/root/.nuget/NuGet/NuGet.Config"
+        "/home/dmoraroca/.nuget/NuGet/NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net10.0"
       ],
       "sources": {
+        "/usr/lib/dotnet/library-packs": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
         "net10.0": {
           "targetAlias": "net10.0",
           "projectReferences": {
-            "/app/src/Backend/Application/Application.csproj": {
-              "projectPath": "/app/src/Backend/Application/Application.csproj"
+            "/home/dmoraroca/Documents/_DATA/repos/yeppet/src/Backend/Application/Application.csproj": {
+              "projectPath": "/home/dmoraroca/Documents/_DATA/repos/yeppet/src/Backend/Application/Application.csproj"
             },
-            "/app/src/Backend/Infrastructure/Infrastructure.csproj": {
-              "projectPath": "/app/src/Backend/Infrastructure/Infrastructure.csproj"
+            "/home/dmoraroca/Documents/_DATA/repos/yeppet/src/Backend/Infrastructure/Infrastructure.csproj": {
+              "projectPath": "/home/dmoraroca/Documents/_DATA/repos/yeppet/src/Backend/Infrastructure/Infrastructure.csproj"
             }
           }
         }
@@ -3491,7 +3492,7 @@
         "auditLevel": "low",
         "auditMode": "all"
       },
-      "SdkAnalysisLevel": "10.0.200"
+      "SdkAnalysisLevel": "10.0.100"
     },
     "frameworks": {
       "net10.0": {
@@ -3527,7 +3528,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/10.0.201/PortableRuntimeIdentifierGraph.json",
+        "runtimeIdentifierGraphPath": "/usr/lib/dotnet/sdk/10.0.104/PortableRuntimeIdentifierGraph.json",
         "packagesToPrune": {
           "Microsoft.AspNetCore": "(,10.0.32767]",
           "Microsoft.AspNetCore.Antiforgery": "(,10.0.32767]",

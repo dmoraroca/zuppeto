@@ -393,6 +393,7 @@ Resum del diagrama:
 Amb la Fase III tancada, el nou focus tècnic passa a ser la seguretat operativa del producte:
 
 - autenticació real
+- autenticació federada amb proveïdors externs
 - rols i permisos
 - diferenciació entre zones públiques i internes
 - control d'accessos per funcionalitat
@@ -400,6 +401,7 @@ Amb la Fase III tancada, el nou focus tècnic passa a ser la seguretat operativa
 <pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">flowchart LR</span>
   <span style="color:#93c5fd;">WEB[Frontend Angular]</span> --&gt; <span style="color:#c4b5fd;">API[Backend API]</span>
   <span style="color:#fcd34d;">AUTH[Autenticacio]</span> -.-> <span style="color:#c4b5fd;">API</span>
+  <span style="color:#f9a8d4;">SOC[Google / LinkedIn / Facebook / OIDC]</span> -.-> <span style="color:#fcd34d;">AUTH</span>
   <span style="color:#86efac;">RBAC[Rols i permisos]</span> -.-> <span style="color:#c4b5fd;">API</span>
   <span style="color:#f9a8d4;">INTERNAL[Àrees internes]</span> -.-> <span style="color:#93c5fd;">WEB</span>
   <span style="color:#c4b5fd;">API</span> --&gt; <span style="color:#67e8f9;">APP[Application]</span>
@@ -411,6 +413,7 @@ Resum del diagrama:
 - la base tècnica de Fase III ja permet obrir autenticació i permisos sense rehacer backend ni persistència
 - el control d'accessos s'haurà de recolzar en `Api` i `Application`, no només en la web
 - la Fase IV ja no és pendent conceptual, sinó línia activa de treball
+- el punt d'autenticació ja inclou des del principi la possibilitat de login federat via proveïdors `OAuth/OIDC`
 
 ### 3.1 Principis
 

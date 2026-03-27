@@ -294,7 +294,7 @@ Separar clarament les zones públiques de les zones internes o controlades per p
 
 ### Què entra dins la fase IV
 
-- autenticació (**PENDENT**)
+- autenticació pròpia i federada (`Google`, `LinkedIn`, `Facebook` i altres proveïdors OAuth/OIDC) (**PENDENT**)
 - rols i permisos (**PENDENT**)
 - pàgines internes (**PENDENT**)
 - gestió de contingut o dades (**PENDENT**)
