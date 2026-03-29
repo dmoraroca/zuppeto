@@ -1,4 +1,15 @@
 bin/
 obj/
+**/bin/
+**/obj/
+*.assets.cache
+*.nuget.cache
+*.csproj.nuget.dgspec.json
+*.csproj.nuget.g.props
+*.csproj.nuget.g.targets
+*.AssemblyInfoInputs.cache
+*.GeneratedMSBuildEditorConfig.editorconfig
+*.GlobalUsings.g.cs
+.NETCoreApp,Version=*.AssemblyAttributes.cs
 .DS_Store
 config/google/*.json
