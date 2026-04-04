@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Inject, Injectable, computed, inject, signal } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { toObservable } from '@angular/core/rxjs-interop';
+import { Observable, firstValueFrom } from 'rxjs';
 
 import { API_BASE_URL } from '../../../core/config/api.config';
 import { NavigationMenuItem } from '../../../core/models/navigation-menu.model';
@@ -14,9 +15,13 @@ export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly sessionState: ReturnType<typeof signal<AuthSession | null>>;
   private readonly navigationMenuState = signal<NavigationMenuItem[]>([]);
+  readonly currentUser$: Observable<AuthUser | null>;
+  readonly isAuthenticated$: Observable<boolean>;
 
   constructor(@Inject(AUTH_STORE) private readonly authStore: AuthStore) {
     this.sessionState = signal<AuthSession | null>(this.authStore.loadSession());
+    this.currentUser$ = toObservable(this.currentUser);
+    this.isAuthenticated$ = toObservable(this.isAuthenticated);
 
     if (this.sessionState()) {
       void this.loadNavigationMenu();

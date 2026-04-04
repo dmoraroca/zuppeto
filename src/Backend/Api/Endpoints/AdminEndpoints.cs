@@ -2,6 +2,8 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using YepPet.Application.Admin;
+using YepPet.Application.Validation;
+using YepPet.Api.Validation;
 
 namespace YepPet.Api.Endpoints;
 
@@ -39,9 +41,10 @@ internal static class AdminEndpoints
     }
 
     [Authorize]
-    private static async Task<Results<Created<Application.Users.UserDto>, Conflict<string>, ForbidHttpResult>> CreateUserAsync(
+    private static async Task<Results<Created<Application.Users.UserDto>, Conflict<string>, ForbidHttpResult, ValidationProblem>> CreateUserAsync(
         ClaimsPrincipal principal,
         CreateAdminUserRequest request,
+        IValidator<CreateAdminUserRequest> validator,
         IAdminApplicationService service,
         CancellationToken cancellationToken)
     {
@@ -50,22 +53,29 @@ internal static class AdminEndpoints
             return TypedResults.Forbid();
         }
 
-        try
+        var validation = validator.Validate(request);
+        if (!validation.IsValid)
         {
-            var created = await service.CreateUserAsync(request, cancellationToken);
-            return TypedResults.Created($"/api/admin/users/{created.Id}", created);
+            return validation.ToValidationProblem();
         }
-        catch (InvalidOperationException exception)
+
+        var result = await service.CreateUserAsync(request, cancellationToken);
+
+        if (!result.IsSuccess)
         {
-            return TypedResults.Conflict(exception.Message);
+            return TypedResults.Conflict(result.Failure?.Message ?? "Unable to create user.");
         }
+
+        var created = result.Value!;
+        return TypedResults.Created($"/api/admin/users/{created.Id}", created);
     }
 
     [Authorize]
-    private static async Task<Results<Ok<Application.Users.UserDto>, NotFound, ForbidHttpResult>> UpdateUserRoleAsync(
+    private static async Task<Results<Ok<Application.Users.UserDto>, NotFound, ForbidHttpResult, ValidationProblem>> UpdateUserRoleAsync(
         ClaimsPrincipal principal,
         Guid id,
         UpdateUserRoleRequest request,
+        IValidator<UpdateUserRoleRequest> validator,
         IAdminApplicationService service,
         CancellationToken cancellationToken)
     {
@@ -74,8 +84,25 @@ internal static class AdminEndpoints
             return TypedResults.Forbid();
         }
 
-        var user = await service.UpdateUserRoleAsync(id, request, cancellationToken);
-        return user is null ? TypedResults.NotFound() : TypedResults.Ok(user);
+        var validation = validator.Validate(request);
+        if (!validation.IsValid)
+        {
+            return validation.ToValidationProblem();
+        }
+
+        var result = await service.UpdateUserRoleAsync(id, request, cancellationToken);
+
+        if (!result.IsSuccess && result.Failure?.Kind == Application.Results.FailureKind.NotFound)
+        {
+            return TypedResults.NotFound();
+        }
+
+        if (!result.IsSuccess)
+        {
+            return TypedResults.NotFound();
+        }
+
+        return TypedResults.Ok(result.Value!);
     }
 
     [Authorize]
@@ -93,10 +120,11 @@ internal static class AdminEndpoints
     }
 
     [Authorize]
-    private static async Task<Results<Ok<RolePermissionCatalogDto>, ForbidHttpResult>> UpdateRolePermissionsAsync(
+    private static async Task<Results<Ok<RolePermissionCatalogDto>, ForbidHttpResult, ValidationProblem>> UpdateRolePermissionsAsync(
         ClaimsPrincipal principal,
         string role,
         UpdateRolePermissionsRequest request,
+        IValidator<UpdateRolePermissionsRequest> validator,
         IAdminApplicationService service,
         CancellationToken cancellationToken)
     {
@@ -105,7 +133,14 @@ internal static class AdminEndpoints
             return TypedResults.Forbid();
         }
 
-        return TypedResults.Ok(await service.UpdateRolePermissionsAsync(request with { Role = role }, cancellationToken));
+        var normalized = request with { Role = role };
+        var validation = validator.Validate(normalized);
+        if (!validation.IsValid)
+        {
+            return validation.ToValidationProblem();
+        }
+
+        return TypedResults.Ok(await service.UpdateRolePermissionsAsync(normalized, cancellationToken));
     }
 
     [Authorize]
@@ -123,10 +158,11 @@ internal static class AdminEndpoints
     }
 
     [Authorize]
-    private static async Task<Results<Ok<AdminMenuCatalogDto>, ForbidHttpResult>> SaveMenuAsync(
+    private static async Task<Results<Ok<AdminMenuCatalogDto>, ForbidHttpResult, ValidationProblem>> SaveMenuAsync(
         ClaimsPrincipal principal,
         string key,
         SaveMenuRequest request,
+        IValidator<SaveMenuRequest> validator,
         IAdminApplicationService service,
         CancellationToken cancellationToken)
     {
@@ -135,7 +171,14 @@ internal static class AdminEndpoints
             return TypedResults.Forbid();
         }
 
-        return TypedResults.Ok(await service.SaveMenuAsync(request with { Key = key }, cancellationToken));
+        var normalized = request with { Key = key };
+        var validation = validator.Validate(normalized);
+        if (!validation.IsValid)
+        {
+            return validation.ToValidationProblem();
+        }
+
+        return TypedResults.Ok(await service.SaveMenuAsync(normalized, cancellationToken));
     }
 
     [Authorize]

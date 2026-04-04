@@ -651,7 +651,27 @@ Resum del diagrama:
 - la base responsive es manté funcional
 - les pantalles principals continuen sent usables en mòbil estret sense dependre d'un layout de desktop
 
-## 10. Referencia documental
+## 10. Patrons i SOLID (resum)
+
+Els patrons de disseny i criteris SOLID s'expliquen al document tècnic amb exemples de codi reals.
+
+- veure `tecnic-ca.md`, apartat "Patrons de disseny i SOLID"
+
+## 11. Pagines internes (resum)
+
+El producte diferencia zones internes amb acces controlat:
+
+- DEVELOPER: pot accedir a la documentacio interna.
+- ADMIN: pot accedir a documentacio i manteniments (usuaris, permisos, menus).
+
+Rutes internes actuals:
+
+- `/admin/documentacio`
+- `/admin/usuaris`
+- `/admin/permisos`
+- `/admin/menus`
+
+## 12. Referencia documental
 
 Document tecnic:
 

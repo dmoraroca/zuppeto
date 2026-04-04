@@ -4,11 +4,11 @@ public interface IAdminApplicationService
 {
     Task<IReadOnlyCollection<AdminUserListItemDto>> GetUsersAsync(CancellationToken cancellationToken = default);
 
-    Task<Users.UserDto> CreateUserAsync(
+    Task<Results.Result<Users.UserDto>> CreateUserAsync(
         CreateAdminUserRequest request,
         CancellationToken cancellationToken = default);
 
-    Task<Users.UserDto?> UpdateUserRoleAsync(
+    Task<Results.Result<Users.UserDto>> UpdateUserRoleAsync(
         Guid userId,
         UpdateUserRoleRequest request,
         CancellationToken cancellationToken = default);

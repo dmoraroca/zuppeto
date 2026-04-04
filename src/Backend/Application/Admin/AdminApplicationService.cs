@@ -1,4 +1,8 @@
 using YepPet.Domain.Abstractions;
+using YepPet.Application.Admin.Commands;
+using YepPet.Application.Commands;
+using YepPet.Application.Factories;
+using YepPet.Application.Results;
 using YepPet.Domain.Users;
 
 namespace YepPet.Application.Admin;
@@ -7,7 +11,9 @@ internal sealed class AdminApplicationService(
     IUserRepository userRepository,
     IRolePermissionRepository rolePermissionRepository,
     IMenuRepository menuRepository,
-    Auth.IPasswordHasher passwordHasher) : IAdminApplicationService
+    ICommandHandler<CreateAdminUserCommand, Result<Users.UserDto>> createUserHandler,
+    ICommandHandler<UpdateUserRoleCommand, Result<Users.UserDto>> updateRoleHandler,
+    IMenuItemDefinitionFactory menuItemDefinitionFactory) : IAdminApplicationService
 {
     private static readonly InternalDocumentSummaryDto[] InternalDocuments =
     [
@@ -30,69 +36,19 @@ internal sealed class AdminApplicationService(
             .ToArray();
     }
 
-    public async Task<Users.UserDto> CreateUserAsync(
+    public async Task<Result<Users.UserDto>> CreateUserAsync(
         CreateAdminUserRequest request,
         CancellationToken cancellationToken = default)
     {
-        var role = Enum.Parse<UserRole>(request.Role, ignoreCase: true);
-        var email = request.Email.Trim().ToLowerInvariant();
-        var displayName = request.DisplayName.Trim();
-
-        if (await userRepository.ExistsByEmailAsync(email, cancellationToken))
-        {
-            throw new InvalidOperationException($"User '{email}' already exists.");
-        }
-
-        var user = new Domain.Users.User(
-            Guid.NewGuid(),
-            email,
-            passwordHasher.Hash(request.Password.Trim()),
-            role,
-            new Domain.Users.ValueObjects.UserProfile(displayName, string.Empty, string.Empty, string.Empty, null),
-            new Domain.Users.ValueObjects.PrivacyConsent(false, null));
-
-        await userRepository.AddAsync(user, cancellationToken);
-
-        return new Users.UserDto(
-            user.Id,
-            user.Email,
-            user.Role.ToString(),
-            user.Profile.DisplayName,
-            user.Profile.City,
-            user.Profile.Country,
-            user.Profile.Bio,
-            user.Profile.AvatarUrl,
-            user.PrivacyConsent.Accepted,
-            user.PrivacyConsent.AcceptedAtUtc);
+        return await createUserHandler.HandleAsync(new CreateAdminUserCommand(request), cancellationToken);
     }
 
-    public async Task<Users.UserDto?> UpdateUserRoleAsync(
+    public async Task<Result<Users.UserDto>> UpdateUserRoleAsync(
         Guid userId,
         UpdateUserRoleRequest request,
         CancellationToken cancellationToken = default)
     {
-        var user = await userRepository.GetByIdAsync(userId, cancellationToken);
-
-        if (user is null)
-        {
-            return null;
-        }
-
-        var nextRole = Enum.Parse<UserRole>(request.Role, ignoreCase: true);
-        user.ChangeRole(nextRole);
-        await userRepository.UpdateAsync(user, cancellationToken);
-
-        return new Users.UserDto(
-            user.Id,
-            user.Email,
-            user.Role.ToString(),
-            user.Profile.DisplayName,
-            user.Profile.City,
-            user.Profile.Country,
-            user.Profile.Bio,
-            user.Profile.AvatarUrl,
-            user.PrivacyConsent.Accepted,
-            user.PrivacyConsent.AcceptedAtUtc);
+        return await updateRoleHandler.HandleAsync(new UpdateUserRoleCommand(userId, request), cancellationToken);
     }
 
     public async Task<RolePermissionCatalogDto> GetRolePermissionsAsync(CancellationToken cancellationToken = default)
@@ -151,13 +107,7 @@ internal sealed class AdminApplicationService(
         CancellationToken cancellationToken = default)
     {
         await menuRepository.SaveDefinitionAsync(
-            new Domain.Navigation.MenuItemDefinition(
-                request.Key.Trim(),
-                request.Label.Trim(),
-                string.IsNullOrWhiteSpace(request.Route) ? null : request.Route.Trim(),
-                string.IsNullOrWhiteSpace(request.ParentKey) ? null : request.ParentKey.Trim(),
-                request.SortOrder,
-                request.IsActive),
+            menuItemDefinitionFactory.Create(request),
             cancellationToken);
 
         await menuRepository.ReplaceMenuRolesAsync(request.Key.Trim(), request.Roles, cancellationToken);

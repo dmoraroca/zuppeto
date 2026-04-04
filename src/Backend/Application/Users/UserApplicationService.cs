@@ -1,12 +1,14 @@
 using YepPet.Domain.Abstractions;
 using YepPet.Domain.Users;
 using YepPet.Domain.Users.ValueObjects;
+using YepPet.Application.Factories;
 
 namespace YepPet.Application.Users;
 
 internal sealed class UserApplicationService(
     IUserRepository userRepository,
-    Auth.IPasswordHasher passwordHasher) : IUserApplicationService
+    Auth.IPasswordHasher passwordHasher,
+    IUserProfileFactory userProfileFactory) : IUserApplicationService
 {
     public async Task<IReadOnlyCollection<UserDto>> ListAsync(CancellationToken cancellationToken = default)
     {
@@ -33,7 +35,7 @@ internal sealed class UserApplicationService(
             request.Email,
             passwordHasher.Hash(request.PasswordHash),
             Enum.Parse<UserRole>(request.Role, ignoreCase: true),
-            new UserProfile(request.DisplayName, request.City, request.Country, request.Bio, request.AvatarUrl),
+            userProfileFactory.Create(request.DisplayName, request.City, request.Country, request.Bio, request.AvatarUrl),
             new PrivacyConsent(request.PrivacyAccepted, request.PrivacyAcceptedAtUtc));
 
         await userRepository.AddAsync(user, cancellationToken);
@@ -50,12 +52,13 @@ internal sealed class UserApplicationService(
             user.AcceptPrivacy(request.PrivacyAcceptedAtUtc ?? DateTimeOffset.UtcNow);
         }
 
-        user.UpdateProfile(new UserProfile(
-            request.DisplayName,
-            request.City,
-            request.Country,
-            request.Bio,
-            request.AvatarUrl));
+        user.UpdateProfile(
+            userProfileFactory.Create(
+                request.DisplayName,
+                request.City,
+                request.Country,
+                request.Bio,
+                request.AvatarUrl));
 
         await userRepository.UpdateAsync(user, cancellationToken);
     }

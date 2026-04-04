@@ -296,8 +296,8 @@ Separar clarament les zones públiques de les zones internes o controlades per p
 
 - autenticació pròpia i federada (`Google`, `LinkedIn`, `Facebook` i altres proveïdors OAuth/OIDC) (**FET**)
 - rols i permisos (**FET**)
-- pàgines internes (**EN CURS**)
-- gestió de contingut o dades (**PENDENT**)
+- pàgines internes (**FET**, E2E OK a `docs/probes-e2e-resultats/20260405_0059_OK_pagines-internes_041.md`)
+- gestió de contingut o dades (**EN CURS**)
 - accessos restringits a determinades funcionalitats (**PENDENT**)
 
 ### Resultat esperat
@@ -328,7 +328,7 @@ El punt `autenticació pròpia i federada` queda tancat amb aquesta base ja oper
 
 ### Nou punt en curs
 
-El focus actiu de la fase passa ara a `pàgines internes`.
+El focus actiu de la fase passa ara a `gestió de contingut o dades`.
 
 La decisió funcional base d'aquest punt queda fixada així:
 

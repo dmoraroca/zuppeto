@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using YepPet.Domain.Abstractions;
 using YepPet.Domain.Places;
 using YepPet.Infrastructure.Persistence.Entities;
+using YepPet.Infrastructure.Persistence.Specifications;
 using YepPet.Infrastructure.Persistence.Mappings;
 
 namespace YepPet.Infrastructure.Persistence.Repositories;
@@ -22,34 +23,8 @@ internal sealed class PlaceRepository(YepPetDbContext dbContext) : IPlaceReposit
         CancellationToken cancellationToken = default)
     {
         IQueryable<PlaceRecord> query = BuildGraphQuery().AsNoTracking();
-
-        if (!string.IsNullOrWhiteSpace(criteria.City))
-        {
-            query = query.Where(place => place.City == criteria.City);
-        }
-
-        if (criteria.Type is not null)
-        {
-            var typeValue = criteria.Type.Value.ToString();
-            query = query.Where(place => place.Type == typeValue);
-        }
-
-        query = criteria.PetCategory switch
-        {
-            PetCategory.Dogs => query.Where(place => place.AcceptsDogs),
-            PetCategory.Cats => query.Where(place => place.AcceptsCats),
-            _ => query
-        };
-
-        if (!string.IsNullOrWhiteSpace(criteria.SearchText))
-        {
-            var searchPattern = $"%{criteria.SearchText}%";
-            query = query.Where(place =>
-                EF.Functions.ILike(place.Name, searchPattern) ||
-                EF.Functions.ILike(place.ShortDescription, searchPattern) ||
-                EF.Functions.ILike(place.Description, searchPattern) ||
-                EF.Functions.ILike(place.City, searchPattern));
-        }
+        var specification = new PlaceSearchSpecification(criteria);
+        query = specification.Apply(query);
 
         var records = await query
             .OrderBy(place => place.City)

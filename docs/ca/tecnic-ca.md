@@ -1578,7 +1578,38 @@ Fitxers implicats:
 - `src/Web/src/app/core/layout/components/error-notifications/error-notifications.component.html`
 - `src/Web/src/app/core/layout/components/error-notifications/error-notifications.component.scss`
 
-## 10. Proves automatitzades i historic
+## 10. Patrons de disseny i SOLID
+
+Patrons aplicats amb exemples reals:
+
+- Repository: accés a dades encapsulat a `Infrastructure`.
+  - Exemple: `MenuRepository`, `UserRepository`, `RolePermissionRepository`.
+- Dependency Injection: serveis registrats a `Application` i `Infrastructure`.
+  - Exemple: `DependencyInjection.cs` a `src/Backend/Application`.
+- Strategy: clients OAuth/IdToken intercanviables.
+  - Exemple: `IGoogleIdTokenVerifier`, `ILinkedInOAuthClient`, `IFacebookOAuthClient`.
+- Validator: validació explícita a la capa d'entrada (API).
+  - Exemple: `CreateAdminUserRequestValidator`, `LoginRequestValidator`.
+- Observer: events publicats des de `Application` amb handlers registrats a DI.
+  - Exemple: `UserCreatedEvent`, `UserRoleChangedEvent`, `AuditUserEventsHandler`.
+- Factory: construcció d'objectes de domini des de requests.
+  - Exemple: `UserProfileFactory`, `MenuItemDefinitionFactory`.
+- Result: evitar exceptions com a flux i retornar estat controlat.
+  - Exemple: `Result<UserDto>` a `CreateUserAsync` i `UpdateUserRoleAsync`.
+- Command: encapsular operacions d'admin en handlers separats.
+  - Exemple: `CreateAdminUserCommandHandler`, `UpdateUserRoleCommandHandler`.
+- Specification: criteris de consulta encapsulats per reutilitzar filtres.
+  - Exemple: `PlaceSearchSpecification` a `PlaceRepository`.
+
+Nota SOLID:
+
+- `S`: responsabilitats separades entre `Api`, `Application`, `Domain`, `Infrastructure`.
+- `O`: nous proveïdors OAuth es poden afegir via interfícies.
+- `L`: contractes d'interfície mantenen substitució segura.
+- `I`: interfícies petites (`IAuthApplicationService`, `IMenuRepository`).
+- `D`: dependències injectades via DI i no instanciades directament.
+
+## 11. Proves automatitzades i historic
 
 Les proves E2E es mantenen en un projecte separat a l'arrel:
 
@@ -1615,14 +1646,33 @@ Historic d'execucions:
 - plantilla: `docs/probes-e2e-resultats/template.md`
 - el numero de `commit` correspon al teu format de log (ex.: si l'ultim es `037`, toca `038`)
 
-## 11. Punts pendents de refinament
+## 12. Pagines internes (estat)
+
+Rutes internes governades per permisos:
+
+- `/admin/documentacio` (DEVELOPER + ADMIN)
+- `/admin/usuaris` (ADMIN)
+- `/admin/permisos` (ADMIN)
+- `/admin/menus` (ADMIN)
+
+Proteccio:
+
+- `permissionGuard` per permisos per pagina
+- API protegida per `page.*` i `action.*`
+
+E2E:
+
+- suite `internal-pages.e2e.spec.ts`
+- execucio OK documentada a `docs/probes-e2e-resultats/`
+
+## 13. Punts pendents de refinament
 
 - millor UX de marcadors
 - popups mes bons
 - mes criteri quan hi hagi moltes dades
 - mode mixt ja fixat: mapa sota filtres i llistat sincronitzat com a patró estable de `places`
 
-## 12. Referencia documental
+## 14. Referencia documental
 
 Document funcional:
 

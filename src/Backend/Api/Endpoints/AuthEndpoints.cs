@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.WebUtilities;
 using YepPet.Application.Auth;
+using YepPet.Application.Validation;
+using YepPet.Api.Validation;
 
 namespace YepPet.Api.Endpoints;
 
@@ -28,20 +30,34 @@ internal static class AuthEndpoints
         return app;
     }
 
-    private static async Task<Results<Ok<AuthSessionDto>, UnauthorizedHttpResult>> LoginAsync(
+    private static async Task<Results<Ok<AuthSessionDto>, UnauthorizedHttpResult, ValidationProblem>> LoginAsync(
         LoginRequest request,
+        IValidator<LoginRequest> validator,
         IAuthApplicationService service,
         CancellationToken cancellationToken)
     {
+        var validation = validator.Validate(request);
+        if (!validation.IsValid)
+        {
+            return validation.ToValidationProblem();
+        }
+
         var session = await service.LoginAsync(request, cancellationToken);
         return session is null ? TypedResults.Unauthorized() : TypedResults.Ok(session);
     }
 
-    private static async Task<Results<Ok<AuthSessionDto>, UnauthorizedHttpResult>> GoogleLoginAsync(
+    private static async Task<Results<Ok<AuthSessionDto>, UnauthorizedHttpResult, ValidationProblem>> GoogleLoginAsync(
         GoogleLoginRequest request,
+        IValidator<GoogleLoginRequest> validator,
         IAuthApplicationService service,
         CancellationToken cancellationToken)
     {
+        var validation = validator.Validate(request);
+        if (!validation.IsValid)
+        {
+            return validation.ToValidationProblem();
+        }
+
         var session = await service.LoginWithGoogleAsync(request, cancellationToken);
         return session is null ? TypedResults.Unauthorized() : TypedResults.Ok(session);
     }
