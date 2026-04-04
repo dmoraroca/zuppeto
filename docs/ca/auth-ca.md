@@ -2,25 +2,25 @@
 
 ## Objectiu
 
-Aquest document recull la base real d'autenticació de la Fase IV i la primera federació operativa amb `Google` en desenvolupament.
+Aquest document recull la base real d'autenticació de la Fase IV i el tancament del punt d'autenticació pròpia i federada amb `Google` i `LinkedIn` operatius en desenvolupament.
 
 ## Estat
 
 - punt de fase: `autenticació pròpia i federada`
-- estat: `(**EN CURS**)`
-- focus immediat: `LinkedIn`
+- estat: `(**FET**)`
+- següent punt de fase: `rols i permisos`
 
 ## Base actual implementada
 
 - login propi real contra backend
-- login federat amb `Google` en desenvolupament
+- login federat amb `Google` i `LinkedIn` en desenvolupament
 - emissió de `JWT`
 - persistència de sessió al navegador
 - endpoint de sessió actual via `GET /api/auth/me`
 - catàleg inicial de proveïdors via `GET /api/auth/providers`
 - `Google` configurat amb `ClientId` local i botó visible a la `LoginPage`
 - `yeppetcontact@gmail.com` reservat com a administrador federat de desenvolupament
-- base preparada per federació futura amb `LinkedIn`, `Facebook` i altres proveïdors `OAuth/OIDC`
+- base preparada per federació futura amb `Facebook` i altres proveïdors `OAuth/OIDC`
 - `Facebook` queda aparcat expressament fins després de publicar la web
 - la `LoginPage` torna a intentar el render del botó Google un cop el `ViewChild` del contenidor ja existeix
 - si el botó oficial no es pot pintar, la UI amaga el contenidor per evitar un requadre buit

@@ -108,10 +108,36 @@ En l'estat actual:
 - el següent focus funcional passa a ser l'obertura d'autenticació, permisos, àrees internes i accessos restringits propis de la Fase IV
 - el login futur de Fase IV no queda limitat a credencials pròpies: també ha de contemplar `Google`, `LinkedIn`, `Facebook` i altres proveïdors federats
 - `Facebook` queda aparcat funcionalment fins després de publicar la web
-- el punt d'autenticacio ja es considera en curs des del moment que el login deixa de dependre del fake del frontend i passa a recolzar-se en API
+- el punt d'autenticacio queda tancat amb `login propi`, `Google` i `LinkedIn` operatius sobre API real
+- el nou punt en curs passa a ser `rols i permisos`
 - ja existeixen dos usuaris bootstrap de desenvolupament per provar el nou flux:
   - `admin@admin.adm / Admin123`
   - `user@user.com / Admin123`
+
+La decisió funcional acordada per al nou punt en curs és:
+
+- `VIEWER` només pot veure contingut; no pot modificar res
+- `VIEWER` pot entrar a qualsevol lloc funcional només en lectura
+- `VIEWER` no pot afegir ni eliminar `favorites`
+- `VIEWER` no pot actualitzar res, no només `perfil`
+- `VIEWER` només requereix nom d'usuari; la resta de perfil no es demana ara
+- el perfil de `VIEWER` el configurarà `ADMIN`
+- `USER` manté el flux normal de producte però no veu el menú `ADMIN`
+- `USER` pot veure i usar `places`, `place detail` i la resta del producte funcional
+- `USER` no pot veure documentació interna ni fitxers `.md`
+- `DEVELOPER` pot veure i usar `places`, `place detail` i la resta del producte funcional
+- `DEVELOPER` pot veure tota la informació funcional i els fitxers `.md` de documentació interna
+- `DEVELOPER` veurà el menú `ADMIN` amb una opció inicial de `Documentació`
+- `ADMIN` ho pot fer tot i veu el menú `ADMIN`
+- `ADMIN` també pot veure informació funcional i fitxers `.md` de documentació interna
+- `ADMIN` compartirà l'opció `Documentació` i més endavant hi sumarà altres opcions pròpies
+- `ADMIN` assignarà permisos i perfils
+- qualsevol usuari nou creat per login propi o federat entrarà per defecte com a `VIEWER` fins que `ADMIN` li assigni un altre rol
+- hi haurà un manteniment intern dins `ADMIN` per gestionar `usuaris`, `rols` i `permisos`
+- els `permisos` definiran què es pot veure o fer a nivell de menú, pàgina i acció
+- els `usuaris` es gestionaran principalment assignant-los un `rol`
+- només `ADMIN` podrà tocar aquest manteniment estàndard
+- les funcionalitats internes concretes del menú `ADMIN` s'afegiran més endavant
 
 Per tant, aquest document no substitueix el de fases, sino que el complementa des del punt de vista d'us, navegacio i comportament funcional.
 

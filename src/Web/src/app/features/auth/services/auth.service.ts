@@ -3,6 +3,7 @@ import { Inject, Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
 import { API_BASE_URL } from '../../../core/config/api.config';
+import { NavigationMenuItem } from '../../../core/models/navigation-menu.model';
 import { AuthCredentials, AuthProfileUpdate, AuthProvider, AuthRole, AuthSession, AuthUser } from '../models/auth-user.model';
 import { AUTH_STORE, AuthStore } from './auth-store.token';
 
@@ -12,16 +13,24 @@ import { AUTH_STORE, AuthStore } from './auth-store.token';
 export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly sessionState: ReturnType<typeof signal<AuthSession | null>>;
+  private readonly navigationMenuState = signal<NavigationMenuItem[]>([]);
 
   constructor(@Inject(AUTH_STORE) private readonly authStore: AuthStore) {
     this.sessionState = signal<AuthSession | null>(this.authStore.loadSession());
+
+    if (this.sessionState()) {
+      void this.loadNavigationMenu();
+    }
   }
 
   readonly currentUser = computed(() => this.sessionState()?.user ?? null);
   readonly isAuthenticated = computed(() => this.sessionState() !== null);
   readonly isAdmin = computed(() => this.sessionState()?.user.role === 'ADMIN');
+  readonly isDeveloper = computed(() => this.sessionState()?.user.role === 'DEVELOPER');
   readonly role = computed<AuthRole | null>(() => this.sessionState()?.user.role ?? null);
   readonly provider = computed(() => this.sessionState()?.provider ?? null);
+  readonly permissionKeys = computed(() => this.sessionState()?.permissionKeys ?? []);
+  readonly navigationMenu = computed(() => this.navigationMenuState());
 
   async login(credentials: AuthCredentials): Promise<{ ok: boolean; user?: AuthUser }> {
     try {
@@ -35,6 +44,7 @@ export class AuthService {
       const mappedSession = this.toSession(session);
       this.sessionState.set(mappedSession);
       this.authStore.saveSession(mappedSession);
+      await this.loadNavigationMenu();
 
       return { ok: true, user: mappedSession.user };
     } catch {
@@ -53,6 +63,7 @@ export class AuthService {
       const mappedSession = this.toSession(session);
       this.sessionState.set(mappedSession);
       this.authStore.saveSession(mappedSession);
+      await this.loadNavigationMenu();
 
       return { ok: true, user: mappedSession.user };
     } catch {
@@ -64,11 +75,13 @@ export class AuthService {
     const mappedSession = this.toSession(this.normalizeSession(session));
     this.sessionState.set(mappedSession);
     this.authStore.saveSession(mappedSession);
+    void this.loadNavigationMenu();
     return mappedSession.user;
   }
 
   logout(): void {
     this.sessionState.set(null);
+    this.navigationMenuState.set([]);
     this.authStore.saveSession(null);
   }
 
@@ -121,6 +134,24 @@ export class AuthService {
     }));
   }
 
+  async loadNavigationMenu(): Promise<void> {
+    if (!this.isAuthenticated()) {
+      this.navigationMenuState.set([]);
+      return;
+    }
+
+    try {
+      const menu = await firstValueFrom(
+        this.http.get<NavigationMenuItem[]>(`${API_BASE_URL}/navigation/menu`)
+      );
+
+      const normalized = this.normalizeNavigationMenu(menu);
+      this.navigationMenuState.set(normalized.length > 0 ? normalized : this.buildFallbackNavigationMenu());
+    } catch {
+      this.navigationMenuState.set(this.buildFallbackNavigationMenu());
+    }
+  }
+
   getPostLoginRoute(): string {
     const user = this.currentUser();
 
@@ -128,11 +159,35 @@ export class AuthService {
       return '/login';
     }
 
-    if (user.role === 'ADMIN') {
-      return '/permissions';
+    if (this.hasPermission('page.admin.permissions')) {
+      return '/admin/permisos';
+    }
+
+    if (this.hasPermission('page.admin.documentation')) {
+      return '/admin/documentacio';
     }
 
     return this.requiresProfileCompletion(user) ? '/perfil' : '/';
+  }
+
+  hasPermission(permissionKey: string): boolean {
+    return this.permissionKeys().includes(permissionKey);
+  }
+
+  canAccessAdminMenu(): boolean {
+    return this.hasPermission('menu.admin');
+  }
+
+  canAccessDocumentation(): boolean {
+    return this.hasPermission('page.admin.documentation');
+  }
+
+  canManageUsers(): boolean {
+    return this.hasPermission('page.admin.users');
+  }
+
+  canManagePermissions(): boolean {
+    return this.hasPermission('page.admin.permissions');
   }
 
   getLinkedInStartUrl(redirectTo?: string | null): string {
@@ -154,7 +209,8 @@ export class AuthService {
       accessToken: session.accessToken,
       expiresAtUtc: session.expiresAtUtc,
       provider: session.provider,
-      user: this.toAuthUser(session.user)
+      user: this.toAuthUser(session.user),
+      permissionKeys: session.permissionKeys ?? []
     };
   }
 
@@ -170,6 +226,7 @@ export class AuthService {
       accessToken: candidate.accessToken ?? candidate.AccessToken ?? '',
       expiresAtUtc: candidate.expiresAtUtc ?? candidate.ExpiresAtUtc ?? '',
       provider: candidate.provider ?? candidate.Provider ?? '',
+      permissionKeys: candidate.permissionKeys ?? candidate.PermissionKeys ?? [],
       user: {
         id: this.readUserField(user, 'id', 'Id') ?? '',
         email: this.readUserField(user, 'email', 'Email') ?? '',
@@ -208,6 +265,114 @@ export class AuthService {
     };
   }
 
+  private buildFallbackNavigationMenu(): NavigationMenuItem[] {
+    const items: NavigationMenuItem[] = [
+      {
+        key: 'home',
+        label: 'Inici',
+        route: '/',
+        children: []
+      },
+      {
+        key: 'places',
+        label: 'Llocs',
+        route: '/places',
+        children: []
+      },
+      {
+        key: 'favorites',
+        label: 'Favorits',
+        route: '/favorites',
+        children: []
+      },
+      {
+        key: 'help',
+        label: 'Ajuda',
+        route: null,
+        children: [
+          {
+            key: 'help.general',
+            label: 'Com funciona',
+            route: '/ajuda',
+            children: []
+          },
+          {
+            key: 'help.contact',
+            label: "Contacta'ns",
+            route: '/contacte',
+            children: []
+          }
+        ]
+      }
+    ];
+
+    const adminChildren: NavigationMenuItem[] = [];
+
+    if (this.canAccessDocumentation()) {
+      adminChildren.push({
+        key: 'admin.documentation',
+        label: 'Documentació',
+        route: '/admin/documentacio',
+        children: []
+      });
+    }
+
+    if (this.canManageUsers()) {
+      adminChildren.push({
+        key: 'admin.users',
+        label: 'Usuaris',
+        route: '/admin/usuaris',
+        children: []
+      });
+    }
+
+    if (this.canManagePermissions()) {
+      adminChildren.push({
+        key: 'admin.permissions',
+        label: 'Permisos',
+        route: '/admin/permisos',
+        children: []
+      });
+
+      adminChildren.push({
+        key: 'admin.menus',
+        label: 'Menús',
+        route: '/admin/menus',
+        children: []
+      });
+    }
+
+    if (this.canAccessAdminMenu() || adminChildren.length > 0) {
+      items.push({
+        key: 'admin',
+        label: this.role() === 'DEVELOPER' ? 'Del desenvolupador' : 'Del administrador',
+        route: null,
+        children: adminChildren
+      });
+    }
+
+    return items;
+  }
+
+  private normalizeNavigationMenu(items: NavigationMenuItem[]): NavigationMenuItem[] {
+    return items
+      .filter((item) => item.key !== 'profile')
+      .map((item) => {
+        if (item.key !== 'admin') {
+          return {
+            ...item,
+            children: item.children.map((child) => ({ ...child }))
+          };
+        }
+
+        return {
+          ...item,
+          label: this.role() === 'DEVELOPER' ? 'Del desenvolupador' : 'Del administrador',
+          children: item.children.map((child) => ({ ...child }))
+        };
+      });
+  }
+
   private requiresProfileCompletion(user: AuthUser): boolean {
     return (
       !user.name.trim() ||
@@ -236,6 +401,7 @@ interface AuthSessionApiDto {
   accessToken: string;
   expiresAtUtc: string;
   provider: string;
+  permissionKeys?: string[];
   user: UserApiDto;
 }
 
@@ -256,6 +422,8 @@ interface PascalCaseAuthSessionApiDto {
   AccessToken?: string;
   ExpiresAtUtc?: string;
   Provider?: string;
+  PermissionKeys?: string[];
+  permissionKeys?: string[];
   User?: PascalCaseUserApiDto;
 }
 

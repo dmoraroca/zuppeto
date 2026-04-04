@@ -12,5 +12,5 @@ import { AuthService } from '../../../../features/auth/services/auth.service';
 export class SiteFooterComponent {
   private readonly authService = inject(AuthService);
 
-  protected readonly isAdmin = computed(() => this.authService.isAdmin());
+  protected readonly canAccessDocumentation = computed(() => this.authService.canAccessDocumentation());
 }

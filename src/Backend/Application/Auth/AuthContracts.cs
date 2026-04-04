@@ -12,7 +12,8 @@ public sealed record AuthSessionDto(
     string AccessToken,
     DateTimeOffset ExpiresAtUtc,
     string Provider,
-    UserDto User);
+    UserDto User,
+    IReadOnlyCollection<string> PermissionKeys);
 
 public sealed record AuthCallbackResult(
     AuthSessionDto Session,

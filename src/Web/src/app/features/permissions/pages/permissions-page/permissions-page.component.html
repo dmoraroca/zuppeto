@@ -3,13 +3,10 @@
 <main class="permissions-page">
   <section class="permissions-hero">
     <app-section-heading
-      eyebrow="Permissions"
-      title="Vista separada per informació de sistema, accés i capes internes."
+      [eyebrow]="eyebrow"
+      [title]="title"
     />
-    <p class="permissions-hero__copy">
-      Aquesta pàgina recull la informació que no ha d’aparèixer a la portada principal i que
-      més endavant es pot governar per permisos.
-    </p>
+    <p class="permissions-hero__copy">{{ copy }}</p>
   </section>
 
   <section class="permissions-grid">

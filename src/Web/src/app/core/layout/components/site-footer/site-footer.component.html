@@ -11,8 +11,8 @@
       <a routerLink="/favorites">Favorits</a>
       <a routerLink="/ajuda">Ajuda</a>
       <a routerLink="/contacte">Contacta'ns</a>
-      @if (isAdmin()) {
-        <a routerLink="/permissions">Del desenvolupador</a>
+      @if (canAccessDocumentation()) {
+        <a routerLink="/admin/documentacio">Documentació</a>
       }
     </nav>
   </div>

@@ -417,6 +417,34 @@ Amb la Fase III tancada, el nou focus tècnic passa a ser la seguretat operativa
 - control d'accessos per funcionalitat
 - primer increment tècnic: login propi backend amb emissió de token i federació Google ja cablejada en desenvolupament
 
+La decisió de base per al model de rols queda fixada així:
+
+- `VIEWER`: només lectura a producte i dades, sense operacions `insert`, `update` ni `delete`
+- `VIEWER`: pot navegar per qualsevol zona funcional en mode lectura
+- `VIEWER`: sense capacitat de marcar, desmarcar o persistir `favorites`
+- `VIEWER`: sense capacitat d'actualitzar cap dada pròpia ni aliena
+- `VIEWER`: només necessita nom d'usuari assignat; el perfil complet no es demana en aquest punt
+- `VIEWER`: el seu perfil i permisos quedaran governats per `ADMIN`
+- `USER`: rol autenticat estàndard, sense menú `ADMIN`
+- `USER`: amb accés funcional al producte (`places`, `place detail` i resta de fluxos funcionals)
+- `USER`: sense accés a documentació interna ni a fitxers `.md`
+- `DEVELOPER`: amb accés funcional al producte (`places`, `place detail` i resta de fluxos funcionals)
+- `DEVELOPER`: accés de lectura a informació funcional i a fitxers `.md` de documentació interna
+- `DEVELOPER`: veurà el menú `ADMIN` només com a contenidor d'entrada a `Documentació`
+- `DEVELOPER`: perfil pensat per consulta interna, no necessàriament per administració funcional
+- `ADMIN`: accés complet a totes les operacions actuals i futures
+- `ADMIN`: visibilitat i accés al menú `ADMIN`
+- `ADMIN`: també pot consultar documentació funcional i fitxers `.md` de documentació interna
+- `ADMIN`: compartirà l'opció `Documentació` i sumarà la resta d'opcions administratives quan s'implementin
+- `ADMIN`: assigna rols i permisos als usuaris
+- qualsevol usuari nou creat per login propi o federat entrarà per defecte com a `VIEWER` fins que `ADMIN` li assigni un altre rol
+- existirà un manteniment intern dins `ADMIN` per gestionar `usuaris`, `rols` i `permisos`
+- el catàleg de `permisos` definirà accés a `menu`, `page` i `action`
+- els `usuaris` treballaran principalment amb assignació de `rol`, no amb permisos directes per defecte
+- només `ADMIN` podrà modificar aquest manteniment estàndard
+- el control d'aquests permisos s'haurà d'aplicar tant a `Web` com a `Api`
+- les funcionalitats concretes del menú `ADMIN` s'implementaran en passos posteriors
+
 <pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">flowchart LR</span>
   <span style="color:#93c5fd;">WEB[Frontend Angular]</span> --&gt; <span style="color:#c4b5fd;">API[Backend API]</span>
   <span style="color:#fcd34d;">AUTH[Login propi + JWT]</span> -.-> <span style="color:#c4b5fd;">API</span>
@@ -433,9 +461,10 @@ Resum del diagrama:
 - el control d'accessos s'haurà de recolzar en `Api` i `Application`, no només en la web
 - la Fase IV ja no és pendent conceptual, sinó línia activa de treball
 - el punt d'autenticació ja inclou des del principi la possibilitat de login federat via proveïdors `OAuth/OIDC`
-- el següent tram d'implementació dins del punt actiu d'autenticació queda fixat a `LinkedIn`
+- el punt d'autenticació queda tancat amb `Google` i `LinkedIn` operatius
+- el següent tram d'implementació dins la fase passa a `rols i permisos`
 - `Facebook` queda aparcat a nivell de roadmap fins després de publicar la web, tot i que la base tècnica federada es manté oberta
-- el primer pas implementable ja cobreix emissió i consum de token per al login propi i deixa `Google` operatiu en desenvolupament
+- el primer pas implementable ja cobreix emissió i consum de token per al login propi i deixa `Google` i `LinkedIn` operatius en desenvolupament
 
 ### 2.11.1 Base implementada del punt d'autenticació
 
@@ -1549,14 +1578,51 @@ Fitxers implicats:
 - `src/Web/src/app/core/layout/components/error-notifications/error-notifications.component.html`
 - `src/Web/src/app/core/layout/components/error-notifications/error-notifications.component.scss`
 
-## 10. Punts pendents de refinament
+## 10. Proves automatitzades i historic
+
+Les proves E2E es mantenen en un projecte separat a l'arrel:
+
+```text
+/e2e
+```
+
+Execucio local:
+
+```bash
+cd e2e
+npm run e2e
+```
+
+Execucio amb UI:
+
+```bash
+cd e2e
+npm run e2e:ui
+```
+
+Execucio via Docker:
+
+```bash
+docker compose --profile e2e run --rm e2e
+```
+
+Historic d'execucions:
+
+- quan diguem "tanquem punt en curs", es llancen els tests del punt
+- si tot va be, es genera un fitxer `YYYYMMDD_HHMM_OK_<punt>_<commit>.md`
+- si falla, es genera un fitxer `YYYYMMDD_HHMM_KO_<punt>_<commit>.md` amb errors
+- ubicacio: `docs/probes-e2e-resultats/`
+- plantilla: `docs/probes-e2e-resultats/template.md`
+- el numero de `commit` correspon al teu format de log (ex.: si l'ultim es `037`, toca `038`)
+
+## 11. Punts pendents de refinament
 
 - millor UX de marcadors
 - popups mes bons
 - mes criteri quan hi hagi moltes dades
 - mode mixt ja fixat: mapa sota filtres i llistat sincronitzat com a patró estable de `places`
 
-## 11. Referencia documental
+## 12. Referencia documental
 
 Document funcional:
 

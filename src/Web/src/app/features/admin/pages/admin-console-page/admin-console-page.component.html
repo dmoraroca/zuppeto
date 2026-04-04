@@ -1,0 +1,212 @@
+<app-site-header />
+
+<main class="admin-console-page">
+  <section class="admin-console-hero">
+    <app-section-heading [eyebrow]="eyebrow()" [title]="title()" />
+    <p class="admin-console-copy">{{ copy() }}</p>
+  </section>
+
+  @if (loading()) {
+    <section class="admin-console-panel">
+      <p>Carregant dades internes...</p>
+    </section>
+  } @else if (mode() === 'documentation') {
+    <section class="admin-console-grid admin-console-grid--docs">
+      <aside class="admin-console-panel">
+        <h2>Documents</h2>
+        <div class="admin-console-list">
+          @for (doc of documents(); track doc.key) {
+            <button type="button" class="admin-console-list-item" (click)="openDocument(doc.key)">
+              {{ doc.title }}
+            </button>
+          }
+        </div>
+      </aside>
+
+      <section class="admin-console-panel admin-console-panel--document">
+        @if (selectedDocument(); as doc) {
+          <h2>{{ doc.title }}</h2>
+          <pre class="admin-console-document">{{ doc.content }}</pre>
+        } @else {
+          <p>Selecciona un document per veure’n el contingut intern.</p>
+        }
+      </section>
+    </section>
+  } @else if (mode() === 'users') {
+    <section class="admin-console-panel">
+      <h2>Usuaris</h2>
+      <div class="admin-console-form admin-console-form--inline">
+        <label>
+          <span>Email</span>
+          <input
+            placeholder="usuari@domini.com"
+            [ngModel]="newUser().email"
+            (ngModelChange)="newUser.set({ ...newUser(), email: $event })"
+          />
+        </label>
+        <label>
+          <span>Contrasenya</span>
+          <input
+            type="password"
+            placeholder="Contrasenya inicial"
+            [ngModel]="newUser().password"
+            (ngModelChange)="newUser.set({ ...newUser(), password: $event })"
+          />
+        </label>
+        <label>
+          <span>Nom visible</span>
+          <input
+            placeholder="Nom que veurà l'usuari"
+            [ngModel]="newUser().displayName"
+            (ngModelChange)="newUser.set({ ...newUser(), displayName: $event })"
+          />
+        </label>
+        <label>
+          <span>Rol</span>
+          <select [ngModel]="newUser().role" (ngModelChange)="newUser.set({ ...newUser(), role: $event })">
+            @for (role of roleOptions; track role) {
+              <option [value]="role">{{ role }}</option>
+            }
+          </select>
+        </label>
+        <button type="button" class="admin-console-primary" [disabled]="!canCreateUser()" (click)="createUser()">Crear usuari</button>
+      </div>
+      <table class="admin-console-table">
+        <thead>
+          <tr>
+            <th>Email</th>
+            <th>Nom</th>
+            <th>Rol</th>
+            <th>Consentiment</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (user of users(); track user.id) {
+            <tr>
+              <td>{{ user.email }}</td>
+              <td>{{ user.displayName }}</td>
+              <td>
+                <select [ngModel]="user.role" (ngModelChange)="saveUserRole(user, $event)">
+                  @for (role of roleOptions; track role) {
+                    <option [value]="role">{{ role }}</option>
+                  }
+                </select>
+              </td>
+              <td>{{ user.privacyAccepted ? 'Sí' : 'No' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </section>
+  } @else if (mode() === 'permissions') {
+    <section class="admin-console-panel">
+      <h2>Permisos per rol</h2>
+      @if (permissions(); as catalog) {
+        @for (role of roleOptions; track role) {
+          <section class="admin-console-role-block">
+            <div class="admin-console-role-header">
+              <h3>{{ role }}</h3>
+              <button type="button" (click)="savePermissions(role)">Desar {{ role }}</button>
+            </div>
+
+            <div class="admin-console-checkbox-grid">
+              @for (permission of catalog.permissions; track permission.key) {
+                <label class="admin-console-checkbox">
+                  <input
+                    type="checkbox"
+                    [checked]="assignmentExists(role, permission.key)"
+                    (change)="togglePermission(role, permission.key, $any($event.target).checked)"
+                  />
+                  <span>{{ permission.displayName }}</span>
+                  <small>{{ permission.key }}</small>
+                </label>
+              }
+            </div>
+          </section>
+        }
+      }
+    </section>
+  } @else if (mode() === 'menus') {
+    <section class="admin-console-grid">
+      <section class="admin-console-panel">
+        <div class="admin-console-role-header">
+          <h2>Menús</h2>
+          <button type="button" (click)="newMenu()">Nou menú</button>
+        </div>
+        @if (menus(); as catalog) {
+          <table class="admin-console-table">
+            <thead>
+              <tr>
+                <th>Key</th>
+                <th>Label</th>
+                <th>Route</th>
+                <th>Pare</th>
+                <th>Ordre</th>
+                <th>Actiu</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (menu of catalog.menus; track menu.key) {
+                <tr (click)="editMenu(menu)" class="admin-console-row-action">
+                  <td>{{ menu.key }}</td>
+                  <td>{{ menu.label }}</td>
+                  <td>{{ menu.route || '-' }}</td>
+                  <td>{{ menu.parentKey || '-' }}</td>
+                  <td>{{ menu.sortOrder }}</td>
+                  <td>{{ menu.isActive ? 'Sí' : 'No' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      </section>
+
+      <section class="admin-console-panel">
+        <h2>Edició</h2>
+        <div class="admin-console-form">
+          <label>
+            <span>Key</span>
+            <input [ngModel]="editableMenu().key" (ngModelChange)="editableMenu.set({ ...editableMenu(), key: $event })" />
+          </label>
+          <label>
+            <span>Label</span>
+            <input [ngModel]="editableMenu().label" (ngModelChange)="editableMenu.set({ ...editableMenu(), label: $event })" />
+          </label>
+          <label>
+            <span>Route</span>
+            <input [ngModel]="editableMenu().route" (ngModelChange)="editableMenu.set({ ...editableMenu(), route: $event })" />
+          </label>
+          <label>
+            <span>Pare</span>
+            <input [ngModel]="editableMenu().parentKey" (ngModelChange)="editableMenu.set({ ...editableMenu(), parentKey: $event })" />
+          </label>
+          <label>
+            <span>Ordre</span>
+            <input type="number" [ngModel]="editableMenu().sortOrder" (ngModelChange)="editableMenu.set({ ...editableMenu(), sortOrder: +$event })" />
+          </label>
+          <label class="admin-console-inline">
+            <input type="checkbox" [ngModel]="editableMenu().isActive" (ngModelChange)="editableMenu.set({ ...editableMenu(), isActive: !!$event })" />
+            <span>Actiu</span>
+          </label>
+        </div>
+
+        <div class="admin-console-checkbox-grid">
+          @for (role of menuRoleOptions; track role) {
+            <label class="admin-console-checkbox">
+              <input
+                type="checkbox"
+                [checked]="editableMenuRoles().includes(role)"
+                (change)="toggleMenuRole(role, $any($event.target).checked)"
+              />
+              <span>{{ role }}</span>
+            </label>
+          }
+        </div>
+
+        <button type="button" class="admin-console-primary" (click)="saveMenu()">Desar menú</button>
+      </section>
+    </section>
+  }
+</main>
+
+<app-site-footer />

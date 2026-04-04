@@ -107,6 +107,127 @@ namespace Infrastructure.Persistence.Migrations
                     b.ToTable("features", (string)null);
                 });
 
+            modelBuilder.Entity("YepPet.Infrastructure.Persistence.Entities.MenuRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)")
+                        .HasColumnName("key");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)")
+                        .HasColumnName("label");
+
+                    b.Property<string>("ParentKey")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)")
+                        .HasColumnName("parent_key");
+
+                    b.Property<string>("Route")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("route");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Key")
+                        .IsUnique()
+                        .HasDatabaseName("uq_menus_key");
+
+                    b.HasIndex("ParentKey");
+
+                    b.ToTable("menus", (string)null);
+                });
+
+            modelBuilder.Entity("YepPet.Infrastructure.Persistence.Entities.MenuRoleRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<string>("MenuKey")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)")
+                        .HasColumnName("menu_key");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("role");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MenuKey", "Role")
+                        .IsUnique()
+                        .HasDatabaseName("uq_menu_roles_menu_key_role");
+
+                    b.ToTable("menu_roles", (string)null);
+                });
+
+            modelBuilder.Entity("YepPet.Infrastructure.Persistence.Entities.PermissionRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("description");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)")
+                        .HasColumnName("display_name");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)")
+                        .HasColumnName("key");
+
+                    b.Property<string>("ScopeType")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("scope_type");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Key")
+                        .IsUnique()
+                        .HasDatabaseName("uq_permissions_key");
+
+                    b.ToTable("permissions", (string)null);
+                });
+
             modelBuilder.Entity("YepPet.Infrastructure.Persistence.Entities.PlaceFeatureRecord", b =>
                 {
                     b.Property<Guid>("PlaceId")
@@ -353,6 +474,37 @@ namespace Infrastructure.Persistence.Migrations
                     b.ToTable("privacy_consent_events", (string)null);
                 });
 
+            modelBuilder.Entity("YepPet.Infrastructure.Persistence.Entities.RolePermissionRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<string>("PermissionKey")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)")
+                        .HasColumnName("permission_key");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("role");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PermissionKey");
+
+                    b.HasIndex("Role", "PermissionKey")
+                        .IsUnique()
+                        .HasDatabaseName("uq_role_permissions_role_permission_key");
+
+                    b.ToTable("role_permissions", (string)null);
+                });
+
             modelBuilder.Entity("YepPet.Infrastructure.Persistence.Entities.TagRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -481,6 +633,27 @@ namespace Infrastructure.Persistence.Migrations
                     b.Navigation("OwnerUser");
                 });
 
+            modelBuilder.Entity("YepPet.Infrastructure.Persistence.Entities.MenuRecord", b =>
+                {
+                    b.HasOne("YepPet.Infrastructure.Persistence.Entities.MenuRecord", null)
+                        .WithMany()
+                        .HasForeignKey("ParentKey")
+                        .HasPrincipalKey("Key")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("YepPet.Infrastructure.Persistence.Entities.MenuRoleRecord", b =>
+                {
+                    b.HasOne("YepPet.Infrastructure.Persistence.Entities.MenuRecord", "Menu")
+                        .WithMany("MenuRoles")
+                        .HasForeignKey("MenuKey")
+                        .HasPrincipalKey("Key")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Menu");
+                });
+
             modelBuilder.Entity("YepPet.Infrastructure.Persistence.Entities.PlaceFeatureRecord", b =>
                 {
                     b.HasOne("YepPet.Infrastructure.Persistence.Entities.FeatureRecord", "Feature")
@@ -549,6 +722,18 @@ namespace Infrastructure.Persistence.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("YepPet.Infrastructure.Persistence.Entities.RolePermissionRecord", b =>
+                {
+                    b.HasOne("YepPet.Infrastructure.Persistence.Entities.PermissionRecord", "Permission")
+                        .WithMany("RolePermissions")
+                        .HasForeignKey("PermissionKey")
+                        .HasPrincipalKey("Key")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Permission");
+                });
+
             modelBuilder.Entity("YepPet.Infrastructure.Persistence.Entities.FavoriteListRecord", b =>
                 {
                     b.Navigation("Entries");
@@ -557,6 +742,16 @@ namespace Infrastructure.Persistence.Migrations
             modelBuilder.Entity("YepPet.Infrastructure.Persistence.Entities.FeatureRecord", b =>
                 {
                     b.Navigation("PlaceFeatures");
+                });
+
+            modelBuilder.Entity("YepPet.Infrastructure.Persistence.Entities.MenuRecord", b =>
+                {
+                    b.Navigation("MenuRoles");
+                });
+
+            modelBuilder.Entity("YepPet.Infrastructure.Persistence.Entities.PermissionRecord", b =>
+                {
+                    b.Navigation("RolePermissions");
                 });
 
             modelBuilder.Entity("YepPet.Infrastructure.Persistence.Entities.PlaceRecord", b =>

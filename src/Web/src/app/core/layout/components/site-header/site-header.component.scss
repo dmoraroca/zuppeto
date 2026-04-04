@@ -127,31 +127,133 @@
   margin-left: 0.2rem;
 }
 
-.site-header__session-role {
+.site-header__account {
+  margin-left: 0.2rem;
+}
+
+.site-header__account summary {
+  list-style: none;
+}
+
+.site-header__account-trigger {
   display: inline-flex;
   align-items: center;
-  padding: 0.42rem 0.7rem;
+  justify-content: center;
+  padding: 0;
   border-radius: 999px;
-  background: rgba(45, 212, 191, 0.12);
+  cursor: pointer;
+}
+
+.site-header__account-avatar {
+  width: 2.65rem;
+  height: 2.65rem;
+  border-radius: 999px;
+  object-fit: cover;
+  border: 1px solid rgba(209, 213, 219, 0.9);
+  box-shadow: 0 10px 24px -18px rgba(15, 23, 42, 0.42);
+}
+
+.site-header__account-avatar--fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at top left, rgba(45, 212, 191, 0.28), transparent 38%),
+    rgba(15, 23, 42, 0.08);
   color: var(--yp-color-primary-dark);
-  font-size: 0.82rem;
+  font-size: 0.84rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+
+.site-header__account-menu {
+  min-width: 16rem;
+}
+
+.site-header__account-link {
+  margin: 0 0.55rem;
+  border-bottom: 1px solid rgba(209, 213, 219, 0.8);
+  border-radius: 0;
+  padding-left: 0.35rem;
+  padding-right: 0.35rem;
+  padding-bottom: 0.95rem;
+}
+
+.site-header__account-link:last-of-type {
+  margin-bottom: 0.35rem;
+}
+
+.site-header__nested-dropdown {
+  margin: 0 0.55rem;
+  border-bottom: 1px solid rgba(209, 213, 219, 0.8);
+}
+
+.site-header__nested-dropdown[open] {
+  border-bottom: none;
+}
+
+.site-header__nested-dropdown > summary {
+  width: 100%;
+  justify-content: space-between;
+  border-radius: 0;
+  padding-left: 0.35rem;
+  padding-right: 0.35rem;
+  padding-bottom: 0.95rem;
+}
+
+.site-header__nested-dropdown > summary:hover {
+  background: transparent;
+}
+
+.site-header__nested-menu {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0 0 0.55rem 0.75rem;
+  border-top: 1px solid rgba(209, 213, 219, 0.8);
+}
+
+.site-header__nested-item {
+  padding-top: 0.65rem;
+  padding-bottom: 0.65rem;
+}
+
+.site-header__account-meta {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.8rem 0.9rem 0.9rem;
+  border-bottom: 1px solid rgba(209, 213, 219, 0.8);
+  margin-bottom: 0.55rem;
+}
+
+.site-header__account-name {
+  margin: 0;
+  color: var(--yp-color-text);
   font-weight: 800;
-  letter-spacing: 0.04em;
+}
+
+.site-header__account-email,
+.site-header__account-role {
+  margin: 0;
+  color: var(--yp-color-text-muted);
+  font-size: 0.92rem;
 }
 
 .site-header__session-logout {
-  border: 0;
-  border-radius: 999px;
-  padding: 0.55rem 0.8rem;
-  background: rgba(15, 23, 42, 0.08);
-  color: var(--yp-color-text);
+  width: calc(100% - 1.1rem);
+  margin: 0.95rem 0.55rem 0.55rem;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 0.95rem;
+  padding: 0.7rem 0.9rem;
+  background: rgba(15, 23, 42, 0.04);
+  color: var(--yp-color-text-muted);
   font: inherit;
   font-weight: 700;
   cursor: pointer;
 }
 
 .site-header__session-logout:hover {
-  background: rgba(15, 23, 42, 0.13);
+  background: rgba(15, 23, 42, 0.08);
+  color: var(--yp-color-text);
 }
 
 .site-header__dropdown-title {
@@ -220,10 +322,6 @@
     justify-content: stretch;
     flex-direction: column;
     align-items: stretch;
-  }
-
-  .site-header__session-role {
-    justify-content: center;
   }
 }
 

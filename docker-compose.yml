@@ -71,6 +71,27 @@ services:
       api:
         condition: service_started
 
+  e2e:
+    image: mcr.microsoft.com/playwright:v1.53.0-jammy
+    container_name: yeppet-e2e
+    working_dir: /app/e2e
+    profiles: ["e2e"]
+    volumes:
+      - ./:/app:cached
+      - yeppet_e2e_node_modules:/app/e2e/node_modules
+    entrypoint: ["/bin/bash", "-lc"]
+    command:
+      [
+        "if [ ! -d node_modules ] || [ -z \"$(ls -A node_modules 2>/dev/null)\" ]; then npm ci; fi && npx playwright test"
+      ]
+    environment:
+      E2E_BASE_URL: "http://yeppet-web:4200"
+      E2E_API_URL: "http://yeppet-api:5211"
+    depends_on:
+      web:
+        condition: service_started
+
 volumes:
   yeppet_pg_data:
   yeppet_web_node_modules:
+  yeppet_e2e_node_modules:

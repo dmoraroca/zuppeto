@@ -75,8 +75,10 @@ public static class DependencyInjection
         services.AddScoped<IAccessTokenIssuer, JwtAccessTokenIssuer>();
         services.AddScoped<IGoogleIdTokenVerifier, GoogleIdTokenVerifier>();
         services.AddScoped<DevelopmentIdentitySeeder>();
+        services.AddScoped<IMenuRepository, MenuRepository>();
         services.AddScoped<IPlaceRepository, PlaceRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IRolePermissionRepository, RolePermissionRepository>();
         services.AddScoped<IFavoriteListRepository, FavoriteListRepository>();
         services.AddScoped<IPlaceReviewRepository, PlaceReviewRepository>();
 

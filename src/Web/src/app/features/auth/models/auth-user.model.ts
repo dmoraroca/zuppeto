@@ -1,4 +1,4 @@
-export type AuthRole = 'USER' | 'ADMIN';
+export type AuthRole = 'VIEWER' | 'USER' | 'DEVELOPER' | 'ADMIN';
 
 export interface AuthUser {
   id: string;
@@ -17,6 +17,7 @@ export interface AuthSession {
   expiresAtUtc: string;
   provider: string;
   user: AuthUser;
+  permissionKeys: string[];
 }
 
 export interface AuthCredentials {

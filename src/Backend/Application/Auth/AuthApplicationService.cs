@@ -7,6 +7,7 @@ namespace YepPet.Application.Auth;
 
 internal sealed class AuthApplicationService(
     IUserRepository userRepository,
+    IRolePermissionRepository rolePermissionRepository,
     IPasswordHasher passwordHasher,
     IAccessTokenIssuer accessTokenIssuer,
     IGoogleIdTokenVerifier googleIdTokenVerifier,
@@ -22,7 +23,7 @@ internal sealed class AuthApplicationService(
             return null;
         }
 
-        return CreateSession(user);
+        return await CreateSessionAsync(user, cancellationToken: cancellationToken);
     }
 
     public async Task<AuthSessionDto?> LoginWithGoogleAsync(
@@ -99,7 +100,7 @@ internal sealed class AuthApplicationService(
     public async Task<AuthSessionDto?> GetSessionByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         var user = await userRepository.GetByIdAsync(userId, cancellationToken);
-        return user is null ? null : CreateSession(user);
+        return user is null ? null : await CreateSessionAsync(user, cancellationToken: cancellationToken);
     }
 
     public IReadOnlyCollection<AuthProviderDto> GetProviders()
@@ -113,9 +114,13 @@ internal sealed class AuthApplicationService(
         ];
     }
 
-    private AuthSessionDto CreateSession(User user, string provider = "password")
+    private async Task<AuthSessionDto> CreateSessionAsync(
+        User user,
+        string provider = "password",
+        CancellationToken cancellationToken = default)
     {
         var token = accessTokenIssuer.Issue(user);
+        var permissionKeys = await rolePermissionRepository.GetPermissionKeysByRoleAsync(user.Role, cancellationToken);
 
         return new AuthSessionDto(
             token.Token,
@@ -131,7 +136,8 @@ internal sealed class AuthApplicationService(
                 user.Profile.Bio,
                 user.Profile.AvatarUrl,
                 user.PrivacyConsent.Accepted,
-                user.PrivacyConsent.AcceptedAtUtc));
+                user.PrivacyConsent.AcceptedAtUtc),
+            permissionKeys);
     }
 
     private async Task<AuthSessionDto?> LoginWithFederatedIdentityAsync(
@@ -150,7 +156,7 @@ internal sealed class AuthApplicationService(
                 Guid.NewGuid(),
                 identity.Email,
                 passwordHasher.Hash(Guid.NewGuid().ToString("N")),
-                shouldBeAdmin ? UserRole.Admin : UserRole.User,
+                shouldBeAdmin ? UserRole.Admin : UserRole.Viewer,
                 new UserProfile(
                     ResolveDisplayName(identity),
                     string.Empty,
@@ -199,7 +205,7 @@ internal sealed class AuthApplicationService(
             }
         }
 
-        return CreateSession(user, providerKey);
+        return await CreateSessionAsync(user, providerKey, cancellationToken);
     }
 
     private static bool IsAdminEmail(string email, IReadOnlyCollection<string> adminEmails)
@@ -215,7 +221,7 @@ internal sealed class AuthApplicationService(
 
     private static bool CanSynchronizeProfile(User user)
     {
-        return user.Role == UserRole.Admin || user.PrivacyConsent.Accepted;
+        return user.Role is UserRole.Admin or UserRole.Developer || user.PrivacyConsent.Accepted;
     }
 
     private static bool ShouldSynchronizeProfile(User user, FederatedIdentityPayload identity)

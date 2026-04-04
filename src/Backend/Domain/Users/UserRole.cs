@@ -2,6 +2,8 @@ namespace YepPet.Domain.Users;
 
 public enum UserRole
 {
-    User = 1,
-    Admin = 2
+    Viewer = 1,
+    User = 2,
+    Developer = 3,
+    Admin = 4
 }

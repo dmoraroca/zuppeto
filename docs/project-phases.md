@@ -294,9 +294,9 @@ Separar clarament les zones públiques de les zones internes o controlades per p
 
 ### Què entra dins la fase IV
 
-- autenticació pròpia i federada (`Google`, `LinkedIn`, `Facebook` i altres proveïdors OAuth/OIDC) (**EN CURS**)
-- rols i permisos (**PENDENT**)
-- pàgines internes (**PENDENT**)
+- autenticació pròpia i federada (`Google`, `LinkedIn`, `Facebook` i altres proveïdors OAuth/OIDC) (**FET**)
+- rols i permisos (**FET**)
+- pàgines internes (**EN CURS**)
 - gestió de contingut o dades (**PENDENT**)
 - accessos restringits a determinades funcionalitats (**PENDENT**)
 
@@ -304,9 +304,9 @@ Separar clarament les zones públiques de les zones internes o controlades per p
 
 La plataforma ja diferencia entre usuaris públics, usuaris autenticats i àrees internes (**PENDENT**).
 
-### Estat actual del punt en curs
+### Estat actual del punt tancat
 
-El punt `autenticació pròpia i federada` queda ara mateix en curs amb aquesta base ja operativa:
+El punt `autenticació pròpia i federada` queda tancat amb aquesta base ja operativa:
 
 - `Api` exposa `POST /api/auth/login`, `GET /api/auth/providers` i `GET /api/auth/me`
 - `Api` exposa també `POST /api/auth/google` per tancar el primer proveïdor federat real
@@ -322,10 +322,40 @@ El punt `autenticació pròpia i federada` queda ara mateix en curs amb aquesta 
 - existeixen usuaris de desenvolupament bootstrap:
   - `admin@admin.adm / Admin123`
   - `user@user.com / Admin123`
-- el focus immediat del punt en curs passa a ser `LinkedIn`
-- `LinkedIn` continua pendent dins del mateix punt d'autenticació federada
+- `LinkedIn` queda operatiu dins del mateix punt d'autenticació federada
 - `Facebook` queda aparcat expressament fins després de publicar la web
-- el patró federat ja queda validat amb `Google`
+- el patró federat ja queda validat amb `Google` i `LinkedIn`
+
+### Nou punt en curs
+
+El focus actiu de la fase passa ara a `pàgines internes`.
+
+La decisió funcional base d'aquest punt queda fixada així:
+
+- `VIEWER`: només lectura, sense insercions, actualitzacions ni eliminacions
+- `VIEWER`: pot entrar en lectura a qualsevol lloc funcional del producte
+- `VIEWER`: no pot guardar ni treure `favorites`
+- `VIEWER`: no pot actualitzar res, no només `perfil`
+- `VIEWER`: només necessita nom d'usuari assignat; la resta del perfil no es demana ara
+- `VIEWER`: el seu perfil i permisos els assignarà `ADMIN`
+- `USER`: rol estàndard autenticat de producte, sense menú `ADMIN`
+- `USER`: pot veure i usar `places`, `place detail` i la resta del producte funcional
+- `USER`: no pot veure documentació interna ni fitxers `.md`
+- `DEVELOPER`: pot veure i usar `places`, `place detail` i la resta del producte funcional
+- `DEVELOPER`: pot veure tota la informació funcional i els fitxers `.md` de documentació interna
+- `DEVELOPER`: veurà el menú `ADMIN`, però inicialment només amb una opció de `Documentació`
+- `DEVELOPER`: no implica automàticament permís d'administració funcional
+- `ADMIN`: accés complet i sense restriccions funcionals
+- `ADMIN`: veu i pot obrir el menú `ADMIN`
+- `ADMIN`: també pot veure la documentació funcional i els fitxers `.md` de documentació interna
+- `ADMIN`: compartirà l'opció de `Documentació` dins el menú `ADMIN`, a més de futures opcions pròpies
+- `ADMIN`: assignarà rols i permisos als usuaris
+- qualsevol usuari nou creat per login propi o federat entrarà per defecte com a `VIEWER` fins que `ADMIN` li assigni un altre rol
+- existirà un manteniment intern dins `ADMIN` per gestionar `usuaris`, `rols` i `permisos`
+- el catàleg de `permisos` definirà què es pot veure o executar a nivell de menú, pàgina i acció
+- els `usuaris` no gestionaran permisos directes de base, sinó que tindran un `rol` assignat
+- només `ADMIN` podrà tocar aquest manteniment estàndard
+- les funcionalitats concretes del menú `ADMIN` s'afegiran més endavant dins la mateixa fase
 
 ## Fase V · Internacionalització (**PENDENT**)
 

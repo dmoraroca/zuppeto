@@ -79,6 +79,8 @@ app.UseSwaggerUI(options =>
 app.MapGet("/", () => "Hello World!");
 app.MapGet("/health/db", () => Results.Ok(new { status = "configured" }));
 app.MapAuthEndpoints();
+app.MapNavigationEndpoints();
+app.MapAdminEndpoints();
 app.MapPlaceEndpoints();
 app.MapFavoriteEndpoints();
 app.MapUserEndpoints();

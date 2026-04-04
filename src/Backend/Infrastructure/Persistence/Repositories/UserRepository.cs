@@ -8,6 +8,18 @@ namespace YepPet.Infrastructure.Persistence.Repositories;
 
 internal sealed class UserRepository(YepPetDbContext dbContext) : IUserRepository
 {
+    public async Task<IReadOnlyCollection<User>> ListAsync(CancellationToken cancellationToken = default)
+    {
+        var records = await dbContext.Users
+            .AsNoTracking()
+            .OrderBy(user => user.Email)
+            .ToListAsync(cancellationToken);
+
+        return records
+            .Select(UserPersistenceMapper.ToDomain)
+            .ToArray();
+    }
+
     public async Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var record = await dbContext.Users

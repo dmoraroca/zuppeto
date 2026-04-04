@@ -8,6 +8,12 @@ internal sealed class UserApplicationService(
     IUserRepository userRepository,
     Auth.IPasswordHasher passwordHasher) : IUserApplicationService
 {
+    public async Task<IReadOnlyCollection<UserDto>> ListAsync(CancellationToken cancellationToken = default)
+    {
+        var users = await userRepository.ListAsync(cancellationToken);
+        return users.Select(ToDto).ToArray();
+    }
+
     public async Task<UserDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var user = await userRepository.GetByIdAsync(id, cancellationToken);
