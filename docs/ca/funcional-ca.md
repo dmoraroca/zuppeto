@@ -34,6 +34,15 @@ La base funcional actual i la fase que s'obre a partir d'ara es recolzen en aque
 - backend amb `.NET`
 - persistencia amb `PostgreSQL`
 - persistencia ORM amb `Entity Framework` ultima versio
+- `RabbitMQ` com a broker de missatges per a futures integracions asíncrones (només capa tècnica; vegeu `tecnic-ca.md`)
+
+### 2.1 Missatgeria asíncrona (`RabbitMQ`)
+
+Des del punt de vista **funcional del producte**, aquest punt **no afegeix encara cap pantalla, permís ni flux nou** per a l'usuari final.
+
+La decisió és **preparar infraestructura** per poder, més endavant, tractar tasques sense bloquejar les peticions HTTP (per exemple reaccionar a esdeveniments interns, integracions amb altres serveis o processos en segon pla). Fins que no es defineixi un cas d'ús explícit i es connecti als serveis d'aplicació, **el comportament visible de la web i de l'API resta el mateix** que abans d'aquesta peça.
+
+Documentació tècnica del muntatge: `docs/ca/tecnic-ca.md` (apartat RabbitMQ) i `docs/ca/docker-stack-ca.md`.
 
 ## 3. Abast actual
 

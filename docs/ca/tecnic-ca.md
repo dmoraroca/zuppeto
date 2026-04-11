@@ -15,6 +15,7 @@ Objectius:
 - descriure la implementacio del mapa
 - deixar traçabilitat del domini backend que obre la Fase III
 - deixar una base UML tecnica clara i mantenible
+- documentar la infraestructura de missatgeria (`RabbitMQ`) quan quedi preparada al repositori
 
 ## 2. Esquema tecnic general
 
@@ -403,6 +404,61 @@ Resum del diagrama:
 - l'API es depura per `coreclr` + `vsdbg` dins del contenidor
 - `tasks.json` encapsula les ordres `docker compose` per evitar passos manuals
 - el workspace pot aixecar la stack completa o només el servei que toqui, esperant que els serveis quedin llestos abans de depurar
+
+### 2.10.2 RabbitMQ (broker de missatges, infra preparada)
+
+S'ha incorporat **RabbitMQ** com a servei de desenvolupament i com a **dependència opcional** del backend, sense cablejar encara cap cas d'ús de domini ni reemplaçar el publicador d'esdeveniments en memòria de `Application`.
+
+**Motiu tècnic:** disposar d'un broker real per aprendre i per evolucionar cap a missatgeria asíncrona (cues, publicació/consum, patrons de fiabilitat) sense bloquejar l'arquitectura per capes.
+
+**Peces afegides o tocades:**
+
+- `docker-compose.yml`: servei `rabbitmq` (`rabbitmq:4-management`), volum persistent, healthcheck, ports `5672` (AMQP) i `15672` (UI de gestió); el servei `api` depèn de `rabbitmq` sa i rep `RabbitMq__HostName=rabbitmq` dins la xarxa Docker
+- `src/Backend/Api/appsettings.json` i `appsettings.Development.json`: secció `RabbitMq` (`Enabled`, `HostName`, `Port`, `UserName`, `Password`, `VirtualHost`)
+- `src/Backend/Infrastructure/Infrastructure.csproj`: paquets `RabbitMQ.Client` i `Microsoft.Extensions.Configuration.Binder`
+- `src/Backend/Infrastructure/RabbitMq/RabbitMqOptions.cs`: enllaç amb la configuració
+- `src/Backend/Infrastructure/RabbitMq/RabbitMqDependencyInjection.cs`: registre **condicional** de `RabbitMQ.Client.IConnection` només si `RabbitMq:Enabled` és `true`; nom de connexió client `ClientProvidedName = yeppet-api`
+- `DependencyInjection.AddInfrastructure`: crida `AddRabbitMq(configuration)`
+
+**Decisió tècnica clau:**
+
+- amb `Enabled: false` (per defecte a `appsettings.json` base) **no** es registra `IConnection`; l'API pot coexistir sense broker
+- amb `Enabled: true` (desenvolupament local típic) es crea una **connexió singleton** la primera vegada que algú resol `IConnection`; cap servei de l'API la demana encara, de manera que **no hi ha publicació ni consum real**
+- el domini i `Application` **no** depenen de RabbitMQ; tot queda encapsulat a `Infrastructure`
+
+**Documentació operativa del stack:** `docs/ca/docker-stack-ca.md`.
+
+<pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">flowchart LR</span>
+  <span style="color:#93c5fd;">API[Api .NET]</span> -.->|<span style="color:#94a3b8;">opcional</span>| <span style="color:#f472b6;">CONN[IConnection]</span>
+  <span style="color:#f472b6;">CONN</span> -.->|<span style="color:#94a3b8;">AMQP :5672</span>| <span style="color:#86efac;">RMQ[(RabbitMQ)]</span>
+  <span style="color:#93c5fd;">API</span> --&gt; <span style="color:#fcd34d;">INF[Infrastructure DI]</span>
+  <span style="color:#fcd34d;">INF</span> --&gt; <span style="color:#c4b5fd;">CFG[appsettings RabbitMq]</span>
+  <span style="color:#fcd34d;">INF</span> -.-> <span style="color:#f472b6;">CONN</span>
+  <span style="color:#67e8f9;">DEV[Docker compose]</span> --&gt; <span style="color:#86efac;">RMQ</span></code></pre>
+
+Resum del diagrama:
+
+- la connexió és un detall d'`Infrastructure` governat per configuració
+- el broker corre al compose de desenvolupament; l'API dins Docker usa el hostname `rabbitmq`
+- les línies puntejades indiquen registre i ús **encara no** lligats a casos d'ús ni a canals (`IModel`)
+
+<pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">flowchart TB</span>
+  <span style="color:#93c5fd;">APP[Application]</span>
+  <span style="color:#c4b5fd;">DOM[Domain]</span>
+  <span style="color:#86efac;">INF[Infrastructure]</span>
+  <span style="color:#f472b6;">MQ[RabbitMQ.Client]</span>
+  <span style="color:#fcd34d;">RMQ[(RabbitMQ servidor)]</span>
+
+  <span style="color:#93c5fd;">APP</span> --&gt; <span style="color:#c4b5fd;">DOM</span>
+  <span style="color:#93c5fd;">APP</span> --&gt; <span style="color:#86efac;">INF</span>
+  <span style="color:#c4b5fd;">DOM</span> -.-x <span style="color:#f472b6;">MQ</span>
+  <span style="color:#86efac;">INF</span> --&gt; <span style="color:#f472b6;">MQ</span>
+  <span style="color:#f472b6;">MQ</span> --&gt; <span style="color:#fcd34d;">RMQ</span></code></pre>
+
+Resum del diagrama:
+
+- el domini **no** referencia el client AMQP
+- només `Infrastructure` pot obrir connexió cap al servidor; quan s'afegeixin publicadors o consumidors, han de viure en aquesta capa o en adaptadors cridats des de `Application` mitjançant interfícies pròpies, no des del domini
 
 ## 3. Arquitectura aplicada
 

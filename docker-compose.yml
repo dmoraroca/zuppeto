@@ -18,6 +18,24 @@ services:
       timeout: 5s
       retries: 10
 
+  rabbitmq:
+    image: rabbitmq:4-management
+    container_name: yeppet-rabbitmq
+    restart: unless-stopped
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+    volumes:
+      - yeppet_rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
   api:
     build:
       context: .
@@ -37,9 +55,16 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__YepPet: Host=db;Port=5432;Database=${POSTGRES_DB:-yeppet};Username=${POSTGRES_USER:-app};Password=${POSTGRES_PASSWORD:-app}
+      RabbitMq__Enabled: "true"
+      RabbitMq__HostName: rabbitmq
+      RabbitMq__Port: "5672"
+      RabbitMq__UserName: ${RABBITMQ_USER:-guest}
+      RabbitMq__Password: ${RABBITMQ_PASSWORD:-guest}
       COMPlus_EnableDiagnostics: 1
     depends_on:
       db:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     cap_add:
       - SYS_PTRACE
@@ -92,6 +117,7 @@ services:
         condition: service_started
 
 volumes:
+  yeppet_rabbitmq_data:
   yeppet_pg_data:
   yeppet_web_node_modules:
   yeppet_e2e_node_modules:

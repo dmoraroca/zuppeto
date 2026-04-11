@@ -7,6 +7,7 @@ using YepPet.Domain.Abstractions;
 using YepPet.Infrastructure.Auth;
 using YepPet.Infrastructure.Persistence;
 using YepPet.Infrastructure.Persistence.Repositories;
+using YepPet.Infrastructure.RabbitMq;
 
 namespace YepPet.Infrastructure;
 
@@ -67,6 +68,7 @@ public static class DependencyInjection
         };
 
         services.AddSingleton(Options.Create(authOptions));
+        services.AddRabbitMq(configuration);
         services.AddDataProtection();
         services.AddDbContext<YepPetDbContext>(options => options.UseNpgsql(connectionString));
         services.AddHttpClient<ILinkedInOAuthClient, LinkedInOAuthClient>();

@@ -7,6 +7,7 @@ Aquest document descriu el stack Docker local de `yeppet` per treballar amb web,
 ## Serveis
 
 - `db`: `PostgreSQL 17`
+- `rabbitmq`: `RabbitMQ 4` amb plugin de gestió (`management`)
 - `api`: backend `.NET 10`
 - `web`: Angular 21 en mode desenvolupament
 
@@ -15,6 +16,8 @@ Aquest document descriu el stack Docker local de `yeppet` per treballar amb web,
 - `4200` -> web
 - `5211` -> API
 - `5433` -> PostgreSQL
+- `5672` -> RabbitMQ (AMQP)
+- `15672` -> RabbitMQ (interfície web d'administració)
 
 ## UML
 
@@ -22,14 +25,17 @@ Aquest document descriu el stack Docker local de `yeppet` per treballar amb web,
   <span style="color:#93c5fd;">docker compose</span> --&gt; <span style="color:#c4b5fd;">web[:4200]</span>
   <span style="color:#93c5fd;">docker compose</span> --&gt; <span style="color:#86efac;">api[:5211]</span>
   <span style="color:#93c5fd;">docker compose</span> --&gt; <span style="color:#fcd34d;">db[:5432 intern / :5433 host]</span>
+  <span style="color:#93c5fd;">docker compose</span> --&gt; <span style="color:#f472b6;">rmq[:5672 / :15672 mgmt]</span>
   <span style="color:#c4b5fd;">web</span> --&gt; <span style="color:#86efac;">api</span>
-  <span style="color:#86efac;">api</span> --&gt; <span style="color:#fcd34d;">db</span></code></pre>
+  <span style="color:#86efac;">api</span> --&gt; <span style="color:#fcd34d;">db</span>
+  <span style="color:#86efac;">api</span> -.->|<span style="color:#94a3b8;">missatgeria preparada</span>| <span style="color:#f472b6;">rmq</span></code></pre>
 
 Resum del diagrama:
 
 - la web consumeix l'API des del navegador via `localhost:5211`
 - l'API treballa contra `db` dins la xarxa Docker
 - el port extern `5433` es manté per evitar conflictes locals
+- `RabbitMQ` queda disponible per a connexió des de l'API quan la configuració ho activi; la línia puntejada indica que el cablejat de negoci encara no exposa cap flux visible a l'usuari
 
 ## Arrencada
 
@@ -39,7 +45,9 @@ docker compose up -d --build
 
 ## Notes
 
-- l'API espera que `db` estigui saludable abans d'arrencar
+- l'API espera que `db` i `rabbitmq` estiguin saludables abans d'arrencar quan la stack s'aixeca completa
+- `RabbitMQ`: usuari i contrasenya per defecte del contenidor coincideixen amb `guest` / `guest` si no es sobreescriuen amb `RABBITMQ_USER` i `RABBITMQ_PASSWORD`
+- la UI de gestió de cues es pot obrir a `http://localhost:15672` quan el servei està en marxa
 - l'API executa `dotnet ef database update` a l'inici
 - l'API arrenca des de `src/Backend/Api` perquè el `content root` carregui correctament `appsettings.Development.json`
 - la web conserva hot reload i watch amb polling dins del contenidor

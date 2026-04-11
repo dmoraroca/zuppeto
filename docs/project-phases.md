@@ -24,6 +24,7 @@ YepPet ha de créixer com una plataforma pet-friendly per descobrir llocs, estad
 
 - Quan es consulti l'`estat`, la referència principal és aquest document
 - Les explicacions funcionals, decisions i detall d'abast s'han de documentar a `docs/ca/funcional-ca.md`
+- En tancar un punt de treball (**tanquem punt**), s'ha d'actualitzar també la documentació en català del que s'ha fet: a `docs/ca/funcional-ca.md` si afecta producte, comportament d'usuari, abast o decisions visibles; a `docs/ca/tecnic-ca.md` si afecta arquitectura, stack, fitxers, configuració, persistència o patrons; sovint cal tocar els dos (per exemple infra sense canvi visible: resum al funcional + detall al tècnic). L'assistència de desenvolupament ha de proposar o aplicar aquests textos en el mateix tancament de punt, sense substituir el criteri humà de revisió
 - Cada fase i cada punt rellevant s'han de marcar explícitament com a (**PENDENT**), (**EN CURS**) o (**FET**)
 - Els punts marcats en negreta compten com a fets o consolidats mentre no estiguin normalitzats amb etiqueta explícita
 - Els punts sense negreta compten com a pendents o oberts mentre no estiguin normalitzats amb etiqueta explícita
