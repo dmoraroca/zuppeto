@@ -1,6 +1,9 @@
-import { Component, effect, inject, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Component, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
+import { filter, merge, of } from 'rxjs';
 
 import { SiteFooterComponent } from '../../../../core/layout/components/site-footer/site-footer.component';
 import { SiteHeaderComponent } from '../../../../core/layout/components/site-header/site-header.component';
@@ -13,12 +16,14 @@ import {
   AdminMenuDefinition,
   AdminService,
   AdminUserListItem,
+  CityAdminDto,
+  CountryAdminDto,
   InternalDocument,
   InternalDocumentSummary,
   RolePermissionCatalog
 } from '../../services/admin.service';
 
-type AdminMode = 'documentation' | 'users' | 'permissions' | 'menus';
+type AdminMode = 'documentation' | 'users' | 'permissions' | 'menus' | 'countries' | 'cities';
 type AdminRole = 'VIEWER' | 'USER' | 'DEVELOPER' | 'ADMIN';
 type AvatarSuccessOperation = 'crear' | 'modificar' | 'esborrar';
 
@@ -31,6 +36,7 @@ type AvatarSuccessOperation = 'crear' | 'modificar' | 'esborrar';
 export class AdminConsolePageComponent {
   private readonly formBuilder = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly adminService = inject(AdminService);
   private readonly authService = inject(AuthService);
   private readonly notifications = inject(ErrorNotificationsService);
@@ -60,6 +66,12 @@ export class AdminConsolePageComponent {
   } | null>(null);
   protected readonly permissions = signal<RolePermissionCatalog | null>(null);
   protected readonly menus = signal<AdminMenuCatalog | null>(null);
+  protected readonly menuModalOpen = signal(false);
+  protected readonly menuIsNew = signal(false);
+  protected readonly menuDetailEditMode = signal(false);
+  protected readonly selectedMenuItem = signal<AdminMenuDefinition | null>(null);
+  protected readonly selectedMenuKey = signal<string | null>(null);
+  protected readonly menuDeleteCandidate = signal<AdminMenuDefinition | null>(null);
   protected readonly documents = signal<InternalDocumentSummary[]>([]);
   protected readonly selectedDocument = signal<InternalDocument | null>(null);
   protected readonly loading = signal(false);
@@ -92,10 +104,40 @@ export class AdminConsolePageComponent {
   });
   protected readonly editableMenuRoles = signal<string[]>([]);
 
+  protected readonly geographicCountries = signal<CountryAdminDto[]>([]);
+  protected readonly geographicCities = signal<CityAdminDto[]>([]);
+  /** Evita dues notificacions idèntiques quan països i ciutats fallen amb 404 alhora. */
+  private geographicCatalog404Notified = false;
+  protected readonly cityFilterCountryId = signal<string | null>(null);
+  protected readonly countryModalOpen = signal(false);
+  protected readonly countryIsNew = signal(false);
+  protected readonly countryDeleteCandidate = signal<CountryAdminDto | null>(null);
+  protected readonly editableCountry = signal<{
+    id?: string;
+    code: string;
+    name: string;
+    sortOrder: number;
+    isActive: boolean;
+  }>({ code: '', name: '', sortOrder: 0, isActive: true });
+
+  protected readonly cityModalOpen = signal(false);
+  protected readonly cityIsNew = signal(false);
+  protected readonly cityDeleteCandidate = signal<CityAdminDto | null>(null);
+  protected readonly editableCity = signal<{
+    id?: string;
+    countryId: string;
+    countryLabel?: string;
+    name: string;
+    latitude: string;
+    longitude: string;
+    sortOrder: number;
+    isActive: boolean;
+  }>({ countryId: '', name: '', latitude: '', longitude: '', sortOrder: 0, isActive: true });
+
   constructor() {
-    effect(() => {
-      void this.loadMode();
-    });
+    merge(of<void>(undefined), this.router.events.pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd)))
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => void this.loadMode());
   }
 
   protected assignmentExists(role: string, permissionKey: string): boolean {
@@ -159,6 +201,103 @@ export class AdminConsolePageComponent {
       isActive: true
     });
     this.editableMenuRoles.set([]);
+  }
+
+  protected openNewMenuModal(): void {
+    this.newMenu();
+    this.menuIsNew.set(true);
+    this.menuDetailEditMode.set(true);
+    this.selectedMenuItem.set(null);
+    this.selectedMenuKey.set(null);
+    this.menuModalOpen.set(true);
+  }
+
+  /** Obre el modal en mode consulta (mateix patró que `selectUser`). */
+  protected selectMenuForDetail(menu: AdminMenuDefinition): void {
+    this.editMenu(menu);
+    this.selectedMenuItem.set({ ...menu });
+    this.menuIsNew.set(false);
+    this.menuDetailEditMode.set(false);
+    this.selectedMenuKey.set(menu.key);
+    this.menuModalOpen.set(true);
+  }
+
+  protected beginMenuDetailEdit(): void {
+    const snapshot = this.selectedMenuItem();
+    if (!snapshot) {
+      return;
+    }
+    this.editMenu(snapshot);
+    this.menuDetailEditMode.set(true);
+  }
+
+  protected cancelMenuDetailEdit(): void {
+    const snapshot = this.selectedMenuItem();
+    if (!snapshot) {
+      this.menuDetailEditMode.set(false);
+      return;
+    }
+    this.editMenu(snapshot);
+    this.menuDetailEditMode.set(false);
+  }
+
+  protected closeMenuModal(): void {
+    this.menuModalOpen.set(false);
+    this.menuDetailEditMode.set(false);
+    this.selectedMenuKey.set(null);
+    this.selectedMenuItem.set(null);
+    this.menuIsNew.set(false);
+  }
+
+  protected askDeleteMenu(menu: AdminMenuDefinition, event?: Event): void {
+    event?.stopPropagation();
+    this.menuDeleteCandidate.set(menu);
+  }
+
+  protected cancelDeleteMenu(): void {
+    this.menuDeleteCandidate.set(null);
+  }
+
+  protected async confirmDeleteMenu(): Promise<void> {
+    const menu = this.menuDeleteCandidate();
+    if (!menu) {
+      return;
+    }
+    try {
+      const next = await this.adminService.deleteMenu(menu.key);
+      this.menus.set(next);
+      await this.authService.loadNavigationMenu();
+      this.notifications.notify('Menú eliminat', `S’ha esborrat el menú «${menu.key}».`);
+      this.menuDeleteCandidate.set(null);
+      if (this.selectedMenuItem()?.key === menu.key) {
+        this.closeMenuModal();
+      }
+      this.selectedMenuKey.set(null);
+    } catch (err: unknown) {
+      let message = 'No s’ha pogut esborrar el menú.';
+      if (err instanceof HttpErrorResponse) {
+        if (typeof err.error === 'string' && err.error.trim()) {
+          message = err.error;
+        } else if (err.error && typeof err.error === 'object') {
+          const body = err.error as { detail?: string; message?: string; title?: string };
+          message = body.detail ?? body.message ?? body.title ?? message;
+        }
+      }
+      this.notifications.notify('No s’ha pogut esborrar', message);
+      this.menuDeleteCandidate.set(null);
+    }
+  }
+
+  protected menuRolesDisplay(menuKey: string): string {
+    const catalog = this.menus();
+    if (!catalog) {
+      return '-';
+    }
+    const roles = catalog.assignments
+      .filter((a) => a.menuKey === menuKey)
+      .map((a) => a.role)
+      .sort();
+    return roles.length ? roles.join(', ') : '-';
   }
 
   protected async saveUserRole(user: AdminUserListItem, role: string): Promise<void> {
@@ -493,6 +632,22 @@ export class AdminConsolePageComponent {
     this.menus.set(next);
     await this.authService.loadNavigationMenu();
     this.notifications.notify('Menú actualitzat', 'La definició del menú s’ha desat correctament.');
+
+    if (this.menuIsNew()) {
+      this.menuModalOpen.set(false);
+      this.selectedMenuKey.set(null);
+      this.menuIsNew.set(false);
+      this.selectedMenuItem.set(null);
+      this.menuDetailEditMode.set(false);
+      return;
+    }
+
+    const updated = next.menus.find((m) => m.key === menu.key.trim());
+    if (updated) {
+      this.selectedMenuItem.set({ ...updated });
+      this.editMenu(updated);
+    }
+    this.menuDetailEditMode.set(false);
   }
 
   protected async openDocument(key: string): Promise<void> {
@@ -519,6 +674,15 @@ export class AdminConsolePageComponent {
         case 'menus':
           this.menus.set(await this.adminService.getMenus());
           break;
+        case 'countries':
+          this.geographicCatalog404Notified = false;
+          await this.loadGeographicCountries();
+          break;
+        case 'cities':
+          this.geographicCatalog404Notified = false;
+          await this.loadGeographicCountries();
+          await this.loadGeographicCities();
+          break;
         case 'documentation':
         default:
           this.documents.set(await this.adminService.getDocuments());
@@ -528,6 +692,265 @@ export class AdminConsolePageComponent {
     } finally {
       this.loading.set(false);
     }
+  }
+
+  protected openNewCountryModal(): void {
+    this.countryIsNew.set(true);
+    this.editableCountry.set({ code: '', name: '', sortOrder: 0, isActive: true });
+    this.countryModalOpen.set(true);
+  }
+
+  protected selectCountryForEdit(country: CountryAdminDto): void {
+    this.countryIsNew.set(false);
+    this.editableCountry.set({
+      id: country.id,
+      code: country.code,
+      name: country.name,
+      sortOrder: country.sortOrder,
+      isActive: country.isActive
+    });
+    this.countryModalOpen.set(true);
+  }
+
+  protected closeCountryModal(): void {
+    this.countryModalOpen.set(false);
+  }
+
+  protected async saveCountry(): Promise<void> {
+    const row = this.editableCountry();
+    if (!row.code.trim() || !row.name.trim()) {
+      this.notifications.notify('Dades incompletes', 'Codi i nom són obligatoris.');
+      return;
+    }
+
+    try {
+      if (this.countryIsNew()) {
+        await this.adminService.createCountry({
+          code: row.code.trim(),
+          name: row.name.trim(),
+          isActive: row.isActive,
+          sortOrder: row.sortOrder
+        });
+        this.notifications.notify('País creat', 'S’ha donat d’alta el país.');
+      } else if (row.id) {
+        await this.adminService.updateCountry(row.id, {
+          code: row.code.trim(),
+          name: row.name.trim(),
+          isActive: row.isActive,
+          sortOrder: row.sortOrder
+        });
+        this.notifications.notify('País actualitzat', 'S’han desat els canvis.');
+      }
+      this.countryModalOpen.set(false);
+      await this.loadGeographicCountries();
+    } catch (err: unknown) {
+      this.notifyHttpError(err, 'No s’ha pogut desar el país.');
+    }
+  }
+
+  protected askDeleteCountry(country: CountryAdminDto, event?: Event): void {
+    event?.stopPropagation();
+    this.countryDeleteCandidate.set(country);
+  }
+
+  protected cancelDeleteCountry(): void {
+    this.countryDeleteCandidate.set(null);
+  }
+
+  protected async confirmDeleteCountry(): Promise<void> {
+    const country = this.countryDeleteCandidate();
+    if (!country) {
+      return;
+    }
+    try {
+      await this.adminService.deleteCountry(country.id);
+      this.notifications.notify('País esborrat', `S’ha eliminat «${country.name}».`);
+      this.countryDeleteCandidate.set(null);
+      if (this.countryModalOpen() && this.editableCountry().id === country.id) {
+        this.closeCountryModal();
+      }
+      await this.loadGeographicCountries();
+    } catch (err: unknown) {
+      this.notifyHttpError(err, 'No s’ha pogut esborrar el país (potser té ciutats dependents).');
+      this.countryDeleteCandidate.set(null);
+    }
+  }
+
+  protected onCityFilterChange(value: string): void {
+    const next = value || null;
+    this.cityFilterCountryId.set(next);
+    void this.loadGeographicCities();
+  }
+
+  protected openNewCityModal(): void {
+    const countries = this.geographicCountries();
+    const defaultCountryId = countries[0]?.id ?? '';
+    this.cityIsNew.set(true);
+    this.editableCity.set({
+      countryId: defaultCountryId,
+      name: '',
+      latitude: '',
+      longitude: '',
+      sortOrder: 0,
+      isActive: true
+    });
+    this.cityModalOpen.set(true);
+  }
+
+  protected selectCityForEdit(city: CityAdminDto): void {
+    this.cityIsNew.set(false);
+    this.editableCity.set({
+      id: city.id,
+      countryId: city.countryId,
+      countryLabel: `${city.countryName} (${city.countryCode})`,
+      name: city.name,
+      latitude: city.latitude?.toString() ?? '',
+      longitude: city.longitude?.toString() ?? '',
+      sortOrder: city.sortOrder,
+      isActive: city.isActive
+    });
+    this.cityModalOpen.set(true);
+  }
+
+  protected closeCityModal(): void {
+    this.cityModalOpen.set(false);
+  }
+
+  protected async saveCity(): Promise<void> {
+    const row = this.editableCity();
+    if (!row.name.trim()) {
+      this.notifications.notify('Dades incompletes', 'El nom de la ciutat és obligatori.');
+      return;
+    }
+
+    if (this.cityIsNew() && !row.countryId) {
+      this.notifications.notify('Dades incompletes', 'Cal triar un país.');
+      return;
+    }
+
+    const latitude = this.parseOptionalNumber(row.latitude);
+    const longitude = this.parseOptionalNumber(row.longitude);
+
+    try {
+      if (this.cityIsNew()) {
+        await this.adminService.createCity({
+          countryId: row.countryId,
+          name: row.name.trim(),
+          latitude,
+          longitude,
+          isActive: row.isActive,
+          sortOrder: row.sortOrder
+        });
+        this.notifications.notify('Ciutat creada', 'S’ha donat d’alta la ciutat.');
+      } else if (row.id) {
+        await this.adminService.updateCity(row.id, {
+          name: row.name.trim(),
+          latitude,
+          longitude,
+          isActive: row.isActive,
+          sortOrder: row.sortOrder
+        });
+        this.notifications.notify('Ciutat actualitzada', 'S’han desat els canvis.');
+      }
+      this.cityModalOpen.set(false);
+      await this.loadGeographicCities();
+    } catch (err: unknown) {
+      this.notifyHttpError(err, 'No s’ha pogut desar la ciutat.');
+    }
+  }
+
+  protected askDeleteCity(city: CityAdminDto, event?: Event): void {
+    event?.stopPropagation();
+    this.cityDeleteCandidate.set(city);
+  }
+
+  protected cancelDeleteCity(): void {
+    this.cityDeleteCandidate.set(null);
+  }
+
+  protected async confirmDeleteCity(): Promise<void> {
+    const city = this.cityDeleteCandidate();
+    if (!city) {
+      return;
+    }
+    try {
+      await this.adminService.deleteCity(city.id);
+      this.notifications.notify('Ciutat esborrada', `S’ha eliminat «${city.name}».`);
+      this.cityDeleteCandidate.set(null);
+      if (this.cityModalOpen() && this.editableCity().id === city.id) {
+        this.closeCityModal();
+      }
+      await this.loadGeographicCities();
+    } catch (err: unknown) {
+      this.notifyHttpError(err, 'No s’ha pogut esborrar la ciutat.');
+      this.cityDeleteCandidate.set(null);
+    }
+  }
+
+  private async loadGeographicCountries(): Promise<void> {
+    try {
+      this.geographicCountries.set(await this.adminService.listCountries());
+    } catch (err) {
+      this.geographicCountries.set([]);
+      if (err instanceof HttpErrorResponse && err.status === 404) {
+        this.geographicCatalog404Notified = true;
+        this.notifications.notify(
+          'Catàleg geogràfic no disponible',
+          'L’API no té encara l’endpoint /api/admin/countries (404). Cal instal·lar el mòdul al backend (vegeu platform/geographic-backend), registrar MapGeographicAdminEndpoints i tornar a arrencar l’API.'
+        );
+        return;
+      }
+      if (err instanceof HttpErrorResponse) {
+        this.notifyHttpError(err, 'No s’han pogut carregar els països.');
+        return;
+      }
+      this.notifications.notify('Error', 'No s’han pogut carregar els països.');
+    }
+  }
+
+  private async loadGeographicCities(): Promise<void> {
+    try {
+      this.geographicCities.set(await this.adminService.listCities(this.cityFilterCountryId()));
+    } catch (err) {
+      this.geographicCities.set([]);
+      if (err instanceof HttpErrorResponse && err.status === 404) {
+        if (!this.geographicCatalog404Notified) {
+          this.geographicCatalog404Notified = true;
+          this.notifications.notify(
+            'Catàleg geogràfic no disponible',
+            'L’API no té encara l’endpoint /api/admin/cities (404). Cal instal·lar el mòdul al backend (vegeu platform/geographic-backend), registrar MapGeographicAdminEndpoints i tornar a arrencar l’API.'
+          );
+        }
+        return;
+      }
+      if (err instanceof HttpErrorResponse) {
+        this.notifyHttpError(err, 'No s’han pogut carregar les ciutats.');
+        return;
+      }
+      this.notifications.notify('Error', 'No s’han pogut carregar les ciutats.');
+    }
+  }
+
+  private parseOptionalNumber(raw: string): number | null {
+    const trimmed = raw.trim();
+    if (!trimmed) {
+      return null;
+    }
+    const n = Number(trimmed.replace(',', '.'));
+    return Number.isFinite(n) ? n : null;
+  }
+
+  private notifyHttpError(err: unknown, fallback: string): void {
+    let message = fallback;
+    if (err instanceof HttpErrorResponse) {
+      if (typeof err.error === 'string' && err.error.trim()) {
+        message = err.error;
+      } else if (err.error && typeof err.error === 'object') {
+        const body = err.error as { detail?: string; message?: string; title?: string };
+        message = body.detail ?? body.message ?? body.title ?? message;
+      }
+    }
+    this.notifications.notify('Error', message);
   }
 
   private async loadUsers(): Promise<void> {

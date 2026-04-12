@@ -1,3 +1,5 @@
 {
-  "debug.defaultLaunchConfiguration": "Docker: Stack completa (Attach)"
+  "debug.defaultLaunchConfiguration": "Docker: Stack completa (Attach)",
+  "dotnet.defaultSolution": "YepPet.sln",
+  "workbench.activityBar.location": "default"
 }

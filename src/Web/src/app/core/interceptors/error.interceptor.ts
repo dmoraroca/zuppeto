@@ -34,7 +34,12 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         const isNavigationMenuRequest =
           req.method === 'GET' && req.url === `${API_BASE_URL}/navigation/menu`;
 
-        if (!isNavigationMenuRequest) {
+        /** Catàleg geogràfic: 404 el gestiona la pantalla amb un missatge explícit (endpoint encara no desplegat). */
+        const isGeographicCatalogNotFound =
+          error.status === 404 &&
+          (req.url.includes('/admin/countries') || req.url.includes('/admin/cities'));
+
+        if (!isNavigationMenuRequest && !isGeographicCatalogNotFound) {
           notifications.pushHttpError(error);
         }
       } else {

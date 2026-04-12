@@ -102,29 +102,32 @@ export class ErrorNotificationsService {
   private buildHttpNotification(error: HttpErrorResponse): Omit<ErrorNotification, 'id' | 'createdAt' | 'readAt'> {
     if (error.status === 0) {
       return {
-        title: 'Sense connexio',
-        message: 'No s’ha pogut contactar amb el servidor. Revisa la connexio i torna-ho a provar.'
+        title: 'Sense connexió',
+        message: 'No s’ha pogut contactar amb el servidor. Revisa la connexió i torna-ho a provar.'
       };
     }
 
     if (error.status === 401) {
       return {
-        title: 'Sessio no autoritzada',
-        message: 'Cal tornar a iniciar sessio per continuar.'
+        title: 'Sessió no autoritzada',
+        message: 'Cal tornar a iniciar sessió per continuar.'
       };
     }
 
     if (error.status === 403) {
       return {
-        title: 'Acces denegat',
+        title: 'Accés denegat',
         message: 'No tens permisos per accedir a aquest recurs.'
       };
     }
 
     if (error.status === 404) {
+      const path = this.tryExtractRequestPath(error.url);
       return {
         title: 'Recurs no trobat',
-        message: 'El recurs sollicitat no existeix o ja no esta disponible.'
+        message: path
+          ? `El servidor ha respost 404 per a «${path}». Comprova l’URL o que l’API tingui la ruta registrada.`
+          : 'El recurs sol·licitat no existeix o ja no està disponible.'
       };
     }
 
@@ -136,8 +139,21 @@ export class ErrorNotificationsService {
     }
 
     return {
-      title: 'Error de peticio',
-      message: error.message || 'La peticio no s’ha pogut completar correctament.'
+      title: 'Error de petició',
+      message: error.message || 'La petició no s’ha pogut completar correctament.'
     };
+  }
+
+  private tryExtractRequestPath(url: string | undefined): string | null {
+    if (!url?.trim()) {
+      return null;
+    }
+
+    try {
+      const parsed = new URL(url);
+      return `${parsed.pathname}${parsed.search}`;
+    } catch {
+      return url;
+    }
   }
 }

@@ -158,7 +158,8 @@ export class AuthService {
         this.http.get<NavigationMenuItem[]>(`${API_BASE_URL}/navigation/menu`)
       );
 
-      const normalized = this.normalizeNavigationMenu(menu);
+      const withGeographic = this.ensureGeographicAdminLinks(menu);
+      const normalized = this.normalizeNavigationMenu(withGeographic);
       this.navigationMenuState.set(normalized.length > 0 ? normalized : this.buildFallbackNavigationMenu());
     } catch {
       this.navigationMenuState.set(this.buildFallbackNavigationMenu());
@@ -223,6 +224,14 @@ export class AuthService {
 
   canManagePermissions(): boolean {
     return this.hasPermission('page.admin.permissions');
+  }
+
+  canManageCountryCatalog(): boolean {
+    return this.hasPermission('page.admin.countries');
+  }
+
+  canManageCityCatalog(): boolean {
+    return this.hasPermission('page.admin.cities');
   }
 
   getLinkedInStartUrl(redirectTo?: string | null): string {
@@ -399,6 +408,24 @@ export class AuthService {
       });
     }
 
+    if (this.canManageCountryCatalog()) {
+      adminChildren.push({
+        key: 'admin.countries',
+        label: 'Països',
+        route: '/admin/paisos',
+        children: []
+      });
+    }
+
+    if (this.canManageCityCatalog()) {
+      adminChildren.push({
+        key: 'admin.cities',
+        label: 'Ciutats',
+        route: '/admin/ciutats',
+        children: []
+      });
+    }
+
     if (this.canAccessAdminMenu() || adminChildren.length > 0) {
       items.push({
         key: 'admin',
@@ -409,6 +436,37 @@ export class AuthService {
     }
 
     return items;
+  }
+
+  /**
+   * El menú des de l’API ve de les taules `menus` / `menu_roles`. Si encara no s’han afegit
+   * les entrades de catàleg geogràfic al seed, però el rol ja té `page.admin.countries` /
+   * `page.admin.cities` al JWT, injectem els enllaços aquí.
+   */
+  private ensureGeographicAdminLinks(items: NavigationMenuItem[]): NavigationMenuItem[] {
+    return items.map((item) => {
+      if (item.key !== 'admin') {
+        return item;
+      }
+
+      let children = item.children.map((c) => ({ ...c, children: c.children.map((x) => ({ ...x })) }));
+
+      if (this.canManageCountryCatalog() && !children.some((c) => c.key === 'admin.countries')) {
+        children = [
+          ...children,
+          { key: 'admin.countries', label: 'Països', route: '/admin/paisos', children: [] }
+        ];
+      }
+
+      if (this.canManageCityCatalog() && !children.some((c) => c.key === 'admin.cities')) {
+        children = [
+          ...children,
+          { key: 'admin.cities', label: 'Ciutats', route: '/admin/ciutats', children: [] }
+        ];
+      }
+
+      return { ...item, children };
+    });
   }
 
   private normalizeNavigationMenu(items: NavigationMenuItem[]): NavigationMenuItem[] {

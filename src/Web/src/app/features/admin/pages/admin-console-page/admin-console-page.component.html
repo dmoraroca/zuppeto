@@ -436,14 +436,19 @@
       }
     </section>
   } @else if (mode() === 'menus') {
-    <section class="admin-console-grid">
-      <section class="admin-console-panel">
-        <div class="admin-console-role-header">
-          <h2>Menús</h2>
-          <button type="button" (click)="newMenu()">Nou menú</button>
+    <section class="admin-console-panel">
+      <div class="admin-console-titlebar">
+        <div>
+          <p class="admin-console-kicker">Manteniment intern</p>
+          <h2 class="admin-console-highlight-title">Gestió de menús</h2>
         </div>
-        @if (menus(); as catalog) {
-          <table class="admin-console-table">
+        <button type="button" class="admin-console-primary admin-console-primary--inline" (click)="openNewMenuModal()">
+          Nou menú
+        </button>
+      </div>
+      @if (menus(); as catalog) {
+        <div class="admin-console-table-wrap">
+          <table class="admin-console-table admin-console-table--responsive admin-console-table--menus">
             <thead>
               <tr>
                 <th>Key</th>
@@ -452,69 +457,652 @@
                 <th>Pare</th>
                 <th>Ordre</th>
                 <th>Actiu</th>
+                <th>Accions</th>
               </tr>
             </thead>
             <tbody>
               @for (menu of catalog.menus; track menu.key) {
-                <tr (click)="editMenu(menu)" class="admin-console-row-action">
-                  <td>{{ menu.key }}</td>
-                  <td>{{ menu.label }}</td>
-                  <td>{{ menu.route || '-' }}</td>
-                  <td>{{ menu.parentKey || '-' }}</td>
-                  <td>{{ menu.sortOrder }}</td>
-                  <td>{{ menu.isActive ? 'Sí' : 'No' }}</td>
+                <tr
+                  (click)="selectMenuForDetail(menu)"
+                  class="admin-console-row-action"
+                  [class.admin-console-row-selected]="selectedMenuKey() === menu.key"
+                >
+                  <td data-label="Key">{{ menu.key }}</td>
+                  <td data-label="Label">{{ menu.label }}</td>
+                  <td data-label="Route">{{ menu.route || '-' }}</td>
+                  <td data-label="Pare">{{ menu.parentKey || '-' }}</td>
+                  <td data-label="Ordre">{{ menu.sortOrder }}</td>
+                  <td data-label="Actiu">{{ menu.isActive ? 'Sí' : 'No' }}</td>
+                  <td data-label="Accions">
+                    <div class="admin-console-table-actions">
+                      <button
+                        type="button"
+                        class="admin-console-icon-button"
+                        title="Veure detall"
+                        aria-label="Veure detall"
+                        (click)="selectMenuForDetail(menu); $event.stopPropagation()"
+                      >
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <path
+                            d="M1.5 12s3.8-7 10.5-7 10.5 7 10.5 7-3.8 7-10.5 7S1.5 12 1.5 12Z"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="1.8"
+                          />
+                          <circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8" />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        class="admin-console-icon-button admin-console-icon-button--danger"
+                        title="Esborrar menú"
+                        aria-label="Esborrar menú"
+                        (click)="askDeleteMenu(menu, $event)"
+                      >
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <path
+                            d="M4 7h16M9.5 3h5M8 7l.7 11.2c.1 1 1 1.8 2 1.8h2.6c1 0 1.9-.8 2-1.8L16 7M10 10.5v6M14 10.5v6"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="1.8"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               }
             </tbody>
           </table>
-        }
-      </section>
-
-      <section class="admin-console-panel">
-        <h2>Edició</h2>
-        <div class="admin-console-form">
-          <label>
-            <span>Key</span>
-            <input [ngModel]="editableMenu().key" (ngModelChange)="editableMenu.set({ ...editableMenu(), key: $event })" />
-          </label>
-          <label>
-            <span>Label</span>
-            <input [ngModel]="editableMenu().label" (ngModelChange)="editableMenu.set({ ...editableMenu(), label: $event })" />
-          </label>
-          <label>
-            <span>Route</span>
-            <input [ngModel]="editableMenu().route" (ngModelChange)="editableMenu.set({ ...editableMenu(), route: $event })" />
-          </label>
-          <label>
-            <span>Pare</span>
-            <input [ngModel]="editableMenu().parentKey" (ngModelChange)="editableMenu.set({ ...editableMenu(), parentKey: $event })" />
-          </label>
-          <label>
-            <span>Ordre</span>
-            <input type="number" [ngModel]="editableMenu().sortOrder" (ngModelChange)="editableMenu.set({ ...editableMenu(), sortOrder: +$event })" />
-          </label>
-          <label class="admin-console-inline">
-            <input type="checkbox" [ngModel]="editableMenu().isActive" (ngModelChange)="editableMenu.set({ ...editableMenu(), isActive: !!$event })" />
-            <span>Actiu</span>
-          </label>
         </div>
+      }
+    </section>
 
-        <div class="admin-console-checkbox-grid">
-          @for (role of menuRoleOptions; track role) {
-            <label class="admin-console-checkbox">
+    @if (menuModalOpen()) {
+      <div class="admin-console-modal-backdrop" (click)="closeMenuModal()">
+        <section class="admin-console-modal admin-console-modal--detail admin-console-modal--create" (click)="$event.stopPropagation()">
+          @if (menuIsNew()) {
+            <div class="admin-console-modal__header">
+              <div>
+                <p class="admin-console-kicker">Alta</p>
+                <h3>Nou menú</h3>
+              </div>
+            </div>
+
+            <div class="admin-console-form admin-console-form--inline">
+              <label>
+                <span>Key <strong class="admin-console-required">*</strong></span>
+                <input
+                  [ngModel]="editableMenu().key"
+                  (ngModelChange)="editableMenu.set({ ...editableMenu(), key: $event })"
+                  placeholder="p. ex. admin.exemple"
+                />
+              </label>
+              <label>
+                <span>Label <strong class="admin-console-required">*</strong></span>
+                <input [ngModel]="editableMenu().label" (ngModelChange)="editableMenu.set({ ...editableMenu(), label: $event })" />
+              </label>
+              <label>
+                <span>Route</span>
+                <input [ngModel]="editableMenu().route" (ngModelChange)="editableMenu.set({ ...editableMenu(), route: $event })" />
+              </label>
+              <label>
+                <span>Pare</span>
+                <input [ngModel]="editableMenu().parentKey" (ngModelChange)="editableMenu.set({ ...editableMenu(), parentKey: $event })" />
+              </label>
+              <label>
+                <span>Ordre</span>
+                <input
+                  type="number"
+                  [ngModel]="editableMenu().sortOrder"
+                  (ngModelChange)="editableMenu.set({ ...editableMenu(), sortOrder: +$event })"
+                />
+              </label>
+              <label class="admin-console-inline">
+                <input
+                  type="checkbox"
+                  [ngModel]="editableMenu().isActive"
+                  (ngModelChange)="editableMenu.set({ ...editableMenu(), isActive: !!$event })"
+                />
+                <span>Actiu</span>
+              </label>
+            </div>
+
+            <p class="admin-console-menu-roles-heading">Rols amb accés al menú</p>
+            <div class="admin-console-checkbox-grid">
+              @for (role of menuRoleOptions; track role) {
+                <label class="admin-console-checkbox">
+                  <input
+                    type="checkbox"
+                    [checked]="editableMenuRoles().includes(role)"
+                    (change)="toggleMenuRole(role, $any($event.target).checked)"
+                  />
+                  <span>{{ role }}</span>
+                </label>
+              }
+            </div>
+
+            <div class="admin-console-modal__footer">
+              <div class="admin-console-modal__footer-band">
+                <div class="admin-console-modal__footer-actions">
+                  <button type="button" class="admin-console-primary" (click)="saveMenu()">Desar menú</button>
+                  <button
+                    type="button"
+                    class="admin-console-primary admin-console-primary--secondary admin-console-role-strip__button"
+                    (click)="closeMenuModal()"
+                  >
+                    Tancar
+                  </button>
+                </div>
+              </div>
+            </div>
+          } @else if (selectedMenuItem(); as sm) {
+            <div class="admin-console-modal__header">
+              <div>
+                <p class="admin-console-kicker">{{ menuDetailEditMode() ? 'Edició' : 'Consulta' }}</p>
+                <h3>Detall del menú</h3>
+              </div>
+            </div>
+
+            @if (!menuDetailEditMode()) {
+              <div class="admin-console-form admin-console-form--inline admin-console-form--readonly">
+                <label>
+                  <span>Key</span>
+                  <input class="admin-console-static-field" [value]="sm.key" readonly />
+                </label>
+                <label>
+                  <span>Label</span>
+                  <input class="admin-console-static-field" [value]="sm.label" readonly />
+                </label>
+                <label>
+                  <span>Route</span>
+                  <input class="admin-console-static-field" [value]="sm.route || '-'" readonly />
+                </label>
+                <label>
+                  <span>Pare</span>
+                  <input class="admin-console-static-field" [value]="sm.parentKey || '-'" readonly />
+                </label>
+                <label>
+                  <span>Ordre</span>
+                  <input class="admin-console-static-field" [value]="sm.sortOrder" readonly />
+                </label>
+                <label>
+                  <span>Actiu</span>
+                  <input class="admin-console-static-field" [value]="sm.isActive ? 'Sí' : 'No'" readonly />
+                </label>
+              </div>
+              <p class="admin-console-menu-roles-heading">Rols amb accés al menú</p>
+              <p class="admin-console-menu-roles-readonly">{{ menuRolesDisplay(sm.key) }}</p>
+            } @else {
+              <div class="admin-console-form admin-console-form--inline">
+                <label>
+                  <span>Key</span>
+                  <input [value]="editableMenu().key" readonly class="admin-console-static-field" />
+                </label>
+                <label>
+                  <span>Label <strong class="admin-console-required">*</strong></span>
+                  <input [ngModel]="editableMenu().label" (ngModelChange)="editableMenu.set({ ...editableMenu(), label: $event })" />
+                </label>
+                <label>
+                  <span>Route</span>
+                  <input [ngModel]="editableMenu().route" (ngModelChange)="editableMenu.set({ ...editableMenu(), route: $event })" />
+                </label>
+                <label>
+                  <span>Pare</span>
+                  <input [ngModel]="editableMenu().parentKey" (ngModelChange)="editableMenu.set({ ...editableMenu(), parentKey: $event })" />
+                </label>
+                <label>
+                  <span>Ordre</span>
+                  <input
+                    type="number"
+                    [ngModel]="editableMenu().sortOrder"
+                    (ngModelChange)="editableMenu.set({ ...editableMenu(), sortOrder: +$event })"
+                  />
+                </label>
+                <label class="admin-console-inline">
+                  <input
+                    type="checkbox"
+                    [ngModel]="editableMenu().isActive"
+                    (ngModelChange)="editableMenu.set({ ...editableMenu(), isActive: !!$event })"
+                  />
+                  <span>Actiu</span>
+                </label>
+              </div>
+
+              <p class="admin-console-menu-roles-heading">Rols amb accés al menú</p>
+              <div class="admin-console-checkbox-grid">
+                @for (role of menuRoleOptions; track role) {
+                  <label class="admin-console-checkbox">
+                    <input
+                      type="checkbox"
+                      [checked]="editableMenuRoles().includes(role)"
+                      (change)="toggleMenuRole(role, $any($event.target).checked)"
+                    />
+                    <span>{{ role }}</span>
+                  </label>
+                }
+              </div>
+            }
+
+            <div class="admin-console-modal__footer">
+              <div class="admin-console-modal__footer-band">
+                <div class="admin-console-modal__footer-actions">
+                  @if (!menuDetailEditMode()) {
+                    <button type="button" class="admin-console-primary admin-console-role-strip__button" (click)="beginMenuDetailEdit()">
+                      Modificar
+                    </button>
+                    <button
+                      type="button"
+                      class="admin-console-primary admin-console-primary--secondary admin-console-role-strip__button"
+                      (click)="closeMenuModal()"
+                    >
+                      Tancar
+                    </button>
+                  } @else {
+                    <button type="button" class="admin-console-primary admin-console-role-strip__button" (click)="saveMenu()">Desar</button>
+                    <button
+                      type="button"
+                      class="admin-console-primary admin-console-primary--secondary admin-console-role-strip__button"
+                      (click)="cancelMenuDetailEdit()"
+                    >
+                      Cancel·lar
+                    </button>
+                  }
+                </div>
+              </div>
+            </div>
+          }
+        </section>
+      </div>
+    }
+
+    @if (menuDeleteCandidate(); as delMenu) {
+      <div class="admin-console-modal-backdrop" (click)="cancelDeleteMenu()">
+        <section class="admin-console-modal admin-console-modal--confirm" (click)="$event.stopPropagation()">
+          <div class="admin-console-modal__header">
+            <div>
+              <p class="admin-console-kicker">Acció destructiva</p>
+              <h3>Esborrar menú</h3>
+            </div>
+          </div>
+
+          <p>
+            Vols esborrar el menú <strong>{{ delMenu.key }}</strong>? Els submenús dependents han d’estar buits.
+          </p>
+
+          <div class="admin-console-modal__actions">
+            <button type="button" class="admin-console-primary admin-console-primary--secondary" (click)="cancelDeleteMenu()">
+              Cancel·lar
+            </button>
+            <button type="button" class="admin-console-primary admin-console-icon-button--danger" (click)="confirmDeleteMenu()">
+              Esborrar
+            </button>
+          </div>
+        </section>
+      </div>
+    }
+  } @else if (mode() === 'countries') {
+    <section class="admin-console-panel">
+      <div class="admin-console-titlebar">
+        <div>
+          <p class="admin-console-kicker">Manteniment intern</p>
+          <h2 class="admin-console-highlight-title">Catàleg de països</h2>
+        </div>
+        <button type="button" class="admin-console-primary admin-console-primary--inline" (click)="openNewCountryModal()">
+          Nou país
+        </button>
+      </div>
+      <div class="admin-console-table-wrap">
+        <table class="admin-console-table admin-console-table--responsive">
+          <thead>
+            <tr>
+              <th>Codi</th>
+              <th>Nom</th>
+              <th>Ordre</th>
+              <th>Actiu</th>
+              <th>Accions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (country of geographicCountries(); track country.id) {
+              <tr class="admin-console-row-action" (click)="selectCountryForEdit(country)">
+                <td data-label="Codi">{{ country.code }}</td>
+                <td data-label="Nom">{{ country.name }}</td>
+                <td data-label="Ordre">{{ country.sortOrder }}</td>
+                <td data-label="Actiu">{{ country.isActive ? 'Sí' : 'No' }}</td>
+                <td data-label="Accions">
+                  <div class="admin-console-table-actions">
+                    <button
+                      type="button"
+                      class="admin-console-icon-button"
+                      title="Editar"
+                      aria-label="Editar"
+                      (click)="selectCountryForEdit(country); $event.stopPropagation()"
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path
+                          d="M4 20h4l10.5-10.5-4-4L4 16v4ZM12.7 6.3l4 4L21 6l-4-4-4.3 4.3Z"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.6"
+                          stroke-linejoin="round"
+                        />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      class="admin-console-icon-button admin-console-icon-button--danger"
+                      title="Esborrar"
+                      aria-label="Esborrar"
+                      (click)="askDeleteCountry(country, $event)"
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path
+                          d="M4 7h16M9.5 3h5M8 7l.7 11.2c.1 1 1 1.8 2 1.8h2.6c1 0 1.9-.8 2-1.8L16 7M10 10.5v6M14 10.5v6"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="1.8"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    @if (countryModalOpen()) {
+      <div class="admin-console-modal-backdrop" (click)="closeCountryModal()">
+        <section class="admin-console-modal admin-console-modal--detail admin-console-modal--create" (click)="$event.stopPropagation()">
+          <div class="admin-console-modal__header">
+            <div>
+              <p class="admin-console-kicker">{{ countryIsNew() ? 'Alta' : 'Edició' }}</p>
+              <h3>{{ countryIsNew() ? 'Nou país' : 'Editar país' }}</h3>
+            </div>
+          </div>
+          <div class="admin-console-form admin-console-form--inline">
+            <label>
+              <span>Codi <strong class="admin-console-required">*</strong></span>
+              <input
+                [ngModel]="editableCountry().code"
+                (ngModelChange)="editableCountry.set({ ...editableCountry(), code: $event })"
+                placeholder="p. ex. ES"
+              />
+            </label>
+            <label>
+              <span>Nom <strong class="admin-console-required">*</strong></span>
+              <input
+                [ngModel]="editableCountry().name"
+                (ngModelChange)="editableCountry.set({ ...editableCountry(), name: $event })"
+              />
+            </label>
+            <label>
+              <span>Ordre</span>
+              <input
+                type="number"
+                [ngModel]="editableCountry().sortOrder"
+                (ngModelChange)="editableCountry.set({ ...editableCountry(), sortOrder: +$event })"
+              />
+            </label>
+            <label class="admin-console-inline">
               <input
                 type="checkbox"
-                [checked]="editableMenuRoles().includes(role)"
-                (change)="toggleMenuRole(role, $any($event.target).checked)"
+                [ngModel]="editableCountry().isActive"
+                (ngModelChange)="editableCountry.set({ ...editableCountry(), isActive: !!$event })"
               />
-              <span>{{ role }}</span>
+              <span>Actiu</span>
             </label>
-          }
-        </div>
+          </div>
+          <div class="admin-console-modal__footer">
+            <div class="admin-console-modal__footer-band">
+              <div class="admin-console-modal__footer-actions">
+                <button type="button" class="admin-console-primary" (click)="saveCountry()">Desar</button>
+                <button
+                  type="button"
+                  class="admin-console-primary admin-console-primary--secondary admin-console-role-strip__button"
+                  (click)="closeCountryModal()"
+                >
+                  Tancar
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    }
 
-        <button type="button" class="admin-console-primary" (click)="saveMenu()">Desar menú</button>
-      </section>
+    @if (countryDeleteCandidate(); as delCountry) {
+      <div class="admin-console-modal-backdrop" (click)="cancelDeleteCountry()">
+        <section class="admin-console-modal admin-console-modal--confirm" (click)="$event.stopPropagation()">
+          <div class="admin-console-modal__header">
+            <div>
+              <p class="admin-console-kicker">Acció destructiva</p>
+              <h3>Esborrar país</h3>
+            </div>
+          </div>
+          <p>
+            Vols esborrar el país <strong>{{ delCountry.name }}</strong>? Només és possible si no té ciutats associades.
+          </p>
+          <div class="admin-console-modal__actions">
+            <button type="button" class="admin-console-primary admin-console-primary--secondary" (click)="cancelDeleteCountry()">
+              Cancel·lar
+            </button>
+            <button type="button" class="admin-console-primary admin-console-icon-button--danger" (click)="confirmDeleteCountry()">
+              Esborrar
+            </button>
+          </div>
+        </section>
+      </div>
+    }
+  } @else if (mode() === 'cities') {
+    <section class="admin-console-panel">
+      <div class="admin-console-titlebar">
+        <div>
+          <p class="admin-console-kicker">Manteniment intern</p>
+          <h2 class="admin-console-highlight-title">Catàleg de ciutats</h2>
+        </div>
+        <button type="button" class="admin-console-primary admin-console-primary--inline" (click)="openNewCityModal()">
+          Nova ciutat
+        </button>
+      </div>
+      <div class="admin-console-form admin-console-form--inline">
+        <label>
+          <span>Filtrar per país</span>
+          <select [ngModel]="cityFilterCountryId() ?? ''" (ngModelChange)="onCityFilterChange($event)">
+            <option value="">Totes</option>
+            @for (c of geographicCountries(); track c.id) {
+              <option [value]="c.id">{{ c.name }} ({{ c.code }})</option>
+            }
+          </select>
+        </label>
+      </div>
+      <div class="admin-console-table-wrap">
+        <table class="admin-console-table admin-console-table--responsive">
+          <thead>
+            <tr>
+              <th>País</th>
+              <th>Nom</th>
+              <th>Lat</th>
+              <th>Lon</th>
+              <th>Ordre</th>
+              <th>Actiu</th>
+              <th>Accions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (city of geographicCities(); track city.id) {
+              <tr class="admin-console-row-action" (click)="selectCityForEdit(city)">
+                <td data-label="País">{{ city.countryName }} ({{ city.countryCode }})</td>
+                <td data-label="Nom">{{ city.name }}</td>
+                <td data-label="Lat">{{ city.latitude ?? '-' }}</td>
+                <td data-label="Lon">{{ city.longitude ?? '-' }}</td>
+                <td data-label="Ordre">{{ city.sortOrder }}</td>
+                <td data-label="Actiu">{{ city.isActive ? 'Sí' : 'No' }}</td>
+                <td data-label="Accions">
+                  <div class="admin-console-table-actions">
+                    <button
+                      type="button"
+                      class="admin-console-icon-button"
+                      title="Editar"
+                      aria-label="Editar"
+                      (click)="selectCityForEdit(city); $event.stopPropagation()"
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path
+                          d="M4 20h4l10.5-10.5-4-4L4 16v4ZM12.7 6.3l4 4L21 6l-4-4-4.3 4.3Z"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.6"
+                          stroke-linejoin="round"
+                        />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      class="admin-console-icon-button admin-console-icon-button--danger"
+                      title="Esborrar"
+                      aria-label="Esborrar"
+                      (click)="askDeleteCity(city, $event)"
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path
+                          d="M4 7h16M9.5 3h5M8 7l.7 11.2c.1 1 1 1.8 2 1.8h2.6c1 0 1.9-.8 2-1.8L16 7M10 10.5v6M14 10.5v6"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="1.8"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
     </section>
+
+    @if (cityModalOpen()) {
+      <div class="admin-console-modal-backdrop" (click)="closeCityModal()">
+        <section class="admin-console-modal admin-console-modal--detail admin-console-modal--create" (click)="$event.stopPropagation()">
+          <div class="admin-console-modal__header">
+            <div>
+              <p class="admin-console-kicker">{{ cityIsNew() ? 'Alta' : 'Edició' }}</p>
+              <h3>{{ cityIsNew() ? 'Nova ciutat' : 'Editar ciutat' }}</h3>
+            </div>
+          </div>
+          <div class="admin-console-form admin-console-form--inline">
+            @if (cityIsNew()) {
+              <label>
+                <span>País <strong class="admin-console-required">*</strong></span>
+                <select
+                  [ngModel]="editableCity().countryId"
+                  (ngModelChange)="editableCity.set({ ...editableCity(), countryId: $event })"
+                >
+                  <option value="" disabled>Selecciona</option>
+                  @for (c of geographicCountries(); track c.id) {
+                    <option [value]="c.id">{{ c.name }} ({{ c.code }})</option>
+                  }
+                </select>
+              </label>
+            } @else if (editableCity().countryLabel) {
+              <label>
+                <span>País</span>
+                <input [value]="editableCity().countryLabel" readonly />
+              </label>
+            }
+            <label>
+              <span>Nom <strong class="admin-console-required">*</strong></span>
+              <input
+                [ngModel]="editableCity().name"
+                (ngModelChange)="editableCity.set({ ...editableCity(), name: $event })"
+              />
+            </label>
+            <label>
+              <span>Latitud</span>
+              <input
+                [ngModel]="editableCity().latitude"
+                (ngModelChange)="editableCity.set({ ...editableCity(), latitude: $event })"
+                placeholder="Opcional"
+              />
+            </label>
+            <label>
+              <span>Longitud</span>
+              <input
+                [ngModel]="editableCity().longitude"
+                (ngModelChange)="editableCity.set({ ...editableCity(), longitude: $event })"
+                placeholder="Opcional"
+              />
+            </label>
+            <label>
+              <span>Ordre</span>
+              <input
+                type="number"
+                [ngModel]="editableCity().sortOrder"
+                (ngModelChange)="editableCity.set({ ...editableCity(), sortOrder: +$event })"
+              />
+            </label>
+            <label class="admin-console-inline">
+              <input
+                type="checkbox"
+                [ngModel]="editableCity().isActive"
+                (ngModelChange)="editableCity.set({ ...editableCity(), isActive: !!$event })"
+              />
+              <span>Actiu</span>
+            </label>
+          </div>
+          <div class="admin-console-modal__footer">
+            <div class="admin-console-modal__footer-band">
+              <div class="admin-console-modal__footer-actions">
+                <button type="button" class="admin-console-primary" (click)="saveCity()">Desar</button>
+                <button
+                  type="button"
+                  class="admin-console-primary admin-console-primary--secondary admin-console-role-strip__button"
+                  (click)="closeCityModal()"
+                >
+                  Tancar
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    }
+
+    @if (cityDeleteCandidate(); as delCity) {
+      <div class="admin-console-modal-backdrop" (click)="cancelDeleteCity()">
+        <section class="admin-console-modal admin-console-modal--confirm" (click)="$event.stopPropagation()">
+          <div class="admin-console-modal__header">
+            <div>
+              <p class="admin-console-kicker">Acció destructiva</p>
+              <h3>Esborrar ciutat</h3>
+            </div>
+          </div>
+          <p>
+            Vols esborrar la ciutat <strong>{{ delCity.name }}</strong>?
+          </p>
+          <div class="admin-console-modal__actions">
+            <button type="button" class="admin-console-primary admin-console-primary--secondary" (click)="cancelDeleteCity()">
+              Cancel·lar
+            </button>
+            <button type="button" class="admin-console-primary admin-console-icon-button--danger" (click)="confirmDeleteCity()">
+              Esborrar
+            </button>
+          </div>
+        </section>
+      </div>
+    }
   }
 </main>
 

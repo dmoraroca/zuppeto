@@ -25,7 +25,7 @@ YepPet ha de créixer com una plataforma pet-friendly per descobrir llocs, estad
 - Quan es consulti l'`estat`, la referència principal és aquest document
 - Les explicacions funcionals, decisions i detall d'abast s'han de documentar a `docs/ca/funcional-ca.md`
 - En tancar un punt de treball (**tanquem punt**), s'ha d'actualitzar també la documentació en català del que s'ha fet: a `docs/ca/funcional-ca.md` si afecta producte, comportament d'usuari, abast o decisions visibles; a `docs/ca/tecnic-ca.md` si afecta arquitectura, stack, fitxers, configuració, persistència o patrons; sovint cal tocar els dos (per exemple infra sense canvi visible: resum al funcional + detall al tècnic). L'assistència de desenvolupament ha de proposar o aplicar aquests textos en el mateix tancament de punt, sense substituir el criteri humà de revisió
-- Cada fase i cada punt rellevant s'han de marcar explícitament com a (**PENDENT**), (**EN CURS**) o (**FET**)
+- Cada fase i cada punt rellevant s'han de marcar explícitament com a (**PENDENT**), (**EN CURS**) o (**FET**); el pas a (**FET**) el fixa qui porta el projecte en dir-ho explícitament en tancar el punt, no per inferència ni sense aquesta confirmació
 - Els punts marcats en negreta compten com a fets o consolidats mentre no estiguin normalitzats amb etiqueta explícita
 - Els punts sense negreta compten com a pendents o oberts mentre no estiguin normalitzats amb etiqueta explícita
 - Si no queden punts objectiu pendents dins d'una fase, la fase es considera acabada
@@ -116,11 +116,11 @@ Separar clarament les zones públiques de les zones internes o controlades per p
 
 - autenticació pròpia i federada (`Google`, `LinkedIn`, `Facebook` i altres proveïdors OAuth/OIDC) (**FET**)
 - rols i permisos (**FET**)
-- pàgines internes (**FET**, E2E OK a `docs/probes-e2e-resultats/20260405_0059_OK_pagines-internes_041.md`)
-- gestió de contingut o dades (**EN CURS**)
+- pàgines internes (**EN CURS**): el mínim que fixem com a base feta en aquest punt és només **login** (`/login` i `auth/callback` on correspongui), **perfil** (`/perfil`) i **manteniment d'usuaris** (`/admin/usuaris`); la resta de pantalles o entrades internes o d'admin (p. ex. `notificacions`, `admin/documentacio`, `admin/permisos`, `admin/menus`) pot existir al codi però **no** compta per tancar aquest punt amb el criteri actual. Referència d'E2E (abast possiblement més ampli que aquest mínim): `docs/probes-e2e-resultats/20260405_0059_OK_pagines-internes_041.md`
+- gestió de contingut o dades (**PENDENT**)
 - accessos restringits a determinades funcionalitats (**PENDENT**)
 - revisió de documentació pendent (comprovar opcions i buits) (**PENDENT**)
-- canvi de contrasenya i operativa bàsica de credencials (**PENDENT**)
+- canvi de contrasenya i operativa bàsica de credencials (**PENDENT**; tot el treball de contrasenya queda empaquetat aquí, sense escindir-lo en un altre punt)
 
 ### Resultat esperat
 
@@ -128,14 +128,15 @@ La plataforma ja diferencia entre usuaris públics, usuaris autenticats i àrees
 
 ### Què s'ha fet en aquest tram de la Fase IV
 
+- respecte al punt «pàgines internes», el nucli ja cobert és **login**, **perfil** i **manteniment d'usuaris** (`/admin/usuaris`); el punt global segueix **EN CURS** fins que ampliïs el criteri de tancament
 - manteniment intern d'`usuaris` ampliat amb alta més completa (`email`, `contrasenya inicial`, `nom visible`, `ciutat`, `pais`, `rol` i `avatar`) (**FET**)
 - detall d'usuari amb metadades reals (`bio`, consentiment, data d'alta i últim accés) (**FET**)
 - edició de dades bàsiques d'un altre usuari des de `ADMIN` (`nom visible`, `ciutat`, `pais`, `bio`, `rol` i `avatar`) (**FET**)
 - baixa d'usuaris des del manteniment intern (**FET**)
 - registre de l'`ultim acces` a backend en els fluxos reals de login (**FET**)
-- pàgina interna de `notificacions` connectada al servei global d'errors i avisos (**FET**)
-- marcatge de notificacions com a llegides o no llegides i acció de marcar-les totes com a llegides (**FET**)
-- la `gestió de contingut o dades` continua oberta perquè encara falten accessos restringits fins, documentació formal i operativa de credencials (**EN CURS**)
+- pàgina de `notificacions` connectada al servei global d'errors i avisos, amb marcatge llegit/no llegit i acció de marcar-ho tot com a llegit: implementada al producte, **fora** del mínim login/perfil/usuaris que fixa el punt «pàgines internes»
+- consola addicional (`admin/documentacio`, `admin/permisos`, `admin/menus`, vista `permissions`, etc.): present al codi, **fora** del mínim login/perfil/usuaris del punt «pàgines internes» mentre el criteri de tancament no inclogui aquestes peces
+- la `gestió de contingut o dades` és **PENDENT** mentre faltin accessos restringits, documentació formal i operativa de credencials
 
 ## Fase V · Internacionalització (**PENDENT**)
 

@@ -10,6 +10,7 @@ El focus funcional actual es:
 - descoberta de llocs pet-friendly
 - navegacio clara entre portada, resultats, detall i favorits
 - filtratge per ciutat, tipus, mascota i text de cerca
+- cataleg territorial propi de `paisos` i `ciutats` com a objectiu de govern (vegeu apartats 3.14 i 3.15); encara en evolució cap a manteniment intern complet
 - suport de mapa dins la feature `places` en mode mixt amb llistat sincronitzat
 - dades reals per `places`, `favorites` i manteniment de `perfil`
 - transicio controlada entre serveis locals i API sense reescriure pantalles
@@ -30,7 +31,7 @@ Aquest document funcional es llegeix conjuntament amb `project-phases.md`, que f
 La base funcional actual i la fase que s'obre a partir d'ara es recolzen en aquest stack:
 
 - `Angular 21` per la web
-- `Leaflet` i `OpenStreetMap` per la capa de mapa
+- `Leaflet` i `OpenStreetMap` per la capa de mapa (dades obertes, sense dependre de la plataforma de mapes de Google per al renderitzat; les decisions de cost i de proveïdor de tiles es detallen al tècnic si cal)
 - backend amb `.NET`
 - persistencia amb `PostgreSQL`
 - persistencia ORM amb `Entity Framework` ultima versio
@@ -143,6 +144,7 @@ La decisió funcional acordada per al nou punt en curs és:
 - `ADMIN` assignarà permisos i perfils
 - qualsevol usuari nou creat per login propi o federat entrarà per defecte com a `VIEWER` fins que `ADMIN` li assigni un altre rol
 - hi haurà un manteniment intern dins `ADMIN` per gestionar `usuaris`, `rols` i `permisos`
+- el cataleg de `paisos` i `ciutats` queda definit funcionalment als apartats 3.14 i 3.15 i es preveuen com a futurs manteniments dins la zona d'administració quan s'implementin
 - els `permisos` definiran què es pot veure o fer a nivell de menú, pàgina i acció
 - els `usuaris` es gestionaran principalment assignant-los un `rol`
 - només `ADMIN` podrà tocar aquest manteniment estàndard
@@ -410,6 +412,8 @@ Funcionalment, la Fase III deixa el producte en un punt clau: el frontend contin
 ### 3.8 Permisos, rols i zona interna de Fase IV
 
 La Fase IV obre el tram de govern d'accessos, autenticacio real ampliada i zones internes. El seu valor funcional no és nomes afegir rols, sino separar de forma clara què és producte públic autenticat, què és lectura restringida i què és operativa interna.
+
+El document `project-phases.md` fixa l'estat dels punts de fase; pel que fa al punt «pàgines internes», el mínim que compta com a base feta és **login**, **perfil** i **manteniment d'usuaris** (`/admin/usuaris`). Altres pantalles o entrades internes (p. ex. notificacions, documentació, permisos o menús d'admin) poden existir al producte però queden **fora** d'aquest mínim fins que el criteri de tancament s'ampliï explícitament allà.
 
 El punt d'autenticacio pròpia i federada queda funcionalment entès aixi:
 
@@ -864,16 +868,21 @@ Funcions del manteniment:
 - revisio del codi i del nom visible
 - govern de l'ordre o prioritat si cal per UX
 
-Dades funcionals principals del pais:
+**Camps previstos a la taula de paisos** (model lògic; el nom físic a base de dades el fixa el disseny tècnic):
 
-- `nom`
-- `codi`
-- `flag` o referencia visual de bandera si s'utilitza
-- estat `actiu`
+| Camp | Rol funcional |
+|------|----------------|
+| identificador estable | clau primària interna |
+| `code` | codi **ISO 3166-1 alpha-2** (`ES`, `FR`…); únic; útil per filtres, integracions i coherència amb APIs |
+| `name` | nom visible per defecte a la UI (p. ex. «Espanya») |
+| `is_active` | si el país apareix en desplegables i filtres |
+| `sort_order` | ordre manual opcional a la UI |
+| `created_at` / `updated_at` | traçabilitat de canvis (recomanat en manteniment) |
+| referència visual opcional | p. ex. bandera o icona, només si el producte la fa servir |
 
 Regles funcionals:
 
-- un pais no s'ha de donar per valid sense identificacio estable
+- un pais no s'ha de donar per valid sense identificacio estable (`code` ISO i nom coherents)
 - una ciutat sempre ha d'estar vinculada a un pais valid
 - el manteniment de paisos ha de servir de base al de ciutats
 - els paisos fora d'abast poden continuar inactius fins que entri la seva fase territorial
@@ -881,12 +890,12 @@ Regles funcionals:
 Objectiu funcional:
 
 - tenir control propi de la geografia admesa pel producte
-- reutilitzar sempre dades internes abans de consultar fonts externes
+- reutilitzar sempre dades internes abans de consultar fonts externes (geocodificació, IA o altres)
 - reduir cost i dependència de consultes repetides
 
 ### 3.15 Manteniment de ciutats
 
-El manteniment de `ciutats` també passa a ser obligatori. Aquesta pantalla ha de governar les ciutats disponibles dins del producte i garantir que tota ciutat usada per perfils, llocs o filtres sigui una ciutat validada, normalitzada i amb coordenades guardades.
+El manteniment de `ciutats` també passa a ser obligatori. Aquesta pantalla ha de governar les ciutats disponibles dins del producte i garantir que tota ciutat usada per perfils, llocs o filtres sigui una ciutat validada i normalitzada dins el cataleg propi. Les coordenades serveixen de suport a mapa i consistència; el nivell d'exigència (obligatòries o recomanades) el fixa el criteri de producte en el moment d'implementar el manteniment.
 
 Funcions del manteniment:
 
@@ -894,39 +903,55 @@ Funcions del manteniment:
 - consulta de ciutats existents
 - vinculacio a pais
 - activacio o desactivacio funcional
-- revisio de coordenades
-- control de normalitzacio de nom
+- revisio de coordenades quan n'hi hagi
+- control de normalitzacio de nom i d'unicitat dins del país
 
-Dades funcionals principals de la ciutat:
+**Camps previstos a la taula de ciutats** (model lògic):
 
-- `nom`
-- `pais`
-- `latitud`
-- `longitud`
-- estat `activa`
+| Camp | Rol funcional |
+|------|----------------|
+| identificador estable | clau primària interna |
+| país | referència al país del cataleg (sempre obligatoria) |
+| `name` | nom de la ciutat tal com el producte el mostra |
+| `normalized_name` | opcional: variant normalitzada (p. ex. sense accents, minúscules) per cerca i regles d'unicitat |
+| `latitude` / `longitude` | opcionals com a centre aproximat per mapa o distància; el punt exacte del local continua sent atribut del lloc si cal |
+| `is_active` | si la ciutat surt en llistes i cerques |
+| `sort_order` | ordre manual opcional dins del país |
+| `created_at` / `updated_at` | traçabilitat (recomanat) |
 
 Regles funcionals:
 
-- tota ciutat guardada ha de tenir coordenades
-- tota ciutat guardada ha d'estar vinculada a un pais existent
-- una ciutat no s'ha de tractar com a valida si no esta normalitzada dins el cataleg propi
-- la consulta a `GeoNames` pot ajudar a donar d'alta o validar, pero la font estable del producte ha de ser la base de dades de YepPet
-- quan una ciutat ja existeix a YepPet, no s'ha de tornar a consultar el proveidor extern per operar amb ella
+- tota ciutat guardada ha d'estar vinculada a un pais existent i actiu segons regles de negoci
+- es recomana definir **unicitat** dins del mateix país (p. ex. parell país + nom normalitzat) per evitar duplicats («Barcelona» repetida)
+- una ciutat no s'ha de tractar com a valida si no esta dins el cataleg propi
+- eines externes (`GeoNames`, suggeriments per **IA** com Gemini, geocodificadors, etc.) poden ajudar a **donar d'alta o suggerir** dades, però la **font de veritat** del producte és el cataleg YepPet
+- quan una ciutat ja existeix al cataleg, **no cal** tornar a consultar el proveidor extern per operar-hi (filtres, perfils, llocs vinculats per identificador)
 
 Objectiu funcional:
 
 - disposar d'un cataleg territorial propi reutilitzable
 - donar suport a perfils, filtres, llocs i futures cerques internacionals
-- optimitzar cost de proveidors externs mantenint una base pròpia estable
+- optimitzar cost de proveidors externs i de crides repetides mantenint una base pròpia estable
 
 Relacio amb la resta del producte:
 
-- `perfil` utilitza ciutats valides del cataleg
-- `admin/usuaris` consulta ciutat com a dada visual
-- els llocs i filtres territorials han de reutilitzar aquest mateix cataleg
+- `perfil` ha de convergir cap a ciutats valides del cataleg (per identificador), no només text lliure
+- `admin/usuaris` mostra ciutat com a dada; el vincle fort és el del cataleg quan estigui implementat
+- els **llocs** (`places`) hauran de poder referenciar país i ciutat del cataleg quan el model ho incorpori
+- els filtres territorials han de reutilitzar aquest mateix cataleg
 - la internacionalitzacio futura també depen d'una base territorial coherent
 
 La geografia del producte no s'ha de deixar a text lliure ni a resolucio ad hoc per pantalla. `Paisos` i `ciutats` passen a ser domini governat del producte i no una simple ajuda visual de formulari.
+
+### 3.16 Dades de proveidors externs (Google, mapes, IA) i cataleg propi
+
+Aquest apartat fixa el criteri funcional: **no cal ni convé** emmagatzemar «tota la informació» que retornin serveis de tercers com a manteniment paral·lel. Cada integració ha de persistir només el **mínim necessari** per al domini YepPet i per compliment legal.
+
+- **Login Google (OAuth)** es tracta com a **dades de compte i perfil** dins el model d'usuari, amb el que permetin les polítiques de privacitat i el disseny d'identitat; **no** és un catàleg territorial ni un duplicat del directori de Google.
+- **Mapa a la web**: la visualització amb `Leaflet` i capes tipus OpenStreetMap **no implica** guardar tot el tile o tot el dataset OSM; es renderitza al client. El manteniment de país/ciutat és **independent** i serveix per negoci (filtres, coherència), no per substituir el mapa.
+- **IA o geocodificació** (p. ex. suggeriments de ciutats): poden ser **auxiliars** per omplir o validar abans d'alta al cataleg; el producte ha de **preferir sempre** el cataleg intern quan ja existeixi la ciutat, per evitar consultes repetides i costos.
+
+L'objectiu és una **única font de veritat** territorial (`paisos` / `ciutats` governats) i dades d'integració **mínimes** on calgui, sense convertir l'administració en una còpia de Google ni d'un altre proveïdor.
 
 ## 4. Actors
 

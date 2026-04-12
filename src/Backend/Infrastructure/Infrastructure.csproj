@@ -18,7 +18,8 @@
     <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.0" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.14.0" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
-    <PackageReference Include="RabbitMQ.Client" Version="7.1.2" />
+    <!-- 6.x: API síncrona (CreateConnection). La 7.x és només async i trenca el registre actual. -->
+    <PackageReference Include="RabbitMQ.Client" Version="6.8.1" />
   </ItemGroup>
 
   <PropertyGroup>

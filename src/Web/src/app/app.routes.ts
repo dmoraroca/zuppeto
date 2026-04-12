@@ -183,5 +183,43 @@ export const routes: Routes = [
       title: 'Manteniment de menús i desplegables interns.',
       copy: 'Aquí es governen les opcions de menú, submenús, ordre, activació i rols que hi tenen accés.'
     }
+  },
+  {
+    path: 'admin/paisos',
+    canActivate: [
+      permissionGuard(
+        'page.admin.countries',
+        'El catàleg de països només està disponible amb el permís corresponent.'
+      )
+    ],
+    loadComponent: () =>
+      import('./features/admin/pages/admin-console-page/admin-console-page.component').then(
+        (m) => m.AdminConsolePageComponent
+      ),
+    data: {
+      mode: 'countries',
+      eyebrow: 'Territori',
+      title: 'Catàleg de països',
+      copy: 'Alta, edició i baixa de països del catàleg intern (codi únic, ordre i estat actiu).'
+    }
+  },
+  {
+    path: 'admin/ciutats',
+    canActivate: [
+      permissionGuard(
+        'page.admin.cities',
+        'El catàleg de ciutats només està disponible amb el permís corresponent.'
+      )
+    ],
+    loadComponent: () =>
+      import('./features/admin/pages/admin-console-page/admin-console-page.component').then(
+        (m) => m.AdminConsolePageComponent
+      ),
+    data: {
+      mode: 'cities',
+      eyebrow: 'Territori',
+      title: 'Catàleg de ciutats',
+      copy: 'Ciutats per país amb coordenades opcionals; el nom normalitzat és únic dins de cada país.'
+    }
   }
 ];

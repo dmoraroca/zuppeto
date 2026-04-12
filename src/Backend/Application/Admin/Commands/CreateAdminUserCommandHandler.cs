@@ -12,7 +12,7 @@ namespace YepPet.Application.Admin.Commands;
 public sealed class CreateAdminUserCommandHandler(
     IUserRepository userRepository,
     Auth.IPasswordHasher passwordHasher,
-    IUserProfileFactory ruserProfileFactory,
+    IUserProfileFactory userProfileFactory,
     IEventPublisher eventPublisher)
     : ICommandHandler<CreateAdminUserCommand, Result<UserDto>>
     {
@@ -35,7 +35,7 @@ public sealed class CreateAdminUserCommandHandler(
             return Result<UserDto>.Fail(FailureKind.Conflict, $"User '{email}' already exists.");
         }
 
-        var user = new Domain.Users.User(
+        var user = new User(
             Guid.NewGuid(),
             email,
             passwordHasher.Hash(request.Password.Trim()),
@@ -43,9 +43,9 @@ public sealed class CreateAdminUserCommandHandler(
             userProfileFactory.Create(displayName, city, country, string.Empty, avatarUrl),
             new Domain.Users.ValueObjects.PrivacyConsent(false, null));
 
-            await userRepository.AddAsync(user, cancellationToken);
-            await eventPublisher.PublishAsync(
-                new UserCreatedEvent(user.Id, user.Email, user.Role.ToString()),
+        await userRepository.AddAsync(user, cancellationToken);
+        await eventPublisher.PublishAsync(
+            new UserCreatedEvent(user.Id, user.Email, user.Role.ToString()),
             cancellationToken);
 
         return Result<UserDto>.Success(new UserDto(

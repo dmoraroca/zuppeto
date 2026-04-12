@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
@@ -86,6 +86,61 @@ export interface InternalDocument {
   content: string;
 }
 
+export interface CountryAdminDto {
+  id: string;
+  code: string;
+  name: string;
+  isActive: boolean;
+  sortOrder: number;
+  createdAtUtc: string;
+  updatedAtUtc: string;
+}
+
+export interface CreateCountryRequest {
+  code: string;
+  name: string;
+  isActive: boolean;
+  sortOrder: number;
+}
+
+export interface UpdateCountryRequest {
+  code: string;
+  name: string;
+  isActive: boolean;
+  sortOrder: number;
+}
+
+export interface CityAdminDto {
+  id: string;
+  countryId: string;
+  countryName: string;
+  countryCode: string;
+  name: string;
+  latitude: number | null;
+  longitude: number | null;
+  isActive: boolean;
+  sortOrder: number;
+  createdAtUtc: string;
+  updatedAtUtc: string;
+}
+
+export interface CreateCityRequest {
+  countryId: string;
+  name: string;
+  latitude: number | null;
+  longitude: number | null;
+  isActive: boolean;
+  sortOrder: number;
+}
+
+export interface UpdateCityRequest {
+  name: string;
+  latitude: number | null;
+  longitude: number | null;
+  isActive: boolean;
+  sortOrder: number;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -147,8 +202,16 @@ export class AdminService {
     isActive: boolean;
     roles: string[];
   }): Promise<AdminMenuCatalog> {
+    const encodedKey = encodeURIComponent(menu.key);
     return await firstValueFrom(
-      this.http.put<AdminMenuCatalog>(`${API_BASE_URL}/admin/menus/${menu.key}`, menu)
+      this.http.put<AdminMenuCatalog>(`${API_BASE_URL}/admin/menus/${encodedKey}`, menu)
+    );
+  }
+
+  async deleteMenu(key: string): Promise<AdminMenuCatalog> {
+    const encodedKey = encodeURIComponent(key);
+    return await firstValueFrom(
+      this.http.delete<AdminMenuCatalog>(`${API_BASE_URL}/admin/menus/${encodedKey}`)
     );
   }
 
@@ -162,5 +225,49 @@ export class AdminService {
     return await firstValueFrom(
       this.http.get<InternalDocument>(`${API_BASE_URL}/admin/documents/${key}`)
     );
+  }
+
+  async listCountries(): Promise<CountryAdminDto[]> {
+    return await firstValueFrom(this.http.get<CountryAdminDto[]>(`${API_BASE_URL}/admin/countries`));
+  }
+
+  async createCountry(request: CreateCountryRequest): Promise<CountryAdminDto> {
+    return await firstValueFrom(
+      this.http.post<CountryAdminDto>(`${API_BASE_URL}/admin/countries`, request)
+    );
+  }
+
+  async updateCountry(id: string, request: UpdateCountryRequest): Promise<CountryAdminDto> {
+    return await firstValueFrom(
+      this.http.put<CountryAdminDto>(`${API_BASE_URL}/admin/countries/${id}`, request)
+    );
+  }
+
+  async deleteCountry(id: string): Promise<void> {
+    await firstValueFrom(this.http.delete(`${API_BASE_URL}/admin/countries/${id}`));
+  }
+
+  async listCities(countryId?: string | null): Promise<CityAdminDto[]> {
+    let params = new HttpParams();
+    if (countryId) {
+      params = params.set('countryId', countryId);
+    }
+    return await firstValueFrom(
+      this.http.get<CityAdminDto[]>(`${API_BASE_URL}/admin/cities`, { params })
+    );
+  }
+
+  async createCity(request: CreateCityRequest): Promise<CityAdminDto> {
+    return await firstValueFrom(this.http.post<CityAdminDto>(`${API_BASE_URL}/admin/cities`, request));
+  }
+
+  async updateCity(id: string, request: UpdateCityRequest): Promise<CityAdminDto> {
+    return await firstValueFrom(
+      this.http.put<CityAdminDto>(`${API_BASE_URL}/admin/cities/${id}`, request)
+    );
+  }
+
+  async deleteCity(id: string): Promise<void> {
+    await firstValueFrom(this.http.delete(`${API_BASE_URL}/admin/cities/${id}`));
   }
 }
