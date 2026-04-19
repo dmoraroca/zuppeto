@@ -12,7 +12,7 @@ internal static class UserPersistenceMapper
             record.Id,
             record.Email,
             record.PasswordHash,
-            Enum.Parse<UserRole>(record.Role, ignoreCase: true),
+            record.Role.Trim(),
             new UserProfile(
                 record.DisplayName ?? record.Email,
                 record.City ?? string.Empty,
@@ -36,7 +36,7 @@ internal static class UserPersistenceMapper
         record.Id = user.Id;
         record.Email = user.Email;
         record.PasswordHash = user.PasswordHash;
-        record.Role = user.Role.ToString();
+        record.Role = user.Role;
         record.DisplayName = user.Profile.DisplayName;
         record.City = user.Profile.City;
         record.Country = user.Profile.Country;

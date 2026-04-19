@@ -1,0 +1,33 @@
+---
+description: Format obligatori dels missatges de commit YepPet (número + fase + resum)
+alwaysApply: true
+---
+
+# Missatges de commit (YepPet)
+
+**Sempre** utilitza aquest format, en una sola línia (títol del commit):
+
+```text
+NNN => fase X => resum breu de la feina feta
+```
+
+## Descripcions quan l’usuari les demana
+
+Quan et demanin la **descripció** del commit (o el missatge per enganxar al `git commit`), has de:
+
+1. **Basar-te en el format real** dels missatges que ja apareixen a `git log --oneline` d’aquest repositori (mateix patró `NNN => fase … => …`, mateix to que els darrers commits).
+2. **Incrementar l’ID personal correlatiu `NNN`**: és el número de tres xifres que porta cada títol al log; consulta l’últim que hi hagi al començament d’un missatge i proposa **el següent** (p. ex. després de `045` ve `046`). Això és el correlatiu del projecte / de l’usuari, no un número inventat.
+
+## Regles
+
+1. **`NNN`**: número correlatiu de tres xifres (p. ex. `045`). Abans de proposar el missatge, consulta `git log --oneline` i agafa l’últim número que aparegui al començament del missatge; **incrementa 1**. Si no n’hi ha cap, consulta `docs/probes-e2e-resultats/*.md` o el darrer fitxer d’E2E amb `commit: NNN`.
+
+2. **`fase X`**: la fase en curs segons `docs/project-phases.md` (p. ex. `fase IV (EN CURS)` o `fase IV` com als commits recents del repositori). No inventis la fase: llegeix el document si cal.
+
+3. **`resum`**: català, clar i curt; què s’ha fet en aquest commit, sense enumerar cada fitxer.
+
+## Exemple vàlid
+
+`045 => fase IV => admin països/ciutats (web), seed SQL, platform geogràfic`
+
+No substitueixis aquest format per títols genèrics tipus `feat:` sols o sense número, tret que l’usuari ho demani explícitament.

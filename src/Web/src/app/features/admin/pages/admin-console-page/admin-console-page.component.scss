@@ -219,6 +219,33 @@
   table-layout: auto;
 }
 
+.admin-console-table--permissions {
+  min-width: 1080px;
+  table-layout: fixed;
+}
+
+.admin-console-table--permissions th:nth-child(1),
+.admin-console-table--permissions td:nth-child(1) {
+  width: 18%;
+}
+
+.admin-console-table--permissions th:nth-child(2),
+.admin-console-table--permissions td:nth-child(2) {
+  width: 30%;
+}
+
+.admin-console-table--permissions th:nth-child(3),
+.admin-console-table--permissions td:nth-child(3),
+.admin-console-table--permissions th:nth-child(4),
+.admin-console-table--permissions td:nth-child(4) {
+  width: 14%;
+}
+
+.admin-console-table--permissions th:nth-child(5),
+.admin-console-table--permissions td:nth-child(5) {
+  width: 12%;
+}
+
 .admin-console-table--users th:nth-child(1),
 .admin-console-table--users td:nth-child(1) {
   width: 21%;
@@ -289,6 +316,126 @@
   gap: 0.7rem;
 }
 
+.admin-console-checkbox-grid--inline {
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+}
+
+.admin-console-checkbox-grid--compact {
+  grid-template-columns: repeat(auto-fill, minmax(8.25rem, 1fr));
+  gap: 0.3rem 0.4rem;
+}
+
+.admin-console-role-permissions-grid .admin-console-checkbox--compact {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  column-gap: 0.35rem;
+  row-gap: 0;
+  padding: 0.3rem 0.45rem 0.32rem;
+  border-radius: 0.65rem;
+}
+
+.admin-console-role-permissions-grid .admin-console-checkbox--compact input[type='checkbox'] {
+  grid-row: 1 / span 2;
+  align-self: center;
+  width: 0.82rem;
+  height: 0.82rem;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.admin-console-role-permissions-grid .admin-console-checkbox--compact > span {
+  font-size: 0.76rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.admin-console-role-permissions-grid .admin-console-checkbox--compact .admin-console-permission-key {
+  grid-column: 2;
+}
+
+.admin-console-permission-detail-grid {
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, max-content));
+  gap: 0.45rem 0.55rem;
+  justify-content: start;
+}
+
+.admin-console-permission-detail-grid .admin-console-checkbox--compact {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: 0.7rem;
+}
+
+.admin-console-permission-detail-grid .admin-console-checkbox--compact input[type='checkbox'] {
+  width: 0.82rem;
+  height: 0.82rem;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.admin-console-permission-detail-grid .admin-console-checkbox--compact > span {
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.admin-console-modal--role-permissions .admin-console-form {
+  max-height: min(48vh, 26rem);
+  overflow-y: auto;
+  padding-right: 0.2rem;
+}
+
+.admin-console-select-multiple {
+  width: 100%;
+  min-height: 7.5rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(209, 213, 219, 0.85);
+  background: rgba(255, 255, 255, 0.95);
+  font-size: 0.88rem;
+}
+
+.admin-console-scope-block {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.admin-console-scope-block__title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--yp-color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.admin-console-scope-placeholder {
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.75rem;
+  background: rgba(15, 23, 42, 0.04);
+  font-size: 0.9rem;
+  color: var(--yp-color-text-muted);
+}
+
+.admin-console-role-permissions-filter {
+  display: grid;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+  max-width: 18rem;
+
+  span {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--yp-color-text-muted);
+  }
+
+  select {
+    width: 100%;
+  }
+}
+
 .admin-console-checkbox {
   display: grid;
   gap: 0.15rem;
@@ -308,6 +455,14 @@
 
 .admin-console-checkbox small {
   color: var(--yp-color-text-muted);
+}
+
+.admin-console-permission-key {
+  display: block;
+  font-family: ui-monospace, 'Menlo', monospace;
+  font-size: 0.78rem;
+  color: var(--yp-color-text-muted);
+  word-break: break-all;
 }
 
 .admin-console-form {
@@ -340,6 +495,10 @@
 
 .admin-console-form--create {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.admin-console-form--full {
+  grid-column: 1 / -1;
 }
 
 .admin-console-form--create .admin-console-primary {
@@ -515,11 +674,20 @@
   margin-bottom: 0;
 }
 
+.admin-console-user-detail__meta--edit {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .admin-console-role-strip {
   display: grid;
   grid-template-columns: minmax(14rem, 20rem) minmax(10rem, 14rem);
   gap: 0.9rem;
   align-items: end;
+}
+
+.admin-console-role-strip--permission-detail {
+  grid-template-columns: 1fr;
+  align-items: start;
 }
 
 .admin-console-role-strip label {
@@ -578,7 +746,7 @@
 .admin-console-modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 40;
+  z-index: 1300;
   display: grid;
   place-items: center;
   padding: 1.25rem;
@@ -603,7 +771,12 @@
   width: min(1080px, 100%);
 }
 
-.admin-console-modal--create .admin-console-modal__header {
+.admin-console-modal--detail.admin-console-modal--create {
+  width: min(920px, 100%);
+}
+
+.admin-console-modal--create .admin-console-modal__header,
+.admin-console-modal__header--form {
   margin: -1.25rem -1.25rem 1.25rem;
   padding: 1rem 1.25rem;
   background: linear-gradient(180deg, rgba(247, 251, 250, 0.98), rgba(235, 245, 242, 0.98));

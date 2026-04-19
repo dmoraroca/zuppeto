@@ -23,6 +23,110 @@ namespace Infrastructure.Persistence.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "pgcrypto");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("YepPet.Infrastructure.Persistence.Entities.CityRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<Guid>("CountryId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("country_id");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<decimal?>("Latitude")
+                        .HasPrecision(9, 6)
+                        .HasColumnType("numeric(9,6)")
+                        .HasColumnName("latitude");
+
+                    b.Property<decimal?>("Longitude")
+                        .HasPrecision(9, 6)
+                        .HasColumnType("numeric(9,6)")
+                        .HasColumnName("longitude");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("normalized_name");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CountryId", "NormalizedName")
+                        .IsUnique()
+                        .HasDatabaseName("uq_cities_country_normalized_name");
+
+                    b.ToTable("cities", (string)null);
+                });
+
+            modelBuilder.Entity("YepPet.Infrastructure.Persistence.Entities.CountryRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)")
+                        .HasColumnName("code");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasDatabaseName("uq_countries_code");
+
+                    b.ToTable("countries", (string)null);
+                });
+
             modelBuilder.Entity("YepPet.Infrastructure.Persistence.Entities.FavoriteEntryRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -180,6 +284,8 @@ namespace Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Role");
+
                     b.HasIndex("MenuKey", "Role")
                         .IsUnique()
                         .HasDatabaseName("uq_menu_roles_menu_key_role");
@@ -195,11 +301,19 @@ namespace Infrastructure.Persistence.Migrations
                         .HasColumnName("id")
                         .HasDefaultValueSql("gen_random_uuid()");
 
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(512)
                         .HasColumnType("character varying(512)")
                         .HasColumnName("description");
+
+                    b.Property<string>("ScopePayload")
+                        .HasColumnType("text")
+                        .HasColumnName("scope_payload");
 
                     b.Property<string>("DisplayName")
                         .IsRequired()
@@ -218,6 +332,10 @@ namespace Infrastructure.Persistence.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)")
                         .HasColumnName("scope_type");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc");
 
                     b.HasKey("Id");
 
@@ -505,6 +623,53 @@ namespace Infrastructure.Persistence.Migrations
                     b.ToTable("role_permissions", (string)null);
                 });
 
+            modelBuilder.Entity("YepPet.Infrastructure.Persistence.Entities.RoleRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("display_name");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("key");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Key")
+                        .IsUnique()
+                        .HasDatabaseName("uq_roles_key");
+
+                    b.ToTable("roles", (string)null);
+                });
+
             modelBuilder.Entity("YepPet.Infrastructure.Persistence.Entities.TagRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -609,7 +774,20 @@ namespace Infrastructure.Persistence.Migrations
                         .IsUnique()
                         .HasDatabaseName("uq_users_email");
 
+                    b.HasIndex("Role");
+
                     b.ToTable("users", (string)null);
+                });
+
+            modelBuilder.Entity("YepPet.Infrastructure.Persistence.Entities.CityRecord", b =>
+                {
+                    b.HasOne("YepPet.Infrastructure.Persistence.Entities.CountryRecord", "Country")
+                        .WithMany("Cities")
+                        .HasForeignKey("CountryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Country");
                 });
 
             modelBuilder.Entity("YepPet.Infrastructure.Persistence.Entities.FavoriteEntryRecord", b =>
@@ -660,7 +838,16 @@ namespace Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("YepPet.Infrastructure.Persistence.Entities.RoleRecord", "RoleRef")
+                        .WithMany("MenuRoles")
+                        .HasForeignKey("Role")
+                        .HasPrincipalKey("Key")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("Menu");
+
+                    b.Navigation("RoleRef");
                 });
 
             modelBuilder.Entity("YepPet.Infrastructure.Persistence.Entities.PlaceFeatureRecord", b =>
@@ -740,7 +927,33 @@ namespace Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("YepPet.Infrastructure.Persistence.Entities.RoleRecord", "RoleRef")
+                        .WithMany("RolePermissions")
+                        .HasForeignKey("Role")
+                        .HasPrincipalKey("Key")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("Permission");
+
+                    b.Navigation("RoleRef");
+                });
+
+            modelBuilder.Entity("YepPet.Infrastructure.Persistence.Entities.UserRecord", b =>
+                {
+                    b.HasOne("YepPet.Infrastructure.Persistence.Entities.RoleRecord", "RoleRef")
+                        .WithMany("Users")
+                        .HasForeignKey("Role")
+                        .HasPrincipalKey("Key")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("RoleRef");
+                });
+
+            modelBuilder.Entity("YepPet.Infrastructure.Persistence.Entities.CountryRecord", b =>
+                {
+                    b.Navigation("Cities");
                 });
 
             modelBuilder.Entity("YepPet.Infrastructure.Persistence.Entities.FavoriteListRecord", b =>
@@ -772,6 +985,15 @@ namespace Infrastructure.Persistence.Migrations
                     b.Navigation("PlaceTags");
 
                     b.Navigation("Reviews");
+                });
+
+            modelBuilder.Entity("YepPet.Infrastructure.Persistence.Entities.RoleRecord", b =>
+                {
+                    b.Navigation("MenuRoles");
+
+                    b.Navigation("RolePermissions");
+
+                    b.Navigation("Users");
                 });
 
             modelBuilder.Entity("YepPet.Infrastructure.Persistence.Entities.TagRecord", b =>

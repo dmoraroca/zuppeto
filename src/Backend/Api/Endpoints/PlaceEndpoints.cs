@@ -1,5 +1,10 @@
 using Microsoft.AspNetCore.Http.HttpResults;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using YepPet.Application.Admin;
 using YepPet.Application.Places;
+using YepPet.Application.Validation;
+using YepPet.Api.Validation;
 
 namespace YepPet.Api.Endpoints;
 
@@ -8,12 +13,18 @@ internal static class PlaceEndpoints
     public static IEndpointRouteBuilder MapPlaceEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/places");
+        var adminGroup = app.MapGroup("/api/admin/places").RequireAuthorization();
 
         group.MapGet("/", SearchAsync);
         group.MapGet("/cities", GetAvailableCitiesAsync);
         group.MapGet("/{id:guid}", GetByIdAsync);
         group.MapPost("/", SaveAsync);
         group.MapPut("/{id:guid}", UpdateAsync);
+        adminGroup.MapGet("/", AdminSearchAsync);
+        adminGroup.MapGet("/{id:guid}", AdminGetByIdAsync);
+        adminGroup.MapPost("/", AdminSaveAsync);
+        adminGroup.MapPut("/{id:guid}", AdminUpdateAsync);
+        adminGroup.MapDelete("/{id:guid}", AdminDeleteAsync);
 
         return app;
     }
@@ -47,23 +58,141 @@ internal static class PlaceEndpoints
         return place is null ? TypedResults.NotFound() : TypedResults.Ok(place);
     }
 
-    private static async Task<Created<Guid>> SaveAsync(
+    private static async Task<Results<Created<Guid>, ValidationProblem>> SaveAsync(
         PlaceUpsertRequest request,
+        IValidator<PlaceUpsertRequest> validator,
         IPlaceApplicationService service,
         CancellationToken cancellationToken)
     {
+        var validation = validator.Validate(request);
+        if (!validation.IsValid)
+        {
+            return validation.ToValidationProblem();
+        }
+
         var id = await service.SaveAsync(request, cancellationToken);
         return TypedResults.Created($"/api/places/{id}", id);
     }
 
-    private static async Task<Ok<Guid>> UpdateAsync(
+    private static async Task<Results<Ok<Guid>, ValidationProblem>> UpdateAsync(
         Guid id,
         PlaceUpsertRequest request,
+        IValidator<PlaceUpsertRequest> validator,
         IPlaceApplicationService service,
         CancellationToken cancellationToken)
     {
-        var resultId = await service.SaveAsync(request with { Id = id }, cancellationToken);
+        var normalized = request with { Id = id };
+        var validation = validator.Validate(normalized);
+        if (!validation.IsValid)
+        {
+            return validation.ToValidationProblem();
+        }
+
+        var resultId = await service.SaveAsync(normalized, cancellationToken);
         return TypedResults.Ok(resultId);
+    }
+
+    [Authorize]
+    private static async Task<Results<Ok<IReadOnlyCollection<PlaceSummaryDto>>, ForbidHttpResult>> AdminSearchAsync(
+        [AsParameters] PlaceSearchQuery query,
+        ClaimsPrincipal principal,
+        IAdminApplicationService adminService,
+        IPlaceApplicationService service,
+        CancellationToken cancellationToken)
+    {
+        if (!await principal.HasPermissionAsync(adminService, "action.places.manage", cancellationToken))
+        {
+            return TypedResults.Forbid();
+        }
+
+        var result = await service.SearchAsync(
+            new PlaceSearchRequest(query.SearchText, query.City, query.Type, query.PetCategory ?? "All"),
+            cancellationToken);
+        return TypedResults.Ok(result);
+    }
+
+    [Authorize]
+    private static async Task<Results<Ok<PlaceDetailDto>, NotFound, ForbidHttpResult>> AdminGetByIdAsync(
+        Guid id,
+        ClaimsPrincipal principal,
+        IAdminApplicationService adminService,
+        IPlaceApplicationService service,
+        CancellationToken cancellationToken)
+    {
+        if (!await principal.HasPermissionAsync(adminService, "action.places.manage", cancellationToken))
+        {
+            return TypedResults.Forbid();
+        }
+
+        var place = await service.GetByIdAsync(id, cancellationToken);
+        return place is null ? TypedResults.NotFound() : TypedResults.Ok(place);
+    }
+
+    [Authorize]
+    private static async Task<Results<Created<Guid>, ForbidHttpResult, ValidationProblem>> AdminSaveAsync(
+        PlaceUpsertRequest request,
+        ClaimsPrincipal principal,
+        IAdminApplicationService adminService,
+        IValidator<PlaceUpsertRequest> validator,
+        IPlaceApplicationService service,
+        CancellationToken cancellationToken)
+    {
+        if (!await principal.HasPermissionAsync(adminService, "action.places.manage", cancellationToken))
+        {
+            return TypedResults.Forbid();
+        }
+
+        var validation = validator.Validate(request);
+        if (!validation.IsValid)
+        {
+            return validation.ToValidationProblem();
+        }
+
+        var id = await service.SaveAsync(request, cancellationToken);
+        return TypedResults.Created($"/api/admin/places/{id}", id);
+    }
+
+    [Authorize]
+    private static async Task<Results<Ok<Guid>, ForbidHttpResult, ValidationProblem>> AdminUpdateAsync(
+        Guid id,
+        PlaceUpsertRequest request,
+        ClaimsPrincipal principal,
+        IAdminApplicationService adminService,
+        IValidator<PlaceUpsertRequest> validator,
+        IPlaceApplicationService service,
+        CancellationToken cancellationToken)
+    {
+        if (!await principal.HasPermissionAsync(adminService, "action.places.manage", cancellationToken))
+        {
+            return TypedResults.Forbid();
+        }
+
+        var normalized = request with { Id = id };
+        var validation = validator.Validate(normalized);
+        if (!validation.IsValid)
+        {
+            return validation.ToValidationProblem();
+        }
+
+        var resultId = await service.SaveAsync(normalized, cancellationToken);
+        return TypedResults.Ok(resultId);
+    }
+
+    [Authorize]
+    private static async Task<Results<NoContent, NotFound, ForbidHttpResult>> AdminDeleteAsync(
+        Guid id,
+        ClaimsPrincipal principal,
+        IAdminApplicationService adminService,
+        IPlaceApplicationService service,
+        CancellationToken cancellationToken)
+    {
+        if (!await principal.HasPermissionAsync(adminService, "action.places.manage", cancellationToken))
+        {
+            return TypedResults.Forbid();
+        }
+
+        var deleted = await service.DeleteAsync(id, cancellationToken);
+        return deleted ? TypedResults.NoContent() : TypedResults.NotFound();
     }
 
     internal sealed record PlaceSearchQuery(

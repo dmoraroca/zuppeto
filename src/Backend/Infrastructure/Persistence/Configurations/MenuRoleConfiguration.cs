@@ -30,6 +30,12 @@ public sealed class MenuRoleConfiguration : IEntityTypeConfiguration<MenuRoleRec
             .IsUnique()
             .HasDatabaseName("uq_menu_roles_menu_key_role");
 
+        builder.HasOne(menuRole => menuRole.RoleRef)
+            .WithMany(role => role.MenuRoles)
+            .HasForeignKey(menuRole => menuRole.Role)
+            .HasPrincipalKey(role => role.Key)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasOne(menuRole => menuRole.Menu)
             .WithMany(menu => menu.MenuRoles)
             .HasForeignKey(menuRole => menuRole.MenuKey)

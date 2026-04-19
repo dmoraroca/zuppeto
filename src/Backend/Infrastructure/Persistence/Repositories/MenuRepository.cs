@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using YepPet.Domain.Abstractions;
 using YepPet.Domain.Navigation;
-using YepPet.Domain.Users;
 using YepPet.Infrastructure.Persistence.Entities;
 
 namespace YepPet.Infrastructure.Persistence.Repositories;
@@ -35,10 +34,10 @@ internal sealed class MenuRepository(YepPetDbContext dbContext) : IMenuRepositor
     }
 
     public async Task<IReadOnlyCollection<MenuItemDefinition>> GetMenuItemsByRoleAsync(
-        UserRole role,
+        string roleKey,
         CancellationToken cancellationToken = default)
     {
-        var roleValue = role.ToString();
+        var roleValue = roleKey.Trim();
 
         return await dbContext.MenuRoles
             .AsNoTracking()

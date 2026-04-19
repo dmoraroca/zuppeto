@@ -1,5 +1,4 @@
 using YepPet.Domain.Navigation;
-using YepPet.Domain.Users;
 
 namespace YepPet.Domain.Abstractions;
 
@@ -10,7 +9,7 @@ public interface IMenuRepository
     Task<IReadOnlyCollection<MenuRoleAssignment>> GetAssignmentsAsync(CancellationToken cancellationToken = default);
 
     Task<IReadOnlyCollection<MenuItemDefinition>> GetMenuItemsByRoleAsync(
-        UserRole role,
+        string roleKey,
         CancellationToken cancellationToken = default);
 
     Task SaveDefinitionAsync(

@@ -1,6 +1,5 @@
 using System.Security.Claims;
 using YepPet.Application.Admin;
-using YepPet.Domain.Users;
 
 namespace YepPet.Api.Endpoints;
 
@@ -14,14 +13,13 @@ internal static class EndpointAuthorization
         return Guid.TryParse(subject, out var userId) ? userId : null;
     }
 
-    public static UserRole? GetCurrentRole(this ClaimsPrincipal principal)
+    /// <summary>Role key as stored in <c>roles.key</c> (JWT claim).</summary>
+    public static string? GetCurrentRoleKey(this ClaimsPrincipal principal)
     {
         var roleValue = principal.FindFirstValue(ClaimTypes.Role)
             ?? principal.FindFirstValue("role");
 
-        return Enum.TryParse<UserRole>(roleValue, ignoreCase: true, out var role)
-            ? role
-            : null;
+        return string.IsNullOrWhiteSpace(roleValue) ? null : roleValue.Trim();
     }
 
     public static async Task<bool> HasPermissionAsync(
@@ -30,14 +28,14 @@ internal static class EndpointAuthorization
         string permissionKey,
         CancellationToken cancellationToken = default)
     {
-        var role = principal.GetCurrentRole();
+        var roleKey = principal.GetCurrentRoleKey();
 
-        if (role is null)
+        if (roleKey is null)
         {
             return false;
         }
 
-        var permissionKeys = await adminService.GetPermissionKeysByRoleAsync(role.Value.ToString(), cancellationToken);
+        var permissionKeys = await adminService.GetPermissionKeysByRoleAsync(roleKey, cancellationToken);
         return permissionKeys.Contains(permissionKey, StringComparer.Ordinal);
     }
 }

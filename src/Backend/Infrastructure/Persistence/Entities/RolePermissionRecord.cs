@@ -6,6 +6,8 @@ public sealed class RolePermissionRecord
 
     public string Role { get; set; } = string.Empty;
 
+    public RoleRecord? RoleRef { get; set; }
+
     public string PermissionKey { get; set; } = string.Empty;
 
     public PermissionRecord? Permission { get; set; }

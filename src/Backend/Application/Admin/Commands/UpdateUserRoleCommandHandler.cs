@@ -10,6 +10,7 @@ namespace YepPet.Application.Admin.Commands;
 
 public sealed class UpdateUserRoleCommandHandler(
     IUserRepository userRepository,
+    IRoleCatalogRepository roleCatalogRepository,
     IEventPublisher eventPublisher)
     : ICommandHandler<UpdateUserRoleCommand, Result<UserDto>>
 {
@@ -24,19 +25,24 @@ public sealed class UpdateUserRoleCommandHandler(
             return Result<UserDto>.Fail(FailureKind.NotFound, $"User '{command.UserId}' was not found.");
         }
 
-        var nextRole = Enum.Parse<UserRole>(command.Request.Role, ignoreCase: true);
+        var catalogEntry = await roleCatalogRepository.GetByKeyAsync(command.Request.Role.Trim(), cancellationToken);
+        if (catalogEntry is null || !catalogEntry.IsActive)
+        {
+            return Result<UserDto>.Fail(FailureKind.Conflict, "Rol invàlid o inactiu.");
+        }
+
         var previousRole = user.Role;
-        user.ChangeRole(nextRole);
+        user.ChangeRole(catalogEntry.Key);
         await userRepository.UpdateAsync(user, cancellationToken);
 
         await eventPublisher.PublishAsync(
-            new UserRoleChangedEvent(user.Id, previousRole.ToString(), nextRole.ToString()),
+            new UserRoleChangedEvent(user.Id, previousRole, user.Role),
             cancellationToken);
 
         return Result<UserDto>.Success(new UserDto(
             user.Id,
             user.Email,
-            user.Role.ToString(),
+            user.Role,
             user.Profile.DisplayName,
             user.Profile.City,
             user.Profile.Country,

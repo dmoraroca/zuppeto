@@ -30,6 +30,12 @@ public sealed class RolePermissionConfiguration : IEntityTypeConfiguration<RoleP
             .IsUnique()
             .HasDatabaseName("uq_role_permissions_role_permission_key");
 
+        builder.HasOne(rolePermission => rolePermission.RoleRef)
+            .WithMany(role => role.RolePermissions)
+            .HasForeignKey(rolePermission => rolePermission.Role)
+            .HasPrincipalKey(role => role.Key)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasOne(rolePermission => rolePermission.Permission)
             .WithMany(permission => permission.RolePermissions)
             .HasForeignKey(rolePermission => rolePermission.PermissionKey)

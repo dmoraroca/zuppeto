@@ -31,3 +31,7 @@ e2e/.playwright/
 e2e/.cache/ms-playwright/
 
 .fake
+
+# Logs del projecte API (no versionem els .log)
+src/Backend/Api/logs/*.log
+src/Backend/Api/logs/*.txt

@@ -131,7 +131,7 @@ internal sealed class AuthApplicationService(
             new UserDto(
                 user.Id,
                 user.Email,
-                user.Role.ToString(),
+                user.Role,
                 user.Profile.DisplayName,
                 user.Profile.City,
                 user.Profile.Country,
@@ -158,7 +158,7 @@ internal sealed class AuthApplicationService(
                 Guid.NewGuid(),
                 identity.Email,
                 passwordHasher.Hash(Guid.NewGuid().ToString("N")),
-                shouldBeAdmin ? UserRole.Admin : UserRole.Viewer,
+                shouldBeAdmin ? "Admin" : "Viewer",
                 new UserProfile(
                     ResolveDisplayName(identity),
                     string.Empty,
@@ -177,9 +177,9 @@ internal sealed class AuthApplicationService(
         {
             var shouldPersist = false;
 
-            if (shouldBeAdmin && user.Role != UserRole.Admin)
+            if (shouldBeAdmin && !string.Equals(user.Role, "Admin", StringComparison.OrdinalIgnoreCase))
             {
-                user.ChangeRole(UserRole.Admin);
+                user.ChangeRole("Admin");
 
                 if (!user.PrivacyConsent.Accepted)
                 {
@@ -228,7 +228,9 @@ internal sealed class AuthApplicationService(
 
     private static bool CanSynchronizeProfile(User user)
     {
-        return user.Role is UserRole.Admin or UserRole.Developer || user.PrivacyConsent.Accepted;
+        return string.Equals(user.Role, "Admin", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(user.Role, "Developer", StringComparison.OrdinalIgnoreCase)
+            || user.PrivacyConsent.Accepted;
     }
 
     private static bool ShouldSynchronizeProfile(User user, FederatedIdentityPayload identity)

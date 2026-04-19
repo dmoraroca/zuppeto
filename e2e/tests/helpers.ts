@@ -1,4 +1,4 @@
-import { expect, type APIRequestContext } from '@playwright/test';
+import { expect, type APIRequestContext, type Page } from '@playwright/test';
 
 export const WEB_BASE_URL = process.env.E2E_BASE_URL ?? 'http://localhost:4200';
 export const API_BASE_URL = process.env.E2E_API_URL ?? 'http://localhost:5211';
@@ -17,24 +17,65 @@ export async function ensureApiReady(request: APIRequestContext) {
   expect(response.ok()).toBeTruthy();
 }
 
+/** Login via UI; espera la navegació principal autenticada. */
+export async function loginViaUi(page: Page, email: string, password: string): Promise<void> {
+  await page.goto('/login');
+  await page.getByLabel('Email').fill(email);
+  await page.getByLabel('Contrasenya').fill(password);
+  await page.getByRole('button', { name: 'Iniciar sessió' }).click();
+  await expect(
+    page.getByLabel('Primary navigation').getByRole('link', { name: 'Inici' })
+  ).toBeVisible();
+}
+
+/** Primer lloc del catàleg públic (per provar detall). */
+export async function fetchFirstPlaceId(request: APIRequestContext): Promise<string | null> {
+  const response = await request.get(`${API_BASE_URL}/api/places`);
+  if (!response.ok()) {
+    return null;
+  }
+  const places = (await response.json()) as Array<{ id: string }>;
+  return places[0]?.id ?? null;
+}
+
 export async function ensureUser(
   request: APIRequestContext,
   adminToken: string,
-  payload: { email: string; password: string; role: string; displayName: string }
+  payload: {
+    email: string;
+    password: string;
+    role: string;
+    displayName: string;
+    city?: string;
+    country?: string;
+  }
 ) {
   const usersResponse = await request.get(`${API_BASE_URL}/api/admin/users`, {
     headers: { Authorization: `Bearer ${adminToken}` }
   });
   expect(usersResponse.ok()).toBeTruthy();
   const users = (await usersResponse.json()) as Array<{ email: string }>;
-  if (users.some((user) => user.email === payload.email.toLowerCase())) {
+  const emailLower = payload.email.toLowerCase();
+  if (users.some((user) => user.email.toLowerCase() === emailLower)) {
     return;
   }
 
   const createResponse = await request.post(`${API_BASE_URL}/api/admin/users`, {
     headers: { Authorization: `Bearer ${adminToken}` },
-    data: payload
+    data: {
+      email: payload.email,
+      password: payload.password,
+      role: payload.role,
+      displayName: payload.displayName,
+      city: payload.city ?? 'Barcelona',
+      country: payload.country ?? 'Espanya'
+    }
   });
+
+  if (createResponse.status() === 409) {
+    return;
+  }
+
   expect(createResponse.ok()).toBeTruthy();
 }
 
@@ -45,21 +86,21 @@ export async function ensureRoleUsers(request: APIRequestContext) {
   await ensureUser(request, adminToken, {
     email: 'viewer.e2e@yeppet.local',
     password: 'Admin123',
-    role: 'VIEWER',
+    role: 'Viewer',
     displayName: 'Viewer E2E'
   });
 
   await ensureUser(request, adminToken, {
     email: 'user.e2e@yeppet.local',
     password: 'Admin123',
-    role: 'USER',
+    role: 'User',
     displayName: 'User E2E'
   });
 
   await ensureUser(request, adminToken, {
     email: 'developer.e2e@yeppet.local',
     password: 'Admin123',
-    role: 'DEVELOPER',
+    role: 'Developer',
     displayName: 'Developer E2E'
   });
 }

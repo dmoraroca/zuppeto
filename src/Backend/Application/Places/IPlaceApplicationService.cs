@@ -11,4 +11,6 @@ public interface IPlaceApplicationService
     Task<IReadOnlyCollection<string>> GetAvailableCitiesAsync(CancellationToken cancellationToken = default);
 
     Task<Guid> SaveAsync(PlaceUpsertRequest request, CancellationToken cancellationToken = default);
+
+    Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
 }

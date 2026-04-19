@@ -64,6 +64,11 @@ internal sealed class PlaceApplicationService(IPlaceRepository placeRepository) 
         return placeId;
     }
 
+    public Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return placeRepository.DeleteAsync(id, cancellationToken);
+    }
+
     private static PlaceSummaryDto ToSummaryDto(Place place)
     {
         return new PlaceSummaryDto(

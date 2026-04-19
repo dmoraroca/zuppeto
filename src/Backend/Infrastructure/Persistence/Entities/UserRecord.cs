@@ -10,6 +10,8 @@ public sealed class UserRecord
 
     public string Role { get; set; } = string.Empty;
 
+    public RoleRecord? RoleRef { get; set; }
+
     public string? DisplayName { get; set; }
 
     public string? City { get; set; }

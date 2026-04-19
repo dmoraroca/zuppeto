@@ -38,8 +38,12 @@ export class AuthService {
 
   readonly currentUser = computed(() => this.sessionState()?.user ?? null);
   readonly isAuthenticated = computed(() => this.sessionState() !== null);
-  readonly isAdmin = computed(() => this.sessionState()?.user.role === 'ADMIN');
-  readonly isDeveloper = computed(() => this.sessionState()?.user.role === 'DEVELOPER');
+  readonly isAdmin = computed(
+    () => this.sessionState()?.user.role?.toLowerCase() === 'admin'
+  );
+  readonly isDeveloper = computed(
+    () => this.sessionState()?.user.role?.toLowerCase() === 'developer'
+  );
   readonly role = computed<AuthRole | null>(() => this.sessionState()?.user.role ?? null);
   readonly provider = computed(() => this.sessionState()?.provider ?? null);
   readonly permissionKeys = computed(() => this.sessionState()?.permissionKeys ?? []);
@@ -226,12 +230,20 @@ export class AuthService {
     return this.hasPermission('page.admin.permissions');
   }
 
+  canManagePlaces(): boolean {
+    return this.hasPermission('page.admin.places');
+  }
+
   canManageCountryCatalog(): boolean {
     return this.hasPermission('page.admin.countries');
   }
 
   canManageCityCatalog(): boolean {
     return this.hasPermission('page.admin.cities');
+  }
+
+  canManageRoles(): boolean {
+    return this.hasPermission('page.admin.roles');
   }
 
   getLinkedInStartUrl(redirectTo?: string | null): string {
@@ -322,7 +334,7 @@ export class AuthService {
       id: user.id,
       email: user.email,
       name: user.displayName,
-      role: user.role.toUpperCase() as AuthRole,
+      role: user.role,
       city: user.city,
       country: user.country,
       bio: user.bio,
@@ -408,6 +420,24 @@ export class AuthService {
       });
     }
 
+    if (this.canManageRoles()) {
+      adminChildren.push({
+        key: 'admin.roles',
+        label: 'Rols',
+        route: '/admin/rols',
+        children: []
+      });
+    }
+
+    if (this.canManagePlaces()) {
+      adminChildren.push({
+        key: 'admin.places',
+        label: 'Llocs',
+        route: '/admin/llocs',
+        children: []
+      });
+    }
+
     if (this.canManageCountryCatalog()) {
       adminChildren.push({
         key: 'admin.countries',
@@ -429,7 +459,7 @@ export class AuthService {
     if (this.canAccessAdminMenu() || adminChildren.length > 0) {
       items.push({
         key: 'admin',
-        label: this.role() === 'DEVELOPER' ? 'Del desenvolupador' : 'Del administrador',
+        label: this.role()?.toLowerCase() === 'developer' ? 'Del desenvolupador' : 'Del administrador',
         route: null,
         children: adminChildren
       });
@@ -440,8 +470,8 @@ export class AuthService {
 
   /**
    * El menú des de l’API ve de les taules `menus` / `menu_roles`. Si encara no s’han afegit
-   * les entrades de catàleg geogràfic al seed, però el rol ja té `page.admin.countries` /
-   * `page.admin.cities` al JWT, injectem els enllaços aquí.
+   * entrades d’admin al seed però el rol ja té permisos de pàgina al JWT, injectem
+   * enllaços de manteniment intern aquí.
    */
   private ensureGeographicAdminLinks(items: NavigationMenuItem[]): NavigationMenuItem[] {
     return items.map((item) => {
@@ -450,6 +480,13 @@ export class AuthService {
       }
 
       let children = item.children.map((c) => ({ ...c, children: c.children.map((x) => ({ ...x })) }));
+
+      if (this.canManagePlaces() && !children.some((c) => c.key === 'admin.places')) {
+        children = [
+          ...children,
+          { key: 'admin.places', label: 'Llocs', route: '/admin/llocs', children: [] }
+        ];
+      }
 
       if (this.canManageCountryCatalog() && !children.some((c) => c.key === 'admin.countries')) {
         children = [
@@ -462,6 +499,13 @@ export class AuthService {
         children = [
           ...children,
           { key: 'admin.cities', label: 'Ciutats', route: '/admin/ciutats', children: [] }
+        ];
+      }
+
+      if (this.canManageRoles() && !children.some((c) => c.key === 'admin.roles')) {
+        children = [
+          ...children,
+          { key: 'admin.roles', label: 'Rols', route: '/admin/rols', children: [] }
         ];
       }
 
@@ -482,7 +526,7 @@ export class AuthService {
 
         return {
           ...item,
-          label: this.role() === 'DEVELOPER' ? 'Del desenvolupador' : 'Del administrador',
+          label: this.role()?.toLowerCase() === 'developer' ? 'Del desenvolupador' : 'Del administrador',
           children: item.children.map((child) => ({ ...child }))
         };
       });

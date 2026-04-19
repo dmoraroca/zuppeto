@@ -185,6 +185,25 @@ export const routes: Routes = [
     }
   },
   {
+    path: 'admin/rols',
+    canActivate: [
+      permissionGuard(
+        'page.admin.roles',
+        'El manteniment de rols només està disponible amb el permís corresponent.'
+      )
+    ],
+    loadComponent: () =>
+      import('./features/admin/pages/admin-console-page/admin-console-page.component').then(
+        (m) => m.AdminConsolePageComponent
+      ),
+    data: {
+      mode: 'roles',
+      eyebrow: 'Rols',
+      title: 'Catàleg de rols',
+      copy: 'Alta, edició i baixa de rols del sistema (clau única, nom visible i estat actiu). L’esborrat només és possible sense usuaris ni assignacions dependents.'
+    }
+  },
+  {
     path: 'admin/paisos',
     canActivate: [
       permissionGuard(
@@ -201,6 +220,25 @@ export const routes: Routes = [
       eyebrow: 'Territori',
       title: 'Catàleg de països',
       copy: 'Alta, edició i baixa de països del catàleg intern (codi únic, ordre i estat actiu).'
+    }
+  },
+  {
+    path: 'admin/llocs',
+    canActivate: [
+      permissionGuard(
+        'page.admin.places',
+        'El manteniment de llocs només està disponible amb el permís corresponent.'
+      )
+    ],
+    loadComponent: () =>
+      import('./features/admin/pages/admin-console-page/admin-console-page.component').then(
+        (m) => m.AdminConsolePageComponent
+      ),
+    data: {
+      mode: 'places',
+      eyebrow: 'Contingut',
+      title: 'Catàleg de llocs',
+      copy: 'Alta, edició i baixa de llocs del producte amb dades de catàleg intern.'
     }
   },
   {

@@ -1,5 +1,4 @@
 using YepPet.Application.Validation;
-using YepPet.Domain.Users;
 
 namespace YepPet.Application.Admin.Validators;
 
@@ -9,9 +8,13 @@ public sealed class UpdateUserRoleRequestValidator : IValidator<UpdateUserRoleRe
     {
         var result = ValidationResult.Success();
 
-        if (!ValidationHelpers.TryParseEnum<UserRole>(request.Role, out _))
+        if (string.IsNullOrWhiteSpace(request.Role))
         {
-            result.Add(nameof(request.Role), "Role is invalid.");
+            result.Add(nameof(request.Role), "Role is required.");
+        }
+        else if (request.Role.Trim().Length > 32)
+        {
+            result.Add(nameof(request.Role), "Role is too long.");
         }
 
         return result;

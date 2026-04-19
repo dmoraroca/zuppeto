@@ -11,19 +11,24 @@ namespace YepPet.Application.Admin.Commands;
 
 public sealed class CreateAdminUserCommandHandler(
     IUserRepository userRepository,
+    IRoleCatalogRepository roleCatalogRepository,
     Auth.IPasswordHasher passwordHasher,
     IUserProfileFactory userProfileFactory,
     IEventPublisher eventPublisher)
     : ICommandHandler<CreateAdminUserCommand, Result<UserDto>>
-    {
+{
     public async Task<Result<UserDto>> HandleAsync(
         CreateAdminUserCommand command,
         CancellationToken cancellationToken = default)
     {
         var request = command.Request;
-        var role = string.IsNullOrWhiteSpace(request.Role)
-            ? UserRole.User
-            : Enum.Parse<UserRole>(request.Role, ignoreCase: true);
+        var roleKey = string.IsNullOrWhiteSpace(request.Role) ? "User" : request.Role.Trim();
+        var catalogEntry = await roleCatalogRepository.GetByKeyAsync(roleKey, cancellationToken);
+        if (catalogEntry is null || !catalogEntry.IsActive)
+        {
+            return Result<UserDto>.Fail(FailureKind.Conflict, "Rol invàlid o inactiu.");
+        }
+
         var email = request.Email.Trim().ToLowerInvariant();
         var displayName = request.DisplayName.Trim();
         var city = request.City.Trim();
@@ -39,19 +44,19 @@ public sealed class CreateAdminUserCommandHandler(
             Guid.NewGuid(),
             email,
             passwordHasher.Hash(request.Password.Trim()),
-            role,
+            catalogEntry.Key,
             userProfileFactory.Create(displayName, city, country, string.Empty, avatarUrl),
             new Domain.Users.ValueObjects.PrivacyConsent(false, null));
 
         await userRepository.AddAsync(user, cancellationToken);
         await eventPublisher.PublishAsync(
-            new UserCreatedEvent(user.Id, user.Email, user.Role.ToString()),
+            new UserCreatedEvent(user.Id, user.Email, user.Role),
             cancellationToken);
 
         return Result<UserDto>.Success(new UserDto(
             user.Id,
             user.Email,
-            user.Role.ToString(),
+            user.Role,
             user.Profile.DisplayName,
             user.Profile.City,
             user.Profile.Country,

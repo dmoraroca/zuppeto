@@ -36,6 +36,18 @@ public sealed class PermissionConfiguration : IEntityTypeConfiguration<Permissio
             .HasMaxLength(512)
             .IsRequired();
 
+        builder.Property(permission => permission.ScopePayload)
+            .HasColumnName("scope_payload")
+            .HasColumnType("text");
+
+        builder.Property(permission => permission.CreatedAtUtc)
+            .HasColumnName("created_at_utc")
+            .IsRequired();
+
+        builder.Property(permission => permission.UpdatedAtUtc)
+            .HasColumnName("updated_at_utc")
+            .IsRequired();
+
         builder.HasIndex(permission => permission.Key)
             .IsUnique()
             .HasDatabaseName("uq_permissions_key");

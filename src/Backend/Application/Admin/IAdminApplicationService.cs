@@ -1,3 +1,5 @@
+using YepPet.Application.Results;
+
 namespace YepPet.Application.Admin;
 
 public interface IAdminApplicationService
@@ -17,9 +19,20 @@ public interface IAdminApplicationService
 
     Task<RolePermissionCatalogDto> GetRolePermissionsAsync(CancellationToken cancellationToken = default);
 
-    Task<RolePermissionCatalogDto> UpdateRolePermissionsAsync(
+    Task<Result<RolePermissionCatalogDto>> UpdateRolePermissionsAsync(
         UpdateRolePermissionsRequest request,
         CancellationToken cancellationToken = default);
+
+    Task<Result<PermissionDefinitionDto>> CreatePermissionDefinitionAsync(
+        CreatePermissionDefinitionRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<Result<PermissionDefinitionDto>> UpdatePermissionDefinitionAsync(
+        string key,
+        UpdatePermissionDefinitionRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<Result<bool>> DeletePermissionDefinitionAsync(string key, CancellationToken cancellationToken = default);
 
     Task<AdminMenuCatalogDto> GetMenusAsync(CancellationToken cancellationToken = default);
 
@@ -30,6 +43,19 @@ public interface IAdminApplicationService
     Task<IReadOnlyCollection<string>> GetPermissionKeysByRoleAsync(
         string role,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyCollection<RoleDefinitionDto>> GetRoleDefinitionsAsync(CancellationToken cancellationToken = default);
+
+    Task<Result<RoleDefinitionDto>> CreateRoleDefinitionAsync(
+        CreateRoleDefinitionRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<Result<RoleDefinitionDto>> UpdateRoleDefinitionAsync(
+        string key,
+        UpdateRoleDefinitionRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<Result<bool>> DeleteRoleDefinitionAsync(string key, CancellationToken cancellationToken = default);
 
     IReadOnlyCollection<InternalDocumentSummaryDto> GetInternalDocumentIndex();
 

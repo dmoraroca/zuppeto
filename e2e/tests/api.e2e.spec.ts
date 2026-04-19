@@ -23,6 +23,11 @@ test('admin api endpoints respond', async ({ request }) => {
   });
   expect(menus.ok()).toBeTruthy();
 
+  const roles = await request.get(`${API_BASE_URL}/api/admin/roles`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  expect(roles.ok()).toBeTruthy();
+
   const documents = await request.get(`${API_BASE_URL}/api/admin/documents`, {
     headers: { Authorization: `Bearer ${token}` }
   });
@@ -36,6 +41,11 @@ test('user cannot access admin endpoints', async ({ request }) => {
     headers: { Authorization: `Bearer ${token}` }
   });
   expect(users.status()).toBe(403);
+
+  const roles = await request.get(`${API_BASE_URL}/api/admin/roles`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  expect(roles.status()).toBe(403);
 });
 
 test('navigation menu for admin includes admin node', async ({ request }) => {

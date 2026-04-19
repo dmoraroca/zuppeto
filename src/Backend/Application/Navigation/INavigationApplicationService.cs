@@ -1,10 +1,8 @@
-using YepPet.Domain.Users;
-
 namespace YepPet.Application.Navigation;
 
 public interface INavigationApplicationService
 {
     Task<IReadOnlyCollection<NavigationMenuItemDto>> GetMenuForRoleAsync(
-        UserRole role,
+        string roleKey,
         CancellationToken cancellationToken = default);
 }

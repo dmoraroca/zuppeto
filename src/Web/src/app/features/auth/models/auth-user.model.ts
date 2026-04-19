@@ -1,4 +1,5 @@
-export type AuthRole = 'VIEWER' | 'USER' | 'DEVELOPER' | 'ADMIN';
+/** Role key as returned by the API (matches <c>roles.key</c>, e.g. Admin, User, custom roles). */
+export type AuthRole = string;
 
 export interface AuthUser {
   id: string;

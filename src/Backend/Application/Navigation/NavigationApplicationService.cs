@@ -1,15 +1,14 @@
 using YepPet.Domain.Abstractions;
-using YepPet.Domain.Users;
 
 namespace YepPet.Application.Navigation;
 
 internal sealed class NavigationApplicationService(IMenuRepository menuRepository) : INavigationApplicationService
 {
     public async Task<IReadOnlyCollection<NavigationMenuItemDto>> GetMenuForRoleAsync(
-        UserRole role,
+        string roleKey,
         CancellationToken cancellationToken = default)
     {
-        var items = await menuRepository.GetMenuItemsByRoleAsync(role, cancellationToken);
+        var items = await menuRepository.GetMenuItemsByRoleAsync(roleKey, cancellationToken);
         var itemsByParent = items
             .GroupBy(item => item.ParentKey ?? string.Empty)
             .ToDictionary(group => group.Key, group => group.OrderBy(item => item.SortOrder).ToArray(), StringComparer.Ordinal);
@@ -30,7 +29,9 @@ internal sealed class NavigationApplicationService(IMenuRepository menuRepositor
 
                     if (item.Key.Equals("admin", StringComparison.Ordinal))
                     {
-                        label = role == UserRole.Developer ? "Del desenvolupador" : "Del administrador";
+                        label = string.Equals(roleKey, "Developer", StringComparison.OrdinalIgnoreCase)
+                            ? "Del desenvolupador"
+                            : "Del administrador";
                     }
 
                     return new NavigationMenuItemDto(

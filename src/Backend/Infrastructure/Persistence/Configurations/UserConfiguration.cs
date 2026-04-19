@@ -31,6 +31,12 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<UserRecord>
             .HasMaxLength(32)
             .IsRequired();
 
+        builder.HasOne(user => user.RoleRef)
+            .WithMany(role => role.Users)
+            .HasForeignKey(user => user.Role)
+            .HasPrincipalKey(role => role.Key)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.Property(user => user.DisplayName)
             .HasColumnName("display_name")
             .HasMaxLength(200);

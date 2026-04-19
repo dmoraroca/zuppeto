@@ -31,7 +31,7 @@ test('single dropdown open at a time', async ({ page }) => {
   await login(page, 'admin@admin.adm', 'Admin123');
 
   const primaryNav = page.getByLabel('Primary navigation');
-  await primaryNav.locator('summary', { hasText: /Del administrador|ADMIN/i }).click();
+  await primaryNav.locator('summary', { hasText: /Del administrador/i }).click();
   await expect(primaryNav.locator('details[open]')).toHaveCount(1);
 
   await primaryNav.locator('summary[aria-label="Compte"]').click();

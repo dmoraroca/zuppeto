@@ -54,6 +54,7 @@ services:
       - "${API_PORT:-5211}:${API_PORT:-5211}"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
+      YEPPET_FILE_LOGS: "true"
       ConnectionStrings__YepPet: Host=db;Port=5432;Database=${POSTGRES_DB:-yeppet};Username=${POSTGRES_USER:-app};Password=${POSTGRES_PASSWORD:-app}
       RabbitMq__Enabled: "true"
       RabbitMq__HostName: rabbitmq

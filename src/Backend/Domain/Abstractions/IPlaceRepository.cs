@@ -19,4 +19,6 @@ public interface IPlaceRepository
     Task AddAsync(Place place, CancellationToken cancellationToken = default);
 
     Task UpdateAsync(Place place, CancellationToken cancellationToken = default);
+
+    Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
 }

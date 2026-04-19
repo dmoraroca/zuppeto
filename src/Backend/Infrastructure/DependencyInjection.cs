@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using YepPet.Application.Auth;
 using YepPet.Domain.Abstractions;
@@ -13,7 +14,10 @@ namespace YepPet.Infrastructure;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddInfrastructure(
+        this IServiceCollection services,
+        IConfiguration configuration,
+        IHostEnvironment hostEnvironment)
     {
         var connectionString = configuration.GetConnectionString("YepPet")
             ?? "Host=localhost;Port=5433;Database=yeppet;Username=app;Password=app";
@@ -70,7 +74,15 @@ public static class DependencyInjection
         services.AddSingleton(Options.Create(authOptions));
         services.AddRabbitMq(configuration);
         services.AddDataProtection();
-        services.AddDbContext<YepPetDbContext>(options => options.UseNpgsql(connectionString));
+        services.AddDbContext<YepPetDbContext>((sp, options) =>
+        {
+            options.UseNpgsql(connectionString);
+            if (hostEnvironment.IsDevelopment())
+            {
+                options.EnableSensitiveDataLogging();
+                options.EnableDetailedErrors();
+            }
+        });
         services.AddHttpClient<ILinkedInOAuthClient, LinkedInOAuthClient>();
         services.AddHttpClient<IFacebookOAuthClient, FacebookOAuthClient>();
         services.AddScoped<IPasswordHasher, Pbkdf2PasswordHasher>();
@@ -83,6 +95,8 @@ public static class DependencyInjection
         services.AddScoped<IRolePermissionRepository, RolePermissionRepository>();
         services.AddScoped<IFavoriteListRepository, FavoriteListRepository>();
         services.AddScoped<IPlaceReviewRepository, PlaceReviewRepository>();
+        services.AddScoped<IGeographicCatalogRepository, GeographicCatalogRepository>();
+        services.AddScoped<IRoleCatalogRepository, RoleCatalogRepository>();
 
         return services;
     }

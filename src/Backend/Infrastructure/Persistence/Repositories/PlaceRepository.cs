@@ -100,6 +100,21 @@ internal sealed class PlaceRepository(YepPetDbContext dbContext) : IPlaceReposit
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var record = await dbContext.Places
+            .FirstOrDefaultAsync(place => place.Id == id, cancellationToken);
+
+        if (record is null)
+        {
+            return false;
+        }
+
+        dbContext.Places.Remove(record);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
     private IQueryable<PlaceRecord> BuildGraphQuery()
     {
         return dbContext.Places

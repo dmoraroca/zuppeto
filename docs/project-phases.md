@@ -116,8 +116,8 @@ Separar clarament les zones públiques de les zones internes o controlades per p
 
 - autenticació pròpia i federada (`Google`, `LinkedIn`, `Facebook` i altres proveïdors OAuth/OIDC) (**FET**)
 - rols i permisos (**FET**)
-- pàgines internes (**EN CURS**): el mínim que fixem com a base feta en aquest punt és només **login** (`/login` i `auth/callback` on correspongui), **perfil** (`/perfil`) i **manteniment d'usuaris** (`/admin/usuaris`); la resta de pantalles o entrades internes o d'admin (p. ex. `notificacions`, `admin/documentacio`, `admin/permisos`, `admin/menus`) pot existir al codi però **no** compta per tancar aquest punt amb el criteri actual. Referència d'E2E (abast possiblement més ampli que aquest mínim): `docs/probes-e2e-resultats/20260405_0059_OK_pagines-internes_041.md`
-- gestió de contingut o dades (**PENDENT**)
+- pàgines internes (**FET**): punt tancat amb el criteri definit per direcció de projecte, incloent base d'accés intern i manteniments d'administració ja operatius.
+- gestió de contingut o dades (**EN CURS**): nou punt obert, amb focus inicial en `llocs` i posterior continuació a `favorits`.
 - accessos restringits a determinades funcionalitats (**PENDENT**)
 - revisió de documentació pendent (comprovar opcions i buits) (**PENDENT**)
 - canvi de contrasenya i operativa bàsica de credencials (**PENDENT**; tot el treball de contrasenya queda empaquetat aquí, sense escindir-lo en un altre punt)
@@ -128,7 +128,7 @@ La plataforma ja diferencia entre usuaris públics, usuaris autenticats i àrees
 
 ### Què s'ha fet en aquest tram de la Fase IV
 
-- respecte al punt «pàgines internes», el nucli ja cobert és **login**, **perfil** i **manteniment d'usuaris** (`/admin/usuaris`); el punt global segueix **EN CURS** fins que ampliïs el criteri de tancament
+- el punt «pàgines internes» queda **FET** per decisió de direcció de projecte i tancament explícit del punt
 - manteniment intern d'`usuaris` ampliat amb alta més completa (`email`, `contrasenya inicial`, `nom visible`, `ciutat`, `pais`, `rol` i `avatar`) (**FET**)
 - detall d'usuari amb metadades reals (`bio`, consentiment, data d'alta i últim accés) (**FET**)
 - edició de dades bàsiques d'un altre usuari des de `ADMIN` (`nom visible`, `ciutat`, `pais`, `bio`, `rol` i `avatar`) (**FET**)
@@ -136,7 +136,8 @@ La plataforma ja diferencia entre usuaris públics, usuaris autenticats i àrees
 - registre de l'`ultim acces` a backend en els fluxos reals de login (**FET**)
 - pàgina de `notificacions` connectada al servei global d'errors i avisos, amb marcatge llegit/no llegit i acció de marcar-ho tot com a llegit: implementada al producte, **fora** del mínim login/perfil/usuaris que fixa el punt «pàgines internes»
 - consola addicional (`admin/documentacio`, `admin/permisos`, `admin/menus`, vista `permissions`, etc.): present al codi, **fora** del mínim login/perfil/usuaris del punt «pàgines internes» mentre el criteri de tancament no inclogui aquestes peces
-- la `gestió de contingut o dades` és **PENDENT** mentre faltin accessos restringits, documentació formal i operativa de credencials
+- manteniments `països` i `ciutats` integrats a `web` i `api` amb permisos, menú i seeder actualitzats (**FET** dins el tancament de pàgines internes)
+- la `gestió de contingut o dades` passa a **EN CURS** amb focus de treball en `llocs`; després continuarà amb `favorits`
 
 ## Fase V · Internacionalització (**PENDENT**)
 

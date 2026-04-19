@@ -1,5 +1,4 @@
 using YepPet.Domain.Permissions;
-using YepPet.Domain.Users;
 
 namespace YepPet.Domain.Abstractions;
 
@@ -10,11 +9,27 @@ public interface IRolePermissionRepository
     Task<IReadOnlyCollection<RolePermissionAssignment>> GetAssignmentsAsync(CancellationToken cancellationToken = default);
 
     Task<IReadOnlyCollection<string>> GetPermissionKeysByRoleAsync(
-        UserRole role,
+        string roleKey,
         CancellationToken cancellationToken = default);
 
     Task ReplaceRolePermissionsAsync(
-        UserRole role,
+        string roleKey,
         IReadOnlyCollection<string> permissionKeys,
         CancellationToken cancellationToken = default);
+
+    Task<bool> PermissionKeyExistsAsync(string key, CancellationToken cancellationToken = default);
+
+    Task<PermissionDefinition> AddPermissionDefinitionAsync(
+        PermissionDefinition definition,
+        CancellationToken cancellationToken = default);
+
+    Task<PermissionDefinition?> UpdatePermissionDefinitionAsync(
+        string key,
+        string scopeType,
+        string displayName,
+        string description,
+        string? scopePayload,
+        CancellationToken cancellationToken = default);
+
+    Task<bool> DeletePermissionDefinitionAsync(string key, CancellationToken cancellationToken = default);
 }

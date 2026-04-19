@@ -11,6 +11,10 @@ public sealed class YepPetDbContext(DbContextOptions<YepPetDbContext> options) :
 
     public DbSet<FavoriteListRecord> FavoriteLists => Set<FavoriteListRecord>();
 
+    public DbSet<CountryRecord> Countries => Set<CountryRecord>();
+
+    public DbSet<CityRecord> Cities => Set<CityRecord>();
+
     public DbSet<MenuRecord> Menus => Set<MenuRecord>();
 
     public DbSet<MenuRoleRecord> MenuRoles => Set<MenuRoleRecord>();
@@ -30,6 +34,8 @@ public sealed class YepPetDbContext(DbContextOptions<YepPetDbContext> options) :
     public DbSet<TagRecord> Tags => Set<TagRecord>();
 
     public DbSet<RolePermissionRecord> RolePermissions => Set<RolePermissionRecord>();
+
+    public DbSet<RoleRecord> Roles => Set<RoleRecord>();
 
     public DbSet<UserRecord> Users => Set<UserRecord>();
 

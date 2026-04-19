@@ -131,6 +131,20 @@ export class ErrorNotificationsService {
       };
     }
 
+    if (error.status === 409) {
+      return {
+        title: 'Conflicte',
+        message: this.tryExtractConflictMessage(error)
+      };
+    }
+
+    if (error.status === 400) {
+      const validation = this.tryExtractValidationSummary(error);
+      if (validation) {
+        return validation;
+      }
+    }
+
     if (error.status >= 500) {
       return {
         title: 'Error del servidor',
@@ -144,7 +158,52 @@ export class ErrorNotificationsService {
     };
   }
 
-  private tryExtractRequestPath(url: string | undefined): string | null {
+  private tryExtractConflictMessage(error: HttpErrorResponse): string {
+    const raw = error.error;
+    if (typeof raw === 'string' && raw.trim()) {
+      return raw.trim();
+    }
+    if (raw && typeof raw === 'object') {
+      const message = (raw as { message?: unknown }).message;
+      if (typeof message === 'string' && message.trim()) {
+        return message.trim();
+      }
+    }
+    return 'Aquest element ja existeix o hi ha un conflicte amb l’estat actual.';
+  }
+
+  private tryExtractValidationSummary(
+    error: HttpErrorResponse
+  ): { title: string; message: string } | null {
+    const raw = error.error;
+    if (!raw || typeof raw !== 'object') {
+      return null;
+    }
+    const record = raw as Record<string, unknown>;
+    const errors = record['errors'];
+    if (!errors || typeof errors !== 'object') {
+      return null;
+    }
+    const lines: string[] = [];
+    for (const [field, messages] of Object.entries(errors as Record<string, unknown>)) {
+      if (Array.isArray(messages)) {
+        for (const m of messages) {
+          if (typeof m === 'string' && m.trim()) {
+            lines.push(`${field}: ${m.trim()}`);
+          }
+        }
+      }
+    }
+    if (lines.length === 0) {
+      return null;
+    }
+    return {
+      title: 'Dades invàlides',
+      message: lines.join('\n')
+    };
+  }
+
+  private tryExtractRequestPath(url: string | null | undefined): string | null {
     if (!url?.trim()) {
       return null;
     }

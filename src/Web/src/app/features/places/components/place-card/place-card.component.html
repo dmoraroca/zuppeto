@@ -1,6 +1,30 @@
 <article class="place-card" [class.place-card--selected]="selected()">
   <a class="place-card__image-wrap" [routerLink]="['/places', place().id]">
-    <img [src]="place().imageUrl" [alt]="place().name" />
+    @if (showCoverImage()) {
+      <img
+        [src]="place().imageUrl"
+        [alt]="place().name"
+        (error)="onCoverImageError()"
+        loading="lazy"
+      />
+    } @else {
+      <div class="place-card__image-placeholder" role="img" [attr.aria-label]="place().name">
+        <svg
+          class="place-card__image-placeholder-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.6"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <rect x="3.5" y="5" width="17" height="14" rx="2" />
+          <circle cx="9" cy="10" r="1.35" fill="currentColor" stroke="none" />
+          <path d="M4 16.5l4.2-4.2a1.2 1.2 0 011.7 0l2.3 2.3 2.8-2.8a1.2 1.2 0 011.7 0L20 15.5" />
+        </svg>
+      </div>
+    }
   </a>
 
   <div class="place-card__content">

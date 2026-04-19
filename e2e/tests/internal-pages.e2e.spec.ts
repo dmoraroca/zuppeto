@@ -30,18 +30,18 @@ test('developer cannot access admin users page', async ({ page }) => {
   await login(page, 'developer.e2e@yeppet.local', 'Admin123');
   await page.goto('/admin/usuaris');
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByText('Accés restringit')).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Llocs que diuen');
 });
 
 test('admin can access admin menu pages directly', async ({ page }) => {
   await login(page, 'admin@admin.adm', 'Admin123');
 
   await page.goto('/admin/usuaris');
-  await expect(page.getByRole('heading', { name: 'Usuaris', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: "Gestió d'usuaris" })).toBeVisible();
 
   await page.goto('/admin/permisos');
-  await expect(page.getByRole('heading', { name: 'Permisos per rol' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Gestió de permisos' })).toBeVisible();
 
   await page.goto('/admin/menus');
-  await expect(page.getByRole('heading', { name: 'Menús', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Gestió de menús', exact: true })).toBeVisible();
 });

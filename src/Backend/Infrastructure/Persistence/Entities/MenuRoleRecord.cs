@@ -8,5 +8,7 @@ public sealed class MenuRoleRecord
 
     public string Role { get; set; } = string.Empty;
 
+    public RoleRecord? RoleRef { get; set; }
+
     public MenuRecord? Menu { get; set; }
 }

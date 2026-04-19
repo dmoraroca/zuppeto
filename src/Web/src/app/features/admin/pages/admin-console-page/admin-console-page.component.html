@@ -85,7 +85,7 @@
                 <td data-label="Nom">{{ user.displayName }}</td>
                 <td data-label="Ciutat">{{ user.city || '-' }}</td>
                 <td data-label="País">{{ user.country || '-' }}</td>
-                <td data-label="Rol">{{ user.role }}</td>
+                <td data-label="Rol">{{ rolePermissionRowLabel(user.role) }}</td>
                 <td data-label="Consentiment">{{ user.privacyAccepted ? 'Sí' : 'No' }}</td>
                 <td data-label="Data d'alta">{{ formatDateTime(user.createdAtUtc) }}</td>
                 <td data-label="Últim accés">{{ formatDateTime(user.lastAccessedAtUtc) }}</td>
@@ -128,7 +128,7 @@
     @if (createUserModalOpen()) {
       <div class="admin-console-modal-backdrop" (click)="closeCreateUserModal()">
         <section class="admin-console-modal admin-console-modal--detail admin-console-modal--create" (click)="$event.stopPropagation()">
-          <div class="admin-console-modal__header">
+          <div class="admin-console-modal__header admin-console-modal__header--form">
             <div>
               <h3>Crear usuari</h3>
             </div>
@@ -158,8 +158,8 @@
             <label>
               <span>Rol <strong class="admin-console-required">*</strong></span>
               <select formControlName="role">
-                @for (role of roleOptions; track role) {
-                  <option [value]="role">{{ role }}</option>
+                @for (role of assignableRoleKeys(); track role) {
+                  <option [value]="role">{{ rolePermissionRowLabel(role) }}</option>
                 }
               </select>
             </label>
@@ -217,16 +217,27 @@
 
     @if (detailModalOpen() && selectedUser(); as user) {
       <div class="admin-console-modal-backdrop" (click)="closeDetailModal()">
-        <section class="admin-console-modal admin-console-modal--detail" (click)="$event.stopPropagation()">
-          <div class="admin-console-modal__header">
+        <section
+          class="admin-console-modal admin-console-modal--detail"
+          [class.admin-console-modal--create]="detailEditMode()"
+          (click)="$event.stopPropagation()"
+        >
+          <div class="admin-console-modal__header admin-console-modal__header--form">
             <div>
-              <p class="admin-console-kicker">Consulta</p>
-              <h3>Detall d'usuari</h3>
+              @if (detailEditMode()) {
+                <h3>Modificar usuari</h3>
+              } @else {
+                <h3>Detall d'usuari</h3>
+              }
             </div>
           </div>
 
           <form id="admin-detail-user-form" [formGroup]="detailForm">
-            <div class="admin-console-form admin-console-form--inline admin-console-form--readonly admin-console-user-detail__meta">
+            <div
+              class="admin-console-form admin-console-form--inline admin-console-form--readonly admin-console-user-detail__meta"
+              [class.admin-console-form--create]="detailEditMode()"
+              [class.admin-console-user-detail__meta--edit]="detailEditMode()"
+            >
               <label>
                 <span>ID</span>
                 <input [value]="user.id" readonly />
@@ -320,8 +331,8 @@
                 <span>Rol</span>
                 @if (detailEditMode()) {
                   <select formControlName="role">
-                    @for (role of roleOptions; track role) {
-                      <option [value]="role">{{ role }}</option>
+                    @for (role of assignableRoleKeys(); track role) {
+                      <option [value]="role">{{ rolePermissionRowLabel(role) }}</option>
                     }
                   </select>
                 } @else {
@@ -387,7 +398,7 @@
     @if (deleteCandidate(); as user) {
       <div class="admin-console-modal-backdrop" (click)="cancelDeleteUser()">
         <section class="admin-console-modal admin-console-modal--confirm" (click)="$event.stopPropagation()">
-          <div class="admin-console-modal__header">
+          <div class="admin-console-modal__header admin-console-modal__header--form">
             <div>
               <p class="admin-console-kicker">Acció destructiva</p>
               <h3>Esborrar usuari</h3>
@@ -408,33 +419,568 @@
       </div>
     }
   } @else if (mode() === 'permissions') {
-    <section class="admin-console-panel">
-      <h2>Permisos per rol</h2>
-      @if (permissions(); as catalog) {
-        @for (role of roleOptions; track role) {
-          <section class="admin-console-role-block">
-            <div class="admin-console-role-header">
-              <h3>{{ role }}</h3>
-              <button type="button" (click)="savePermissions(role)">Desar {{ role }}</button>
-            </div>
+    @if (permissions()) {
+      <section class="admin-console-panel">
+        <div class="admin-console-titlebar">
+          <div>
+            <p class="admin-console-kicker">Manteniment intern</p>
+            <h2 class="admin-console-highlight-title">Gestió de permisos</h2>
+          </div>
+          <button type="button" class="admin-console-primary admin-console-primary--inline" (click)="openCreatePermissionModal()">
+            Nou permís
+          </button>
+        </div>
+        <p class="admin-console-kicker admin-console-kicker--inline">Catàleg</p>
+        <h3 class="admin-console-subtitle">Definicions (tot el que hi ha al sistema)</h3>
+        <p class="admin-console-copy">
+          Aquí mantens el catàleg de permisos del sistema amb el mateix patró de treball que rols i usuaris: alta, detall, edició i baixa.
+          A la taula de sota, el que veus són només els <strong>rols</strong> i un resum de pantalles; els rols no són nous permisos.
+        </p>
+        <div class="admin-console-table-wrap">
+          <table class="admin-console-table admin-console-table--responsive">
+            <thead>
+              <tr>
+                <th>Tipus</th>
+                <th>Nom visible</th>
+                <th>Clau interna</th>
+                <th>Data creació</th>
+                <th>Data modificació</th>
+                <th>Accions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (perm of sortedPermissionDefinitions(); track perm.key) {
+                <tr class="admin-console-row-action" (click)="openPermissionDetail(perm)">
+                  <td data-label="Tipus">{{ perm.scopeType }}</td>
+                  <td data-label="Nom visible">{{ perm.displayName }}</td>
+                  <td data-label="Clau interna">
+                    <small class="admin-console-permission-key">{{ perm.key }}</small>
+                  </td>
+                  <td data-label="Data creació">{{ formatDateTime(perm.createdAtUtc) }}</td>
+                  <td data-label="Data modificació">{{ formatDateTime(perm.updatedAtUtc) }}</td>
+                  <td data-label="Accions">
+                    <div class="admin-console-table-actions">
+                      <button
+                        type="button"
+                        class="admin-console-icon-button"
+                        title="Veure detall"
+                        aria-label="Veure detall"
+                        (click)="openPermissionDetail(perm); $event.stopPropagation()"
+                      >
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <path
+                            d="M1.5 12s3.8-7 10.5-7 10.5 7 10.5 7-3.8 7-10.5 7S1.5 12 1.5 12Z"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="1.8"
+                          />
+                          <circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8" />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        class="admin-console-icon-button admin-console-icon-button--danger"
+                        title="Esborrar del catàleg"
+                        aria-label="Esborrar del catàleg"
+                        (click)="askDeletePermission(perm, $event)"
+                      >
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <path
+                            d="M4 7h16M9.5 3h5M8 7l.7 11.2c.1 1 1 1.8 2 1.8h2.6c1 0 1.9-.8 2-1.8L16 7M10 10.5v6M14 10.5v6"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="1.8"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="6" class="admin-console-table-empty">Encara no hi ha cap definició de permís al catàleg.</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
 
-            <div class="admin-console-checkbox-grid">
-              @for (permission of catalog.permissions; track permission.key) {
-                <label class="admin-console-checkbox">
+        <p class="admin-console-kicker admin-console-kicker--inline admin-console-kicker--spaced">Rols</p>
+        <h3 class="admin-console-subtitle">Resum per rol (assignacions)</h3>
+        <p class="admin-console-copy">
+          Una fila per cada rol del catàleg (actiu). Obre l’ull per marcar quins permisos del catàleg té cada rol.
+        </p>
+        <div class="admin-console-table-wrap">
+          <table class="admin-console-table admin-console-table--responsive admin-console-table--permissions">
+            <thead>
+              <tr>
+                <th>Nom visible (rol)</th>
+                <th>Pantalles assignades</th>
+                <th>Accions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (role of assignableRoleKeys(); track role) {
+                <tr
+                  class="admin-console-row-action"
+                  [class.admin-console-row-selected]="rolePermissionsModalOpen() && selectedRoleForEdit() === role"
+                  (click)="selectRoleRow(role)"
+                >
+                  <td data-label="Nom visible (rol)">{{ rolePermissionRowLabel(role) }}</td>
+                  <td data-label="Pantalles assignades">{{ pantallesAssignadesPerRol(role) || '—' }}</td>
+                  <td data-label="Accions">
+                    <div class="admin-console-table-actions">
+                      <button
+                        type="button"
+                        class="admin-console-icon-button"
+                        title="Veure detall"
+                        aria-label="Veure detall"
+                        (click)="openRolePermissions(role); $event.stopPropagation()"
+                      >
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <path
+                            d="M1.5 12s3.8-7 10.5-7 10.5 7 10.5 7-3.8 7-10.5 7S1.5 12 1.5 12Z"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="1.8"
+                          />
+                          <circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8" />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        class="admin-console-icon-button admin-console-icon-button--danger"
+                        title="Treure tots els permisos d’aquest rol"
+                        aria-label="Treure tots els permisos d’aquest rol"
+                        (click)="askClearRolePermissions(role, $event)"
+                      >
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <path
+                            d="M4 7h16M9.5 3h5M8 7l.7 11.2c.1 1 1 1.8 2 1.8h2.6c1 0 1.9-.8 2-1.8L16 7M10 10.5v6M14 10.5v6"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="1.8"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    }
+
+    @if (permissionCreateModalOpen()) {
+      <div class="admin-console-modal-backdrop" (click)="closeCreatePermissionModal()">
+        <section class="admin-console-modal admin-console-modal--detail admin-console-modal--create" (click)="$event.stopPropagation()">
+          <div class="admin-console-modal__header admin-console-modal__header--form">
+            <div>
+              <h3>Nou permís</h3>
+            </div>
+          </div>
+          <form id="admin-create-permission-form" class="admin-console-form admin-console-form--inline admin-console-form--create" (ngSubmit)="submitCreatePermission()">
+            <label>
+              <span>Clau interna <strong class="admin-console-required">*</strong></span>
+              <input
+                [ngModel]="newPermissionDraft().key"
+                (ngModelChange)="updateCreatePermissionDraft({ key: $event })"
+                [ngModelOptions]="{ standalone: true }"
+                placeholder="action.places.publish"
+              />
+            </label>
+            <label>
+              <span>Nom visible <strong class="admin-console-required">*</strong></span>
+              <input
+                [ngModel]="newPermissionDraft().displayName"
+                (ngModelChange)="updateCreatePermissionDraft({ displayName: $event })"
+                [ngModelOptions]="{ standalone: true }"
+                placeholder="Nom que veuràs al catàleg"
+              />
+            </label>
+            <label>
+              <span>Tipus (àmbit) <strong class="admin-console-required">*</strong></span>
+              <select
+                [ngModel]="newPermissionDraft().scopeType"
+                (ngModelChange)="onCreatePermissionScopeTypeChange($event)"
+                [ngModelOptions]="{ standalone: true }"
+              >
+                @for (opt of permissionScopeOptions; track opt.value) {
+                  <option [value]="opt.value">{{ opt.label }}</option>
+                }
+              </select>
+            </label>
+            <label class="admin-console-form--full">
+              <span>Rols que tenen aquest permís</span>
+              <select
+                class="admin-console-select-multiple"
+                multiple
+                size="6"
+                [ngModel]="createPermissionRoleKeys()"
+                (ngModelChange)="setCreatePermissionRoleKeys($event)"
+                [ngModelOptions]="{ standalone: true }"
+              >
+                @for (role of assignableRoleKeys(); track role) {
+                  <option [value]="role">{{ rolePermissionRowLabel(role) }}</option>
+                }
+              </select>
+            </label>
+            @if (newPermissionDraft().scopeType === 'menu') {
+              <div class="admin-console-form--full admin-console-scope-block">
+                <span class="admin-console-scope-block__title">Entrades de menú</span>
+                <div class="admin-console-checkbox-grid admin-console-checkbox-grid--compact admin-console-permission-detail-grid">
+                  @for (item of sortedMenuDefinitionsForPermissions(); track item.key) {
+                    <label class="admin-console-checkbox admin-console-checkbox--compact">
+                      <input
+                        type="checkbox"
+                        [checked]="createPermissionMenuKeys().includes(item.key)"
+                        (change)="toggleCreateMenuKey(item.key, $any($event.target).checked)"
+                      />
+                      <span>{{ item.label }}</span>
+                    </label>
+                  }
+                </div>
+              </div>
+            }
+            @if (newPermissionDraft().scopeType === 'page') {
+              <label class="admin-console-form--full">
+                <span>URL de la pàgina <strong class="admin-console-required">*</strong></span>
+                <input
+                  [ngModel]="createPermissionPageUrl()"
+                  (ngModelChange)="createPermissionPageUrl.set($event)"
+                  [ngModelOptions]="{ standalone: true }"
+                  placeholder="/ruta/interna"
+                />
+              </label>
+            }
+            @if (newPermissionDraft().scopeType === 'action') {
+              <p class="admin-console-form--full admin-console-scope-placeholder">Les accions concretes es configuraran més endavant.</p>
+            }
+            <label class="admin-console-form admin-console-form--full">
+              <span>Descripció</span>
+              <textarea
+                rows="3"
+                [ngModel]="newPermissionDraft().description"
+                (ngModelChange)="updateCreatePermissionDraft({ description: $event })"
+                [ngModelOptions]="{ standalone: true }"
+                placeholder="Explica què habilita aquest permís dins del sistema"
+              ></textarea>
+            </label>
+          </form>
+          <div class="admin-console-modal__footer">
+            <div class="admin-console-modal__footer-band">
+              <div class="admin-console-modal__footer-actions">
+                <button type="submit" form="admin-create-permission-form" class="admin-console-primary" [disabled]="!canSubmitCreatePermission()">
+                  Crear
+                </button>
+                <button
+                  type="button"
+                  class="admin-console-primary admin-console-primary--secondary admin-console-role-strip__button"
+                  (click)="closeCreatePermissionModal()"
+                >
+                  Tancar
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    }
+
+    @if (rolePermissionsModalOpen() && selectedRoleForEdit(); as role) {
+      <div class="admin-console-modal-backdrop" (click)="closeRolePermissionsModal()">
+        <section
+          class="admin-console-modal admin-console-modal--detail admin-console-modal--role-permissions"
+          (click)="$event.stopPropagation()"
+        >
+          <div class="admin-console-modal__header" [class.admin-console-modal__header--form]="rolePermissionsEditMode()">
+            <div>
+              <p class="admin-console-kicker">{{ rolePermissionsEditMode() ? 'Edició' : 'Consulta' }}</p>
+              <h3>Permisos del rol {{ rolePermissionRowLabel(role) }}</h3>
+            </div>
+          </div>
+          <p class="admin-console-copy">
+            Marca les entrades del catàleg que aquest rol pot usar (pantalles i menús segons el catàleg intern).
+          </p>
+          <label class="admin-console-role-permissions-filter">
+            <span>Filtrar per àmbit</span>
+            <select
+              [ngModel]="rolePermissionScopeFilter()"
+              (ngModelChange)="rolePermissionScopeFilter.set($event)"
+            >
+              <option value="all">Tots</option>
+              <option value="menu">Menú</option>
+              <option value="page">Pàgina</option>
+              <option value="action">Acció</option>
+            </select>
+          </label>
+          <div class="admin-console-form admin-console-form--inline">
+            <div class="admin-console-checkbox-grid admin-console-checkbox-grid--compact admin-console-role-permissions-grid">
+              @for (perm of filteredRolePermissionDefinitions(); track perm.key) {
+                <label class="admin-console-checkbox admin-console-checkbox--compact">
                   <input
                     type="checkbox"
-                    [checked]="assignmentExists(role, permission.key)"
-                    (change)="togglePermission(role, permission.key, $any($event.target).checked)"
+                    [checked]="rolePermissionKeysDraft()[perm.key]"
+                    [disabled]="!rolePermissionsEditMode()"
+                    (change)="toggleRolePermissionDraft(perm.key, $any($event.target).checked)"
                   />
-                  <span>{{ permission.displayName }}</span>
-                  <small>{{ permission.key }}</small>
+                  <span>{{ perm.displayName }}</span>
+                  <small class="admin-console-permission-key">{{ perm.key }}</small>
                 </label>
               }
             </div>
-          </section>
-        }
-      }
-    </section>
+          </div>
+          <div class="admin-console-modal__footer">
+            <div class="admin-console-modal__footer-band">
+              <div class="admin-console-modal__footer-actions">
+                @if (rolePermissionsEditMode()) {
+                  <button type="button" class="admin-console-primary admin-console-role-strip__button" (click)="saveRolePermissionsDraft()">
+                    Desar
+                  </button>
+                  <button
+                    type="button"
+                    class="admin-console-primary admin-console-primary--secondary admin-console-role-strip__button"
+                    (click)="cancelRolePermissionsEdit()"
+                  >
+                    Cancel·lar
+                  </button>
+                } @else {
+                  <button type="button" class="admin-console-primary admin-console-role-strip__button" (click)="beginRolePermissionsEdit()">
+                    Modificar
+                  </button>
+                  <button
+                    type="button"
+                    class="admin-console-primary admin-console-primary--secondary admin-console-role-strip__button"
+                    (click)="closeRolePermissionsModal()"
+                  >
+                    Tancar
+                  </button>
+                }
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    }
+
+    @if (roleClearCandidate(); as clearRole) {
+      <div class="admin-console-modal-backdrop" (click)="cancelClearRolePermissions()">
+        <section class="admin-console-modal admin-console-modal--confirm" (click)="$event.stopPropagation()">
+          <div class="admin-console-modal__header admin-console-modal__header--form">
+            <div>
+              <p class="admin-console-kicker">Acció destructiva</p>
+              <h3>Treure permisos del rol</h3>
+            </div>
+          </div>
+          <p>
+            Vols esborrar <strong>totes</strong> les assignacions de permisos del rol
+            <strong>{{ rolePermissionRowLabel(clearRole) }}</strong>? El rol continuarà existint, però no tindrà cap permís del catàleg fins que en tornis a assignar.
+          </p>
+          <div class="admin-console-modal__actions">
+            <button type="button" class="admin-console-primary admin-console-primary--secondary" (click)="cancelClearRolePermissions()">
+              Cancel·lar
+            </button>
+            <button type="button" class="admin-console-primary admin-console-icon-button--danger" (click)="confirmClearRolePermissions()">
+              Treure tots els permisos
+            </button>
+          </div>
+        </section>
+      </div>
+    }
+
+    @if (permissionDetailModalOpen() && selectedPermission(); as perm) {
+      <div class="admin-console-modal-backdrop" (click)="closePermissionDetailModal()">
+        <section class="admin-console-modal admin-console-modal--detail" (click)="$event.stopPropagation()">
+          <div class="admin-console-modal__header admin-console-modal__header--form">
+            <div>
+              <h3>{{ permissionDetailEditMode() ? 'Modificar permís' : 'Detall del permís' }}</h3>
+            </div>
+          </div>
+
+          <div class="admin-console-form admin-console-form--inline admin-console-form--readonly">
+            <label>
+              <span>Clau interna</span>
+              <input class="admin-console-static-field" [value]="perm.key" readonly />
+            </label>
+            <label>
+              <span>Nom visible</span>
+              @if (permissionDetailEditMode()) {
+                <input
+                  [ngModel]="editablePermissionDetail().displayName"
+                  (ngModelChange)="editablePermissionDetail.set({ ...editablePermissionDetail(), displayName: $event })"
+                />
+              } @else {
+                <input class="admin-console-static-field" [value]="perm.displayName" readonly />
+              }
+            </label>
+            <label>
+              <span>Tipus (àmbit)</span>
+              @if (permissionDetailEditMode()) {
+                <select
+                  [ngModel]="editablePermissionDetail().scopeType"
+                  (ngModelChange)="setEditablePermissionScopeType($event)"
+                >
+                  @for (opt of permissionScopeOptions; track opt.value) {
+                    <option [value]="opt.value">{{ opt.label }}</option>
+                  }
+                </select>
+              } @else {
+                <input class="admin-console-static-field" [value]="perm.scopeType" readonly />
+              }
+            </label>
+            <label class="admin-console-form--full">
+              <span>Rols que tenen aquest permís</span>
+              @if (permissionDetailEditMode()) {
+                <select
+                  class="admin-console-select-multiple"
+                  multiple
+                  size="6"
+                  [ngModel]="permissionDetailRolesMulti()"
+                  (ngModelChange)="setPermissionDetailRolesMulti($event)"
+                >
+                  @for (role of assignableRoleKeys(); track role) {
+                    <option [value]="role">{{ rolePermissionRowLabel(role) }}</option>
+                  }
+                </select>
+              } @else {
+                <input class="admin-console-static-field" readonly [value]="permissionDetailRolesReadonlyLabel()" />
+              }
+            </label>
+            @if (editablePermissionDetail().scopeType === 'menu') {
+              <div class="admin-console-form--full admin-console-scope-block">
+                <span class="admin-console-scope-block__title">Entrades de menú</span>
+                @if (permissionDetailEditMode()) {
+                  <div class="admin-console-checkbox-grid admin-console-checkbox-grid--compact admin-console-permission-detail-grid">
+                    @for (item of sortedMenuDefinitionsForPermissions(); track item.key) {
+                      <label class="admin-console-checkbox admin-console-checkbox--compact">
+                        <input
+                          type="checkbox"
+                          [checked]="editablePermissionDetail().menuKeys.includes(item.key)"
+                          (change)="togglePermissionDetailMenuKey(item.key, $any($event.target).checked)"
+                        />
+                        <span>{{ item.label }}</span>
+                      </label>
+                    }
+                  </div>
+                } @else {
+                  <input class="admin-console-static-field" readonly [value]="permissionDetailMenuKeysReadonlyLabel()" />
+                }
+              </div>
+            }
+            @if (editablePermissionDetail().scopeType === 'page') {
+              <label class="admin-console-form--full">
+                <span>URL de la pàgina</span>
+                @if (permissionDetailEditMode()) {
+                  <input
+                    [ngModel]="editablePermissionDetail().pageUrl"
+                    (ngModelChange)="editablePermissionDetail.set({ ...editablePermissionDetail(), pageUrl: $event })"
+                  />
+                } @else {
+                  <input class="admin-console-static-field" readonly [value]="editablePermissionDetail().pageUrl.trim() || '—'" />
+                }
+              </label>
+            }
+            @if (editablePermissionDetail().scopeType === 'action') {
+              <p class="admin-console-form--full admin-console-scope-placeholder">Les accions concretes es configuraran més endavant.</p>
+            }
+
+            <label class="admin-console-form admin-console-form--readonly admin-console-form--full">
+              <span>Descripció</span>
+              @if (permissionDetailEditMode()) {
+                <textarea
+                  rows="3"
+                  [ngModel]="editablePermissionDetail().description"
+                  (ngModelChange)="editablePermissionDetail.set({ ...editablePermissionDetail(), description: $event })"
+                ></textarea>
+              } @else {
+                <textarea class="admin-console-static-field" rows="3" [value]="perm.description || '—'" readonly></textarea>
+              }
+            </label>
+
+            <label>
+              <span>Data creació</span>
+              <input class="admin-console-static-field" [value]="formatDateTime(perm.createdAtUtc)" readonly />
+            </label>
+            <label>
+              <span>Data modificació</span>
+              <input class="admin-console-static-field" [value]="formatDateTime(perm.updatedAtUtc)" readonly />
+            </label>
+          </div>
+
+          <div class="admin-console-modal__footer">
+            <div class="admin-console-modal__footer-band">
+              <div class="admin-console-modal__footer-actions">
+                @if (permissionDetailEditMode()) {
+                  <button type="button" class="admin-console-primary admin-console-role-strip__button" (click)="savePermissionDetail()">
+                    Desar
+                  </button>
+                  <button
+                    type="button"
+                    class="admin-console-primary admin-console-primary--secondary admin-console-role-strip__button"
+                    (click)="cancelPermissionDetailEdit()"
+                  >
+                    Cancel·lar
+                  </button>
+                } @else {
+                  <button type="button" class="admin-console-primary admin-console-role-strip__button" (click)="beginPermissionDetailEdit()">
+                    Modificar
+                  </button>
+                  <button
+                    type="button"
+                    class="admin-console-primary admin-console-icon-button--danger admin-console-role-strip__button"
+                    (click)="askDeletePermission(perm, $event)"
+                  >
+                    Esborrar del catàleg
+                  </button>
+                  <button
+                    type="button"
+                    class="admin-console-primary admin-console-primary--secondary admin-console-role-strip__button"
+                    (click)="closePermissionDetailModal()"
+                  >
+                    Tancar
+                  </button>
+                }
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    }
+
+    @if (permissionDeleteCandidate(); as delPerm) {
+      <div class="admin-console-modal-backdrop" (click)="cancelDeletePermission()">
+        <section class="admin-console-modal admin-console-modal--confirm" (click)="$event.stopPropagation()">
+          <div class="admin-console-modal__header">
+            <div>
+              <p class="admin-console-kicker">Acció destructiva</p>
+              <h3>Esborrar permís</h3>
+            </div>
+          </div>
+          <p>
+            Vols esborrar el permís <strong>{{ delPerm.displayName }}</strong>
+            <code> ({{ delPerm.key }})</code>? S’eliminarà del catàleg i de totes les assignacions a rols.
+          </p>
+          <div class="admin-console-modal__actions">
+            <button type="button" class="admin-console-primary admin-console-primary--secondary" (click)="cancelDeletePermission()">
+              Cancel·lar
+            </button>
+            <button type="button" class="admin-console-primary admin-console-icon-button--danger" (click)="confirmDeletePermission()">
+              Esborrar
+            </button>
+          </div>
+        </section>
+      </div>
+    }
   } @else if (mode() === 'menus') {
     <section class="admin-console-panel">
       <div class="admin-console-titlebar">
@@ -574,14 +1120,14 @@
 
             <p class="admin-console-menu-roles-heading">Rols amb accés al menú</p>
             <div class="admin-console-checkbox-grid">
-              @for (role of menuRoleOptions; track role) {
+              @for (role of assignableRoleKeys(); track role) {
                 <label class="admin-console-checkbox">
                   <input
                     type="checkbox"
                     [checked]="editableMenuRoles().includes(role)"
                     (change)="toggleMenuRole(role, $any($event.target).checked)"
                   />
-                  <span>{{ role }}</span>
+                  <span>{{ rolePermissionRowLabel(role) }}</span>
                 </label>
               }
             </div>
@@ -675,14 +1221,14 @@
 
               <p class="admin-console-menu-roles-heading">Rols amb accés al menú</p>
               <div class="admin-console-checkbox-grid">
-                @for (role of menuRoleOptions; track role) {
+                @for (role of assignableRoleKeys(); track role) {
                   <label class="admin-console-checkbox">
                     <input
                       type="checkbox"
                       [checked]="editableMenuRoles().includes(role)"
                       (change)="toggleMenuRole(role, $any($event.target).checked)"
                     />
-                    <span>{{ role }}</span>
+                    <span>{{ rolePermissionRowLabel(role) }}</span>
                   </label>
                 }
               </div>
@@ -741,6 +1287,303 @@
             <button type="button" class="admin-console-primary admin-console-icon-button--danger" (click)="confirmDeleteMenu()">
               Esborrar
             </button>
+          </div>
+        </section>
+      </div>
+    }
+  } @else if (mode() === 'roles') {
+    <section class="admin-console-panel">
+      <div class="admin-console-titlebar">
+        <div>
+          <p class="admin-console-kicker">Manteniment intern</p>
+          <h2 class="admin-console-highlight-title">Catàleg de rols</h2>
+        </div>
+        <button type="button" class="admin-console-primary admin-console-primary--inline" (click)="openNewRoleModal()">
+          Nou rol
+        </button>
+      </div>
+      <div class="admin-console-table-wrap">
+        <table class="admin-console-table admin-console-table--responsive">
+          <thead>
+            <tr>
+              <th>Clau</th>
+              <th>Nom visible</th>
+              <th>Actiu</th>
+              <th>Accions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (role of roleDefinitions(); track role.id) {
+              <tr class="admin-console-row-action" (click)="selectRoleForEdit(role)">
+                <td data-label="Clau">{{ role.key }}</td>
+                <td data-label="Nom visible">{{ role.displayName }}</td>
+                <td data-label="Actiu">{{ role.isActive ? 'Sí' : 'No' }}</td>
+                <td data-label="Accions">
+                  <div class="admin-console-table-actions">
+                    <button
+                      type="button"
+                      class="admin-console-icon-button"
+                      title="Editar"
+                      aria-label="Editar"
+                      (click)="selectRoleForEdit(role); $event.stopPropagation()"
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path
+                          d="M4 20h4l10.5-10.5-4-4L4 16v4ZM12.7 6.3l4 4L21 6l-4-4-4.3 4.3Z"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.6"
+                          stroke-linejoin="round"
+                        />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      class="admin-console-icon-button admin-console-icon-button--danger"
+                      title="Esborrar"
+                      aria-label="Esborrar"
+                      (click)="askDeleteRole(role, $event)"
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path
+                          d="M4 7h16M9.5 3h5M8 7l.7 11.2c.1 1 1 1.8 2 1.8h2.6c1 0 1.9-.8 2-1.8L16 7M10 10.5v6M14 10.5v6"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="1.8"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    @if (roleModalOpen()) {
+      <div class="admin-console-modal-backdrop" (click)="closeRoleModal()">
+        <section class="admin-console-modal admin-console-modal--detail admin-console-modal--create" (click)="$event.stopPropagation()">
+          <div class="admin-console-modal__header">
+            <div>
+              <p class="admin-console-kicker">{{ roleIsNew() ? 'Alta' : 'Edició' }}</p>
+              <h3>{{ roleIsNew() ? 'Nou rol' : 'Editar rol' }}</h3>
+            </div>
+          </div>
+          <div class="admin-console-form admin-console-form--inline">
+            <label>
+              <span>Clau <strong class="admin-console-required">*</strong></span>
+              <input
+                [readonly]="!roleIsNew()"
+                [ngModel]="editableRole().key"
+                (ngModelChange)="editableRole.set({ ...editableRole(), key: $event })"
+                placeholder="p. ex. SupportAgent"
+              />
+            </label>
+            <label>
+              <span>Nom visible <strong class="admin-console-required">*</strong></span>
+              <input
+                [ngModel]="editableRole().displayName"
+                (ngModelChange)="editableRole.set({ ...editableRole(), displayName: $event })"
+              />
+            </label>
+            <label class="admin-console-inline">
+              <input
+                type="checkbox"
+                [ngModel]="editableRole().isActive"
+                (ngModelChange)="editableRole.set({ ...editableRole(), isActive: !!$event })"
+              />
+              <span>Actiu</span>
+            </label>
+          </div>
+          <div class="admin-console-modal__footer">
+            <div class="admin-console-modal__footer-band">
+              <div class="admin-console-modal__footer-actions">
+                <button type="button" class="admin-console-primary" (click)="saveRole()">Desar</button>
+                <button
+                  type="button"
+                  class="admin-console-primary admin-console-primary--secondary admin-console-role-strip__button"
+                  (click)="closeRoleModal()"
+                >
+                  Tancar
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    }
+
+    @if (roleDeleteCandidate(); as delRole) {
+      <div class="admin-console-modal-backdrop" (click)="cancelDeleteRole()">
+        <section class="admin-console-modal admin-console-modal--confirm" (click)="$event.stopPropagation()">
+          <div class="admin-console-modal__header">
+            <div>
+              <p class="admin-console-kicker">Acció destructiva</p>
+              <h3>Esborrar rol</h3>
+            </div>
+          </div>
+          <p>
+            Vols esborrar el rol <strong>{{ delRole.key }}</strong>? Només és possible si no hi ha usuaris ni assignacions de permisos o menú.
+          </p>
+          <div class="admin-console-modal__actions">
+            <button type="button" class="admin-console-primary admin-console-primary--secondary" (click)="cancelDeleteRole()">
+              Cancel·lar
+            </button>
+            <button type="button" class="admin-console-primary admin-console-icon-button--danger" (click)="confirmDeleteRole()">
+              Esborrar
+            </button>
+          </div>
+        </section>
+      </div>
+    }
+  } @else if (mode() === 'places') {
+    <section class="admin-console-panel">
+      <div class="admin-console-titlebar">
+        <div>
+          <p class="admin-console-kicker">Manteniment intern</p>
+          <h2 class="admin-console-highlight-title">Catàleg de llocs</h2>
+        </div>
+        <button type="button" class="admin-console-primary admin-console-primary--inline" (click)="openNewPlaceModal()">
+          Nou lloc
+        </button>
+      </div>
+      <div class="admin-console-form admin-console-form--inline">
+        <label>
+          <span>Cerca</span>
+          <input [ngModel]="placeSearchText()" (ngModelChange)="placeSearchText.set($event)" placeholder="Nom, ciutat o text..." />
+        </label>
+        <div>
+          <button type="button" class="admin-console-primary admin-console-primary--inline" (click)="applyPlaceSearch()">
+            Cercar
+          </button>
+        </div>
+      </div>
+      <div class="admin-console-table-wrap">
+        <table class="admin-console-table admin-console-table--responsive">
+          <thead>
+            <tr>
+              <th>Nom</th>
+              <th>Tipus</th>
+              <th>Ciutat</th>
+              <th>País</th>
+              <th>Mascotes</th>
+              <th>Accions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (place of places(); track place.id) {
+              <tr class="admin-console-row-action" (click)="selectPlaceForEdit(place)">
+                <td data-label="Nom">{{ place.name }}</td>
+                <td data-label="Tipus">{{ place.type }}</td>
+                <td data-label="Ciutat">{{ place.city }}</td>
+                <td data-label="País">{{ place.country }}</td>
+                <td data-label="Mascotes">{{ place.acceptsDogs || place.acceptsCats ? 'Sí' : 'No' }}</td>
+                <td data-label="Accions">
+                  <div class="admin-console-table-actions">
+                    <button
+                      type="button"
+                      class="admin-console-icon-button"
+                      title="Editar"
+                      aria-label="Editar"
+                      (click)="selectPlaceForEdit(place); $event.stopPropagation()"
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path
+                          d="M4 20h4l10.5-10.5-4-4L4 16v4ZM12.7 6.3l4 4L21 6l-4-4-4.3 4.3Z"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.6"
+                          stroke-linejoin="round"
+                        />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      class="admin-console-icon-button admin-console-icon-button--danger"
+                      title="Esborrar"
+                      aria-label="Esborrar"
+                      (click)="askDeletePlace(place, $event)"
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path
+                          d="M4 7h16M9.5 3h5M8 7l.7 11.2c.1 1 1 1.8 2 1.8h2.6c1 0 1.9-.8 2-1.8L16 7M10 10.5v6M14 10.5v6"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="1.8"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    @if (placeModalOpen()) {
+      <div class="admin-console-modal-backdrop" (click)="closePlaceModal()">
+        <section class="admin-console-modal admin-console-modal--detail admin-console-modal--create" (click)="$event.stopPropagation()">
+          <div class="admin-console-modal__header">
+            <div>
+              <p class="admin-console-kicker">{{ placeIsNew() ? 'Alta' : 'Edició' }}</p>
+              <h3>{{ placeIsNew() ? 'Nou lloc' : 'Editar lloc' }}</h3>
+            </div>
+          </div>
+          <div class="admin-console-form admin-console-form--inline">
+            <label><span>Nom <strong class="admin-console-required">*</strong></span><input [ngModel]="editablePlace().name" (ngModelChange)="editablePlace.set({ ...editablePlace(), name: $event })" /></label>
+            <label><span>Tipus <strong class="admin-console-required">*</strong></span><input [ngModel]="editablePlace().type" (ngModelChange)="editablePlace.set({ ...editablePlace(), type: $event })" /></label>
+            <label><span>Ciutat <strong class="admin-console-required">*</strong></span><input [ngModel]="editablePlace().city" (ngModelChange)="editablePlace.set({ ...editablePlace(), city: $event })" /></label>
+            <label><span>País <strong class="admin-console-required">*</strong></span><input [ngModel]="editablePlace().country" (ngModelChange)="editablePlace.set({ ...editablePlace(), country: $event })" /></label>
+            <label><span>Adreça <strong class="admin-console-required">*</strong></span><input [ngModel]="editablePlace().addressLine1" (ngModelChange)="editablePlace.set({ ...editablePlace(), addressLine1: $event })" /></label>
+            <label><span>Barri <strong class="admin-console-required">*</strong></span><input [ngModel]="editablePlace().neighborhood" (ngModelChange)="editablePlace.set({ ...editablePlace(), neighborhood: $event })" /></label>
+            <label><span>Latitud <strong class="admin-console-required">*</strong></span><input [ngModel]="editablePlace().latitude" (ngModelChange)="editablePlace.set({ ...editablePlace(), latitude: $event })" /></label>
+            <label><span>Longitud <strong class="admin-console-required">*</strong></span><input [ngModel]="editablePlace().longitude" (ngModelChange)="editablePlace.set({ ...editablePlace(), longitude: $event })" /></label>
+            <label><span>Preu <strong class="admin-console-required">*</strong></span><input [ngModel]="editablePlace().pricingLabel" (ngModelChange)="editablePlace.set({ ...editablePlace(), pricingLabel: $event })" /></label>
+            <label><span>Rating</span><input [ngModel]="editablePlace().ratingAverage" (ngModelChange)="editablePlace.set({ ...editablePlace(), ratingAverage: $event })" /></label>
+            <label><span>Reviews</span><input [ngModel]="editablePlace().reviewCount" (ngModelChange)="editablePlace.set({ ...editablePlace(), reviewCount: $event })" /></label>
+            <label class="admin-console-inline"><input type="checkbox" [ngModel]="editablePlace().acceptsDogs" (ngModelChange)="editablePlace.set({ ...editablePlace(), acceptsDogs: !!$event })" /><span>Accepta gossos</span></label>
+            <label class="admin-console-inline"><input type="checkbox" [ngModel]="editablePlace().acceptsCats" (ngModelChange)="editablePlace.set({ ...editablePlace(), acceptsCats: !!$event })" /><span>Accepta gats</span></label>
+            <label><span>Política mascotes <strong class="admin-console-required">*</strong></span><input [ngModel]="editablePlace().petPolicyLabel" (ngModelChange)="editablePlace.set({ ...editablePlace(), petPolicyLabel: $event })" /></label>
+            <label><span>Cover URL <strong class="admin-console-required">*</strong></span><input [ngModel]="editablePlace().coverImageUrl" (ngModelChange)="editablePlace.set({ ...editablePlace(), coverImageUrl: $event })" /></label>
+            <label><span>Tags (coma)</span><input [ngModel]="editablePlace().tags" (ngModelChange)="editablePlace.set({ ...editablePlace(), tags: $event })" /></label>
+            <label><span>Features (coma)</span><input [ngModel]="editablePlace().features" (ngModelChange)="editablePlace.set({ ...editablePlace(), features: $event })" /></label>
+            <label class="admin-console-form admin-console-form--readonly"><span>Descripció curta <strong class="admin-console-required">*</strong></span><textarea rows="2" [ngModel]="editablePlace().shortDescription" (ngModelChange)="editablePlace.set({ ...editablePlace(), shortDescription: $event })"></textarea></label>
+            <label class="admin-console-form admin-console-form--readonly"><span>Descripció <strong class="admin-console-required">*</strong></span><textarea rows="4" [ngModel]="editablePlace().description" (ngModelChange)="editablePlace.set({ ...editablePlace(), description: $event })"></textarea></label>
+            <label class="admin-console-form admin-console-form--readonly"><span>Notes política mascotes</span><textarea rows="3" [ngModel]="editablePlace().petPolicyNotes" (ngModelChange)="editablePlace.set({ ...editablePlace(), petPolicyNotes: $event })"></textarea></label>
+          </div>
+          <div class="admin-console-modal__footer">
+            <div class="admin-console-modal__footer-band">
+              <div class="admin-console-modal__footer-actions">
+                <button type="button" class="admin-console-primary" (click)="savePlace()">Desar</button>
+                <button type="button" class="admin-console-primary admin-console-primary--secondary admin-console-role-strip__button" (click)="closePlaceModal()">Tancar</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    }
+
+    @if (placeDeleteCandidate(); as delPlace) {
+      <div class="admin-console-modal-backdrop" (click)="cancelDeletePlace()">
+        <section class="admin-console-modal admin-console-modal--confirm" (click)="$event.stopPropagation()">
+          <div class="admin-console-modal__header">
+            <div>
+              <p class="admin-console-kicker">Acció destructiva</p>
+              <h3>Esborrar lloc</h3>
+            </div>
+          </div>
+          <p>Vols esborrar el lloc <strong>{{ delPlace.name }}</strong>?</p>
+          <div class="admin-console-modal__actions">
+            <button type="button" class="admin-console-primary admin-console-primary--secondary" (click)="cancelDeletePlace()">Cancel·lar</button>
+            <button type="button" class="admin-console-primary admin-console-icon-button--danger" (click)="confirmDeletePlace()">Esborrar</button>
           </div>
         </section>
       </div>

@@ -34,7 +34,7 @@ internal sealed class UserApplicationService(
             Guid.NewGuid(),
             request.Email,
             passwordHasher.Hash(request.PasswordHash),
-            Enum.Parse<UserRole>(request.Role, ignoreCase: true),
+            request.Role.Trim(),
             userProfileFactory.Create(request.DisplayName, request.City, request.Country, request.Bio, request.AvatarUrl),
             new PrivacyConsent(request.PrivacyAccepted, request.PrivacyAcceptedAtUtc));
 
@@ -68,7 +68,7 @@ internal sealed class UserApplicationService(
         return new UserDto(
             user.Id,
             user.Email,
-            user.Role.ToString(),
+            user.Role,
             user.Profile.DisplayName,
             user.Profile.City,
             user.Profile.Country,

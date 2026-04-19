@@ -413,7 +413,7 @@ Funcionalment, la Fase III deixa el producte en un punt clau: el frontend contin
 
 La Fase IV obre el tram de govern d'accessos, autenticacio real ampliada i zones internes. El seu valor funcional no és nomes afegir rols, sino separar de forma clara què és producte públic autenticat, què és lectura restringida i què és operativa interna.
 
-El document `project-phases.md` fixa l'estat dels punts de fase; pel que fa al punt «pàgines internes», el mínim que compta com a base feta és **login**, **perfil** i **manteniment d'usuaris** (`/admin/usuaris`). Altres pantalles o entrades internes (p. ex. notificacions, documentació, permisos o menús d'admin) poden existir al producte però queden **fora** d'aquest mínim fins que el criteri de tancament s'ampliï explícitament allà.
+El document `project-phases.md` fixa l'estat dels punts de fase; el punt «pàgines internes» queda tancat (**FET**) per decisió explícita de direcció de projecte, amb base d'accés intern i manteniments d'administració operatius (incloent `usuaris`, `països` i `ciutats` en el seu estat actual). El nou focus funcional obert dins Fase IV passa a ser «gestió de contingut o dades» amb prioritat a `llocs` i continuació a `favorits`.
 
 El punt d'autenticacio pròpia i federada queda funcionalment entès aixi:
 
@@ -824,8 +824,11 @@ Elements que governa:
 Funcions principals:
 
 - veure el catàleg de permisos
-- activar o desactivar permisos per rol
-- desar una configuració de permisos coherent
+- crear una definició de permís
+- consultar detall de permís
+- editar metadades i abast d'un permís
+- assignar o desassignar permisos a rols
+- desar una configuració coherent de catàleg i assignacions
 
 Rols afectats:
 
@@ -841,6 +844,24 @@ Criteri funcional:
 - un rol pot veure una pàgina però no necessàriament executar accions d'escriptura
 - el manteniment ha de permetre distingir clarament entre visibilitat i capacitat operativa
 
+Model funcional actual del formulari de permís (`crear` i `modificar`):
+
+- camps base: `clau interna`, `nom visible`, `tipus (àmbit)` i `descripció`
+- assignació de `rols` des del mateix flux de permís (multi-selecció)
+- el contingut de l'àmbit és condicional segons `tipus`
+
+Comportament per tipus d'àmbit:
+
+- `menu`: es mostra selecció d'entrades de menú i es desa la llista seleccionada
+- `page`: es demana `url` de pàgina i és obligatòria
+- `action`: de moment no exposa selector específic; queda preparat per extensió futura
+
+Vista de resum per rols dins `admin/permisos`:
+
+- es manté una taula resum de rols amb les pantalles assignades
+- aquesta taula mostra context funcional i accions, però no dates placeholders
+- el detall de permisos per rol es gestiona des del modal de permisos del rol, amb filtre per tipus (`menu`, `page`, `action`)
+
 Relació amb la resta de pantalles:
 
 - `admin/permisos` defineix el marc
@@ -853,6 +874,7 @@ Fora d'abast d'aquesta pantalla:
 - manteniment documental
 - canvi de credencials
 - edició de perfil propi
+- model avançat d'accions contextuals (en construcció per al tipus `action`)
 
 L'objectiu funcional d'aquesta pantalla és mantenir un model clar, auditable i escalable de què pot fer cada rol dins del producte, sense multiplicar excepcions ni configuracions opaques.
 

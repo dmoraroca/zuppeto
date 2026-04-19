@@ -1,0 +1,152 @@
+erDiagram
+    roles ||--o{ users : "role_id"
+    roles ||--o{ role_permissions : "role_id"
+    roles ||--o{ menu_roles : "role_id"
+
+    users ||--|| favorite_lists : "owner_user_id"
+    users ||--o{ place_reviews : "author_user_id"
+    users ||--o{ privacy_consent_events : "user_id"
+
+    favorite_lists ||--o{ favorite_entries : "favorite_list_id"
+    places ||--o{ favorite_entries : "place_id"
+
+    places ||--o{ place_reviews : "place_id"
+    places ||--o{ place_features : "place_id"
+    features ||--o{ place_features : "feature_id"
+    places ||--o{ place_tags : "place_id"
+    tags ||--o{ place_tags : "tag_id"
+
+    permissions ||--o{ role_permissions : "permission_key -> permissions.key"
+    menus ||--o{ menu_roles : "menu_key -> menus.key"
+    menus ||--o{ menus : "parent_key -> menus.key"
+
+    countries ||--o{ cities : "country_id"
+
+    roles {
+        uuid id PK
+        varchar key UK
+        varchar display_name
+        bool is_active
+        timestamptz created_at_utc
+        timestamptz updated_at_utc
+    }
+
+    users {
+        uuid id PK
+        varchar email UK
+        varchar password_hash
+        uuid role_id FK
+        bool privacy_accepted
+        timestamptz created_at_utc
+    }
+
+    permissions {
+        uuid id PK
+        varchar key UK
+        varchar scope_type
+        varchar display_name
+        varchar description
+        timestamptz created_at_utc
+        timestamptz updated_at_utc
+    }
+
+    role_permissions {
+        uuid id PK
+        uuid role_id FK
+        varchar permission_key FK
+    }
+
+    menus {
+        uuid id PK
+        varchar key UK
+        varchar label
+        varchar route
+        varchar parent_key FK
+        int sort_order
+        bool is_active
+    }
+
+    menu_roles {
+        uuid id PK
+        varchar menu_key FK
+        uuid role_id FK
+    }
+
+    places {
+        uuid id PK
+        varchar name
+        varchar type
+        numeric latitude
+        numeric longitude
+        numeric rating_average
+        int review_count
+    }
+
+    place_reviews {
+        uuid id PK
+        uuid place_id FK
+        uuid author_user_id FK
+        int score
+        text comment
+        bool is_visible
+        timestamptz created_at_utc
+    }
+
+    features {
+        uuid id PK
+        varchar code UK
+        varchar display_name
+    }
+
+    tags {
+        uuid id PK
+        varchar code UK
+        varchar display_name
+    }
+
+    place_features {
+        uuid place_id FK
+        uuid feature_id FK
+    }
+
+    place_tags {
+        uuid place_id FK
+        uuid tag_id FK
+    }
+
+    favorite_lists {
+        uuid id PK
+        uuid owner_user_id FK
+    }
+
+    favorite_entries {
+        uuid id PK
+        uuid favorite_list_id FK
+        uuid place_id FK
+        timestamptz saved_at_utc
+    }
+
+    privacy_consent_events {
+        uuid id PK
+        uuid user_id FK
+        bool accepted
+        varchar source
+        timestamptz registered_at_utc
+    }
+
+    countries {
+        uuid id PK
+        varchar code UK
+        varchar name
+        int sort_order
+        bool is_active
+    }
+
+    cities {
+        uuid id PK
+        uuid country_id FK
+        varchar name
+        varchar normalized_name
+        int sort_order
+        bool is_active
+    }

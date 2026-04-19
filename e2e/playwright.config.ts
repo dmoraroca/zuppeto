@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 const baseURL = process.env.E2E_BASE_URL ?? 'http://localhost:4200';
+const chromiumExecutablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE ?? '/snap/bin/chromium';
 
 export default defineConfig({
   testDir: './tests',
@@ -15,12 +16,19 @@ export default defineConfig({
     baseURL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
-    video: 'retain-on-failure'
+    video: 'off'
   },
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] }
+      use: {
+        ...devices['Desktop Chrome'],
+        channel: undefined,
+        launchOptions: {
+          executablePath: chromiumExecutablePath,
+          args: ['--no-sandbox']
+        }
+      }
     }
   ]
 });

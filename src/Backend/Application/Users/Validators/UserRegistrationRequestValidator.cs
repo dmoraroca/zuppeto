@@ -1,5 +1,4 @@
 using YepPet.Application.Validation;
-using YepPet.Domain.Users;
 
 namespace YepPet.Application.Users.Validators;
 
@@ -28,7 +27,7 @@ public sealed class UserRegistrationRequestValidator : IValidator<UserRegistrati
             result.Add(nameof(request.DisplayName), "Display name is required.");
         }
 
-        if (!ValidationHelpers.TryParseEnum<UserRole>(request.Role, out _))
+        if (!string.Equals(request.Role?.Trim(), "User", StringComparison.OrdinalIgnoreCase))
         {
             result.Add(nameof(request.Role), "Role is invalid.");
         }

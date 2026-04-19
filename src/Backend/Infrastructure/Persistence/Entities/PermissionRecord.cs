@@ -12,5 +12,11 @@ public sealed class PermissionRecord
 
     public string Description { get; set; } = string.Empty;
 
+    public string? ScopePayload { get; set; }
+
+    public DateTimeOffset CreatedAtUtc { get; set; }
+
+    public DateTimeOffset UpdatedAtUtc { get; set; }
+
     public ICollection<RolePermissionRecord> RolePermissions { get; set; } = [];
 }

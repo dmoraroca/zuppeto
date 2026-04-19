@@ -1,5 +1,4 @@
 using YepPet.Application.Validation;
-using YepPet.Domain.Users;
 
 namespace YepPet.Application.Admin.Validators;
 
@@ -54,9 +53,9 @@ public sealed class CreateAdminUserRequestValidator : IValidator<CreateAdminUser
             result.Add(nameof(request.Country), "Country must be at least 2 characters long.");
         }
 
-        if (!string.IsNullOrWhiteSpace(request.Role) && !ValidationHelpers.TryParseEnum<UserRole>(request.Role, out _))
+        if (!string.IsNullOrWhiteSpace(request.Role) && request.Role.Trim().Length > 32)
         {
-            result.Add(nameof(request.Role), "Role is invalid.");
+            result.Add(nameof(request.Role), "Role is too long.");
         }
 
         return result;

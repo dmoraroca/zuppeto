@@ -9,7 +9,7 @@ public sealed class User : AggregateRoot<Guid>
         Guid id,
         string email,
         string passwordHash,
-        UserRole role,
+        string role,
         UserProfile profile,
         PrivacyConsent privacyConsent,
         DateTimeOffset? createdAtUtc = null,
@@ -17,7 +17,7 @@ public sealed class User : AggregateRoot<Guid>
     {
         SetEmail(email);
         SetPasswordHash(passwordHash);
-        Role = role;
+        Role = NormalizeRole(role);
         Profile = profile;
         PrivacyConsent = privacyConsent;
         CreatedAtUtc = createdAtUtc ?? DateTimeOffset.UtcNow;
@@ -28,7 +28,8 @@ public sealed class User : AggregateRoot<Guid>
 
     public string PasswordHash { get; private set; } = string.Empty;
 
-    public UserRole Role { get; private set; }
+    /// <summary>Role key matching <c>roles.key</c> (e.g. Admin, User, custom roles).</summary>
+    public string Role { get; private set; } = string.Empty;
 
     public UserProfile Profile { get; private set; }
 
@@ -40,7 +41,7 @@ public sealed class User : AggregateRoot<Guid>
 
     public void UpdateProfile(UserProfile profile)
     {
-        if (Role == UserRole.User && !PrivacyConsent.Accepted)
+        if (IsStandardUserRole() && !PrivacyConsent.Accepted)
         {
             throw new DomainRuleException("User profile cannot be updated without privacy consent.");
         }
@@ -55,7 +56,7 @@ public sealed class User : AggregateRoot<Guid>
 
     public void RevokePrivacy()
     {
-        if (Role == UserRole.User)
+        if (IsStandardUserRole())
         {
             throw new DomainRuleException("User privacy consent cannot be revoked while profile remains active.");
         }
@@ -63,14 +64,30 @@ public sealed class User : AggregateRoot<Guid>
         PrivacyConsent = new PrivacyConsent(false, null);
     }
 
-    public void ChangeRole(UserRole role)
+    public void ChangeRole(string role)
     {
-        Role = role;
+        Role = NormalizeRole(role);
     }
 
     public void RecordAccess(DateTimeOffset accessedAtUtc)
     {
         LastAccessedAtUtc = accessedAtUtc;
+    }
+
+    /// <summary>Standard app users subject to privacy gating (role key "User", any casing).</summary>
+    private bool IsStandardUserRole()
+    {
+        return string.Equals(Role, "User", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string NormalizeRole(string role)
+    {
+        if (string.IsNullOrWhiteSpace(role))
+        {
+            throw new DomainRuleException("Role is required.");
+        }
+
+        return role.Trim();
     }
 
     private void SetEmail(string email)

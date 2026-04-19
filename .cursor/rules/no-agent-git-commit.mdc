@@ -1,0 +1,12 @@
+---
+description: L'agent no ha de fer commit ni push; només proposar el missatge per revisió humana
+alwaysApply: true
+---
+
+# Git: cap commit ni push des de l'agent (YepPet)
+
+1. **No executis** `git commit`, `git push`, `git tag` ni cap operació que escrigui a l'historial remot o local del repositori, **tret** que l'usuari ho demani **explícitament** en aquest fil.
+
+2. Quan et demanin **descripció** o missatge de commit: aplica `.cursor/rules/git-commit-format.mdc` — format com al **log existent** i **increment de l'ID `NNN`** respecte l'últim commit del repositori. Dona només el text (línia de títol, o cos sencer si ho volen), perquè **l'usuari revisi i faci el commit** al seu entorn.
+
+3. Pots suggerir comandes com a **text** (p. ex. `git add …`, `git commit -m "..."`) si ajuden, però **no les executis** tu.

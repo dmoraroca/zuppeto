@@ -1,0 +1,17 @@
+---
+description: Clean code — identifiers and code comments in English (YepPet)
+alwaysApply: true
+---
+
+# Clean code: English in code (YepPet)
+
+When writing or editing **source code** (C#, TypeScript, SQL in migrations, shell scripts in `scripts/`, etc.):
+
+1. **Identifiers** — Use **English** names for types, members, variables, parameters, and file names (consistent with existing project style).
+
+2. **Comments** — Any **comment** you add or change in code (`//`, `/* */`, XML doc on public APIs if used) must be in **English**. Do not add Catalan or mixed-language comments in code.
+
+**Exceptions (unchanged):**
+
+- User-facing **strings** (UI copy, API error messages shown to users) may stay in **Catalan** when the product language requires it.
+- **`docs/`** and commit messages follow their own rules (e.g. Catalan docs, commit format rule).

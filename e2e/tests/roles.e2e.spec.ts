@@ -22,7 +22,7 @@ test('viewer role navigation', async ({ page }) => {
   await expect(primaryNav.getByRole('link', { name: 'Inici' })).toBeVisible();
   await expect(primaryNav.getByRole('link', { name: 'Llocs' })).toBeVisible();
   await expect(primaryNav.getByRole('link', { name: 'Favorits' })).toBeVisible();
-  await expect(primaryNav.locator('summary', { hasText: /Del administrador|Del desenvolupador|ADMIN/i })).toHaveCount(0);
+  await expect(primaryNav.locator('summary', { hasText: /Del administrador|Del desenvolupador/i })).toHaveCount(0);
 });
 
 test('user role navigation', async ({ page }) => {
@@ -32,7 +32,7 @@ test('user role navigation', async ({ page }) => {
   await expect(primaryNav.getByRole('link', { name: 'Inici' })).toBeVisible();
   await expect(primaryNav.getByRole('link', { name: 'Llocs' })).toBeVisible();
   await expect(primaryNav.getByRole('link', { name: 'Favorits' })).toBeVisible();
-  await expect(primaryNav.locator('summary', { hasText: /Del administrador|Del desenvolupador|ADMIN/i })).toHaveCount(0);
+  await expect(primaryNav.locator('summary', { hasText: /Del administrador|Del desenvolupador/i })).toHaveCount(0);
 });
 
 test('developer role menu', async ({ page }) => {
@@ -46,5 +46,5 @@ test('admin role menu', async ({ page }) => {
   await login(page, 'admin@admin.adm', 'Admin123');
 
   const primaryNav = page.getByLabel('Primary navigation');
-  await expect(primaryNav.locator('summary', { hasText: /Del administrador|ADMIN/i })).toBeVisible();
+  await expect(primaryNav.locator('summary', { hasText: /Del administrador/i })).toBeVisible();
 });

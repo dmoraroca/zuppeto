@@ -15,6 +15,7 @@ using YepPet.Application.Admin.Events;
 using YepPet.Application.Admin.Commands;
 using YepPet.Application.Commands;
 using YepPet.Application.Users.Validators;
+using YepPet.Application.Places.Validators;
 
 namespace YepPet.Application;
 
@@ -24,6 +25,7 @@ public static class DependencyInjection
     {
         services.AddScoped<IAuthApplicationService, AuthApplicationService>();
         services.AddScoped<IAdminApplicationService, AdminApplicationService>();
+        services.AddScoped<IGeographicAdminAppService, GeographicAdminAppService>();
         services.AddScoped<INavigationApplicationService, NavigationApplicationService>();
         services.AddScoped<IPlaceApplicationService, PlaceApplicationService>();
         services.AddScoped<IFavoriteListApplicationService, FavoriteListApplicationService>();
@@ -44,8 +46,17 @@ public static class DependencyInjection
         services.AddSingleton<IValidator<UpdateUserRoleRequest>, UpdateUserRoleRequestValidator>();
         services.AddSingleton<IValidator<UpdateRolePermissionsRequest>, UpdateRolePermissionsRequestValidator>();
         services.AddSingleton<IValidator<SaveMenuRequest>, SaveMenuRequestValidator>();
+        services.AddSingleton<IValidator<CreateCountryRequest>, CreateCountryRequestValidator>();
+        services.AddSingleton<IValidator<UpdateCountryRequest>, UpdateCountryRequestValidator>();
+        services.AddSingleton<IValidator<CreateCityRequest>, CreateCityRequestValidator>();
+        services.AddSingleton<IValidator<UpdateCityRequest>, UpdateCityRequestValidator>();
+        services.AddSingleton<IValidator<CreatePermissionDefinitionRequest>, CreatePermissionDefinitionRequestValidator>();
+        services.AddSingleton<IValidator<UpdatePermissionDefinitionRequest>, UpdatePermissionDefinitionRequestValidator>();
+        services.AddSingleton<IValidator<CreateRoleDefinitionRequest>, CreateRoleDefinitionRequestValidator>();
+        services.AddSingleton<IValidator<UpdateRoleDefinitionRequest>, UpdateRoleDefinitionRequestValidator>();
         services.AddSingleton<IValidator<UserRegistrationRequest>, UserRegistrationRequestValidator>();
         services.AddSingleton<IValidator<UserProfileUpdateRequest>, UserProfileUpdateRequestValidator>();
+        services.AddSingleton<IValidator<PlaceUpsertRequest>, PlaceUpsertRequestValidator>();
 
         return services;
     }
