@@ -7,6 +7,14 @@ alwaysApply: true
 
 Aquests criteris complementen `docs/project-phases.md` (Fase III amb DDD, SOLID estricte, patrons quan aporten valor).
 
+## Tres documents: rol de cadascun
+
+| Fitxer | Rol |
+|--------|-----|
+| `docs/project-phases.md` | **Guia** de fases, estat del projecte i punts objectiu (**PENDENT** / **EN CURS** / **FET**). Resums; **no** substitueix el detall funcional ni el tècnic. |
+| `docs/ca/funcional-ca.md` | **Com fem el producte** en termes funcionals: comportament, fluxos, criteris de negoci, abast visible per a l’usuari. |
+| `docs/ca/tecnic-ca.md` | El que és **codi, arquitectura, stack, API, persistència, fitxers, configuració** i implementació. |
+
 ## SOLID (aplicació estricta)
 
 Quan dissenyis o refactoritzis codi (backend `.NET`, frontend Angular, capes de domini / aplicació / infraestructura):
@@ -27,16 +35,17 @@ Quan dissenyis o refactoritzis codi (backend `.NET`, frontend Angular, capes de 
 - Quan el patró sigui central per entendre el disseny, **anomena’l** en comentaris tècnics breus (anglès) o a `docs/ca/tecnic-ca.md`, no només “implementació opaca”.
 - Evita **patró per teatre**: no complicar sense benefici clar de mantenibilitat.
 
-## Documentació: funcional vs tècnic
+## Documentació: guia de fases vs funcional vs tècnic
 
-En tancar feina significativa o un punt de treball, **sempre** delimita què va a cada document (català, com a `project-phases.md`):
+En tancar feina significativa o un punt de treball, **sempre** delimita què va a cada document (català):
 
 | Àmbit | Fitxer | Contingut |
 |--------|--------|-----------|
-| **Funcional** | `docs/ca/funcional-ca.md` | Comportament per a l’usuari, fluxos, decisions de producte, abast visible, criteris de negoci entendibles sense llegir codi. |
-| **Tècnic** | `docs/ca/tecnic-ca.md` | Arquitectura, stack, estructura de carpetes, persistència, API, patrons usats, configuració, migracions, detalls d’implementació. |
+| **Guia de fases** | `docs/project-phases.md` | Estat per fases, llista de punts; **breu**; remet al funcional o al tècnic quan calgui detall. |
+| **Funcional** | `docs/ca/funcional-ca.md` | Com fem el projecte en producte: comportament, fluxos, decisions de producte, criteris de negoci entendibles sense llegir codi. |
+| **Tècnic** | `docs/ca/tecnic-ca.md` | Codi, arquitectura, stack, carpetes, API, persistència, patrons, configuració, migracions, implementació. |
 
-- Sovint cal **tocar els dos**: canvi visible a usuari → resum funcional; com s’ha implementat (capes, fitxers clau) → tècnic.
+- Sovint cal **tocar funcional i tècnic**: canvi visible / negoci → funcional; com està cablejat → tècnic. La **guia** (`project-phases`) només s’actualitza amb el que cal per reflectir fase i punts, sense duplicar paràgrafs llargs.
 - Si el canvi és només intern (refactor sense efecte visible), pot bastar amb **tecnic-ca** i una línia al funcional només si cal context de producte.
 - L’assistència ha de **proposar o redactar** aquests apartats en el mateix tancament de punt, **sense substituir** la revisió humana final.
 

@@ -10,7 +10,7 @@ El focus funcional actual es:
 - descoberta de llocs pet-friendly
 - navegacio clara entre portada, resultats, detall i favorits
 - filtratge per ciutat, tipus, mascota i text de cerca
-- cataleg territorial propi de `paisos` i `ciutats` com a objectiu de govern (vegeu apartats 3.14 i 3.15); encara en evolució cap a manteniment intern complet
+- cataleg territorial propi de `paisos` i `ciutats` com a objectiu de govern (vegeu 3.14, 3.15 i el pla per fases a **3.15.1**); encara en evolució cap a manteniment intern complet
 - suport de mapa dins la feature `places` en mode mixt amb llistat sincronitzat
 - dades reals per `places`, `favorites` i manteniment de `perfil`
 - transicio controlada entre serveis locals i API sense reescriure pantalles
@@ -638,7 +638,8 @@ Regla funcional general per al camp `ciutat` quan sigui editable en altres panta
 - el sistema no ha de permetre guardar una ciutat lliure que no coincideixi amb el cataleg
 - a partir de `3` caracters escrits, s'ha de mostrar un autocomplete amb coincidencies
 - l'usuari ha de poder seleccionar la ciutat des del desplegable o acabar d'arribar a una coincidencia valida per teclat
-- si no hi ha coincidencia valida, el registre no es pot guardar
+- si no hi ha coincidencia al catàleg intern pero el backend ofereix candidats des de **GeoNames** (vegeu **§3.15.2**), l'usuari pot triar-ne un i llavors el registre es pot desar un cop la ciutat quedi al cataleg (alta lazy)
+- si no hi ha cap opcio valida ni interna ni externa confirmable, el registre no es pot guardar
 - cada opcio de ciutat mostrada a l'autocomplete ha d'indicar el `pais` entre parentesi
 - opcionalment es pot mostrar una bandera a l'inici de cada opcio per reforc visual
 
@@ -668,9 +669,9 @@ Decisio funcional de proveidor per geolocalitzacio de ciutat i pais:
 
 Conseqüencia funcional:
 
-- si una ciutat no existeix en el cataleg vigent, no es considera valida per al producte en aquell moment
+- si una ciutat no existeix encara al cataleg, **no** es pot usar com a dada vàlida **fins** que entri al catàleg per **import**, per **alta lazy** des de GeoNames en el flux d’autocomplete (**§3.15.2**) o per un altre mecanisme governat; **no** per text lliure sense vincle
 - l'expansio del cataleg s'ha de governar per fases i no per entrada lliure de text
-- `paisos` i `ciutats` passen a considerar-se manteniments obligatoris del producte
+- `paisos` i `ciutats` passen a considerar-se **domini obligatori del producte** (taula i manteniments); l’alta pot ser **automàtica** (lazy/import) sense exigir operador manual, d’acord amb **§3.15.2**
 
 Flux administratiu actual ja visible:
 
@@ -965,15 +966,75 @@ Relacio amb la resta del producte:
 
 La geografia del producte no s'ha de deixar a text lliure ni a resolucio ad hoc per pantalla. `Paisos` i `ciutats` passen a ser domini governat del producte i no una simple ajuda visual de formulari.
 
+### 3.15.1 Abast territorial per fases (Espanya, Unió Europea i GeoNames)
+
+Aquest apartat resumeix **el pla de producte** sobre el catàleg territorial; les regles generals de governança continuen sent les de **3.14**, **3.15** i **3.16**. `docs/project-phases.md` només en fa esment breu; aquí hi ha el detall per no barrejar criteris.
+
+**Fase IV (en curs): prioritat Espanya**
+
+- L’objectiu immediat és que el catàleg `paisos` / `ciutats` sigui **operatiu i coherent** amb abast principalment **espanyol**: filtres, perfils, manteniments i (quan escaigui) llocs han de poder resoldre’s contra **ciutats del catàleg** vinculades al país corresponent (Espanya com a focus real d’arrencada).
+- A Espanya, l’ordre de magnitud de municipis oficials és d’**uns vuit mil** (INE); el producte **no** exigeix importar-los tots de cop: es poden activar per fases (`is_active`, prioritats de negoci).
+- La **cerca** que veu l’usuari (autocomplete, filtres) ha de treballar sobre el **catàleg YepPet**, no sobre crides contínues a un proveïdor extern.
+- **GeoNames** (o equivalent) es fa servir com a **ajuda** per **suggerir** noms o dades en **alta o revisió des d’administració**, sempre amb **confirmació** abans de persistir; si la ciutat ja és al catàleg, **no** cal consultar l’extern per llegir-la (filtres, assignacions).
+- Les crides a APIs externes de geografia han de ser **des del backend** (mai exposar claus al client); el detall d’implementació i llicències queda al **document tècnic** quan es tanqui el disseny.
+- Compte **GeoNames** (webservice) del projecte: nom d’usuari de l’API **`YepPet`**. La **contrasenya** del compte **no** es documenta en aquest repositori; l’equip la manté només en emmagatzematge segur (p. ex. secrets d’entorn, sense versionat), d’acord amb el que es concreti al `tecnic-ca.md`.
+
+**Fase V (pendent): extensió cap a la Unió Europea i revisió de llicències**
+
+- Es preveu **estendre** el mateix model país → ciutats cap als estats de la **Unió Europea** (sempre dins el catàleg governat, no com a llista lliure).
+- La integració prevista passa per **GeoNames** via **API** (o estratègia equivalent acordada), amb **revisió explícita de llicències**, condicions d’ús, atribució si cal, límits de quota i **caché** per reduir cost i dependència; tot això s’ha de **documentar** al `tecnic-ca.md` en el moment de tancar el disseny.
+- La Fase V inclou també la **internacionalització** (idiomes, etc.); el fet d’obrir països de la UE **no** substitueix el catàleg propi ni la necessitat de **noms coherents** quan hi hagi més d’un idioma a la UI (es coordina amb la resta de punts de la fase V).
+
+**Relació amb altres apartats d’aquest document**
+
+- Les regles d’autocomplete i ciutat als usuaris (**§3.10**) i l’ús d’eines externes com a **auxiliars** (**§3.16**) resten vàlides; aquest apartat només fixa **quin abast territorial es prioritzarà en quina fase del projecte**.
+- El **flux concret** catàleg → GeoNames → persistència (sense alta manual operativa) queda definit a **§3.15.2**, que **completa** el que diu **§3.10** sobre el moment de mostrar coincidències i quan es pot desar.
+
+### 3.15.2 Flux d’autocomplete territorial: catàleg primer, GeoNames després, alta lazy
+
+Aquest apartat fixa el comportament quan l’usuari tria **ciutat** (i el **país** derivat) en formularis governats pel catàleg (`cities` / `countries` a base de dades). **No** substitueix **§3.10** (regles de UX de 3 caràcters, país entre parèntesis, etc.); les **afegeix** per al cas en què **no** hi hagi prou resultats només des del catàleg intern.
+
+**Ordre de resolució (sempre des del backend)**
+
+1. A partir dels **3 primers caràcters** (o el llindar acordat a **§3.10**), el client demana suggeriments al **backend**.
+2. El backend **consulta primer** el catàleg YepPet: **`cities`** i, si el flux ho requereix, **`countries`** (p. ex. context de país, o si cal resoldre un país que encara no existeix a la taula `countries`).
+3. Si els resultats del catàleg són **suficients**, es retornen **sense** cridar proveïdors externs.
+4. Si **no** hi ha coincidència adequada a **`cities`** i/o **`countries`** (segons el cas), el backend pot **consultar GeoNames** (o equivalent acordat) i retornar **candidats** addicionals. Les crides **no** es fan des del navegador; **claus** i **quotes** al servidor (detall al `tecnic-ca.md`).
+
+**Persistència quan l’extern troba coincidència (GeoNames o API Google geogràfica)**
+
+- Quan es confirma un candidat **vàlid** provinent d’una font externa (**GeoNames** i, si el producte el incorpora, una **API de Google orientada a geografia / llocs**, p. ex. tipus Places segons el disseny), el sistema ha de **gravar al catàleg** (`countries` i/o `cities`) **tota la informació que el model YepPet permeti** per a aquestes taules i que la resposta permeti omplir de manera fiable: noms, normalització, **codi de país** quan escaigui, **coordenades** si venen, **identificadors externs** (p. ex. `geonameId`, `placeId` o altres claus acordades) per traçabilitat i deduplicació, `is_active` / `sort_order` segons regles de producte, i la resta de camps definits al disseny lògic (**§3.14** i **§3.15**).
+- **No** cal ni convé emmagatzemar com a blob opac tot el JSON del proveïdor si no aporta al domini; el que sí ha de quedar clar és que **no** es perden dades útils que hagin de viure al catàleg quan ja s’han obtingut en la resposta.
+- El mateix criteri de **catàleg primer, extern després, i després persistència completa al model** s’aplica tant si la font és **GeoNames** com si és l’**API Google** escollida per aquesta finalitat (és a dir, **no** es tracta igual una API de **cerca web** genèrica que una API de **resolució geogràfica**; la segona segueix aquest apartat).
+
+**Alta lazy al catàleg (sense manteniment manual obligatori)**
+
+- El producte **no** depèn que una persona doni d’alta municipi o país a mà: la **selecció** (o confirmació) d’un candidat extern vàlid ha de **crear o actualitzar** les files a **`countries`** / **`cities`** amb la informació anterior, de manera que les **lectures** posteriors resolguin contra el **catàleg YepPet** sense repetir l’extern per la mateixa entitat ja gravada (**§3.15** i **§3.16**: reutilitzar abans que consultar).
+
+**Quan es pot desar el formulari**
+
+- Es pot desar només si hi ha una **ciutat vàlida** al sentit de producte: o bé **ja** existia al catàleg, o bé ha quedat **creada** al catàleg en el mateix flux en acceptar un candidat extern vàlid. **No** es desa ciutat en text lliure sense vincle al catàleg.
+
+**Importació massiva (opcional, compatible amb el mateix model)**
+
+- Independentment d’aquest flux, es pot fer una **càrrega inicial** (p. ex. municipis d’Espanya) per script o job; redueix les crides «lazy» però **no** substitueix la lògica anterior per als forats que quedin.
+
+**Google: distingir cerca web vs geografia**
+
+- Una **API de cerca web** (p. ex. resultats indexats, articles) té un **altre propòsit** i **no** substitueix la resolució de **país / ciutat** al catàleg.
+- Una **API Google de geografia o llocs** (p. ex. resolució d’adreces o llocs, segons el que s’integri) es regeix pel mateix criteri que **GeoNames** en aquest apartat: només quan **no** n’hi ha prou al catàleg, i amb **persistència** a `countries` / `cities` quan hi hagi encert vàlid, tal com s’ha descrit més amunt.
+
 ### 3.16 Dades de proveidors externs (Google, mapes, IA) i cataleg propi
 
-Aquest apartat fixa el criteri funcional: **no cal ni convé** emmagatzemar «tota la informació» que retornin serveis de tercers com a manteniment paral·lel. Cada integració ha de persistir només el **mínim necessari** per al domini YepPet i per compliment legal.
+Aquest apartat fixa el criteri funcional: **no cal ni convé** emmagatzemar «tota la informació» que retornin serveis de tercers com a **repositori paral·lel** al domini YepPet. Cada integració ha de persistir el **mínim necessari** fora del model propi i, per al **catàleg territorial**, el que fixi **§3.15.2** (omplir les columnes de `countries` / `cities` quan una font externa aporta dades vàlides), sense duplicar bases de dades externes senceres.
 
 - **Login Google (OAuth)** es tracta com a **dades de compte i perfil** dins el model d'usuari, amb el que permetin les polítiques de privacitat i el disseny d'identitat; **no** és un catàleg territorial ni un duplicat del directori de Google.
 - **Mapa a la web**: la visualització amb `Leaflet` i capes tipus OpenStreetMap **no implica** guardar tot el tile o tot el dataset OSM; es renderitza al client. El manteniment de país/ciutat és **independent** i serveix per negoci (filtres, coherència), no per substituir el mapa.
 - **IA o geocodificació** (p. ex. suggeriments de ciutats): poden ser **auxiliars** per omplir o validar abans d'alta al cataleg; el producte ha de **preferir sempre** el cataleg intern quan ja existeixi la ciutat, per evitar consultes repetides i costos.
 
 L'objectiu és una **única font de veritat** territorial (`paisos` / `ciutats` governats) i dades d'integració **mínimes** on calgui, sense convertir l'administració en una còpia de Google ni d'un altre proveïdor.
+
+- **Privacitat i tractament de dades (esborrany):** apunts sobre integracions geogràfiques (p. ex. GeoNames, atribució, minimització) i el pla de text legal complet a la Fase V: vegeu `docs/ca/privacitat-ca.md`.
 
 ## 4. Actors
 

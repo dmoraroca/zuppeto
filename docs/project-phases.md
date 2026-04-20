@@ -117,7 +117,7 @@ Separar clarament les zones públiques de les zones internes o controlades per p
 - autenticació pròpia i federada (`Google`, `LinkedIn`, `Facebook` i altres proveïdors OAuth/OIDC) (**FET**)
 - rols i permisos (**FET**)
 - pàgines internes (**FET**): punt tancat amb el criteri definit per direcció de projecte, incloent base d'accés intern i manteniments d'administració ja operatius.
-- gestió de contingut o dades (**EN CURS**): nou punt obert, amb focus inicial en `llocs` i posterior continuació a `favorits`.
+- gestió de contingut o dades (**EN CURS**): `llocs` i després `favorits`; catàleg territorial (**prioritat Espanya**): detall a `docs/ca/funcional-ca.md` (§3.15.1).
 - accessos restringits a determinades funcionalitats (**PENDENT**)
 - revisió de documentació pendent (comprovar opcions i buits) (**PENDENT**)
 - canvi de contrasenya i operativa bàsica de credencials (**PENDENT**; tot el treball de contrasenya queda empaquetat aquí, sense escindir-lo en un altre punt)
@@ -147,6 +147,7 @@ Fer el producte multiidioma de manera seriosa, un cop el contingut i l'estructur
 
 ### Què entra dins la fase V
 
+- **Territori i GeoNames** (extensió cap a la UE, API, llicències): criteri a `docs/ca/funcional-ca.md` (§3.15.1); traçabilitat tècnica a `docs/ca/tecnic-ca.md` (**PENDENT**)
 - estratègia d'i18n (**PENDENT**)
 - idiomes d'Europa (**PENDENT**)
 - àrab (**PENDENT**)
@@ -154,7 +155,7 @@ Fer el producte multiidioma de manera seriosa, un cop el contingut i l'estructur
 - suport RTL (**PENDENT**)
 - revisió de longituds de text (**PENDENT**)
 - SEO per idioma (**PENDENT**)
-- revisió profunda de privadesa i complint normativa (**PENDENT**)
+- revisió profunda de privadesa i complint normativa (**PENDENT**); esbossos i apunts inicials a `docs/ca/privacitat-ca.md` (esborrany a consolidar en aquesta fase)
 - documentar classes i funcions (comentaris de capçalera) a tota la solucio, incloent JavaScript/TypeScript i CSS/SCSS (**PENDENT**)
 
 ### Resultat esperat

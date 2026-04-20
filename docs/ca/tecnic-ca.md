@@ -522,6 +522,12 @@ Resum del diagrama:
 - `Facebook` queda aparcat a nivell de roadmap fins després de publicar la web, tot i que la base tècnica federada es manté oberta
 - el primer pas implementable ja cobreix emissió i consum de token per al login propi i deixa `Google` i `LinkedIn` operatius en desenvolupament
 
+### Catàleg territorial i cerca de ciutats (Espanya i UE)
+
+El **criteri de producte i el roadmap per fases** (Fase IV / V, prioritat Espanya, extensió UE, **GeoNames** i llicències) està descrit a `docs/ca/funcional-ca.md` (**§3.15.1**), amb remissió breu a `docs/project-phases.md`.
+
+Implementació tècnica (resum): consultes de cerca sobre el **catàleg propi** a base de dades; crides a proveïdors externs (p. ex. GeoNames) **només des del backend**; identificadors externs opcionals per traçabilitat; en tancar el disseny, detall d’URLs, claus per entorn, llicències i política de caché en aquest document.
+
 ### 2.11.1 Base implementada del punt d'autenticació
 
 La primera entrega tècnica real de Fase IV ja incorpora:
