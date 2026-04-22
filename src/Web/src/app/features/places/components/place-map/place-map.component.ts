@@ -38,6 +38,10 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   private markersLayer?: LeafletLayerGroup;
   private readonly markers = new Map<string, import('leaflet').CircleMarker>();
 
+  /** Europe-wide default (aligned with the login map preview) when there are no markers. */
+  private static readonly defaultMapCenter: [number, number] = [40.25, -3.7];
+  private static readonly defaultMapZoom = 6;
+
   async ngAfterViewInit(): Promise<void> {
     await this.ensureMap();
     this.renderMap();
@@ -66,16 +70,24 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   }
 
   protected focusAllPlaces(): void {
-    this.fitMapToPlaces();
+    if (this.hasPlaces) {
+      this.fitMapToPlaces();
+    } else {
+      this.setDefaultMapView();
+    }
   }
 
   protected clearSelection(): void {
     this.selectionCleared.emit();
-    this.fitMapToPlaces();
+    if (this.hasPlaces) {
+      this.fitMapToPlaces();
+    } else {
+      this.setDefaultMapView();
+    }
   }
 
   private async ensureMap(): Promise<void> {
-    if (this.map || !this.mapContainer?.nativeElement || !this.hasPlaces) {
+    if (this.map || !this.mapContainer?.nativeElement) {
       return;
     }
 
@@ -96,11 +108,6 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   }
 
   private renderMap(): void {
-    if (!this.hasPlaces) {
-      this.markersLayer?.clearLayers();
-      return;
-    }
-
     void this.ensureMap().then(() => {
       if (!this.leaflet || !this.map || !this.markersLayer) {
         return;
@@ -108,6 +115,12 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
 
       this.markersLayer.clearLayers();
       this.markers.clear();
+
+      if (!this.hasPlaces) {
+        this.setDefaultMapView();
+        return;
+      }
+
       const bounds = this.leaflet.latLngBounds([]);
       const selectedPlaceId = this.selectedPlaceId();
 
@@ -153,6 +166,14 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
 
       this.fitMapToPlaces(bounds);
     });
+  }
+
+  private setDefaultMapView(): void {
+    if (!this.map) {
+      return;
+    }
+
+    this.map.setView(PlaceMapComponent.defaultMapCenter, PlaceMapComponent.defaultMapZoom);
   }
 
   private fitMapToPlaces(existingBounds?: import('leaflet').LatLngBounds): void {

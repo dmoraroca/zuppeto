@@ -1,32 +1,29 @@
 <section class="place-map">
-  @if (hasPlaces) {
-    <div class="place-map__toolbar">
-      <div class="place-map__summary">
-        <strong>{{ placesCountLabel }}</strong>
+  <div class="place-map__toolbar">
+    <div class="place-map__summary">
+      <strong>{{ hasPlaces ? placesCountLabel : emptyTitle() }}</strong>
+      @if (hasPlaces) {
         @if (selectedPlace; as currentPlace) {
           <span>Seleccionat: {{ currentPlace.name }} · {{ currentPlace.city }}</span>
         } @else {
           <span>Clica un marcador per veure context i anar al detall.</span>
         }
-      </div>
-
-      @if (showToolbarActions()) {
-        <div class="place-map__actions">
-          <button type="button" (click)="focusAllPlaces()">Veure tots</button>
-          @if (selectedPlace) {
-            <button type="button" class="place-map__ghost-button" (click)="clearSelection()">
-              Treure selecció
-            </button>
-          }
-        </div>
+      } @else {
+        <span>{{ emptyCopy() }}</span>
       }
     </div>
 
-    <div class="place-map__canvas" #mapContainer [style.height]="height()"></div>
-  } @else {
-    <div class="place-map__empty">
-      <h3>{{ emptyTitle() }}</h3>
-      <p>{{ emptyCopy() }}</p>
-    </div>
-  }
+    @if (showToolbarActions()) {
+      <div class="place-map__actions">
+        <button type="button" (click)="focusAllPlaces()">Veure tots</button>
+        @if (hasPlaces && selectedPlace) {
+          <button type="button" class="place-map__ghost-button" (click)="clearSelection()">
+            Treure selecció
+          </button>
+        }
+      </div>
+    }
+  </div>
+
+  <div class="place-map__canvas" #mapContainer [style.height]="height()"></div>
 </section>

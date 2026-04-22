@@ -56,21 +56,6 @@
   margin-top: 0.9rem;
 }
 
-.place-map__empty {
-  padding: 1.5rem;
-}
-
-.place-map__empty h3,
-.place-map__empty p {
-  margin: 0;
-}
-
-.place-map__empty p {
-  margin-top: 0.55rem;
-  color: var(--yp-color-text-muted);
-  line-height: 1.6;
-}
-
 :host ::ng-deep .place-map__popup-shell .leaflet-popup-content-wrapper {
   border-radius: 1rem;
   box-shadow: 0 20px 40px rgba(15, 23, 42, 0.16);
