@@ -9,16 +9,19 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
     private readonly IPlaceRepository placeRepository;
     private readonly IPlaceSearchQueryRepository placeSearchQueryRepository;
     private readonly IExternalCitySuggestionProvider externalCitySuggestionProvider;
+    private readonly IExternalPlaceSuggestionProvider externalPlaceSuggestionProvider;
     private static readonly TimeSpan SearchSnapshotTtl = TimeSpan.FromHours(12);
 
     public PlaceApplicationService(
         IPlaceRepository placeRepository,
         IPlaceSearchQueryRepository placeSearchQueryRepository,
-        IExternalCitySuggestionProvider externalCitySuggestionProvider)
+        IExternalCitySuggestionProvider externalCitySuggestionProvider,
+        IExternalPlaceSuggestionProvider externalPlaceSuggestionProvider)
     {
         this.placeRepository = placeRepository;
         this.placeSearchQueryRepository = placeSearchQueryRepository;
         this.externalCitySuggestionProvider = externalCitySuggestionProvider;
+        this.externalPlaceSuggestionProvider = externalPlaceSuggestionProvider;
     }
 
     public async Task<PlaceDetailDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
@@ -79,6 +82,20 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
                 item.ResultCount,
                 item.LastRunAtUtc))
             .ToArray();
+    }
+
+    public Task<IReadOnlyCollection<PlaceExternalCandidateDto>> SearchExternalPreviewAsync(
+        PlaceExternalSearchRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var normalized = request with
+        {
+            Query = request.Query?.Trim(),
+            City = request.City?.Trim(),
+            Type = request.Type?.Trim(),
+            Limit = Math.Clamp(request.Limit ?? 10, 1, 20)
+        };
+        return externalPlaceSuggestionProvider.SearchPlacesAsync(normalized, cancellationToken);
     }
 
     public Task<IReadOnlyCollection<string>> GetAvailableCitiesAsync(CancellationToken cancellationToken = default)

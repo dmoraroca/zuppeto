@@ -17,6 +17,7 @@ internal static class PlaceEndpoints
 
         group.MapGet("/", SearchAsync);
         group.MapGet("/searches/recent", GetRecentSearchesAsync);
+        group.MapGet("/external/search", SearchExternalPlacesPreviewAsync);
         group.MapGet("/cities/search", SearchAvailableCitiesAsync)
             .WithName("SearchAvailablePlaceCities")
             .WithSummary("Search distinct cities that have at least one place (typeahead).")
@@ -64,6 +65,17 @@ internal static class PlaceEndpoints
         CancellationToken cancellationToken)
     {
         var result = await service.GetRecentSearchesAsync(limit ?? 20, cancellationToken);
+        return TypedResults.Ok(result);
+    }
+
+    private static async Task<Ok<IReadOnlyCollection<PlaceExternalCandidateDto>>> SearchExternalPlacesPreviewAsync(
+        [AsParameters] PlaceExternalSearchQuery query,
+        IPlaceApplicationService service,
+        CancellationToken cancellationToken)
+    {
+        var result = await service.SearchExternalPreviewAsync(
+            new PlaceExternalSearchRequest(query.Query, query.City, query.Type, query.Limit),
+            cancellationToken);
         return TypedResults.Ok(result);
     }
 
@@ -234,4 +246,10 @@ internal static class PlaceEndpoints
         string? City,
         string? Type,
         string? PetCategory);
+
+    internal sealed record PlaceExternalSearchQuery(
+        string? Query,
+        string? City,
+        string? Type,
+        int? Limit);
 }

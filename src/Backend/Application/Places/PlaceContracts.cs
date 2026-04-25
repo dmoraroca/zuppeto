@@ -15,6 +15,23 @@ public sealed record PlaceSearchHistoryDto(
     int ResultCount,
     DateTimeOffset LastRunAtUtc);
 
+public sealed record PlaceExternalSearchRequest(
+    string? Query,
+    string? City,
+    string? Type,
+    int? Limit);
+
+public sealed record PlaceExternalCandidateDto(
+    string Name,
+    string Address,
+    string City,
+    string Country,
+    decimal Latitude,
+    decimal Longitude,
+    string ExternalId,
+    string Source,
+    bool? PetFriendlyAuto);
+
 /// <summary>
 /// Query for <c>GET /api/places/cities/search</c>: typeahead over distinct cities that have at least one place.
 /// </summary>

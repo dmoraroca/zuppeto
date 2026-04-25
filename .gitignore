@@ -1,7 +1,11 @@
 **/bin
 **/obj
+**/bin-local
+**/obj-local
 **/bin/**/*.*
 **/obj/**/*.*
+**/bin-local/**/*.*
+**/obj-local/**/*.*
 *.assets.cache
 *.nuget.cache
 *.csproj.nuget.dgspec.json

@@ -8,6 +8,7 @@ using YepPet.Application.Places;
 using YepPet.Domain.Abstractions;
 using YepPet.Infrastructure.Auth;
 using YepPet.Infrastructure.GeoNames;
+using YepPet.Infrastructure.GooglePlaces;
 using YepPet.Infrastructure.Persistence;
 using YepPet.Infrastructure.Persistence.Repositories;
 using YepPet.Infrastructure.RabbitMq;
@@ -78,6 +79,7 @@ public static class DependencyInjection
         services.AddMemoryCache();
         services.AddDataProtection();
         services.Configure<GeoNamesOptions>(configuration.GetSection(GeoNamesOptions.SectionName));
+        services.Configure<GooglePlacesOptions>(configuration.GetSection(GooglePlacesOptions.SectionName));
         services.AddDbContext<YepPetDbContext>((sp, options) =>
         {
             options.UseNpgsql(connectionString);
@@ -94,6 +96,12 @@ public static class DependencyInjection
             var geoOptions = sp.GetRequiredService<IOptions<GeoNamesOptions>>().Value;
             client.BaseAddress = new Uri(geoOptions.BaseUrl);
             client.Timeout = TimeSpan.FromSeconds(Math.Max(2, geoOptions.TimeoutSeconds));
+        });
+        services.AddHttpClient<IExternalPlaceSuggestionProvider, GooglePlacesSuggestionProvider>((sp, client) =>
+        {
+            var placesOptions = sp.GetRequiredService<IOptions<GooglePlacesOptions>>().Value;
+            client.BaseAddress = new Uri(placesOptions.BaseUrl);
+            client.Timeout = TimeSpan.FromSeconds(Math.Max(2, placesOptions.TimeoutSeconds));
         });
         services.AddScoped<IPasswordHasher, Pbkdf2PasswordHasher>();
         services.AddScoped<IAccessTokenIssuer, JwtAccessTokenIssuer>();
