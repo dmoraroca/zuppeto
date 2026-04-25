@@ -7,13 +7,17 @@ namespace YepPet.Application.Places;
 internal sealed class PlaceApplicationService : IPlaceApplicationService
 {
     private readonly IPlaceRepository placeRepository;
+    private readonly IPlaceSearchQueryRepository placeSearchQueryRepository;
     private readonly IExternalCitySuggestionProvider externalCitySuggestionProvider;
+    private static readonly TimeSpan SearchSnapshotTtl = TimeSpan.FromHours(12);
 
     public PlaceApplicationService(
         IPlaceRepository placeRepository,
+        IPlaceSearchQueryRepository placeSearchQueryRepository,
         IExternalCitySuggestionProvider externalCitySuggestionProvider)
     {
         this.placeRepository = placeRepository;
+        this.placeSearchQueryRepository = placeSearchQueryRepository;
         this.externalCitySuggestionProvider = externalCitySuggestionProvider;
     }
 
@@ -27,6 +31,22 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
         PlaceSearchRequest request,
         CancellationToken cancellationToken = default)
     {
+        var nowUtc = DateTimeOffset.UtcNow;
+        var searchSnapshotKey = new IPlaceSearchQueryRepository.SearchSnapshotKey(
+            request.SearchText ?? string.Empty,
+            request.City ?? string.Empty,
+            request.Type ?? string.Empty,
+            request.PetCategory);
+        var cachedIds = await placeSearchQueryRepository.TryGetFreshPlaceIdsAsync(
+            searchSnapshotKey,
+            nowUtc,
+            cancellationToken);
+        if (cachedIds is { Count: > 0 })
+        {
+            var cachedPlaces = await placeRepository.GetByIdsAsync(cachedIds, cancellationToken);
+            return cachedPlaces.Select(ToSummaryDto).ToArray();
+        }
+
         var criteria = new PlaceSearchCriteria(
             request.SearchText,
             request.City,
@@ -34,7 +54,31 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
             ParsePetCategory(request.PetCategory));
 
         var places = await placeRepository.SearchAsync(criteria, cancellationToken);
-        return places.Select(ToSummaryDto).ToArray();
+        var ordered = places.ToArray();
+        await placeSearchQueryRepository.SaveSnapshotAsync(
+            searchSnapshotKey,
+            ordered.Select(item => item.Id).ToArray(),
+            nowUtc,
+            SearchSnapshotTtl,
+            cancellationToken);
+        return ordered.Select(ToSummaryDto).ToArray();
+    }
+
+    public async Task<IReadOnlyCollection<PlaceSearchHistoryDto>> GetRecentSearchesAsync(
+        int limit = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var rows = await placeSearchQueryRepository.GetRecentAsync(limit, cancellationToken);
+        return rows
+            .Select(item => new PlaceSearchHistoryDto(
+                item.SearchText,
+                item.City,
+                item.Type,
+                item.PetCategory,
+                item.HitCount,
+                item.ResultCount,
+                item.LastRunAtUtc))
+            .ToArray();
     }
 
     public Task<IReadOnlyCollection<string>> GetAvailableCitiesAsync(CancellationToken cancellationToken = default)

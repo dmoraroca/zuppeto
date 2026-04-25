@@ -2,7 +2,7 @@
 
 ## 1. Introduccio
 
-Aquest document descriu com esta construida **YepPet** a nivell tecnic.
+Aquest document descriu com esta construida **Zuppeto** a nivell tecnic.
 En l'estat actual, el projecte es una web Angular 21 connectada a un backend `.NET`, arquitectura per `features`
 i una primera base funcional de mapa amb `Leaflet` i `OpenStreetMap`.
 
@@ -20,8 +20,8 @@ Objectius:
 ## 2. Esquema tecnic general
 
 <pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">flowchart LR</span>
-  <span style="color:#93c5fd;">U[Usuari]</span> --&gt;|<span style="color:#fcd34d;">Navegador</span>| <span style="color:#c4b5fd;">W[YepPet Web Angular]</span>
-  <span style="color:#c4b5fd;">W</span> --&gt;|<span style="color:#fca5a5;">HTTP real</span>| <span style="color:#86efac;">API[(YepPet Api)]</span>
+  <span style="color:#93c5fd;">U[Usuari]</span> --&gt;|<span style="color:#fcd34d;">Navegador</span>| <span style="color:#c4b5fd;">W[Zuppeto Web Angular]</span>
+  <span style="color:#c4b5fd;">W</span> --&gt;|<span style="color:#fca5a5;">HTTP real</span>| <span style="color:#86efac;">API[(Zuppeto Api)]</span>
   <span style="color:#c4b5fd;">W</span> --&gt;|<span style="color:#fcd34d;">Mapa</span>| <span style="color:#67e8f9;">MAP[Leaflet + OpenStreetMap]</span>
 
   <span style="color:#5eead4; font-weight:700;">subgraph</span> <span style="color:#f9a8d4;">FE[Frontend Angular]</span>
@@ -75,7 +75,7 @@ Peces creades:
 - agregats `Place`, `User`, `FavoriteList`, `PlaceReview`
 - `value objects` per adreca, geolocalitzacio, politica pet, preu, rating, perfil i consentiment
 - contractes de repositori com a abstraccions
-- solucio `YepPet.sln` per carregar el backend al workspace i a l'editor
+- solucio `__Zuppeto_sln__` per carregar el backend al workspace i a l'editor
 
 Decisio tecnica clau:
 
@@ -109,7 +109,7 @@ Resum del diagrama:
 - `sql/init` queda reservada per bootstrap auxiliar i no per crear l'esquema principal
 - la BBDD es un suport operatiu del punt actual, no el centre de l'arquitectura
 - el port `5433` evita conflictes amb altres repos locals que ja fan servir `5432`
-- la validacio del contenidor confirma que la base de dades local de `YepPet` ja esta operativa
+- la validacio del contenidor confirma que la base de dades local de `Zuppeto` ja esta operativa
 - l'esquema real ja queda governat per migracions d'`Entity Framework`
 
 ## 2.4 Persistencia ORM en Infrastructure
@@ -119,8 +119,8 @@ La implementacio base d'`Entity Framework` ja queda consolidada a `src/Backend/I
 Peces creades:
 
 - `DependencyInjection.cs`
-- `Persistence/YepPetDbContext.cs`
-- `Persistence/YepPetDbContextFactory.cs`
+- `Persistence/__ZuppetoDbContext__.cs`
+- `Persistence/__ZuppetoDbContext__Factory.cs`
 - `Persistence/Entities/*`
 - `Persistence/Configurations/*`
 - `Persistence/Migrations/*`
@@ -138,7 +138,7 @@ Decisio tecnica clau:
 <pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">flowchart LR</span>
   <span style="color:#93c5fd;">DOM[Domain]</span> -.-> <span style="color:#c4b5fd;">APP[Application]</span>
   <span style="color:#c4b5fd;">APP</span> -.-> <span style="color:#86efac;">INF[Infrastructure]</span>
-  <span style="color:#86efac;">INF</span> --&gt; <span style="color:#fcd34d;">CTX[YepPetDbContext]</span>
+  <span style="color:#86efac;">INF</span> --&gt; <span style="color:#fcd34d;">CTX[__ZuppetoDbContext__]</span>
   <span style="color:#fcd34d;">CTX</span> --&gt; <span style="color:#f9a8d4;">CFG[EF Configurations]</span>
   <span style="color:#fcd34d;">CTX</span> --&gt; <span style="color:#67e8f9;">REC[Persistence Records]</span>
   <span style="color:#fcd34d;">CTX</span> --&gt; <span style="color:#a7f3d0;">PG[(PostgreSQL :5433)]</span>
@@ -161,7 +161,7 @@ Per al punt actiu, el backend treballara amb aquesta estrategia:
 - un mapper manual per agregat
 - mappers ubicats a `Infrastructure/Persistence/Mappings`
 - repositoris EF a `Infrastructure/Persistence/Repositories`
-- cada repositori utilitza `YepPetDbContext` + mapper del seu agregat
+- cada repositori utilitza `__ZuppetoDbContext__` + mapper del seu agregat
 - el domini no coneix ni EF ni els records de persistencia
 
 Distribucio prevista:
@@ -172,7 +172,7 @@ Distribucio prevista:
 - `PlaceReviewPersistenceMapper`
 
 <pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">flowchart LR</span>
-  <span style="color:#93c5fd;">REP[EF Repository]</span> --&gt; <span style="color:#c4b5fd;">CTX[YepPetDbContext]</span>
+  <span style="color:#93c5fd;">REP[EF Repository]</span> --&gt; <span style="color:#c4b5fd;">CTX[__ZuppetoDbContext__]</span>
   <span style="color:#93c5fd;">REP</span> --&gt; <span style="color:#86efac;">MAP[Aggregate Mapper]</span>
   <span style="color:#86efac;">MAP</span> --&gt; <span style="color:#fcd34d;">DOM[Aggregate Domain]</span>
   <span style="color:#86efac;">MAP</span> --&gt; <span style="color:#f9a8d4;">REC[Persistence Record]</span>
@@ -209,10 +209,10 @@ Peces creades:
   <span style="color:#c4b5fd;">UserRepository</span> --&gt; <span style="color:#86efac;">UserPersistenceMapper</span>
   <span style="color:#c4b5fd;">FavoriteListRepository</span> --&gt; <span style="color:#86efac;">FavoriteListPersistenceMapper</span>
   <span style="color:#c4b5fd;">PlaceReviewRepository</span> --&gt; <span style="color:#86efac;">PlaceReviewPersistenceMapper</span>
-  <span style="color:#c4b5fd;">PlaceRepository</span> --&gt; <span style="color:#fcd34d;">YepPetDbContext</span>
-  <span style="color:#c4b5fd;">UserRepository</span> --&gt; <span style="color:#fcd34d;">YepPetDbContext</span>
-  <span style="color:#c4b5fd;">FavoriteListRepository</span> --&gt; <span style="color:#fcd34d;">YepPetDbContext</span>
-  <span style="color:#c4b5fd;">PlaceReviewRepository</span> --&gt; <span style="color:#fcd34d;">YepPetDbContext</span></code></pre>
+  <span style="color:#c4b5fd;">PlaceRepository</span> --&gt; <span style="color:#fcd34d;">__ZuppetoDbContext__</span>
+  <span style="color:#c4b5fd;">UserRepository</span> --&gt; <span style="color:#fcd34d;">__ZuppetoDbContext__</span>
+  <span style="color:#c4b5fd;">FavoriteListRepository</span> --&gt; <span style="color:#fcd34d;">__ZuppetoDbContext__</span>
+  <span style="color:#c4b5fd;">PlaceReviewRepository</span> --&gt; <span style="color:#fcd34d;">__ZuppetoDbContext__</span></code></pre>
 
 Resum del diagrama:
 
@@ -338,7 +338,7 @@ Peces afegides:
 - `docker/api/Dockerfile.dev`
 - `docker/web/Dockerfile.dev`
 - `.dockerignore`
-- `YepPetDbContextFactory` adaptat per llegir `ConnectionStrings__YepPet` també dins de contenidors
+- `__ZuppetoDbContext__Factory` adaptat per llegir `__ConnectionStrings_Zuppeto__` també dins de contenidors
 
 <pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">flowchart LR</span>
   <span style="color:#93c5fd;">DEV[Desenvolupament local]</span> --&gt; <span style="color:#c4b5fd;">DC[docker compose]</span>
@@ -944,7 +944,7 @@ Aquest punt encara no esta tancat, pero ja te una primera base operativa:
 - `PostgreSQL` local en `Docker`
 - schema fisic inicial creat des de `sql/init/010-schema.sql`
 - validacio de claus primaries, claus externes, checks i indexes principals
-- `YepPetDbContext` configurat a `Infrastructure`
+- `__ZuppetoDbContext__` configurat a `Infrastructure`
 - configuracions EF creades per totes les taules del model
 - `Api` preparada per injectar el `DbContext` amb la cadena de connexio local
 - migracio inicial generada i aplicada a PostgreSQL local

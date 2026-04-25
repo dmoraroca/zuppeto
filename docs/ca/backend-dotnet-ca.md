@@ -42,7 +42,7 @@ Resum del diagrama:
 
 Validat amb:
 
-- `dotnet build YepPet.sln`
+- `dotnet build __Zuppeto_sln__`
 
 Resultat:
 

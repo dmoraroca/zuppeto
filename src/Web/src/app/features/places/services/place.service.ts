@@ -32,12 +32,17 @@ export class PlaceService {
   getPlaces(filters: Partial<PlaceFilters> = {}): Place[] {
     const safeFilters = { ...DEFAULT_FILTERS, ...filters };
     const normalizedSearch = normalizeSearchQuery(safeFilters.search);
+    const cityFilter = (safeFilters.city ?? '').trim();
+    const typeFilter = (safeFilters.type ?? '').trim().toLowerCase();
 
     return this.placesState().filter((place) => {
       const matchesSearch = placeMatchesFreeTextSearch(place, normalizedSearch);
 
-      const matchesCity = !safeFilters.city || place.city === safeFilters.city;
-      const matchesType = !safeFilters.type || place.type === safeFilters.type;
+      const placeCity = (place.city ?? '').trim();
+      const matchesCity =
+        !cityFilter || placeCity.localeCompare(cityFilter, 'und', { sensitivity: 'base' }) === 0;
+      const matchesType =
+        !typeFilter || place.type.toString().toLowerCase() === typeFilter;
       const matchesPet = this.matchesPet(place, safeFilters.pet);
 
       return matchesSearch && matchesCity && matchesType && matchesPet;

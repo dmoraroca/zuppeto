@@ -2,7 +2,7 @@
 
 ## 1. Objectiu
 
-Aquest document recull el joc de proves manual de YepPet en format separat de la documentacio funcional i tecnica.
+Aquest document recull el joc de proves manual de Zuppeto en format separat de la documentacio funcional i tecnica.
 
 El seu objectiu es:
 
@@ -78,7 +78,7 @@ Format recomanat d'execucio:
   - completar login federat
 - resultat esperat:
   - es crea sessio valida
-  - l'usuari torna a YepPet sense error federat
+  - l'usuari torna a Zuppeto sense error federat
 
 #### JP-005 · Logout
 

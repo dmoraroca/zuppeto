@@ -105,6 +105,7 @@ public static class DependencyInjection
         services.AddScoped<IRolePermissionRepository, RolePermissionRepository>();
         services.AddScoped<IFavoriteListRepository, FavoriteListRepository>();
         services.AddScoped<IPlaceReviewRepository, PlaceReviewRepository>();
+        services.AddScoped<IPlaceSearchQueryRepository, PlaceSearchQueryRepository>();
         services.AddScoped<IGeographicCatalogRepository, GeographicCatalogRepository>();
         services.AddScoped<IRoleCatalogRepository, RoleCatalogRepository>();
 

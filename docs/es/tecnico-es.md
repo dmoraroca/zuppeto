@@ -5,7 +5,7 @@
 
 ## 1. Introduccio
 
-Aquest document descriu l'estat tecnic actual de **YepPet** i com s'esta construint a nivell de frontend.
+Aquest document descriu l'estat tecnic actual de **Zuppeto** i com s'esta construint a nivell de frontend.
 Ara mateix el projecte treballa amb enfocament `mock-first`, Angular 21 i una arquitectura per `features`.
 
 Objectius:
@@ -19,7 +19,7 @@ Objectius:
 ## 2. Esquema general de l'app
 
 <pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">flowchart LR</span>
-  <span style="color:#93c5fd;">U[Usuari]</span> --&gt;|<span style="color:#fcd34d;">Navegador</span>| <span style="color:#c4b5fd;">W[YepPet Web Angular]</span>
+  <span style="color:#93c5fd;">U[Usuari]</span> --&gt;|<span style="color:#fcd34d;">Navegador</span>| <span style="color:#c4b5fd;">W[Zuppeto Web Angular]</span>
   <span style="color:#c4b5fd;">W</span> --&gt;|<span style="color:#fca5a5;">Mock Services</span>| <span style="color:#86efac;">M[(Dades simulades)]</span>
   <span style="color:#c4b5fd;">W</span> --&gt;|<span style="color:#fcd34d;">Mapa</span>| <span style="color:#67e8f9;">MAP[Leaflet + OpenStreetMap]</span>
 
@@ -37,7 +37,7 @@ Objectius:
 
 Resum del diagrama:
 
-- representa l'esquema general actual de YepPet a nivell de frontend
+- representa l'esquema general actual de Zuppeto a nivell de frontend
 - la web Angular delega la logica funcional a les `features`
 - les `features` es recolzen en `core`, `shared`, dades simulades i la capa de mapa
 - no hi ha backend real encara; el sistema actual treballa sobre mocks i integracio de mapa al client

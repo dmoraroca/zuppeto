@@ -2,7 +2,7 @@
 
 ## Objectiu
 
-Aquest document defineix la primera base del domini real de YepPet per a la Fase III.
+Aquest document defineix la primera base del domini real de Zuppeto per a la Fase III.
 No descriu taules ni Entity Framework: descriu negoci, agregats, value objects i regles.
 
 ## Agregats principals

@@ -66,7 +66,7 @@ Aquest document recull la base real d'autenticació de la Fase IV i el tancament
 
 ## Validació feta
 
-- `dotnet build YepPet.sln` correcte
+- `dotnet build __Zuppeto_sln__` correcte
 - `npm run build` correcte
 - `GET /api/auth/providers` correcte
 - `POST /api/auth/login` correcte

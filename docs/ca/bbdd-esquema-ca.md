@@ -1,4 +1,4 @@
-# YepPet - Esquema BBDD (E/R)
+# Zuppeto - Esquema BBDD (E/R)
 
 Aquest document resumeix l'esquema de base de dades actual (Entity Framework snapshot), amb focus en entitats, relacions i la part d'autenticacio/autoritzacio.
 

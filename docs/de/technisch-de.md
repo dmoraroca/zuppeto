@@ -2,7 +2,7 @@
 
 ## 1. Einleitung
 
-Dieses Dokument beschreibt, wie **YepPet** technisch aufgebaut ist.
+Dieses Dokument beschreibt, wie **Zuppeto** technisch aufgebaut ist.
 Im aktuellen Stand ist das Projekt eine Angular-21-Webanwendung mit `mock-first`-Ansatz, feature-basierter Architektur
 und einer ersten funktionalen Kartenbasis mit `Leaflet` und `OpenStreetMap`.
 
@@ -17,7 +17,7 @@ Ziele:
 ## 2. Technisches Gesamtschema
 
 <pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">flowchart LR</span>
-  <span style="color:#93c5fd;">U[Benutzer]</span> --&gt;|<span style="color:#fcd34d;">Browser</span>| <span style="color:#c4b5fd;">W[YepPet Web Angular]</span>
+  <span style="color:#93c5fd;">U[Benutzer]</span> --&gt;|<span style="color:#fcd34d;">Browser</span>| <span style="color:#c4b5fd;">W[Zuppeto Web Angular]</span>
   <span style="color:#c4b5fd;">W</span> --&gt;|<span style="color:#fca5a5;">Mock Services</span>| <span style="color:#86efac;">M[(Simulierte Daten)]</span>
   <span style="color:#c4b5fd;">W</span> --&gt;|<span style="color:#fcd34d;">Karte</span>| <span style="color:#67e8f9;">MAP[Leaflet + OpenStreetMap]</span>
 

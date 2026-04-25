@@ -2,7 +2,7 @@
 
 ## Objectiu
 
-Aquest document descriu la primera base de persistencia ORM de YepPet dins de `Infrastructure`.
+Aquest document descriu la primera base de persistencia ORM de Zuppeto dins de `Infrastructure`.
 
 Aquest punt ja queda tancat a nivell de Fase III. El seu objectiu ha estat deixar muntat:
 
@@ -14,7 +14,7 @@ Aquest punt ja queda tancat a nivell de Fase III. El seu objectiu ha estat deixa
 
 ## Decisio arquitectonica
 
-YepPet manté `DDD` estricte:
+Zuppeto manté `DDD` estricte:
 
 - `Domain` no depen d'`Entity Framework`
 - `Infrastructure` encapsula l'ORM
@@ -23,8 +23,8 @@ YepPet manté `DDD` estricte:
 ## Peces creades
 
 - `DependencyInjection.cs`
-- `Persistence/YepPetDbContext.cs`
-- `Persistence/YepPetDbContextFactory.cs`
+- `Persistence/__ZuppetoDbContext__.cs`
+- `Persistence/__ZuppetoDbContext__Factory.cs`
 - `Persistence/Entities/*`
 - `Persistence/Configurations/*`
 - `Persistence/Migrations/*`
@@ -34,7 +34,7 @@ YepPet manté `DDD` estricte:
 
 <pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">flowchart LR</span>
   <span style="color:#93c5fd;">API[Api]</span> --&gt; <span style="color:#c4b5fd;">DI[AddInfrastructure]</span>
-  <span style="color:#c4b5fd;">DI</span> --&gt; <span style="color:#86efac;">CTX[YepPetDbContext]</span>
+  <span style="color:#c4b5fd;">DI</span> --&gt; <span style="color:#86efac;">CTX[__ZuppetoDbContext__]</span>
   <span style="color:#86efac;">CTX</span> --&gt; <span style="color:#fcd34d;">ENT[Persistence Entities]</span>
   <span style="color:#86efac;">CTX</span> --&gt; <span style="color:#f9a8d4;">CFG[Entity Configurations]</span>
   <span style="color:#86efac;">CTX</span> --&gt; <span style="color:#67e8f9;">DB[(PostgreSQL 5433)]</span>
@@ -78,7 +78,7 @@ El mapatge no es fara amb eines automatiques. La decisio tecnica es:
   <span style="color:#93c5fd;">R[Repository]</span> --&gt; <span style="color:#c4b5fd;">M[Manual Mapper]</span>
   <span style="color:#c4b5fd;">M</span> --&gt; <span style="color:#86efac;">A[Aggregate]</span>
   <span style="color:#c4b5fd;">M</span> --&gt; <span style="color:#fcd34d;">P[Persistence Record]</span>
-  <span style="color:#93c5fd;">R</span> --&gt; <span style="color:#67e8f9;">C[YepPetDbContext]</span></code></pre>
+  <span style="color:#93c5fd;">R</span> --&gt; <span style="color:#67e8f9;">C[__ZuppetoDbContext__]</span></code></pre>
 
 Resum del diagrama:
 

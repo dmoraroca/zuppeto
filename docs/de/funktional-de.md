@@ -2,7 +2,7 @@
 
 ## 1. Zusammenfassung
 
-YepPet ist eine pet-friendly Plattform, die darauf ausgerichtet ist, Orte, Unterkuenfte und Services zu entdecken, die Haustiere akzeptieren.
+Zuppeto ist eine pet-friendly Plattform, die darauf ausgerichtet ist, Orte, Unterkuenfte und Services zu entdecken, die Haustiere akzeptieren.
 Im aktuellen Stand wird das Produkt mit einer Angular-Webanwendung und simulierten Daten validiert, bevor ein reales Backend eingebunden wird.
 
 Der aktuelle funktionale Fokus ist:
@@ -73,7 +73,7 @@ Funktionale Beziehungen:
 ### 5.1 Systemkontext
 
 <pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">flowchart LR</span>
-  <span style="color:#93c5fd;">U[Oeffentlicher Benutzer]</span> --&gt;|<span style="color:#fcd34d;">Browser</span>| <span style="color:#c4b5fd;">W[YepPet Web]</span>
+  <span style="color:#93c5fd;">U[Oeffentlicher Benutzer]</span> --&gt;|<span style="color:#fcd34d;">Browser</span>| <span style="color:#c4b5fd;">W[Zuppeto Web]</span>
   <span style="color:#c4b5fd;">W</span> --&gt;|<span style="color:#86efac;">Fake-Daten</span>| <span style="color:#86efac;">M[(Mocks)]</span>
   <span style="color:#c4b5fd;">W</span> --&gt;|<span style="color:#67e8f9;">Kartenergebnisse</span>| <span style="color:#67e8f9;">MAP[Places Map]</span>
   <span style="color:#c4b5fd;">W</span> --&gt;|<span style="color:#f9a8d4;">Information</span>| <span style="color:#f9a8d4;">HELP[Hilfe / Kontakt]</span></code></pre>
@@ -233,7 +233,7 @@ Akteur:
 Hauptfluss:
 
 1. der Benutzer betritt die `home`
-2. er sieht das Werteversprechen von YepPet
+2. er sieht das Werteversprechen von Zuppeto
 3. er kann nach `places`, `Hilfe` oder `Kontakt` navigieren
 
 ### UC-02 Orte suchen

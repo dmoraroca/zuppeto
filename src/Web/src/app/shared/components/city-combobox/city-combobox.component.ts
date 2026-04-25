@@ -35,8 +35,10 @@ export class CityComboboxComponent {
   private blurCloseTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
+    // Keep the input in sync with the parent (query params) when the URL changes externally.
     effect(() => {
-      this.text.set(this.value() ?? '');
+      const v = (this.value() ?? '').trim();
+      this.text.set(v);
     });
   }
 
@@ -70,7 +72,7 @@ export class CityComboboxComponent {
   protected onInput(event: Event): void {
     const raw = (event.target as HTMLInputElement).value;
     this.text.set(raw);
-    this.valueChange.emit(extractCityNameFromTypeaheadValue(raw));
+    this.valueChange.emit(extractCityNameFromTypeaheadValue(raw).trim());
     this.queueRemoteSearch(raw);
   }
 
@@ -103,15 +105,17 @@ export class CityComboboxComponent {
   }
 
   protected selectStaticOption(city: string): void {
-    this.text.set(city);
-    this.valueChange.emit(city);
+    const t = city.trim();
+    this.text.set(t);
+    this.valueChange.emit(t);
     this.apiSuggestions.set([]);
     this.open.set(false);
   }
 
   protected selectApiSuggestion(s: CitySuggestion): void {
-    this.text.set(s.city);
-    this.valueChange.emit(s.city);
+    const t = s.city.trim();
+    this.text.set(t);
+    this.valueChange.emit(t);
     this.apiSuggestions.set([]);
     this.open.set(false);
   }

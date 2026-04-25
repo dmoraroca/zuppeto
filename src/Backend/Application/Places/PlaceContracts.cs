@@ -6,6 +6,15 @@ public sealed record PlaceSearchRequest(
     string? Type,
     string PetCategory);
 
+public sealed record PlaceSearchHistoryDto(
+    string SearchText,
+    string City,
+    string Type,
+    string PetCategory,
+    int HitCount,
+    int ResultCount,
+    DateTimeOffset LastRunAtUtc);
+
 /// <summary>
 /// Query for <c>GET /api/places/cities/search</c>: typeahead over distinct cities that have at least one place.
 /// </summary>

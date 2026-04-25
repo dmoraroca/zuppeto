@@ -36,12 +36,15 @@ export class PlacesPageComponent {
     initialValue: this.route.snapshot.queryParamMap
   });
 
-  protected readonly filters = computed<PlaceFilters>(() => ({
-    search: this.queryParams().get('search') ?? '',
-    city: this.queryParams().get('city') ?? '',
-    type: this.queryParams().get('type') ?? '',
-    pet: (this.queryParams().get('pet') as PlaceFilters['pet']) ?? 'all'
-  }));
+  protected readonly filters = computed<PlaceFilters>(() => {
+    const map = this.queryParams();
+    return {
+      search: (map.get('search') ?? '').trim(),
+      city: (map.get('city') ?? '').trim(),
+      type: (map.get('type') ?? '').trim(),
+      pet: (map.get('pet') as PlaceFilters['pet']) ?? 'all'
+    };
+  });
 
   protected readonly cities = computed(() => this.placeService.getAvailableCities());
   protected readonly types = this.placeService.getAvailableTypes();
@@ -140,11 +143,14 @@ export class PlacesPageComponent {
   protected updateFilters(partial: Partial<PlaceFilters>): void {
     const next = { ...this.filters(), ...partial };
     this.selectedPlaceIdState.set(null);
+    const search = next.search?.trim() ?? '';
+    const city = next.city?.trim() ?? '';
+    const type = next.type?.trim() ?? '';
     void this.router.navigate(['/places'], {
       queryParams: {
-        search: next.search || null,
-        city: next.city || null,
-        type: next.type || null,
+        search: search || null,
+        city: city || null,
+        type: type || null,
         pet: next.pet !== 'all' ? next.pet : null
       }
     });

@@ -22,7 +22,7 @@ El login continua sent local, pero sincronitza l'usuari contra l'endpoint de `us
   <span style="color:#c4b5fd;">WEB</span> --&gt; <span style="color:#86efac;">PL[PlaceService]</span>
   <span style="color:#c4b5fd;">WEB</span> --&gt; <span style="color:#fcd34d;">FV[FavoritesService]</span>
   <span style="color:#c4b5fd;">WEB</span> --&gt; <span style="color:#f9a8d4;">AU[AuthService]</span>
-  <span style="color:#86efac;">PL</span> --&gt; <span style="color:#67e8f9;">API[(YepPet API)]</span>
+  <span style="color:#86efac;">PL</span> --&gt; <span style="color:#67e8f9;">API[(Zuppeto API)]</span>
   <span style="color:#fcd34d;">FV</span> --&gt; <span style="color:#67e8f9;">API</span>
   <span style="color:#f9a8d4;">AU</span> --&gt; <span style="color:#67e8f9;">API</span>
   <span style="color:#67e8f9;">API</span> --&gt; <span style="color:#a7f3d0;">PG[(PostgreSQL)]</span></code></pre>
@@ -37,7 +37,7 @@ Resum del diagrama:
 
 Validat amb:
 
-- `dotnet build YepPet.sln`
+- `dotnet build __Zuppeto_sln__`
 - `npm run build`
 - API HTTP provada de punta a punta contra la BBDD local
 

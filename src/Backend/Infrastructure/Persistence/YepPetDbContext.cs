@@ -25,6 +25,10 @@ public sealed class YepPetDbContext(DbContextOptions<YepPetDbContext> options) :
 
     public DbSet<PlaceReviewRecord> PlaceReviews => Set<PlaceReviewRecord>();
 
+    public DbSet<PlaceSearchQueryRecord> PlaceSearchQueries => Set<PlaceSearchQueryRecord>();
+
+    public DbSet<PlaceSearchQueryResultRecord> PlaceSearchQueryResults => Set<PlaceSearchQueryResultRecord>();
+
     public DbSet<PermissionRecord> Permissions => Set<PermissionRecord>();
 
     public DbSet<PlaceTagRecord> PlaceTags => Set<PlaceTagRecord>();

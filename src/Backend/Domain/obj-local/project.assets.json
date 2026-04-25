@@ -8,24 +8,25 @@
     "net10.0": []
   },
   "packageFolders": {
-    "/root/.nuget/packages/": {}
+    "/home/dmoraroca/.nuget/packages/": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/app/src/Backend/Domain/Domain.csproj",
+      "projectUniqueName": "/home/dmoraroca/Documents/_DATA/repos/zuppeto/src/Backend/Domain/Domain.csproj",
       "projectName": "Domain",
-      "projectPath": "/app/src/Backend/Domain/Domain.csproj",
-      "packagesPath": "/root/.nuget/packages/",
-      "outputPath": "/app/src/Backend/Domain/obj-local/",
+      "projectPath": "/home/dmoraroca/Documents/_DATA/repos/zuppeto/src/Backend/Domain/Domain.csproj",
+      "packagesPath": "/home/dmoraroca/.nuget/packages/",
+      "outputPath": "/home/dmoraroca/Documents/_DATA/repos/zuppeto/src/Backend/Domain/obj-local/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "/root/.nuget/NuGet/NuGet.Config"
+        "/home/dmoraroca/.nuget/NuGet/NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net10.0"
       ],
       "sources": {
+        "/usr/lib/dotnet/library-packs": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
@@ -44,7 +45,7 @@
         "auditLevel": "low",
         "auditMode": "all"
       },
-      "SdkAnalysisLevel": "10.0.200"
+      "SdkAnalysisLevel": "10.0.100"
     },
     "frameworks": {
       "net10.0": {
@@ -65,7 +66,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/10.0.201/PortableRuntimeIdentifierGraph.json",
+        "runtimeIdentifierGraphPath": "/usr/lib/dotnet/sdk/10.0.107/PortableRuntimeIdentifierGraph.json",
         "packagesToPrune": {
           "Microsoft.CSharp": "(,4.7.32767]",
           "Microsoft.VisualBasic": "(,10.4.32767]",

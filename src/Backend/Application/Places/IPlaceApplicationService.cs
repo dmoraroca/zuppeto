@@ -8,6 +8,10 @@ public interface IPlaceApplicationService
         PlaceSearchRequest request,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyCollection<PlaceSearchHistoryDto>> GetRecentSearchesAsync(
+        int limit = 20,
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyCollection<string>> GetAvailableCitiesAsync(CancellationToken cancellationToken = default);
 
     Task<IReadOnlyCollection<PlaceCitySuggestionDto>> SearchAvailableCitiesAsync(

@@ -2,7 +2,7 @@
 
 ## 1. Resum executiu
 
-YepPet es una plataforma pet-friendly orientada a descobrir llocs, estades i serveis que accepten mascotes.
+Zuppeto es una plataforma pet-friendly orientada a descobrir llocs, estades i serveis que accepten mascotes.
 En l'estat actual, el producte ja combina una web Angular amb backend `.NET` i `PostgreSQL` per als fluxos principals de Fase III.
 
 El focus funcional actual es:
@@ -214,7 +214,7 @@ Objectiu funcional d'aquest punt:
 
 - permetre canvi de contrasenya des del perfil per a usuaris amb login propi
 - preparar una operativa bàsica de verificacio de credencials sense obrir encara fluxos cars o massa dependents de tercers
-- deixar definit des d'ara quin canal i quin segon factor tenen sentit per YepPet en el primer abast
+- deixar definit des d'ara quin canal i quin segon factor tenen sentit per Zuppeto en el primer abast
 
 Decisions funcionals acordades:
 
@@ -250,7 +250,7 @@ Quan aquest punt passi a implementacio, el detall de pantalles, camps obligatori
 
 ### 3.5 Base funcional consolidada de Fase I
 
-La Fase I va servir per validar la primera forma usable de YepPet sense dependre encara d'un backend real. La seva funcio no era resoldre el producte final, sino construir una base neta de navegacio, estructura i components sobre la qual es poguessin prendre decisions posteriors sense reescriure-ho tot.
+La Fase I va servir per validar la primera forma usable de Zuppeto sense dependre encara d'un backend real. La seva funcio no era resoldre el producte final, sino construir una base neta de navegacio, estructura i components sobre la qual es poguessin prendre decisions posteriors sense reescriure-ho tot.
 
 La base funcional que queda consolidada en aquesta fase es:
 
@@ -348,7 +348,7 @@ La conclusio funcional de Fase II és que el producte ja no era només una demo 
 
 ### 3.7 Backend i persistencia reals de Fase III
 
-La Fase III va transformar YepPet d'una aplicacio mock-first en un sistema real amb persistencia i API. El canvi principal no va ser visual, sino estructural: el producte deixava de simular fluxos principals i començava a executar-los contra una base de dades i una capa backend reals.
+La Fase III va transformar Zuppeto d'una aplicacio mock-first en un sistema real amb persistencia i API. El canvi principal no va ser visual, sino estructural: el producte deixava de simular fluxos principals i començava a executar-los contra una base de dades i una capa backend reals.
 
 El punt de model relacional es va tancar amb aquestes decisions i resultats:
 
@@ -358,12 +358,12 @@ El punt de model relacional es va tancar amb aquestes decisions i resultats:
 - `rating_average` i `review_count` mantinguts a `places` com a snapshot optimitzat derivat de `place_reviews`
 - consentiment mantingut en estat actual a `users` i amb historial a `privacy_consent_events`
 - base de dades de desenvolupament operativa amb `Docker` i `PostgreSQL`
-- port extern `5433` reservat per convivència local de YepPet
+- port extern `5433` reservat per convivència local de Zuppeto
 
 El punt de persistencia amb `Entity Framework` va quedar consolidat aixi:
 
 - `dotnet-ef` configurat localment al repo
-- `YepPetDbContext` com a peça central de persistencia
+- `__ZuppetoDbContext__` com a peça central de persistencia
 - entitats de persistencia separades del domini
 - configuracions EF dedicades per cada agregat o taula rellevant
 - registre del `DbContext` a l'`Api`
@@ -377,7 +377,7 @@ Des del punt de vista de mapatge i repositoris, la fase va fixar una linea arqui
 - conversions explícites entre domini i persistencia
 - repositoris EF per les principals abstractions d'aplicacio
 - registre de repositoris a la DI
-- compilacio del backend validada amb `dotnet build YepPet.sln`
+- compilacio del backend validada amb `dotnet build __Zuppeto_sln__`
 
 La part de backend `.NET` es va tancar amb:
 
@@ -514,7 +514,7 @@ Format de sortida prioritzat:
 
 Plantilla corporativa:
 
-- es preparara una plantilla `Word` pròpia de YepPet
+- es preparara una plantilla `Word` pròpia de Zuppeto
 - la plantilla ha d'incorporar el logotip oficial de marca
 - la plantilla ha de fixar capcaleres, peus, estils de titols, taules i jerarquia visual comuna
 - qualsevol document descarregable d'aquesta area ha de tendir a reutilitzar aquesta mateixa base
@@ -523,7 +523,7 @@ Abast inicial d'aquest criteri:
 
 - definir que la pantalla de `Documentació` canvia de concepte
 - establir `Word` com a format principal de baixada
-- preparar plantilla oficial amb logotip YepPet
+- preparar plantilla oficial amb logotip Zuppeto
 
 Fora d'abast immediat:
 
@@ -627,7 +627,7 @@ Origen funcional de la `ciutat`:
 - la `ciutat` ha de venir d'un mecanisme de localitzacio validat o quedar buida si no es disposa de dada fiable
 - la font funcional inicial per consulta de ciutat i pais sera `GeoNames` via resposta `JSON`
 - `GeoNames` es considera la base externa inicial per suggeriments i validacio de localitzacio
-- YepPet ha de mantenir obligatòriament un cataleg propi de `paisos` i `ciutats`
+- Zuppeto ha de mantenir obligatòriament un cataleg propi de `paisos` i `ciutats`
 - qualsevol ciutat valida usada pel producte ha de quedar normalitzada dins aquest cataleg propi
 - mes endavant es podra valorar `Google Maps` o `Google Places` si el producte necessita un nivell superior de cobertura, qualitat o serveis associats
 - si en el futur es proposa una ciutat automàticament, ha de venir d'una font funcional controlada, no d'una generacio lliure
@@ -662,7 +662,7 @@ Decisio funcional de proveidor per geolocalitzacio de ciutat i pais:
 
 - de moment s'usara `GeoNames` en format `JSON`
 - `GeoNames` cobreix la necessitat inicial de consulta i normalitzacio de ciutat/pais
-- si la dada ja existeix a YepPet, s'ha de reutilitzar sense tornar a consultar el proveidor extern
+- si la dada ja existeix a Zuppeto, s'ha de reutilitzar sense tornar a consultar el proveidor extern
 - la consulta externa s'ha d'entendre com a suport d'alta o validacio, no com a font unica permanent de lectura
 - l'objectiu funcional es minimitzar cost, evitar dependència excessiva i consolidar cataleg propi
 - `Google Maps` o `Google Places` queda com a opcio futura quan el producte tingui una necessitat mes alta de qualitat, volum o capacitats avançades
@@ -947,7 +947,7 @@ Regles funcionals:
 - tota ciutat guardada ha d'estar vinculada a un pais existent i actiu segons regles de negoci
 - es recomana definir **unicitat** dins del mateix país (p. ex. parell país + nom normalitzat) per evitar duplicats («Barcelona» repetida)
 - una ciutat no s'ha de tractar com a valida si no esta dins el cataleg propi
-- eines externes (`GeoNames`, suggeriments per **IA** com Gemini, geocodificadors, etc.) poden ajudar a **donar d'alta o suggerir** dades, però la **font de veritat** del producte és el cataleg YepPet
+- eines externes (`GeoNames`, suggeriments per **IA** com Gemini, geocodificadors, etc.) poden ajudar a **donar d'alta o suggerir** dades, però la **font de veritat** del producte és el cataleg Zuppeto
 - quan una ciutat ja existeix al cataleg, **no cal** tornar a consultar el proveidor extern per operar-hi (filtres, perfils, llocs vinculats per identificador)
 
 Objectiu funcional:
@@ -974,10 +974,10 @@ Aquest apartat resumeix **el pla de producte** sobre el catàleg territorial; le
 
 - L’objectiu immediat és que el catàleg `paisos` / `ciutats` sigui **operatiu i coherent** amb abast principalment **espanyol**: filtres, perfils, manteniments i (quan escaigui) llocs han de poder resoldre’s contra **ciutats del catàleg** vinculades al país corresponent (Espanya com a focus real d’arrencada).
 - A Espanya, l’ordre de magnitud de municipis oficials és d’**uns vuit mil** (INE); el producte **no** exigeix importar-los tots de cop: es poden activar per fases (`is_active`, prioritats de negoci).
-- La **cerca** que veu l’usuari (autocomplete, filtres) ha de treballar sobre el **catàleg YepPet**, no sobre crides contínues a un proveïdor extern.
+- La **cerca** que veu l’usuari (autocomplete, filtres) ha de treballar sobre el **catàleg Zuppeto**, no sobre crides contínues a un proveïdor extern.
 - **GeoNames** (o equivalent) es fa servir com a **ajuda** per **suggerir** noms o dades en **alta o revisió des d’administració**, sempre amb **confirmació** abans de persistir; si la ciutat ja és al catàleg, **no** cal consultar l’extern per llegir-la (filtres, assignacions).
 - Les crides a APIs externes de geografia han de ser **des del backend** (mai exposar claus al client); el detall d’implementació i llicències queda al **document tècnic** quan es tanqui el disseny.
-- Compte **GeoNames** (webservice) del projecte: nom d’usuari de l’API **`YepPet`**. La **contrasenya** del compte **no** es documenta en aquest repositori; l’equip la manté només en emmagatzematge segur (p. ex. secrets d’entorn, sense versionat), d’acord amb el que es concreti al `tecnic-ca.md`.
+- Compte **GeoNames** (webservice) del projecte: nom d’usuari de l’API **`Zuppeto`**. La **contrasenya** del compte **no** es documenta en aquest repositori; l’equip la manté només en emmagatzematge segur (p. ex. secrets d’entorn, sense versionat), d’acord amb el que es concreti al `tecnic-ca.md`.
 
 **Fase V (pendent): extensió cap a la Unió Europea i revisió de llicències**
 
@@ -997,19 +997,19 @@ Aquest apartat fixa el comportament quan l’usuari tria **ciutat** (i el **paí
 **Ordre de resolució (sempre des del backend)**
 
 1. A partir dels **3 primers caràcters** (o el llindar acordat a **§3.10**), el client demana suggeriments al **backend**.
-2. El backend **consulta primer** el catàleg YepPet: **`cities`** i, si el flux ho requereix, **`countries`** (p. ex. context de país, o si cal resoldre un país que encara no existeix a la taula `countries`).
+2. El backend **consulta primer** el catàleg Zuppeto: **`cities`** i, si el flux ho requereix, **`countries`** (p. ex. context de país, o si cal resoldre un país que encara no existeix a la taula `countries`).
 3. Si els resultats del catàleg són **suficients**, es retornen **sense** cridar proveïdors externs.
 4. Si **no** hi ha coincidència adequada a **`cities`** i/o **`countries`** (segons el cas), el backend pot **consultar GeoNames** (o equivalent acordat) i retornar **candidats** addicionals. Les crides **no** es fan des del navegador; **claus** i **quotes** al servidor (detall al `tecnic-ca.md`).
 
 **Persistència quan l’extern troba coincidència (GeoNames o API Google geogràfica)**
 
-- Quan es confirma un candidat **vàlid** provinent d’una font externa (**GeoNames** i, si el producte el incorpora, una **API de Google orientada a geografia / llocs**, p. ex. tipus Places segons el disseny), el sistema ha de **gravar al catàleg** (`countries` i/o `cities`) **tota la informació que el model YepPet permeti** per a aquestes taules i que la resposta permeti omplir de manera fiable: noms, normalització, **codi de país** quan escaigui, **coordenades** si venen, **identificadors externs** (p. ex. `geonameId`, `placeId` o altres claus acordades) per traçabilitat i deduplicació, `is_active` / `sort_order` segons regles de producte, i la resta de camps definits al disseny lògic (**§3.14** i **§3.15**).
+- Quan es confirma un candidat **vàlid** provinent d’una font externa (**GeoNames** i, si el producte el incorpora, una **API de Google orientada a geografia / llocs**, p. ex. tipus Places segons el disseny), el sistema ha de **gravar al catàleg** (`countries` i/o `cities`) **tota la informació que el model Zuppeto permeti** per a aquestes taules i que la resposta permeti omplir de manera fiable: noms, normalització, **codi de país** quan escaigui, **coordenades** si venen, **identificadors externs** (p. ex. `geonameId`, `placeId` o altres claus acordades) per traçabilitat i deduplicació, `is_active` / `sort_order` segons regles de producte, i la resta de camps definits al disseny lògic (**§3.14** i **§3.15**).
 - **No** cal ni convé emmagatzemar com a blob opac tot el JSON del proveïdor si no aporta al domini; el que sí ha de quedar clar és que **no** es perden dades útils que hagin de viure al catàleg quan ja s’han obtingut en la resposta.
 - El mateix criteri de **catàleg primer, extern després, i després persistència completa al model** s’aplica tant si la font és **GeoNames** com si és l’**API Google** escollida per aquesta finalitat (és a dir, **no** es tracta igual una API de **cerca web** genèrica que una API de **resolució geogràfica**; la segona segueix aquest apartat).
 
 **Alta lazy al catàleg (sense manteniment manual obligatori)**
 
-- El producte **no** depèn que una persona doni d’alta municipi o país a mà: la **selecció** (o confirmació) d’un candidat extern vàlid ha de **crear o actualitzar** les files a **`countries`** / **`cities`** amb la informació anterior, de manera que les **lectures** posteriors resolguin contra el **catàleg YepPet** sense repetir l’extern per la mateixa entitat ja gravada (**§3.15** i **§3.16**: reutilitzar abans que consultar).
+- El producte **no** depèn que una persona doni d’alta municipi o país a mà: la **selecció** (o confirmació) d’un candidat extern vàlid ha de **crear o actualitzar** les files a **`countries`** / **`cities`** amb la informació anterior, de manera que les **lectures** posteriors resolguin contra el **catàleg Zuppeto** sense repetir l’extern per la mateixa entitat ja gravada (**§3.15** i **§3.16**: reutilitzar abans que consultar).
 
 **Quan es pot desar el formulari**
 
@@ -1026,7 +1026,7 @@ Aquest apartat fixa el comportament quan l’usuari tria **ciutat** (i el **paí
 
 ### 3.16 Dades de proveidors externs (Google, mapes, IA) i cataleg propi
 
-Aquest apartat fixa el criteri funcional: **no cal ni convé** emmagatzemar «tota la informació» que retornin serveis de tercers com a **repositori paral·lel** al domini YepPet. Cada integració ha de persistir el **mínim necessari** fora del model propi i, per al **catàleg territorial**, el que fixi **§3.15.2** (omplir les columnes de `countries` / `cities` quan una font externa aporta dades vàlides), sense duplicar bases de dades externes senceres.
+Aquest apartat fixa el criteri funcional: **no cal ni convé** emmagatzemar «tota la informació» que retornin serveis de tercers com a **repositori paral·lel** al domini Zuppeto. Cada integració ha de persistir el **mínim necessari** fora del model propi i, per al **catàleg territorial**, el que fixi **§3.15.2** (omplir les columnes de `countries` / `cities` quan una font externa aporta dades vàlides), sense duplicar bases de dades externes senceres.
 
 - **Login Google (OAuth)** es tracta com a **dades de compte i perfil** dins el model d'usuari, amb el que permetin les polítiques de privacitat i el disseny d'identitat; **no** és un catàleg territorial ni un duplicat del directori de Google.
 - **Mapa a la web**: la visualització amb `Leaflet` i capes tipus OpenStreetMap **no implica** guardar tot el tile o tot el dataset OSM; es renderitza al client. El manteniment de país/ciutat és **independent** i serveix per negoci (filtres, coherència), no per substituir el mapa.
@@ -1035,6 +1035,91 @@ Aquest apartat fixa el criteri funcional: **no cal ni convé** emmagatzemar «to
 L'objectiu és una **única font de veritat** territorial (`paisos` / `ciutats` governats) i dades d'integració **mínimes** on calgui, sense convertir l'administració en una còpia de Google ni d'un altre proveïdor.
 
 - **Privacitat i tractament de dades (esborrany):** apunts sobre integracions geogràfiques (p. ex. GeoNames, atribució, minimització) i el pla de text legal complet a la Fase V: vegeu `docs/ca/privacitat-ca.md`.
+
+### 3.17 Cerca de locals pet-friendly (Fase IV, bloc `llocs`)
+
+Aquest apartat fixa el criteri funcional per la cerca de **locals pet-friendly** dins el punt en curs de Fase IV (`gestió de contingut o dades`: primer `llocs`, després `favorits`).
+
+**Decisions funcionals acordades per a aquest bloc**
+
+- font de dades: **canals propis** + suport extern de **Google Places** o **Gemini** quan calgui
+- abast territorial d'operació: **Unió Europea**
+- el camp `petFriendly` s'ha d'**omplir automàticament** quan sigui possible, però ha de ser **editable manualment**
+- `favorits` només per a usuaris autenticats
+- a inici, mostrar els **10 primers** elements de favorits (segons criteri de producte vigent)
+
+**Estat actual vs objectiu d'aquest bloc**
+
+- estat actual del producte: la llista de `places` visible a la web surt del model propi i de l'API pròpia
+- objectiu del bloc en curs (Fase IV, `llocs`): consolidar cerca de locals pet-friendly amb model propi i suport extern quan el catàleg intern no sigui suficient
+- la integració externa de locals **no** substitueix el model de domini de Zuppeto: serveix per ampliar cobertura, no per perdre governança funcional
+
+**Estratègia de consulta i sincronització (lazy)**
+
+El producte ha de treballar amb patró **catàleg intern primer, extern després**:
+
+1. el backend resol primer la cerca sobre dades pròpies (`places` + catàleg territorial)
+2. si no hi ha prou cobertura, consulta fonts externes (Google Places o Gemini, segons cas d'ús)
+3. els resultats vàlids es normalitzen, es persisteixen i es retornen
+4. en cerques posteriors equivalents, es reutilitza el que ja està guardat
+
+Per evitar cost i latència repetida, cada consulta funcional s'ha de poder guardar i reutilitzar:
+
+- guardar la consulta normalitzada (ciutat/àrea, tipus, criteri mascota, text)
+- guardar la relació entre consulta i resultats retornats
+- definir expiració (TTL) i revalidació periòdica
+- refrescar primer el que té més ús o més impacte funcional (més consultat, més favorit, més vist)
+
+**Ritme funcional de sincronització acordat**
+
+- patró base: **import lazy + cache curta**
+- cache de consulta: reutilitzar una cerca equivalent mentre estigui dins TTL funcional
+- refresc de novetats de local guardat: comprovar canvis cada cert temps, prioritzant el més consultat i el més marcat com a favorit
+- les dades manuals (p. ex. ajust de `petFriendly`) prevalen sobre autocompletats automàtics fins nova revisió
+
+**Tipologies prioritàries (ordre funcional inicial)**
+
+1. `service` (veterinaris, grooming, botigues pets)
+2. `park`
+3. `restaurant`
+4. `hotel`
+5. `apartment`
+
+**Dades mínimes del local (v1 aprovada)**
+
+- `id` intern estable
+- `source` (intern / extern)
+- identificador extern (`externalPlaceId`) quan existeixi
+- `name`
+- `type` (tipologia funcional de Zuppeto)
+- `cityId` i `countryId` (catàleg governat)
+- `latitude` / `longitude`
+- `addressLine1`
+- `petFriendly`
+- nivell de confiança de `petFriendly` (manual/automàtic)
+- `petNotes` (editable)
+- `status` funcional (actiu, pendent de revisió, bloquejat)
+- `lastSyncedAtUtc`, `createdAtUtc`, `updatedAtUtc`
+
+**Regla de governança**
+
+Les edicions manuals de camp pet-friendly i notes operatives tenen prioritat sobre l'autocompletat automàtic fins que una revisió funcional les torni a validar.
+
+**Evolució prevista cap a versió PRO**
+
+Un cop validada la v1, es preveu ampliar amb:
+
+- política pet estructurada (condicions, límits, costos)
+- verificació i confiança avançada (manual/automàtica/històric)
+- dades comercials enriquides (horaris, contacte, enllaços)
+- reputació pròpia orientada a mascotes (reviews i senyals de qualitat)
+- ranking personalitzat i `llocs afins`
+- operativa avançada (deduplicació, moderació, sincronització per prioritat)
+
+**Decisions obertes que es deixen per més endavant**
+
+- pressupost i límits de quota de proveïdors externs
+- llindars numèrics exactes de TTL i cicles de refresc (es definiran a tècnic segons cost i comportament real)
 
 ## 4. Actors
 
@@ -1070,7 +1155,7 @@ Relacions funcionals:
 ### 5.1 Context del sistema
 
 <pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">flowchart LR</span>
-  <span style="color:#93c5fd;">U[Usuari public]</span> --&gt;|<span style="color:#fcd34d;">Navegador</span>| <span style="color:#c4b5fd;">W[Web YepPet]</span>
+  <span style="color:#93c5fd;">U[Usuari public]</span> --&gt;|<span style="color:#fcd34d;">Navegador</span>| <span style="color:#c4b5fd;">W[Web Zuppeto]</span>
   <span style="color:#c4b5fd;">W</span> --&gt;|<span style="color:#86efac;">Dades fake</span>| <span style="color:#86efac;">M[(Mocks)]</span>
   <span style="color:#c4b5fd;">W</span> --&gt;|<span style="color:#67e8f9;">Resultats al mapa</span>| <span style="color:#67e8f9;">MAP[Places Map]</span>
   <span style="color:#c4b5fd;">W</span> --&gt;|<span style="color:#f9a8d4;">Informacio</span>| <span style="color:#f9a8d4;">HELP[Ajuda / Contacte]</span></code></pre>
@@ -1240,7 +1325,7 @@ Actor:
 Flux principal:
 
 1. l'usuari entra a la `home`
-2. veu la proposta de valor de YepPet
+2. veu la proposta de valor de Zuppeto
 3. pot navegar a `places`, `Ajuda` o `Contacta'ns`
 
 ### UC-02 Cercar llocs

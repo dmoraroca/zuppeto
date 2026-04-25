@@ -1,10 +1,10 @@
-# YepPet · Fases del projecte
+# Zuppeto · Fases del projecte
 
-Aquest document defineix com s'organitza el desenvolupament de YepPet per fases, què s'espera de cada etapa i l'estat real de cadascuna.
+Aquest document defineix com s'organitza el desenvolupament de Zuppeto per fases, què s'espera de cada etapa i l'estat real de cadascuna.
 
 ## Objectiu general
 
-YepPet ha de créixer com una plataforma pet-friendly per descobrir llocs, estades i serveis que accepten mascotes. El desenvolupament es farà de manera incremental:
+Zuppeto ha de créixer com una plataforma pet-friendly per descobrir llocs, estades i serveis que accepten mascotes. El desenvolupament es farà de manera incremental:
 
 - primer validant experiència i estructura amb frontend i dades fake
 - després consolidant models i navegació funcional
@@ -104,7 +104,7 @@ Passar de frontend mock-first a un sistema real amb backend i base de dades.
 
 ### Resultat esperat
 
-YepPet deixa de ser una simulació i passa a tenir dades persistides i fluxos reals (**FET**).
+Zuppeto deixa de ser una simulació i passa a tenir dades persistides i fluxos reals (**FET**).
 
 ## Fase IV · Permisos, administració i operativa (**EN CURS**)
 
@@ -160,7 +160,7 @@ Fer el producte multiidioma de manera seriosa, un cop el contingut i l'estructur
 
 ### Resultat esperat
 
-YepPet pot operar en diversos idiomes sense haver d'improvisar textos dispersos dins components (**PENDENT**).
+Zuppeto pot operar en diversos idiomes sense haver d'improvisar textos dispersos dins components (**PENDENT**).
 
 ## Fase VI · Poliment i desplegament (**PENDENT**)
 

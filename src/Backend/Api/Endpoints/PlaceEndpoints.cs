@@ -16,6 +16,7 @@ internal static class PlaceEndpoints
         var adminGroup = app.MapGroup("/api/admin/places").RequireAuthorization().WithTags("Places");
 
         group.MapGet("/", SearchAsync);
+        group.MapGet("/searches/recent", GetRecentSearchesAsync);
         group.MapGet("/cities/search", SearchAvailableCitiesAsync)
             .WithName("SearchAvailablePlaceCities")
             .WithSummary("Search distinct cities that have at least one place (typeahead).")
@@ -54,6 +55,15 @@ internal static class PlaceEndpoints
         CancellationToken cancellationToken)
     {
         var result = await service.GetAvailableCitiesAsync(cancellationToken);
+        return TypedResults.Ok(result);
+    }
+
+    private static async Task<Ok<IReadOnlyCollection<PlaceSearchHistoryDto>>> GetRecentSearchesAsync(
+        int? limit,
+        IPlaceApplicationService service,
+        CancellationToken cancellationToken)
+    {
+        var result = await service.GetRecentSearchesAsync(limit ?? 20, cancellationToken);
         return TypedResults.Ok(result);
     }
 
