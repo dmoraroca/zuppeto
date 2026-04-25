@@ -25,6 +25,8 @@ No substitueix el domini: tradueix el domini actual a una estructura pensada per
 - `favorite_lists`
 - `favorite_entries`
 - `place_reviews`
+- `place_search_queries`
+- `place_search_query_results`
 
 ## Diagrama de relacions
 
@@ -39,6 +41,8 @@ No substitueix el domini: tradueix el domini actual a una estructura pensada per
   <span style="color:#d8b4fe;">TAGS</span> ||--o{ <span style="color:#fca5a5;">PLACE_TAGS</span> : catalog
   <span style="color:#93c5fd;">PLACES</span> ||--o{ <span style="color:#fdba74;">PLACE_FEATURES</span> : offers
   <span style="color:#fde68a;">FEATURES</span> ||--o{ <span style="color:#fdba74;">PLACE_FEATURES</span> : catalog
+  <span style="color:#a7f3d0;">PLACE_SEARCH_QUERIES</span> ||--o{ <span style="color:#67e8f9;">PLACE_SEARCH_QUERY_RESULTS</span> : stores
+  <span style="color:#93c5fd;">PLACES</span> ||--o{ <span style="color:#67e8f9;">PLACE_SEARCH_QUERY_RESULTS</span> : snapshots
 
   <span style="color:#86efac;">USERS</span> {
     uuid id PK
@@ -128,6 +132,29 @@ No substitueix el domini: tradueix el domini actual a una estructura pensada per
     timestamptz created_at_utc
   }</code></pre>
 
+<pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code>  <span style="color:#a7f3d0;">PLACE_SEARCH_QUERIES</span> {
+    uuid id PK
+    varchar query_key UK
+    varchar search_text
+    varchar city
+    varchar type
+    varchar pet_category
+    int hit_count
+    int result_count
+    timestamptz last_run_at_utc
+    timestamptz expires_at_utc
+    timestamptz created_at_utc
+    timestamptz updated_at_utc
+  }
+
+  <span style="color:#67e8f9;">PLACE_SEARCH_QUERY_RESULTS</span> {
+    uuid query_id FK
+    uuid place_id FK
+    int rank
+    timestamptz captured_at_utc
+    PK "query_id + place_id"
+  }</code></pre>
+
 Resum del diagrama:
 
 - `users` es la taula arrel per identitat, rol i perfil
@@ -137,6 +164,8 @@ Resum del diagrama:
 - `place_reviews` relaciona usuaris i llocs amb una ressenya independent
 - `tags` i `features` queden normalitzats per poder filtrar, evolucionar vocabulari i evitar serialitzacions opaques
 - `privacy_consent_events` conserva l'historial de consentiments sense perdre l'estat actual simplificat a `users`
+- `place_search_queries` conserva l'històric operatiu de cerques normalitzades i la seva finestra de vigència
+- `place_search_query_results` desa snapshots ordenats de resultats per consulta per reutilitzar resposta i evitar crides repetides
 
 ## Suport operatiu del model
 
@@ -187,6 +216,8 @@ El bootstrap SQL queda reduit a suport auxiliar i ja no crea l'esquema principal
 - `FavoriteList` -> `favorite_lists`
 - `FavoriteEntry` -> `favorite_entries`
 - `PlaceReview` -> `place_reviews`
+- `PlaceSearchQuery` -> `place_search_queries`
+- `PlaceSearchQueryResult` -> `place_search_query_results`
 - cataleg de tags -> `tags` + `place_tags`
 - cataleg de features -> `features` + `place_features`
 - historial de consentiment -> `privacy_consent_events`
@@ -227,6 +258,8 @@ El bootstrap SQL queda reduit a suport auxiliar i ja no crea l'esquema principal
 - index per `place_tags.tag_id`
 - index per `place_features.feature_id`
 - index per `privacy_consent_events.user_id`
+- index per `place_search_queries.query_key` (unic)
+- index per `place_search_query_results.query_id + rank`
 
 ## Decisions tancades
 

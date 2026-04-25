@@ -69,6 +69,8 @@ erDiagram
     menus ||--o{ menus : "parent_key -> menus.key"
 
     countries ||--o{ cities : "country_id"
+    place_search_queries ||--o{ place_search_query_results : "query_id"
+    places ||--o{ place_search_query_results : "place_id"
 
     users {
         uuid id PK
@@ -196,6 +198,27 @@ erDiagram
         bool is_active
         UK "country_id + normalized_name"
     }
+
+    place_search_queries {
+        uuid id PK
+        varchar query_key UK
+        varchar search_text
+        varchar city
+        varchar type
+        varchar pet_category
+        int hit_count
+        int result_count
+        timestamptz last_run_at_utc
+        timestamptz expires_at_utc
+    }
+
+    place_search_query_results {
+        uuid query_id FK
+        uuid place_id FK
+        int rank
+        timestamptz captured_at_utc
+        PK "query_id + place_id"
+    }
 ```
 
 ## Flux de permisos (resum funcional)
@@ -220,3 +243,4 @@ erDiagram
   - claus uniques de cataleg (`permissions.key`, `menus.key`, `tags.code`, `features.code`, `countries.code`, etc.).
   - restriccions a `places` i `place_reviews` (rang score/rating, review_count no negatiu, etc.).
 - `permissions.scope_payload` es tracta com a JSON lògic de domini, encara que físicament sigui `text`.
+- `place_search_queries` i `place_search_query_results` s'utilitzen com a cache persistent i traçabilitat de cerques de `places` (patró lazy).

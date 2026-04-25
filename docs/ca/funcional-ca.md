@@ -1121,6 +1121,68 @@ Un cop validada la v1, es preveu ampliar amb:
 - pressupost i límits de quota de proveïdors externs
 - llindars numèrics exactes de TTL i cicles de refresc (es definiran a tècnic segons cost i comportament real)
 
+**Flux funcional de cerca de locals (catàleg + extern)**
+
+<pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">sequenceDiagram</span>
+  participant U as Usuari autenticat
+  participant W as Web
+  participant API as API Places
+  participant CAT as Catàleg intern
+  participant EXT as Google Places/Gemini
+  participant CACHE as Cache de consultes
+
+  U-&gt;&gt;W: cerca (text, ciutat, tipus, mascota)
+  W-&gt;&gt;API: GET /api/places
+  API-&gt;&gt;CACHE: hi ha consulta equivalent vigent?
+  alt cache vàlida
+    CACHE--&gt;&gt;API: resultats guardats
+    API--&gt;&gt;W: resposta ràpida
+  else sense cache o cobertura insuficient
+    API-&gt;&gt;CAT: cerca al model propi
+    alt prou cobertura
+      CAT--&gt;&gt;API: resultats interns
+      API-&gt;&gt;CACHE: desa snapshot de consulta
+      API--&gt;&gt;W: resposta
+    else cobertura insuficient
+      API-&gt;&gt;EXT: consulta externa
+      EXT--&gt;&gt;API: candidats de locals
+      API-&gt;&gt;API: normalitza + deduplica
+      API-&gt;&gt;CACHE: desa snapshot + traçabilitat
+      API--&gt;&gt;W: resposta amb candidats vàlids
+    end
+  end</code></pre>
+
+Resum del flux:
+
+- primer es reutilitza el que ja coneix Zuppeto
+- només si falta cobertura s'obre consulta externa
+- la resposta útil es guarda per no repetir costos
+- el comportament es manté igual per a l'usuari (una sola cerca), però amb millor rendiment i escalabilitat
+
+**UML de governança del camp pet-friendly**
+
+<pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">stateDiagram-v2</span>
+  [*] --&gt; AutoDetect: alta/import extern
+  AutoDetect: petFriendly auto (confidence)
+  AutoDetect --&gt; ManualReview: operador o revisió interna
+  ManualReview --&gt; ManualConfirmed: valor manual validat
+  ManualConfirmed --&gt; Recheck: revalidació periòdica
+  Recheck --&gt; ManualConfirmed: sense canvi funcional
+  Recheck --&gt; ManualReview: discrepància o nou context
+</code></pre>
+
+Regla funcional operativa:
+
+- `manual` preval sobre `auto` fins revisió explícita
+- la IA/proveïdor extern no pot sobreescriure silenciosament una decisió manual
+
+**Flux funcional de favorits en aquest bloc**
+
+- només usuaris autenticats poden guardar favorits
+- l'inici mostra fins a 10 favorits en destacat
+- els favorits també actuen com a senyal de prioritat per refrescar consultes i locals
+- aquest comportament forma part del mateix bloc `llocs -> favorits` de Fase IV
+
 ## 4. Actors
 
 Actors actuals:

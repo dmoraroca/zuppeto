@@ -528,6 +528,96 @@ El **criteri de producte i el roadmap per fases** (Fase IV / V, prioritat Espany
 
 Implementació tècnica (resum): consultes de cerca sobre el **catàleg propi** a base de dades; crides a proveïdors externs (p. ex. GeoNames) **només des del backend**; identificadors externs opcionals per traçabilitat; en tancar el disseny, detall d’URLs, claus per entorn, llicències i política de caché en aquest document.
 
+### 2.11.3 Implementació tècnica recent del bloc `llocs` (Fase IV)
+
+Sobre la base anterior, la implementació ja incorpora aquestes peces tècniques:
+
+- cache persistent de cerques de `places` amb taules:
+  - `place_search_queries`
+  - `place_search_query_results`
+- migració aplicada: `AddPlaceSearchQueryCache`
+- resolució de cerca a `PlaceApplicationService` amb patró:
+  1. prova de cache fresca per clau normalitzada
+  2. fallback a repositori de `places`
+  3. persistència de snapshot de resultats per reutilització
+- endpoint públic per observació de consultes recents:
+  - `GET /api/places/searches/recent?limit=...`
+- connector extern base per locals:
+  - `IExternalPlaceSuggestionProvider`
+  - `GooglePlacesSuggestionProvider`
+  - opció de configuració `GooglePlaces` (`BaseUrl`, `ApiKey`, `TimeoutSeconds`)
+- endpoint de preview extern (sense ingestió automàtica al catàleg principal):
+  - `GET /api/places/external/search?query=...&city=...&type=...&limit=...`
+
+Limitacions actuals d'aquest tram (pendent del següent increment):
+
+- el preview extern retorna candidats però encara no fusiona automàticament aquests resultats dins el flux principal de `GET /api/places`
+- la revalidació periòdica (jobs per TTL/prioritat) queda pendent de cablejar
+- sense `GooglePlaces:ApiKey`, el preview extern respon llista buida (comportament esperat)
+
+Exemple de wiring d'endpoint (API):
+
+```csharp
+group.MapGet("/searches/recent", GetRecentSearchesAsync);
+group.MapGet("/external/search", SearchExternalPlacesPreviewAsync);
+```
+
+Exemple de contracte d'aplicació (Application):
+
+```csharp
+public interface IPlaceApplicationService
+{
+    Task<IReadOnlyCollection<PlaceSearchHistoryDto>> GetRecentSearchesAsync(
+        int limit = 20,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyCollection<PlaceExternalCandidateDto>> SearchExternalPreviewAsync(
+        PlaceExternalSearchRequest request,
+        CancellationToken cancellationToken = default);
+}
+```
+
+Exemple de configuració (appsettings):
+
+```json
+"GooglePlaces": {
+  "BaseUrl": "https://maps.googleapis.com/maps/api/place/",
+  "ApiKey": "",
+  "TimeoutSeconds": 6
+}
+```
+
+Diagrama tècnic del tram implementat:
+
+```mermaid
+flowchart LR
+  UI[Web Places] --> API[PlaceEndpoints]
+  API --> APP[PlaceApplicationService]
+  APP --> Q[(place_search_queries)]
+  APP --> QR[(place_search_query_results)]
+  APP --> REP[(PlaceRepository)]
+  APP --> EXT[GooglePlacesSuggestionProvider]
+  EXT --> GP[(Google Places API)]
+```
+
+Exemple de payload de resposta (preview extern):
+
+```json
+[
+  {
+    "name": "Nom del local",
+    "address": "Adreça",
+    "city": "Barcelona",
+    "country": "Espanya",
+    "latitude": 41.39,
+    "longitude": 2.17,
+    "externalId": "abc123",
+    "source": "google_places",
+    "petFriendlyAuto": null
+  }
+]
+```
+
 ### 2.11.1 Base implementada del punt d'autenticació
 
 La primera entrega tècnica real de Fase IV ja incorpora:

@@ -128,16 +128,9 @@ La plataforma ja diferencia entre usuaris públics, usuaris autenticats i àrees
 
 ### Què s'ha fet en aquest tram de la Fase IV
 
-- el punt «pàgines internes» queda **FET** per decisió de direcció de projecte i tancament explícit del punt
-- manteniment intern d'`usuaris` ampliat amb alta més completa (`email`, `contrasenya inicial`, `nom visible`, `ciutat`, `pais`, `rol` i `avatar`) (**FET**)
-- detall d'usuari amb metadades reals (`bio`, consentiment, data d'alta i últim accés) (**FET**)
-- edició de dades bàsiques d'un altre usuari des de `ADMIN` (`nom visible`, `ciutat`, `pais`, `bio`, `rol` i `avatar`) (**FET**)
-- baixa d'usuaris des del manteniment intern (**FET**)
-- registre de l'`ultim acces` a backend en els fluxos reals de login (**FET**)
-- pàgina de `notificacions` connectada al servei global d'errors i avisos, amb marcatge llegit/no llegit i acció de marcar-ho tot com a llegit: implementada al producte, **fora** del mínim login/perfil/usuaris que fixa el punt «pàgines internes»
-- consola addicional (`admin/documentacio`, `admin/permisos`, `admin/menus`, vista `permissions`, etc.): present al codi, **fora** del mínim login/perfil/usuaris del punt «pàgines internes» mentre el criteri de tancament no inclogui aquestes peces
-- manteniments `països` i `ciutats` integrats a `web` i `api` amb permisos, menú i seeder actualitzats (**FET** dins el tancament de pàgines internes)
-- la `gestió de contingut o dades` passa a **EN CURS** amb focus de treball en `llocs`; després continuarà amb `favorits`
+- `pàgines internes` queda **FET** (accés intern i manteniments principals operatius)
+- `gestió de contingut o dades` continua **EN CURS**: focus actual en `llocs` (cerca lazy + base de proveïdor extern), després `favorits`
+- detall funcional i tècnic del tram actual: `docs/ca/funcional-ca.md` (§3.17) i `docs/ca/tecnic-ca.md` (§2.11.3)
 
 ## Fase V · Internacionalització (**PENDENT**)
 
