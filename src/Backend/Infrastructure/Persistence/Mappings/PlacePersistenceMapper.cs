@@ -11,13 +11,17 @@ internal static class PlacePersistenceMapper
 
     public static Place ToDomain(PlaceRecord record)
     {
+        var placeType = Enum.TryParse<PlaceType>(record.Type, ignoreCase: true, out var parsedType)
+            ? parsedType
+            : PlaceType.Service;
+
         var excludeFromOsmMap = record.ExcludeFromOsmMap || record.Latitude is null || record.Longitude is null;
         var latitude = record.Latitude ?? WithheldLatitudeFallback;
         var longitude = record.Longitude ?? WithheldLongitudeFallback;
         var place = new Place(
             record.Id,
             record.Name,
-            Enum.Parse<PlaceType>(record.Type, ignoreCase: true),
+            placeType,
             record.ShortDescription,
             record.Description,
             record.CoverImageUrl,

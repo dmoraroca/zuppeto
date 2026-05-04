@@ -1,4 +1,4 @@
-import { Component, ElementRef, ViewChild, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, ViewChild, computed, effect, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
@@ -48,6 +48,16 @@ export class PlacesPageComponent {
     };
   });
 
+  constructor() {
+    effect(() => {
+      if (!this.placeService.hasLoaded()) {
+        return;
+      }
+
+      this.placeService.refreshListingFilters(this.filters());
+    });
+  }
+
   protected readonly cities = computed(() => this.placeService.getAvailableCities());
   protected readonly types = this.placeService.getAvailableTypes();
   protected readonly places = computed(() => this.placeService.getPlaces(this.filters()));
@@ -58,27 +68,31 @@ export class PlacesPageComponent {
 
     return selectedPlaceId ? this.places().find((place) => place.id === selectedPlaceId) ?? null : null;
   });
-  protected readonly activeFilterLabels = computed(() => {
+  /** Stable keys for control-flow @for (avoid NG0956 when labels share text across updates). */
+  protected readonly activeFilterChips = computed(() => {
     const { city, type, pet, search } = this.filters();
-    const labels: string[] = [];
+    const chips: { id: string; label: string }[] = [];
 
     if (city.trim()) {
-      labels.push(`Ciutat: ${city.trim()}`);
+      chips.push({ id: 'city', label: `Ciutat: ${city.trim()}` });
     }
 
     if (type.trim()) {
-      labels.push(`Tipus: ${this.placeService.resolveTypeLabel(type)}`);
+      chips.push({ id: 'type', label: `Tipus: ${this.placeService.resolveTypeLabel(type)}` });
     }
 
     if (pet !== 'all') {
-      labels.push(pet === 'dogs' ? 'Mascota: gossos' : 'Mascota: gats');
+      chips.push({
+        id: 'pet',
+        label: pet === 'dogs' ? 'Mascota: gossos' : 'Mascota: gats'
+      });
     }
 
     if (search.trim()) {
-      labels.push(`Cerca: ${search.trim()}`);
+      chips.push({ id: 'search', label: `Cerca: ${search.trim()}` });
     }
 
-    return labels;
+    return chips;
   });
   protected readonly pageTitle = computed(() => {
     const { city, type, pet, search } = this.filters();

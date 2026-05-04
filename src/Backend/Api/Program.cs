@@ -1,6 +1,8 @@
 using System.Reflection;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using Serilog.Events;
@@ -9,6 +11,7 @@ using Zuppeto.Application;
 using Zuppeto.Application.Places;
 using Zuppeto.Api.Endpoints;
 using Zuppeto.Infrastructure;
+using Zuppeto.Infrastructure.Persistence;
 
 /// <summary>Carpeta <c>logs</c> al costat de <c>Api.csproj</c> (no depèn del ContentRoot).</summary>
 static string ApiProjectLogsDirectory()
@@ -163,6 +166,21 @@ builder.Services.AddSwaggerGen(options =>
         Title = "Zuppeto API",
         Version = "v1"
     });
+
+    // HTTP bearer scheme: do not set In/Name (OpenAPI 3); Swagger UI shows Authorize and sends Authorization header.
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        Description =
+            "JWT from POST /api/auth/login. Paste only the token (Swagger adds the Bearer prefix)."
+    });
+
+    options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+    {
+        [new OpenApiSecuritySchemeReference("Bearer", document)] = new List<string>()
+    });
 });
 builder.Services.AddCors(options =>
 {
@@ -211,8 +229,24 @@ app.UseSerilogRequestLogging(options =>
 
 await using (var scope = app.Services.CreateAsyncScope())
 {
+    var autoMigrate =
+        app.Environment.IsDevelopment()
+        || string.Equals(
+            Environment.GetEnvironmentVariable("ZUPPETO_AUTO_MIGRATE"),
+            "true",
+            StringComparison.OrdinalIgnoreCase);
+
+    if (autoMigrate)
+    {
+        var db = scope.ServiceProvider.GetRequiredService<ZuppetoDbContext>();
+        await db.Database.MigrateAsync();
+    }
+
     var seeder = scope.ServiceProvider.GetRequiredService<DevelopmentIdentitySeeder>();
     await seeder.SeedAsync();
+
+    var placesSeeder = scope.ServiceProvider.GetRequiredService<DevelopmentPlacesSeeder>();
+    await placesSeeder.SeedAsync();
 }
 
 app.UseExceptionHandler();
@@ -224,6 +258,7 @@ app.UseSwaggerUI(options =>
 {
     options.SwaggerEndpoint("/swagger/v1/swagger.json", "Zuppeto API v1");
     options.RoutePrefix = "swagger";
+    options.EnablePersistAuthorization();
 });
 
 app.MapGet("/", () => "Hello World!");

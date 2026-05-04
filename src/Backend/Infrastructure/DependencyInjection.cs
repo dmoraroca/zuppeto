@@ -110,6 +110,7 @@ public static class DependencyInjection
         services.AddScoped<IAccessTokenIssuer, JwtAccessTokenIssuer>();
         services.AddScoped<IGoogleIdTokenVerifier, GoogleIdTokenVerifier>();
         services.AddScoped<DevelopmentIdentitySeeder>();
+        services.AddScoped<DevelopmentPlacesSeeder>();
         services.AddScoped<IMenuRepository, MenuRepository>();
         services.AddScoped<IPlaceRepository, PlaceRepository>();
         services.AddScoped<IUserRepository, UserRepository>();

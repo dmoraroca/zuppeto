@@ -360,7 +360,7 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
             return null;
         }
 
-        return Enum.Parse<PlaceType>(type, ignoreCase: true);
+        return Enum.TryParse<PlaceType>(type, ignoreCase: true, out var parsed) ? parsed : null;
     }
 
     private static PlaceType ParseRequiredPlaceType(string type)
@@ -370,9 +370,14 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
 
     private static PetCategory ParsePetCategory(string petCategory)
     {
-        return string.IsNullOrWhiteSpace(petCategory)
-            ? PetCategory.All
-            : Enum.Parse<PetCategory>(petCategory, ignoreCase: true);
+        if (string.IsNullOrWhiteSpace(petCategory))
+        {
+            return PetCategory.All;
+        }
+
+        return Enum.TryParse<PetCategory>(petCategory, ignoreCase: true, out var parsed)
+            ? parsed
+            : PetCategory.All;
     }
 
     /// <summary>

@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Infrastructure.Persistence.Migrations;
 
 /// <inheritdoc />
-public class PlaceGoogleCoordinateRedaction : Migration
+public partial class PlaceGoogleCoordinateRedaction : Migration
 {
     /// <inheritdoc />
     protected override void Up(MigrationBuilder migrationBuilder)

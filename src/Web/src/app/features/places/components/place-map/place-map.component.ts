@@ -111,7 +111,8 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
 
       this.map = this.leaflet.map(container, {
         zoomControl: true,
-        scrollWheelZoom: false
+        // Wheel zoom only while the pointer is over the map (Leaflet targets the container).
+        scrollWheelZoom: true
       });
 
       this.leaflet

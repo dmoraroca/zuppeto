@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { catchError, of } from 'rxjs';
 import { firstValueFrom } from 'rxjs';
@@ -118,6 +118,7 @@ export class PlaceService {
     return type in PLACE_TYPE_LABELS ? PLACE_TYPE_LABELS[type as PlaceType] : type;
   }
 
+  /** Full catalog (no query). Used after login so favorites/detail can resolve IDs. */
   reload(): void {
     this.http
       .get<PlaceApiSummaryDto[]>(`${API_BASE_URL}/places`)
@@ -126,6 +127,77 @@ export class PlaceService {
         this.placesState.set(places.map((place) => this.toPlace(place)));
         this.loadedState.set(true);
       });
+  }
+
+  /**
+   * Re-queries the API with listing filters so the backend can apply DB search + Google fallback.
+   * Merges results into {@link placesState} so favorites still resolve older IDs.
+   */
+  refreshListingFilters(filters: PlaceFilters): void {
+    if (!this.shouldSendFilteredPlacesRequest(filters)) {
+      return;
+    }
+
+    const params = this.buildPlacesQueryParams(filters);
+    this.http
+      .get<PlaceApiSummaryDto[]>(`${API_BASE_URL}/places`, { params })
+      .pipe(catchError(() => of([])))
+      .subscribe((places) => {
+        const mapped = places.map((place) => this.toPlace(place));
+        this.placesState.update((existing) => this.mergePlacesById(existing, mapped));
+        this.loadedState.set(true);
+      });
+  }
+
+  private shouldSendFilteredPlacesRequest(filters: PlaceFilters): boolean {
+    const search = (filters.search ?? '').trim();
+    const city = (filters.city ?? '').trim();
+    const type = (filters.type ?? '').trim();
+
+    return (
+      search.length >= 2 ||
+      city.length >= 2 ||
+      type.length > 0 ||
+      filters.pet !== 'all'
+    );
+  }
+
+  private buildPlacesQueryParams(filters: PlaceFilters): HttpParams {
+    let params = new HttpParams();
+    const search = (filters.search ?? '').trim();
+    const city = (filters.city ?? '').trim();
+    const type = (filters.type ?? '').trim();
+
+    if (search.length > 0) {
+      params = params.set('searchText', search);
+    }
+
+    if (city.length > 0) {
+      params = params.set('city', city);
+    }
+
+    if (type.length > 0) {
+      params = params.set('type', type);
+    }
+
+    if (filters.pet !== 'all') {
+      params = params.set('petCategory', filters.pet === 'dogs' ? 'Dogs' : 'Cats');
+    }
+
+    return params;
+  }
+
+  private mergePlacesById(existing: Place[], incoming: Place[]): Place[] {
+    if (incoming.length === 0) {
+      return existing;
+    }
+
+    const map = new Map(existing.map((place) => [place.id, place]));
+    for (const place of incoming) {
+      map.set(place.id, place);
+    }
+
+    return [...map.values()];
   }
 
   private matchesPet(place: Place, pet: PetFilter): boolean {

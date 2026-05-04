@@ -76,9 +76,10 @@
     </div>
 
     <div class="places-page__active-filters-list">
-      @if (activeFilterLabels().length) {
-        @for (label of activeFilterLabels(); track label) {
-          <span>{{ label }}</span>
+      @let filterChips = activeFilterChips();
+      @if (filterChips.length) {
+        @for (chip of filterChips; track chip.id) {
+          <span>{{ chip.label }}</span>
         }
       } @else {
         <span class="places-page__active-filters-empty">Cap filtre actiu</span>
