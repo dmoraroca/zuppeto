@@ -10,8 +10,52 @@ test.beforeAll(async ({ request }) => {
 });
 
 test('pàgina de login (sense sessió)', async ({ page }) => {
+  const pageErrors: string[] = [];
+  page.on('pageerror', (error) => pageErrors.push(error.message));
+
   await page.goto('/login');
   await expect(page.getByRole('heading', { name: /Torna a entrar a Zuppeto/ })).toBeVisible();
+  await expect(page.getByLabel('Email')).toBeVisible();
+  await expect(page.getByLabel('Contrasenya')).toBeVisible();
+
+  const appErrors = pageErrors.filter(
+    (message) => !/runtime\.lastError|message port closed before a response was received/i.test(message)
+  );
+  expect(appErrors).toEqual([]);
+});
+
+test('login mostra error amb credencials incorrectes (ZUP-003)', async ({ page }) => {
+  await page.goto('/login');
+  await page.getByLabel('Email').fill('user.e2e@zuppeto.local');
+  await page.getByLabel('Contrasenya').fill('contrasenya-incorrecta');
+  await page.getByRole('button', { name: 'Iniciar sessió' }).click();
+  await expect(page.getByRole('alert').filter({ hasText: /Credencials incorrectes/i })).toBeVisible();
+});
+
+test('login mostra error amb formulari buit (ZUP-002)', async ({ page }) => {
+  await page.goto('/login');
+  await page.getByRole('button', { name: 'Iniciar sessió' }).click();
+  await expect(page.getByRole('alert').filter({ hasText: /Revisa el formulari/i })).toBeVisible();
+});
+
+test('auth callback sense paràmetres mostra missatge al login (ZUP-015)', async ({ page }) => {
+  await page.goto('/auth/callback');
+  await expect(page).toHaveURL(/\/login/);
+  await expect(page.getByRole('alert').filter({ hasText: /Login social incomplet/i })).toBeVisible();
+});
+
+test('contacte accessible des del login sense sessió (ZUP-001)', async ({ page }) => {
+  await page.goto('/login');
+  await page.getByRole('link', { name: /Demana usuari o recuperació de contrasenya/i }).click();
+  await expect(page).toHaveURL(/\/contacte/);
+  await expect(
+    page.getByRole('heading', { name: /Una via clara per contactar amb Zuppeto/i })
+  ).toBeVisible();
+});
+
+test('ruta protegida redirigeix a login sense sessió (ZUP-026)', async ({ page }) => {
+  await page.goto('/places');
+  await expect(page).toHaveURL(/\/login/);
 });
 
 test('pantalles usuari (USER): inici, llocs, detall, favorits, perfil, notificacions, contacte, ajuda', async ({

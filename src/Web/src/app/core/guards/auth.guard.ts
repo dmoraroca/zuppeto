@@ -13,7 +13,7 @@ export const authGuard: CanActivateFn = (_, state) => {
     return true;
   }
 
-  notifications.notify('Cal iniciar sessió', 'Aquesta pantalla requereix una sessió activa.');
+  notifications.notify('Cal iniciar sessió', 'Aquesta pantalla requereix una sessió activa.', 'info');
 
   return router.createUrlTree(['/login'], {
     queryParams: {

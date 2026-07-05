@@ -67,6 +67,11 @@
           </button>
         </section>
 
+        <p class="login-page__providers-note">
+          En entorn local, els accessos federats es mostren com a «pendent» fins que el proveïdor estigui
+          configurat al servidor.
+        </p>
+
         <p class="login-page__support">
           Necessites accés?
           <a routerLink="/contacte">Demana usuari o recuperació de contrasenya</a>
@@ -78,9 +83,9 @@
     <section class="login-page__story">
       <div class="login-page__hero-grid">
         <div class="login-page__hero-copy">
-          <a class="login-page__brand" routerLink="/" aria-label="Tornar a la home de Zuppeto">
+          <div class="login-page__brand" aria-label="Zuppeto">
             <img src="/images/logo.png" alt="Zuppeto" />
-          </a>
+          </div>
         </div>
       </div>
 
@@ -147,6 +152,9 @@
         </section>
 
         <div class="login-page__mosaic">
+          @if (samplePlaces().length === 0) {
+            <p class="login-page__mosaic-empty">Cap lloc coincideix amb aquests filtres al preview públic.</p>
+          }
           @for (place of samplePlaces(); track place.id) {
             <article class="login-page__place-card">
               <div class="login-page__place-card-top">

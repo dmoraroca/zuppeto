@@ -39,7 +39,13 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
           error.status === 404 &&
           (req.url.includes('/admin/countries') || req.url.includes('/admin/cities'));
 
-        if (!isNavigationMenuRequest && !isGeographicCatalogNotFound) {
+        const isLoginRequest = req.url.includes('/auth/login');
+
+        if (
+          !isNavigationMenuRequest &&
+          !isGeographicCatalogNotFound &&
+          !(error.status === 401 && isLoginRequest)
+        ) {
           notifications.pushHttpError(error);
         }
       } else {

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8" />
+  <title>Estat del projecte Zuppeto</title>
+  <style>
+    @page { margin: 1.8cm; size: A4; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", system-ui, sans-serif;
+      font-size: 10pt;
+      line-height: 1.45;
+      color: #1e293b;
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h1 {
+      font-size: 20pt;
+      color: #0f172a;
+      border-bottom: 3px solid #3b82f6;
+      padding-bottom: 8px;
+      margin-top: 0;
+    }
+    h2 {
+      font-size: 13pt;
+      color: #1e40af;
+      margin-top: 22px;
+      page-break-after: avoid;
+    }
+    h3 {
+      font-size: 11pt;
+      color: #334155;
+      margin-top: 16px;
+      page-break-after: avoid;
+    }
+    .meta { color: #64748b; font-size: 9.5pt; margin-bottom: 20px; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0 16px;
+      font-size: 9.5pt;
+      page-break-inside: avoid;
+    }
+    th, td {
+      border: 1px solid #cbd5e1;
+      padding: 6px 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: #f1f5f9; width: 22%; }
+    .fet { color: #15803d; font-weight: 600; }
+    .nocurs { color: #b45309; font-weight: 600; }
+    .nofet { color: #b91c1c; font-weight: 600; }
+    .resum td:first-child { font-weight: 600; width: 18%; }
+    .footer {
+      margin-top: 28px;
+      padding-top: 10px;
+      border-top: 1px solid #e2e8f0;
+      font-size: 9pt;
+      color: #64748b;
+    }
+    .legenda { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 14px; margin: 14px 0; font-size: 9.5pt; }
+  </style>
+</head>
+<body>
+
+<h1>Estat del projecte Zuppeto</h1>
+<p class="meta">Document generat el 19 de juny de 2026 · Basat en <code>docs/project-phases.md</code> i documentació funcional/tècnica · Darrer commit conegut: <strong>060</strong> (4 de maig de 2026)</p>
+
+<div class="legenda">
+  <strong>Llegenda:</strong>
+  <span class="fet">✅ FET</span> ·
+  <span class="nocurs">⏳ EN CURS</span> (parcial) ·
+  <span class="nofet">❌ NO FET / PENDENT</span>
+</div>
+
+<h2>Fase I — Frontend base (FET)</h2>
+<table>
+  <tr><th class="fet">✅ FET</th><td>Estructura base del projecte</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Web Angular</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Disseny i UX de la home</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Navegació inicial</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Dades fake</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Components reutilitzables</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Base de features, shared i core</td></tr>
+</table>
+
+<h2>Fase II — Consolidació frontend (FET)</h2>
+<table>
+  <tr><th class="fet">✅ FET</th><td>Feature places amb cerca més rica</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Vista mapa a places</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Sincronització mapa / filtres / resultats</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Mode mixt llista + mapa</td></tr>
+  <tr><th class="fet">✅ FET</th><td>UX de marcadors, popups i selecció</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Estratègia d'escalat del mapa amb densitat</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Refinament de favorites (UX frontend)</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Millora del place detail</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Empty states, filtres actius i textos</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Seccions de la home polides</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Components compartits consolidats</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Dades simulades més realistes</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Serveis mock preparats per substituir per API</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Capa base de gestió d'errors</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Interceptor global d'errors HTTP</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Servei central d'errors / notificacions</td></tr>
+  <tr><th class="fet">✅ FET</th><td>UI comuna per errors i missatges globals</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Reducció de try/catch repetits</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Responsive fi de pantalles</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Ajuda, Contacta'ns i pàgines informatives</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Navegació i CTAs amb funció clara</td></tr>
+</table>
+
+<h2>Fase III — Backend real i persistència (FET)</h2>
+<table>
+  <tr><th class="fet">✅ FET</th><td>Model de domini real (DDD)</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Contractes de repositori i necessitats de persistència</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Model relacional a PostgreSQL</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Persistència amb Entity Framework</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Mapatges manuals, migracions i repositoris</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Backend .NET (Domain, Application, Infrastructure, Api)</td></tr>
+  <tr><th class="fet">✅ FET</th><td>API per places, favorites, users, reviews</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Substitució progressiva de mocks per serveis reals</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Dades persistides i fluxos reals (no simulació)</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Stack Docker local (db, api, web)</td></tr>
+</table>
+
+<h2>Fase IV — Permisos, administració i operativa (EN CURS)</h2>
+
+<h3>Punts oficials de la fase</h3>
+<table>
+  <tr><th class="fet">✅ FET</th><td>Autenticació pròpia (login + JWT)</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Autenticació federada Google</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Autenticació federada LinkedIn</td></tr>
+  <tr><th class="nofet">❌ NO FET</th><td>Autenticació federada Facebook (aparcada fins després de publicar)</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Rols i permisos (VIEWER, USER, DEVELOPER, ADMIN)</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Pàgines internes i base d'accés admin</td></tr>
+  <tr><th class="nocurs">⏳ EN CURS</th><td>Gestió de contingut o dades (llocs → després favorits; catàleg territorial)</td></tr>
+  <tr><th class="nofet">❌ NO FET</th><td>Accessos restringits a determinades funcionalitats</td></tr>
+  <tr><th class="nofet">❌ NO FET</th><td>Revisió de documentació (comprovar opcions i buits)</td></tr>
+  <tr><th class="nofet">❌ NO FET</th><td>Canvi de contrasenya i operativa bàsica de credencials</td></tr>
+  <tr><th class="nofet">❌ NO FET</th><td>Resultat global de la fase: diferenciació clara públic / autenticat / intern</td></tr>
+</table>
+
+<h3>Detall fet dins la Fase IV</h3>
+<table>
+  <tr><th class="fet">✅ FET</th><td>Endpoints d'auth (/api/auth/login, /providers, /me, /google, LinkedIn)</td></tr>
+  <tr><th class="fet">✅ FET</th><td>JWT Bearer a la web i als endpoints protegits</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Manteniment usuaris (admin/usuaris: alta, edició, baixa, rol, avatar…)</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Manteniment permisos (admin/permisos)</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Manteniment menús (admin/menus)</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Manteniment rols (admin/rols)</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Manteniment països (admin/paisos)</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Manteniment ciutats (admin/ciutats)</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Pantalla documentació interna (admin/documentacio)</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Combobox de ciutat compartit (places, login, favorits)</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Cerca de ciutats: catàleg BD + GeoNames (Europa)</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Cerca lazy de llocs amb caché de consultes (TTL ~12 h)</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Integració Google Places (fallback quan el catàleg intern és buit)</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Caché de coordenades Google (~30 dies) i worker de compliment</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Traçabilitat de procedència dels llocs</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Manteniment admin de llocs (admin/llocs)</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Millores UX mapa (recenter, zoom amb roda, estabilitat)</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Top 10 favorits destacats a la home</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Refactor backend de favorits (commit 047)</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Infra RabbitMQ a Docker (connexió opcional; sense fluxos de negoci asíncrons)</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Rebrand a Zuppeto (docker, launch, BD, tooling)</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Proves E2E de pàgines internes, rols i seguretat (base)</td></tr>
+</table>
+
+<h3>Detall pendent o parcial dins la Fase IV</h3>
+<table>
+  <tr><th class="nocurs">⏳ EN CURS</th><td>Tancar el bloc funcional complet de llocs (model v1, ingestió/normalització externa, Gemini…)</td></tr>
+  <tr><th class="nofet">❌ NO FET</th><td>Integració Gemini com a proveïdor extern de llocs</td></tr>
+  <tr><th class="nofet">❌ NO FET</th><td>Persistència automàtica de candidats externs al catàleg principal (ara són preview/fallback)</td></tr>
+  <tr><th class="nocurs">⏳ EN CURS</th><td>Bloc favorits dins gestió de contingut (persistència bàsica Fase III; refinament Fase IV pendent)</td></tr>
+  <tr><th class="nocurs">⏳ EN CURS</th><td>Catàleg territorial amb prioritat Espanya (base admin feta; extensió UE a Fase V)</td></tr>
+  <tr><th class="nofet">❌ NO FET</th><td>Exportació de documentació interna a Word</td></tr>
+  <tr><th class="nofet">❌ NO FET</th><td>Restricció fina d'accessos per funcionalitat</td></tr>
+  <tr><th class="nofet">❌ NO FET</th><td>Canvi de contrasenya</td></tr>
+  <tr><th class="nofet">❌ NO FET</th><td>Revisió global de docs del projecte</td></tr>
+  <tr><th class="nofet">❌ NO FET</th><td>Tancament formal del resultat esperat de la Fase IV</td></tr>
+</table>
+
+<h2>Fase V — Internacionalització (PENDENT)</h2>
+<table>
+  <tr><th class="nofet">❌ NO FET</th><td>Fase V sencera</td></tr>
+  <tr><th class="nofet">❌ NO FET</th><td>Territori i GeoNames (extensió UE, API, llicències)</td></tr>
+  <tr><th class="nofet">❌ NO FET</th><td>Estratègia d'i18n</td></tr>
+  <tr><th class="nofet">❌ NO FET</th><td>Idiomes d'Europa</td></tr>
+  <tr><th class="nofet">❌ NO FET</th><td>Àrab</td></tr>
+  <tr><th class="nofet">❌ NO FET</th><td>Xinès</td></tr>
+  <tr><th class="nofet">❌ NO FET</th><td>Suport RTL</td></tr>
+  <tr><th class="nofet">❌ NO FET</th><td>Revisió de longituds de text</td></tr>
+  <tr><th class="nofet">❌ NO FET</th><td>SEO per idioma</td></tr>
+  <tr><th class="nofet">❌ NO FET</th><td>Revisió profunda de privadesa i compliment normatiu</td></tr>
+  <tr><th class="nofet">❌ NO FET</th><td>Documentar classes i funcions (capçaleres) a tota la solució</td></tr>
+  <tr><th class="nofet">❌ NO FET</th><td>Producte multiidioma sense textos dispersos als components</td></tr>
+</table>
+
+<h2>Fase VI — Poliment i desplegament (PENDENT)</h2>
+<table>
+  <tr><th class="nofet">❌ NO FET</th><td>Fase VI sencera</td></tr>
+  <tr><th class="nofet">❌ NO FET</th><td>Optimització visual final</td></tr>
+  <tr><th class="nofet">❌ NO FET</th><td>Revisió de responsive complet</td></tr>
+  <tr><th class="nofet">❌ NO FET</th><td>Revisió de rendiment</td></tr>
+  <tr><th class="nofet">❌ NO FET</th><td>QA</td></tr>
+  <tr><th class="nofet">❌ NO FET</th><td>Desplegament a entorn real</td></tr>
+  <tr><th class="nofet">❌ NO FET</th><td>Observabilitat mínima</td></tr>
+</table>
+
+<h2>Resum ràpid</h2>
+<table class="resum">
+  <tr><td class="fet">Fase I</td><td>✅ FET</td></tr>
+  <tr><td class="fet">Fase II</td><td>✅ FET</td></tr>
+  <tr><td class="fet">Fase III</td><td>✅ FET</td></tr>
+  <tr><td class="nocurs">Fase IV</td><td>⏳ EN CURS — focus: llocs, favorits, credencials, accessos i tancament</td></tr>
+  <tr><td class="nofet">Fase V</td><td>❌ NO FET</td></tr>
+  <tr><td class="nofet">Fase VI</td><td>❌ NO FET</td></tr>
+</table>
+
+<div class="footer">
+  Referència principal: <code>docs/project-phases.md</code> · Detall funcional: <code>docs/ca/funcional-ca.md</code> · Detall tècnic: <code>docs/ca/tecnic-ca.md</code>
+</div>
+
+</body>
+</html>

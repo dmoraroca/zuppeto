@@ -1,10 +1,13 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Injectable, computed, signal } from '@angular/core';
 
+export type NotificationTone = 'error' | 'info' | 'success';
+
 export interface ErrorNotification {
   id: number;
   title: string;
   message: string;
+  tone: NotificationTone;
   createdAt: string;
   readAt: string | null;
 }
@@ -24,15 +27,15 @@ export class ErrorNotificationsService {
 
   pushHttpError(error: HttpErrorResponse): void {
     const notification = this.buildHttpNotification(error);
-    this.push(notification.title, notification.message);
+    this.push(notification.title, notification.message, notification.tone);
   }
 
   pushUnexpectedError(message: string): void {
-    this.push('Error inesperat', message);
+    this.push('Error inesperat', message, 'error');
   }
 
-  notify(title: string, message: string): void {
-    this.push(title, message);
+  notify(title: string, message: string, tone: NotificationTone = 'error'): void {
+    this.push(title, message, tone);
   }
 
   dismiss(id: number): void {
@@ -84,7 +87,7 @@ export class ErrorNotificationsService {
     this.notificationState.set([]);
   }
 
-  private push(title: string, message: string): void {
+  private push(title: string, message: string, tone: NotificationTone = 'error'): void {
     const id = this.nextId++;
 
     this.notificationState.update((items) => [
@@ -92,6 +95,7 @@ export class ErrorNotificationsService {
         id,
         title,
         message,
+        tone,
         createdAt: new Date().toISOString(),
         readAt: null
       },
@@ -99,63 +103,76 @@ export class ErrorNotificationsService {
     ]);
   }
 
-  private buildHttpNotification(error: HttpErrorResponse): Omit<ErrorNotification, 'id' | 'createdAt' | 'readAt'> {
+  private pushWithTone(
+    title: string,
+    message: string,
+    tone: NotificationTone = 'error'
+  ): Omit<ErrorNotification, 'id' | 'createdAt' | 'readAt'> {
+    return { title, message, tone };
+  }
+
+  private buildHttpNotification(
+    error: HttpErrorResponse
+  ): Omit<ErrorNotification, 'id' | 'createdAt' | 'readAt'> {
     if (error.status === 0) {
-      return {
-        title: 'Sense connexió',
-        message: 'No s’ha pogut contactar amb el servidor. Revisa la connexió i torna-ho a provar.'
-      };
+      return this.pushWithTone(
+        'Sense connexió',
+        'No s’ha pogut contactar amb el servidor. Revisa la connexió i torna-ho a provar.',
+        'error'
+      );
     }
 
     if (error.status === 401) {
-      return {
-        title: 'Sessió no autoritzada',
-        message: 'Cal tornar a iniciar sessió per continuar.'
-      };
+      return this.pushWithTone(
+        'Sessió no autoritzada',
+        'Cal tornar a iniciar sessió per continuar.',
+        'error'
+      );
     }
 
     if (error.status === 403) {
-      return {
-        title: 'Accés denegat',
-        message: 'No tens permisos per accedir a aquest recurs.'
-      };
+      return this.pushWithTone(
+        'Accés denegat',
+        'No tens permisos per accedir a aquest recurs.',
+        'error'
+      );
     }
 
     if (error.status === 404) {
       const path = this.tryExtractRequestPath(error.url);
-      return {
-        title: 'Recurs no trobat',
-        message: path
+      return this.pushWithTone(
+        'Recurs no trobat',
+        path
           ? `El servidor ha respost 404 per a «${path}». Comprova l’URL o que l’API tingui la ruta registrada.`
-          : 'El recurs sol·licitat no existeix o ja no està disponible.'
-      };
+          : 'El recurs sol·licitat no existeix o ja no està disponible.',
+        'error'
+      );
     }
 
     if (error.status === 409) {
-      return {
-        title: 'Conflicte',
-        message: this.tryExtractConflictMessage(error)
-      };
+      return this.pushWithTone('Conflicte', this.tryExtractConflictMessage(error), 'error');
     }
 
     if (error.status === 400) {
       const validation = this.tryExtractValidationSummary(error);
       if (validation) {
-        return validation;
+        return this.pushWithTone(validation.title, validation.message, 'error');
       }
     }
 
     if (error.status >= 500) {
-      return {
-        title: 'Error del servidor',
-        message: 'Hi ha hagut un problema intern. Torna-ho a provar mes endavant.'
-      };
+      return this.pushWithTone(
+        'Error del servidor',
+        'Hi ha hagut un problema intern. Torna-ho a provar mes endavant.',
+        'error'
+      );
     }
 
-    return {
-      title: 'Error de petició',
-      message: error.message || 'La petició no s’ha pogut completar correctament.'
-    };
+    return this.pushWithTone(
+      'Error de petició',
+      error.message || 'La petició no s’ha pogut completar correctament.',
+      'error'
+    );
   }
 
   private tryExtractConflictMessage(error: HttpErrorResponse): string {

@@ -223,6 +223,17 @@ public sealed class DevelopmentIdentitySeeder(
             privacyAccepted: true,
             cancellationToken);
 
+        await EnsureUserAsync(
+            email: "dmoraroca@gmail.com",
+            password: "Admin123",
+            role: "User",
+            displayName: "David Moraroca",
+            city: "Barcelona",
+            country: "Espanya",
+            bio: "Usuari de desenvolupament amb rol USER.",
+            privacyAccepted: true,
+            cancellationToken);
+
         await EnsureRolePermissionsAsync(cancellationToken);
         await EnsureMenuRolesAsync(cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);

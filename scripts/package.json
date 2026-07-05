@@ -1,0 +1,9 @@
+{
+  "name": "zuppeto-scripts",
+  "private": true,
+  "type": "module",
+  "description": "One-off tooling scripts (Excel probes generator, etc.)",
+  "dependencies": {
+    "exceljs": "^4.4.0"
+  }
+}

@@ -284,6 +284,15 @@
   gap: 0.85rem;
 }
 
+.login-page__mosaic-empty {
+  margin: 0;
+  padding: 1rem;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 0.9rem;
+}
+
 .login-page__separator {
   position: relative;
   text-align: center;
@@ -376,6 +385,13 @@
 
 .login-page__google-button--hidden {
   display: none;
+}
+
+.login-page__providers-note {
+  margin: 0.35rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: #64748b;
 }
 
 .login-page__support {

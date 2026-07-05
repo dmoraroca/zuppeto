@@ -2,10 +2,15 @@ import { AfterViewInit, Component, ElementRef, OnDestroy, ViewChild, computed, e
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
-import { ErrorNotificationsService } from '../../../../core/services/error-notifications.service';
+import {
+  ErrorNotificationsService,
+  NotificationTone
+} from '../../../../core/services/error-notifications.service';
 import { CityComboboxComponent } from '../../../../shared/components/city-combobox/city-combobox.component';
-import { PlaceFilters } from '../../../places/models/place.model';
+import { PLACES_FAKE } from '../../../places/mock/places.fake';
+import { Place, PlaceFilters } from '../../../places/models/place.model';
 import { PlaceService } from '../../../places/services/place.service';
+import { normalizeSearchQuery, placeMatchesFreeTextSearch } from '../../../places/utils/place-text-search';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
@@ -35,11 +40,11 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
   protected readonly linkedInProvider = signal<boolean>(false);
   protected readonly facebookProvider = signal<boolean>(false);
   protected readonly googleButtonVisible = signal(false);
-  protected readonly previewCities = computed(() => this.placeService.getAvailableCities());
-  protected readonly previewTypes = this.placeService.getAvailableTypes();
-  protected readonly samplePlaces = computed(() =>
-    this.placeService.getPlaces(this.previewFilters()).slice(0, 4)
+  protected readonly previewCities = computed(() =>
+    [...new Set(LOGIN_PREVIEW_PLACES.map((place) => place.city))].sort((a, b) => a.localeCompare(b))
   );
+  protected readonly previewTypes = this.placeService.getAvailableTypes();
+  protected readonly samplePlaces = computed(() => this.filterPreviewPlaces(this.previewFilters()).slice(0, 4));
   protected readonly loginPreviewRoute = computed(() => {
     const filters = this.previewFilters();
     const queryParams = {
@@ -81,7 +86,11 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
 
     const federatedError = this.route.snapshot.queryParamMap.get('federatedError');
     if (federatedError) {
-      this.notifications.notify('Login federat incomplet', 'LinkedIn no ha retornat una sessió vàlida al backend.');
+      this.notifyUser(
+        'Login federat incomplet',
+        'LinkedIn no ha retornat una sessió vàlida al backend.',
+        'error'
+      );
       void this.router.navigate([], {
         relativeTo: this.route,
         replaceUrl: true,
@@ -111,14 +120,22 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
   protected async submit(): Promise<void> {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
-      this.notifications.notify('Revisa el formulari', 'Cal informar un email vàlid i la contrasenya.');
+      this.notifyUser(
+        'Revisa el formulari',
+        'Cal informar un email vàlid i una contrasenya d’almenys 6 caràcters.',
+        'error'
+      );
       return;
     }
 
     const result = await this.authService.login(this.form.getRawValue());
 
     if (!result.ok) {
-      this.notifications.notify('Credencials incorrectes', 'Prova amb admin@admin.adm / Admin123 o user@user.com / Admin123.');
+      this.notifyUser(
+        'Credencials incorrectes',
+        'L’usuari o la contrasenya no són correctes. Revisa les dades i torna-ho a provar.',
+        'error'
+      );
       return;
     }
 
@@ -127,6 +144,11 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
   }
 
   protected goToPreviewSearch(): void {
+    this.notifyUser(
+      'Cerca preparada',
+      'Inicia sessió per obrir Llocs amb els filtres seleccionats. Després del login aniràs directament a la cerca.',
+      'info'
+    );
     void this.router.navigate(['/login'], {
       queryParams: {
         redirectTo: this.loginPreviewRoute()
@@ -134,8 +156,12 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
     });
   }
 
-  protected async generateRoutesPreview(): Promise<void> {
-    await this.router.navigateByUrl(this.loginPreviewRoute());
+  protected generateRoutesPreview(): void {
+    this.notifyUser(
+      'Preview de rutes',
+      'Aquesta acció encara no genera rutes reals. Primer inicia sessió; després podràs obrir Llocs amb els filtres del preview.',
+      'info'
+    );
   }
 
   protected getTypeLabel(type: string): string {
@@ -212,7 +238,14 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
     }
 
     const leaflet = await import('leaflet');
-    const map = leaflet.map(this.previewMapContainer.nativeElement, {
+    const container = this.previewMapContainer.nativeElement;
+
+    // Leaflet can keep container metadata across fast re-renders or HMR in dev mode.
+    if ('_leaflet_id' in container) {
+      delete (container as HTMLDivElement & { _leaflet_id?: number })._leaflet_id;
+    }
+
+    const map = leaflet.map(container, {
       zoomControl: false,
       attributionControl: false,
       scrollWheelZoom: false,
@@ -312,9 +345,10 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
     const result = await this.authService.loginWithGoogle(idToken);
 
     if (!result.ok) {
-      this.notifications.notify(
+      this.notifyUser(
         'Google no disponible',
-        'Configura un Google Client ID vàlid i verifica la federació per activar aquest accés.'
+        'Configura un Google Client ID vàlid i verifica la federació per activar aquest accés.',
+        'error'
       );
       return;
     }
@@ -322,4 +356,44 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
     const redirectTo = this.route.snapshot.queryParamMap.get('redirectTo');
     void this.router.navigateByUrl(redirectTo || this.authService.getPostLoginRoute());
   }
+
+  private notifyUser(title: string, message: string, tone: NotificationTone): void {
+    this.notifications.notify(title, message, tone);
+  }
+
+  private filterPreviewPlaces(filters: PlaceFilters): Place[] {
+    const normalizedSearch = normalizeSearchQuery(filters.search);
+    const cityFilter = (filters.city ?? '').trim();
+    const typeFilter = (filters.type ?? '').trim().toLowerCase();
+
+    return LOGIN_PREVIEW_PLACES.filter((place) => {
+      const matchesSearch = placeMatchesFreeTextSearch(place, normalizedSearch);
+      const placeCity = (place.city ?? '').trim();
+      const matchesCity =
+        !cityFilter || placeCity.localeCompare(cityFilter, 'und', { sensitivity: 'base' }) === 0;
+      const matchesType = !typeFilter || place.type.toString().toLowerCase() === typeFilter;
+      const matchesPet = this.matchesPreviewPet(place, filters.pet);
+
+      return matchesSearch && matchesCity && matchesType && matchesPet;
+    });
+  }
+
+  private matchesPreviewPet(place: Place, pet: PlaceFilters['pet']): boolean {
+    if (pet === 'all') {
+      return true;
+    }
+
+    if (pet === 'dogs') {
+      return place.acceptsDogs;
+    }
+
+    if (pet === 'cats') {
+      return place.acceptsCats;
+    }
+
+    return true;
+  }
 }
+
+/** Public login preview uses curated fake data (no authenticated API load). */
+const LOGIN_PREVIEW_PLACES = PLACES_FAKE;

@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Arquitectura de Zuppeto</title>
+  <style>
+    @page { margin: 2cm; size: A4; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      font-size: 11pt;
+      line-height: 1.55;
+      color: #1e293b;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    h1 {
+      font-size: 22pt;
+      color: #0f172a;
+      border-bottom: 3px solid #3b82f6;
+      padding-bottom: 8px;
+      margin-top: 0;
+    }
+    h2 {
+      font-size: 14pt;
+      color: #1e40af;
+      margin-top: 28px;
+      page-break-after: avoid;
+    }
+    h3 {
+      font-size: 12pt;
+      color: #334155;
+      margin-top: 18px;
+      page-break-after: avoid;
+    }
+    p { margin: 0.6em 0; }
+    ul { margin: 0.5em 0; padding-left: 1.4em; }
+    li { margin: 0.25em 0; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0;
+      font-size: 10pt;
+      page-break-inside: avoid;
+    }
+    th, td {
+      border: 1px solid #cbd5e1;
+      padding: 8px 10px;
+      text-align: left;
+    }
+    th { background: #f1f5f9; font-weight: 600; }
+    tr:nth-child(even) td { background: #f8fafc; }
+    code {
+      font-family: "Consolas", "Monaco", monospace;
+      font-size: 9.5pt;
+      background: #f1f5f9;
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
+    pre {
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 14px 16px;
+      border-radius: 8px;
+      font-size: 9pt;
+      line-height: 1.45;
+      overflow-x: auto;
+      page-break-inside: avoid;
+    }
+    .meta {
+      color: #64748b;
+      font-size: 10pt;
+      margin-bottom: 24px;
+    }
+    .diagram {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 14px 16px;
+      font-family: monospace;
+      font-size: 9pt;
+      line-height: 1.5;
+      white-space: pre;
+      page-break-inside: avoid;
+    }
+    .footer {
+      margin-top: 36px;
+      padding-top: 12px;
+      border-top: 1px solid #e2e8f0;
+      font-size: 9pt;
+      color: #64748b;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Arquitectura de Zuppeto</h1>
+<p class="meta">Document generat el 19 de juny de 2026 · Basat en <code>docs/ca/tecnic-ca.md</code> i l'estat actual del repositori</p>
+
+<p><strong>Zuppeto</strong> és una plataforma pet-friendly per descobrir llocs, estades i serveis que accepten mascotes. L'arquitectura actual combina un <strong>frontend Angular 21</strong> amb un <strong>backend .NET</strong> en capes (DDD), persistència a <strong>PostgreSQL</strong> i desplegament local via <strong>Docker</strong>.</p>
+
+<h2>1. Vista general</h2>
+
+<div class="diagram">Usuari → Navegador → Angular Web (:4200)
+                              ↓ HTTP + JWT
+                         .NET API (:5211)
+                              ↓
+                    Application → Domain
+                              ↓
+                    Infrastructure → PostgreSQL (:5433)
+                              ↓
+                    Leaflet + OpenStreetMap (mapa, client)</div>
+
+<p>El flux principal és: l'usuari interactua amb la web Angular → la web crida l'API REST → l'API delega en serveis d'aplicació → aquests usen el domini i repositoris → la infraestructura persisteix a PostgreSQL.</p>
+
+<h2>2. Estructura del repositori</h2>
+
+<table>
+  <thead>
+    <tr><th>Carpeta</th><th>Rol</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>src/Web/</code></td><td>Frontend Angular 21</td></tr>
+    <tr><td><code>src/Backend/</code></td><td>Backend .NET en 4 capes</td></tr>
+    <tr><td><code>sql/init/</code></td><td>Bootstrap auxiliar de BBDD (no l'esquema principal)</td></tr>
+    <tr><td><code>docker/</code></td><td>Dockerfiles de desenvolupament</td></tr>
+    <tr><td><code>docker-compose.yml</code></td><td>Stack local: db, api, web, rabbitmq</td></tr>
+    <tr><td><code>e2e/</code></td><td>Proves end-to-end amb Playwright</td></tr>
+    <tr><td><code>platform/</code></td><td>Paquets/miralls reutilitzables (p. ex. catàleg geogràfic)</td></tr>
+    <tr><td><code>docs/</code></td><td>Documentació funcional, tècnica i fases del projecte</td></tr>
+  </tbody>
+</table>
+
+<h2>3. Frontend (Angular 21)</h2>
+
+<p>Organitzat per <strong>features</strong>, amb tres capes transversals:</p>
+
+<h3>3.1 core/</h3>
+<p>Peces globals de l'aplicació:</p>
+<ul>
+  <li><strong>Guards</strong>: auth, guest, admin, permission</li>
+  <li><strong>Interceptors</strong>: autenticació JWT i errors HTTP</li>
+  <li><strong>Layout</strong>: capçalera, peu, notificacions d'error</li>
+  <li><strong>Config</strong>: URL de l'API</li>
+</ul>
+
+<h3>3.2 shared/</h3>
+<p>Components reutilitzables (place-card, city-combobox, favorite-toggle-button, etc.)</p>
+
+<h3>3.3 features/</h3>
+<p>Mòduls funcionals independents:</p>
+
+<table>
+  <thead>
+    <tr><th>Feature</th><th>Responsabilitat</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>home</td><td>Landing, hero, ciutats trending</td></tr>
+    <tr><td>places</td><td>Cerca, filtres, mapa Leaflet, detall de lloc</td></tr>
+    <tr><td>favorites</td><td>Llista de favorits de l'usuari</td></tr>
+    <tr><td>auth</td><td>Login, perfil, callback OAuth</td></tr>
+    <tr><td>admin</td><td>Consola interna (usuaris, rols, permisos, menús, territori…)</td></tr>
+    <tr><td>help, contact, notifications</td><td>Pàgines de suport</td></tr>
+  </tbody>
+</table>
+
+<p>Les rutes fan <strong>lazy loading</strong> de components i apliquen guards segons rol/permís. El mapa (<code>place-map</code>) és una capacitat transversal dins places, basada en <strong>Leaflet + OpenStreetMap</strong>.</p>
+
+<h2>4. Backend (.NET) — arquitectura en capes (DDD)</h2>
+
+<p>El backend segueix <strong>Domain-Driven Design</strong> amb separació estricta:</p>
+
+<div class="diagram">Api (Minimal APIs + Swagger)
+    ↓
+Application (casos d'ús, DTOs, validadors)
+    ↓
+Domain (agregats, value objects, regles)
+    ↑ implementa contractes
+Infrastructure (EF, repositoris, auth, integracions)
+    ↓
+PostgreSQL</div>
+
+<h3>4.1 Domain (<code>src/Backend/Domain/</code>)</h3>
+<p>Nucli de negoci, <strong>sense dependències externes</strong>:</p>
+<ul>
+  <li><strong>Agregats</strong>: Place, User, FavoriteList, PlaceReview</li>
+  <li><strong>Value objects</strong>: adreça, geolocalització, política pet, preu, rating, perfil, consentiment</li>
+  <li><strong>Contractes</strong>: IPlaceRepository, IUserRepository, etc.</li>
+  <li>Base comuna: Entity, AggregateRoot, ValueObject, DomainRuleException</li>
+</ul>
+
+<h3>4.2 Application (<code>src/Backend/Application/</code>)</h3>
+<p>Orquestra els casos d'ús:</p>
+<ul>
+  <li>Serveis: PlaceApplicationService, UserApplicationService, FavoriteListApplicationService, AdminApplicationService, AuthApplicationService…</li>
+  <li>DTOs, validadors, commands/handlers</li>
+  <li><strong>No coneix EF ni HTTP</strong></li>
+</ul>
+
+<h3>4.3 Infrastructure (<code>src/Backend/Infrastructure/</code>)</h3>
+<p>Implementacions concretes:</p>
+<ul>
+  <li><strong>EF Core</strong> amb models de persistència propis (*Record), separats del domini</li>
+  <li><strong>Mappers manuals</strong> per agregat (PlacePersistenceMapper, etc.)</li>
+  <li><strong>Repositoris EF</strong> que implementen els contractes del domini</li>
+  <li><strong>Auth</strong>: JWT, OAuth (Google, LinkedIn)</li>
+  <li><strong>Integracions externes</strong>: Google Places, GeoNames</li>
+  <li>Migracions EF com a font de veritat de l'esquema</li>
+</ul>
+
+<h3>4.4 Api (<code>src/Backend/Api/</code>)</h3>
+<p>Capa HTTP fina:</p>
+<ul>
+  <li><strong>Minimal APIs</strong> agrupades per domini (PlaceEndpoints, UserEndpoints, AdminEndpoints…)</li>
+  <li><strong>Swagger</strong> per documentació i proves</li>
+  <li><strong>JWT Bearer</strong> i autorització per rol/permís</li>
+  <li>No accedeix directament al DbContext</li>
+</ul>
+
+<p>Flux d'una petició:</p>
+<pre>HTTP → Endpoint → Application Service → Repository (contracte)
+     → EF Repository + Mapper → PostgreSQL</pre>
+
+<h2>5. Persistència</h2>
+<ul>
+  <li><strong>PostgreSQL 17</strong> via Docker (port extern 5433)</li>
+  <li>L'esquema el governa <strong>Entity Framework</strong> (migracions a Infrastructure/Persistence/Migrations/)</li>
+  <li>El domini <strong>no es mapeja directament</strong> a EF: hi ha models de persistència (*Record) i conversió explícita agregat ↔ record</li>
+  <li>Caché de cerques de places (place_search_queries / place_search_query_results) amb TTL de 12 h</li>
+</ul>
+
+<h2>6. Infraestructura local (Docker)</h2>
+
+<table>
+  <thead>
+    <tr><th>Servei</th><th>Port</th><th>Funció</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>db</td><td>5433</td><td>PostgreSQL</td></tr>
+    <tr><td>api</td><td>5211</td><td>Backend .NET (build + migracions automàtiques)</td></tr>
+    <tr><td>web</td><td>4200</td><td>Angular dev server</td></tr>
+    <tr><td>rabbitmq</td><td>5672 / 15672</td><td>Missatgeria (preparada per a fases futures)</td></tr>
+  </tbody>
+</table>
+
+<h2>7. Seguretat i autorització (Fase IV)</h2>
+
+<table>
+  <thead>
+    <tr><th>Rol</th><th>Accés</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>VIEWER</td><td>Només lectura; sense favorits ni escriptura</td></tr>
+    <tr><td>USER</td><td>Producte funcional complet</td></tr>
+    <tr><td>DEVELOPER</td><td>Producte + documentació interna</td></tr>
+    <tr><td>ADMIN</td><td>Tot, inclòs manteniment d'usuaris/rols/permisos</td></tr>
+  </tbody>
+</table>
+
+<ul>
+  <li>Login propi amb <strong>JWT</strong> + federació <strong>Google</strong> i <strong>LinkedIn</strong></li>
+  <li>Catàleg de permisos per menu, page i action</li>
+  <li>El control s'aplica tant a <strong>Web</strong> (guards + permissionGuard) com a <strong>API</strong> (RequireAuthorization)</li>
+</ul>
+
+<h2>8. Proves</h2>
+<ul>
+  <li><code>e2e/</code>: Playwright — navegació, API, rols, seguretat, pantalles admin</li>
+  <li>Resultats documentats a <code>docs/probes-e2e-resultats/</code></li>
+</ul>
+
+<h2>9. Principis arquitectònics</h2>
+<ol>
+  <li><strong>Frontend primer</strong> (fases I–II amb dades fake), després backend real (Fase III tancada)</li>
+  <li><strong>Arquitectura per features</strong> al frontend</li>
+  <li><strong>DDD + SOLID</strong> al backend: domini net, inversió de dependències, repositoris com a ports</li>
+  <li><strong>Mapping manual</strong> domini ↔ persistència (sense AutoMapper)</li>
+  <li><strong>Integracions externes només al backend</strong> (Google Places, GeoNames)</li>
+  <li><strong>Internacionalització</strong> prevista per al final (Fase V)</li>
+</ol>
+
+<div class="footer">
+  Referència principal: <code>docs/ca/tecnic-ca.md</code> · Estat de fases: <code>docs/project-phases.md</code>
+</div>
+
+</body>
+</html>
