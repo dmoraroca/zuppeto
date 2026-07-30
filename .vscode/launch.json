@@ -16,9 +16,17 @@
         "ASPNETCORE_URLS": "http://localhost:5211"
       },
       "serverReadyAction": {
-        "action": "openExternally",
+        "action": "startDebugging",
+        "name": "Open Swagger + Web (Chrome)",
         "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
       }
+    },
+    {
+      "name": "Open Swagger + Web (Chrome)",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "chromium http://localhost:5211/swagger/index.html; chromium http://localhost:4200",
+      "preLaunchTask": "web up + ready"
     },
     {
       "name": "Docker: DB",
@@ -74,32 +82,32 @@
       "name": "Docker: Swagger",
       "type": "node-terminal",
       "request": "launch",
-      "command": "xdg-open http://localhost:5211/swagger/index.html",
+      "command": "chromium http://localhost:5211/swagger/index.html",
       "preLaunchTask": "api up + ready + vsdbg"
     },
     {
       "name": "Docker: Swagger (from stack)",
       "type": "node-terminal",
       "request": "launch",
-      "command": "xdg-open http://localhost:5211/swagger/index.html"
+      "command": "chromium http://localhost:5211/swagger/index.html"
     },
     {
       "name": "Docker: Web (Debug)",
       "type": "node-terminal",
       "request": "launch",
-      "command": "xdg-open http://localhost:4200",
+      "command": "chromium http://localhost:4200",
       "preLaunchTask": "web up + ready"
     },
     {
-      "name": "Docker: Web (Debug, Brave)",
+      "name": "Docker: Web (Debug, Chrome)",
       "type": "pwa-chrome",
       "request": "launch",
       "url": "http://localhost:4200",
       "webRoot": "${workspaceFolder}/src/Web",
-      "runtimeExecutable": "/usr/bin/brave-browser",
+      "runtimeExecutable": "/snap/bin/chromium",
       "runtimeArgs": [
         "--new-window",
-        "--user-data-dir=/tmp/brave-codex",
+        "--user-data-dir=/tmp/chromium-zuppeto",
         "--no-first-run"
       ],
       "preLaunchTask": "web up + ready"
@@ -108,23 +116,31 @@
       "name": "Docker: Web (Debug, from stack)",
       "type": "node-terminal",
       "request": "launch",
-      "command": "xdg-open http://localhost:4200"
+      "command": "chromium http://localhost:4200"
     },
     {
-      "name": "Docker: Web (Debug, Brave, from stack)",
+      "name": "Docker: Web (Debug, Chrome, from stack)",
       "type": "pwa-chrome",
       "request": "launch",
       "url": "http://localhost:4200",
       "webRoot": "${workspaceFolder}/src/Web",
-      "runtimeExecutable": "/usr/bin/brave-browser",
+      "runtimeExecutable": "/snap/bin/chromium",
       "runtimeArgs": [
         "--new-window",
-        "--user-data-dir=/tmp/brave-codex",
+        "--user-data-dir=/tmp/chromium-zuppeto",
         "--no-first-run"
       ]
     }
   ],
   "compounds": [
+    {
+      "name": "Zuppeto local (F5)",
+      "configurations": [
+        "Zuppeto API (local, F5)",
+        "Docker: Web (Debug)"
+      ],
+      "stopAll": false
+    },
     {
       "name": "Docker: API + Swagger (Attach)",
       "configurations": [

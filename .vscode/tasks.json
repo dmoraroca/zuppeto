@@ -67,7 +67,7 @@
     {
       "label": "docker up web",
       "type": "shell",
-      "command": "docker compose up -d web",
+      "command": "docker compose up -d --no-deps web",
       "problemMatcher": [],
       "presentation": {
         "reveal": "always",

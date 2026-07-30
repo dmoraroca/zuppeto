@@ -1,5 +1,6 @@
 {
   "debug.defaultLaunchConfiguration": "Docker: Stack completa (Attach)",
   "dotnet.defaultSolution": "Zuppeto.sln",
-  "workbench.activityBar.location": "default"
+  "workbench.activityBar.location": "default",
+  "workbench.activityBar.orientation": "vertical"
 }
