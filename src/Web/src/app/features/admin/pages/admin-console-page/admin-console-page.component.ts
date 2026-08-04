@@ -492,7 +492,7 @@ export class AdminConsolePageComponent {
       await this.authService.loadNavigationMenu();
       this.rolePermissionKeysInitial.set({ ...draft });
       this.rolePermissionsEditMode.set(false);
-      this.notifications.notify('Rol actualitzat', `S’han desat els permisos del rol ${role}.`);
+      this.notifications.notify('Rol actualitzat', `S’han desat els permisos del rol ${role}.`, 'success');
     } catch (error: unknown) {
       if (error instanceof HttpErrorResponse) {
         this.notifications.pushHttpError(error);
@@ -524,7 +524,7 @@ export class AdminConsolePageComponent {
       if (this.rolePermissionsModalOpen() && this.selectedRoleForEdit() === role) {
         this.openRolePermissions(role);
       }
-      this.notifications.notify('Assignacions esborrades', `S’han tret tots els permisos del rol ${role}.`);
+      this.notifications.notify('Assignacions esborrades', `S’han tret tots els permisos del rol ${role}.`, 'success');
     } catch (error: unknown) {
       if (error instanceof HttpErrorResponse) {
         this.notifications.pushHttpError(error);
@@ -695,7 +695,7 @@ export class AdminConsolePageComponent {
       const next = await this.adminService.deleteMenu(menu.key);
       this.menus.set(next);
       await this.authService.loadNavigationMenu();
-      this.notifications.notify('Menú eliminat', `S’ha esborrat el menú «${menu.key}».`);
+      this.notifications.notify('Menú eliminat', `S’ha esborrat el menú «${menu.key}».`, 'success');
       this.menuDeleteCandidate.set(null);
       if (this.selectedMenuItem()?.key === menu.key) {
         this.closeMenuModal();
@@ -711,7 +711,7 @@ export class AdminConsolePageComponent {
           message = body.detail ?? body.message ?? body.title ?? message;
         }
       }
-      this.notifications.notify('No s’ha pogut esborrar', message);
+      this.notifications.notify('No s’ha pogut esborrar', message, 'error');
       this.menuDeleteCandidate.set(null);
     }
   }
@@ -730,7 +730,7 @@ export class AdminConsolePageComponent {
 
   protected async saveUserRole(user: AdminUserListItem, role: string): Promise<void> {
     await this.adminService.updateUserRole(user.id, role);
-    this.notifications.notify('Usuari actualitzat', 'El rol s’ha desat correctament.');
+    this.notifications.notify('Usuari actualitzat', 'El rol s’ha desat correctament.', 'success');
     await this.loadUsers();
   }
 
@@ -844,12 +844,12 @@ export class AdminConsolePageComponent {
 
     if (this.detailForm.invalid) {
       this.detailForm.markAllAsTouched();
-      this.notifications.notify('Dades incompletes', 'Revisa nom visible, ciutat, país i bio abans de desar.');
+      this.notifications.notify('Dades incompletes', 'Revisa nom visible, ciutat, país i bio abans de desar.', 'error');
       return;
     }
 
     if (!this.detailPrivacyAccepted()) {
-      this.notifications.notify('Privacitat obligatòria', 'Cal acceptar les condicions de privacitat abans de desar.');
+      this.notifications.notify('Privacitat obligatòria', 'Cal acceptar les condicions de privacitat abans de desar.', 'error');
       return;
     }
 
@@ -871,7 +871,7 @@ export class AdminConsolePageComponent {
       await this.adminService.updateUserRole(user.id, nextRole);
     }
 
-    this.notifications.notify('Usuari actualitzat', 'Els canvis s’han desat correctament.');
+    this.notifications.notify('Usuari actualitzat', 'Els canvis s’han desat correctament.', 'success');
     this.detailPrivacyAccepted.set(false);
     this.detailEditMode.set(false);
     if (avatarOperation) {
@@ -959,12 +959,12 @@ export class AdminConsolePageComponent {
   protected async createUser(): Promise<void> {
     if (this.userForm.invalid) {
       this.userForm.markAllAsTouched();
-      this.notifications.notify('Dades incompletes', 'Cal informar email, contrasenya, nom visible, ciutat i país.');
+      this.notifications.notify('Dades incompletes', 'Cal informar email, contrasenya, nom visible, ciutat i país.', 'error');
       return;
     }
 
     if (!this.createPrivacyAccepted()) {
-      this.notifications.notify('Privacitat obligatòria', 'Cal acceptar les condicions de privacitat abans de crear.');
+      this.notifications.notify('Privacitat obligatòria', 'Cal acceptar les condicions de privacitat abans de crear.', 'error');
       return;
     }
 
@@ -993,7 +993,7 @@ export class AdminConsolePageComponent {
     this.createUserModalOpen.set(false);
     this.createPrivacyAccepted.set(false);
     this.createAvatarPreview.set(null);
-    this.notifications.notify('Usuari creat', 'El nou usuari s’ha creat correctament.');
+    this.notifications.notify('Usuari creat', 'El nou usuari s’ha creat correctament.', 'success');
     if (createdWithAvatar) {
       this.showAvatarSuccessPopup('crear');
     }
@@ -1015,7 +1015,7 @@ export class AdminConsolePageComponent {
     }
 
     this.deleteCandidate.set(null);
-    this.notifications.notify('Usuari eliminat', 'L’usuari s’ha eliminat correctament.');
+    this.notifications.notify('Usuari eliminat', 'L’usuari s’ha eliminat correctament.', 'success');
     await this.loadUsers();
   }
 
@@ -1063,7 +1063,7 @@ export class AdminConsolePageComponent {
 
   protected async submitCreatePermission(): Promise<void> {
     if (!this.createMaintenancePrivacyAccepted()) {
-      this.notifications.notify('Privacitat obligatòria', 'Cal acceptar les condicions de privacitat abans de crear.');
+      this.notifications.notify('Privacitat obligatòria', 'Cal acceptar les condicions de privacitat abans de crear.', 'error');
       return;
     }
 
@@ -1074,7 +1074,7 @@ export class AdminConsolePageComponent {
     const scopeType = draft.scopeType.trim();
 
     if (!key || !displayName || !scopeType) {
-      this.notifications.notify('Dades incompletes', 'Cal informar clau interna, nom visible i tipus del permís.');
+      this.notifications.notify('Dades incompletes', 'Cal informar clau interna, nom visible i tipus del permís.', 'error');
       return;
     }
 
@@ -1111,7 +1111,8 @@ export class AdminConsolePageComponent {
       await this.authService.loadNavigationMenu();
       this.notifications.notify(
         'Permís creat',
-        `S’ha donat d’alta el permís «${created.displayName}».`
+        `S’ha donat d’alta el permís «${created.displayName}».`,
+        'success'
       );
     } catch (error: unknown) {
       if (error instanceof HttpErrorResponse) {
@@ -1225,7 +1226,7 @@ export class AdminConsolePageComponent {
     const description = (draft.description ?? '').trim();
     const scopeType = (draft.scopeType ?? '').trim();
     if (!displayName) {
-      this.notifications.notify('Dades incompletes', 'El nom visible és obligatori.');
+      this.notifications.notify('Dades incompletes', 'El nom visible és obligatori.', 'error');
       return;
     }
     const scopePayload = this.buildScopePayloadJson(scopeType, draft.menuKeys ?? [], draft.pageUrl ?? '');
@@ -1270,7 +1271,7 @@ export class AdminConsolePageComponent {
       }
       await this.authService.loadNavigationMenu();
       this.permissionDetailEditMode.set(false);
-      this.notifications.notify('Permís actualitzat', 'S’han desat el nom, l’àmbit i les assignacions a rols.');
+      this.notifications.notify('Permís actualitzat', 'S’han desat el nom, l’àmbit i les assignacions a rols.', 'success');
     } catch (error: unknown) {
       if (error instanceof HttpErrorResponse) {
         this.notifications.pushHttpError(error);
@@ -1302,7 +1303,7 @@ export class AdminConsolePageComponent {
       this.permissionDeleteCandidate.set(null);
       this.permissions.set(await this.adminService.getPermissions());
       await this.authService.loadNavigationMenu();
-      this.notifications.notify('Permís esborrat', `S’ha eliminat «${p.displayName}».`);
+      this.notifications.notify('Permís esborrat', `S’ha eliminat «${p.displayName}».`, 'success');
     } catch (error: unknown) {
       if (error instanceof HttpErrorResponse) {
         this.notifications.pushHttpError(error);
@@ -1314,14 +1315,14 @@ export class AdminConsolePageComponent {
 
   protected async saveMenu(): Promise<void> {
     if (this.menuIsNew() && !this.createMaintenancePrivacyAccepted()) {
-      this.notifications.notify('Privacitat obligatòria', 'Cal acceptar les condicions de privacitat abans de desar.');
+      this.notifications.notify('Privacitat obligatòria', 'Cal acceptar les condicions de privacitat abans de desar.', 'error');
       return;
     }
 
     const menu = this.editableMenu();
 
     if (!menu.key.trim() || !menu.label.trim()) {
-      this.notifications.notify('Dades incompletes', 'Cal informar `key` i `label` del menú.');
+      this.notifications.notify('Dades incompletes', 'Cal informar `key` i `label` del menú.', 'error');
       return;
     }
 
@@ -1336,7 +1337,7 @@ export class AdminConsolePageComponent {
 
     this.menus.set(next);
     await this.authService.loadNavigationMenu();
-    this.notifications.notify('Menú actualitzat', 'La definició del menú s’ha desat correctament.');
+    this.notifications.notify('Menú actualitzat', 'La definició del menú s’ha desat correctament.', 'success');
 
     if (this.menuIsNew()) {
       this.menuModalOpen.set(false);
@@ -1418,17 +1419,17 @@ export class AdminConsolePageComponent {
 
   protected async saveRole(): Promise<void> {
     if (this.roleIsNew() && !this.createMaintenancePrivacyAccepted()) {
-      this.notifications.notify('Privacitat obligatòria', 'Cal acceptar les condicions de privacitat abans de desar.');
+      this.notifications.notify('Privacitat obligatòria', 'Cal acceptar les condicions de privacitat abans de desar.', 'error');
       return;
     }
 
     const row = this.editableRole();
     if (!row.displayName.trim()) {
-      this.notifications.notify('Dades incompletes', 'El nom visible és obligatori.');
+      this.notifications.notify('Dades incompletes', 'El nom visible és obligatori.', 'error');
       return;
     }
     if (this.roleIsNew() && !row.key.trim()) {
-      this.notifications.notify('Dades incompletes', 'La clau del rol és obligatòria.');
+      this.notifications.notify('Dades incompletes', 'La clau del rol és obligatòria.', 'error');
       return;
     }
     try {
@@ -1437,13 +1438,13 @@ export class AdminConsolePageComponent {
           key: row.key.trim(),
           displayName: row.displayName.trim()
         });
-        this.notifications.notify('Rol creat', 'S’ha donat d’alta el rol.');
+        this.notifications.notify('Rol creat', 'S’ha donat d’alta el rol.', 'success');
       } else {
         await this.adminService.updateRole(row.key, {
           displayName: row.displayName.trim(),
           isActive: row.isActive
         });
-        this.notifications.notify('Rol actualitzat', 'S’han desat els canvis.');
+        this.notifications.notify('Rol actualitzat', 'S’han desat els canvis.', 'success');
       }
       this.roleModalOpen.set(false);
       await this.loadRoleDefinitions();
@@ -1468,7 +1469,7 @@ export class AdminConsolePageComponent {
     }
     try {
       await this.adminService.deleteRole(role.key);
-      this.notifications.notify('Rol esborrat', `S’ha eliminat «${role.key}».`);
+      this.notifications.notify('Rol esborrat', `S’ha eliminat «${role.key}».`, 'success');
       this.roleDeleteCandidate.set(null);
       if (this.roleModalOpen() && this.editableRole().key === role.key) {
         this.closeRoleModal();
@@ -1588,13 +1589,13 @@ export class AdminConsolePageComponent {
 
   protected async saveCountry(): Promise<void> {
     if (this.countryIsNew() && !this.createMaintenancePrivacyAccepted()) {
-      this.notifications.notify('Privacitat obligatòria', 'Cal acceptar les condicions de privacitat abans de desar.');
+      this.notifications.notify('Privacitat obligatòria', 'Cal acceptar les condicions de privacitat abans de desar.', 'error');
       return;
     }
 
     const row = this.editableCountry();
     if (!row.code.trim() || !row.name.trim()) {
-      this.notifications.notify('Dades incompletes', 'Codi i nom són obligatoris.');
+      this.notifications.notify('Dades incompletes', 'Codi i nom són obligatoris.', 'error');
       return;
     }
 
@@ -1606,7 +1607,7 @@ export class AdminConsolePageComponent {
           isActive: row.isActive,
           sortOrder: row.sortOrder
         });
-        this.notifications.notify('País creat', 'S’ha donat d’alta el país.');
+        this.notifications.notify('País creat', 'S’ha donat d’alta el país.', 'success');
       } else if (row.id) {
         await this.adminService.updateCountry(row.id, {
           code: row.code.trim(),
@@ -1614,7 +1615,7 @@ export class AdminConsolePageComponent {
           isActive: row.isActive,
           sortOrder: row.sortOrder
         });
-        this.notifications.notify('País actualitzat', 'S’han desat els canvis.');
+        this.notifications.notify('País actualitzat', 'S’han desat els canvis.', 'success');
       }
       this.countryModalOpen.set(false);
       await this.loadGeographicCountries();
@@ -1639,7 +1640,7 @@ export class AdminConsolePageComponent {
     }
     try {
       await this.adminService.deleteCountry(country.id);
-      this.notifications.notify('País esborrat', `S’ha eliminat «${country.name}».`);
+      this.notifications.notify('País esborrat', `S’ha eliminat «${country.name}».`, 'success');
       this.countryDeleteCandidate.set(null);
       if (this.countryModalOpen() && this.editableCountry().id === country.id) {
         this.closeCountryModal();
@@ -1748,18 +1749,18 @@ export class AdminConsolePageComponent {
 
   protected async saveCity(): Promise<void> {
     if (this.cityIsNew() && !this.createMaintenancePrivacyAccepted()) {
-      this.notifications.notify('Privacitat obligatòria', 'Cal acceptar les condicions de privacitat abans de desar.');
+      this.notifications.notify('Privacitat obligatòria', 'Cal acceptar les condicions de privacitat abans de desar.', 'error');
       return;
     }
 
     const row = this.editableCity();
     if (!row.name.trim()) {
-      this.notifications.notify('Dades incompletes', 'El nom de la ciutat és obligatori.');
+      this.notifications.notify('Dades incompletes', 'El nom de la ciutat és obligatori.', 'error');
       return;
     }
 
     if (this.cityIsNew() && !row.countryId) {
-      this.notifications.notify('Dades incompletes', 'Cal triar un país.');
+      this.notifications.notify('Dades incompletes', 'Cal triar un país.', 'error');
       return;
     }
 
@@ -1770,7 +1771,7 @@ export class AdminConsolePageComponent {
       if (this.cityIsNew()) {
         const resolvedCountryId = await this.resolveCityCountryIdAsync(row.countryId);
         if (!resolvedCountryId) {
-          this.notifications.notify('Error', 'No s’ha pogut preparar el país seleccionat.');
+          this.notifications.notify('Error', 'No s’ha pogut preparar el país seleccionat.', 'error');
           return;
         }
         await this.adminService.createCity({
@@ -1781,7 +1782,7 @@ export class AdminConsolePageComponent {
           isActive: row.isActive,
           sortOrder: row.sortOrder
         });
-        this.notifications.notify('Ciutat creada', 'S’ha donat d’alta la ciutat.');
+        this.notifications.notify('Ciutat creada', 'S’ha donat d’alta la ciutat.', 'success');
       } else if (row.id) {
         await this.adminService.updateCity(row.id, {
           name: row.name.trim(),
@@ -1790,7 +1791,7 @@ export class AdminConsolePageComponent {
           isActive: row.isActive,
           sortOrder: row.sortOrder
         });
-        this.notifications.notify('Ciutat actualitzada', 'S’han desat els canvis.');
+        this.notifications.notify('Ciutat actualitzada', 'S’han desat els canvis.', 'success');
       }
       this.cityModalOpen.set(false);
       await this.loadGeographicCities();
@@ -1815,7 +1816,7 @@ export class AdminConsolePageComponent {
     }
     try {
       await this.adminService.deleteCity(city.id);
-      this.notifications.notify('Ciutat esborrada', `S’ha eliminat «${city.name}».`);
+      this.notifications.notify('Ciutat esborrada', `S’ha eliminat «${city.name}».`, 'success');
       this.cityDeleteCandidate.set(null);
       if (this.cityModalOpen() && this.editableCity().id === city.id) {
         this.closeCityModal();
@@ -1970,7 +1971,7 @@ export class AdminConsolePageComponent {
 
     try {
       await this.adminService.deletePlace(place.id);
-      this.notifications.notify('Lloc esborrat', `S’ha eliminat «${place.name}».`);
+      this.notifications.notify('Lloc esborrat', `S’ha eliminat «${place.name}».`, 'success');
       this.placeDeleteCandidate.set(null);
       if (this.placeModalOpen() && this.editablePlace().id === place.id) {
         this.closePlaceModal();
@@ -1984,14 +1985,14 @@ export class AdminConsolePageComponent {
 
   protected async savePlace(): Promise<void> {
     if (this.placeIsNew() && !this.createMaintenancePrivacyAccepted()) {
-      this.notifications.notify('Privacitat obligatòria', 'Cal acceptar les condicions de privacitat abans de desar.');
+      this.notifications.notify('Privacitat obligatòria', 'Cal acceptar les condicions de privacitat abans de desar.', 'error');
       return;
     }
 
     const place = this.editablePlace();
     const validationError = this.validatePlaceDraft(place);
     if (validationError) {
-      this.notifications.notify('Dades incompletes', validationError);
+      this.notifications.notify('Dades incompletes', validationError, 'error');
       return;
     }
 
@@ -2003,10 +2004,10 @@ export class AdminConsolePageComponent {
     try {
       if (this.placeIsNew()) {
         await this.adminService.createPlace(payload);
-        this.notifications.notify('Lloc creat', 'S’ha donat d’alta el lloc.');
+        this.notifications.notify('Lloc creat', 'S’ha donat d’alta el lloc.', 'success');
       } else if (place.id) {
         await this.adminService.updatePlace(place.id, payload);
-        this.notifications.notify('Lloc actualitzat', 'S’han desat els canvis del lloc.');
+        this.notifications.notify('Lloc actualitzat', 'S’han desat els canvis del lloc.', 'success');
       }
       this.placeModalOpen.set(false);
       await this.loadPlaces();
@@ -2104,7 +2105,7 @@ export class AdminConsolePageComponent {
     const ratingAverage = this.parseOptionalNumber(place.ratingAverage);
     const reviewCount = Number.parseInt(place.reviewCount, 10);
     if (latitude === null || longitude === null || ratingAverage === null || !Number.isFinite(reviewCount)) {
-      this.notifications.notify('Error', 'No s’han pogut convertir els valors numèrics del lloc.');
+      this.notifications.notify('Error', 'No s’han pogut convertir els valors numèrics del lloc.', 'error');
       return null;
     }
 
@@ -2183,15 +2184,14 @@ export class AdminConsolePageComponent {
         this.geographicCatalog404Notified = true;
         this.notifications.notify(
           'Catàleg geogràfic no disponible',
-          'L’API no té encara l’endpoint /api/admin/countries (404). Cal instal·lar el mòdul al backend (vegeu platform/geographic-backend), registrar MapGeographicAdminEndpoints i tornar a arrencar l’API.'
-        );
+          'L’API no té encara l’endpoint /api/admin/countries (404). Cal instal·lar el mòdul al backend (vegeu platform/geographic-backend), registrar MapGeographicAdminEndpoints i tornar a arrencar l’API.', 'error');
         return;
       }
       if (err instanceof HttpErrorResponse) {
         this.notifyHttpError(err, 'No s’han pogut carregar els països.');
         return;
       }
-      this.notifications.notify('Error', 'No s’han pogut carregar els països.');
+      this.notifications.notify('Error', 'No s’han pogut carregar els països.', 'error');
     }
   }
 
@@ -2238,8 +2238,7 @@ export class AdminConsolePageComponent {
           this.geographicCatalog404Notified = true;
           this.notifications.notify(
             'Catàleg geogràfic no disponible',
-            'L’API no té encara l’endpoint /api/admin/cities (404). Cal instal·lar el mòdul al backend (vegeu platform/geographic-backend), registrar MapGeographicAdminEndpoints i tornar a arrencar l’API.'
-          );
+            'L’API no té encara l’endpoint /api/admin/cities (404). Cal instal·lar el mòdul al backend (vegeu platform/geographic-backend), registrar MapGeographicAdminEndpoints i tornar a arrencar l’API.', 'error');
         }
         return;
       }
@@ -2247,7 +2246,7 @@ export class AdminConsolePageComponent {
         this.notifyHttpError(err, 'No s’han pogut carregar les ciutats.');
         return;
       }
-      this.notifications.notify('Error', 'No s’han pogut carregar les ciutats.');
+      this.notifications.notify('Error', 'No s’han pogut carregar les ciutats.', 'error');
     }
   }
 
@@ -2342,7 +2341,7 @@ export class AdminConsolePageComponent {
         this.notifyHttpError(err, 'No s’han pogut carregar els llocs.');
         return;
       }
-      this.notifications.notify('Error', 'No s’han pogut carregar els llocs.');
+      this.notifications.notify('Error', 'No s’han pogut carregar els llocs.', 'error');
     }
   }
 
@@ -2356,7 +2355,7 @@ export class AdminConsolePageComponent {
         message = body.detail ?? body.message ?? body.title ?? message;
       }
     }
-    this.notifications.notify('Error', message);
+    this.notifications.notify('Error', message, 'error');
   }
 
   private async loadUsers(): Promise<void> {
@@ -2384,7 +2383,7 @@ export class AdminConsolePageComponent {
       this.userForm.controls.avatarUrl.setValue(dataUrl);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'No s’ha pogut preparar la imatge.';
-      this.notifications.notify('Imatge no vàlida', message);
+      this.notifications.notify('Imatge no vàlida', message, 'error');
     }
   }
 
@@ -2394,7 +2393,7 @@ export class AdminConsolePageComponent {
       this.detailAvatarPreview.set(dataUrl);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'No s’ha pogut preparar la imatge.';
-      this.notifications.notify('Imatge no vàlida', message);
+      this.notifications.notify('Imatge no vàlida', message, 'error');
     }
   }
 

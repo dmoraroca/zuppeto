@@ -34,7 +34,7 @@ export class ErrorNotificationsService {
     this.push('Error inesperat', message, 'error');
   }
 
-  notify(title: string, message: string, tone: NotificationTone = 'error'): void {
+  notify(title: string, message: string, tone: NotificationTone): void {
     this.push(title, message, tone);
   }
 

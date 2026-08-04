@@ -135,28 +135,32 @@
           </div>
 
           <form id="admin-create-user-form" class="admin-console-form admin-console-form--inline admin-console-form--create" [formGroup]="userForm" (ngSubmit)="createUser()">
+            <p class="form-field-required-hint admin-console-form--full">
+              <strong class="form-field-required" aria-hidden="true">*</strong>
+              Camps obligatoris per crear l’usuari.
+            </p>
             <label>
-              <span>Email <strong class="admin-console-required">*</strong></span>
+              <span>Email <strong class="form-field-required" aria-hidden="true">*</strong></span>
               <input type="email" placeholder="usuari@domini.com" formControlName="email" required />
             </label>
             <label>
-              <span>Contrasenya <strong class="admin-console-required">*</strong></span>
+              <span>Contrasenya <strong class="form-field-required" aria-hidden="true">*</strong></span>
               <input type="password" placeholder="Contrasenya inicial" formControlName="password" required />
             </label>
             <label>
-              <span>Nom visible <strong class="admin-console-required">*</strong></span>
+              <span>Nom visible <strong class="form-field-required" aria-hidden="true">*</strong></span>
               <input placeholder="Nom que veurà l'usuari" formControlName="displayName" required />
             </label>
             <label>
-              <span>Ciutat <strong class="admin-console-required">*</strong></span>
+              <span>Ciutat <strong class="form-field-required" aria-hidden="true">*</strong></span>
               <input placeholder="Ciutat" formControlName="city" required />
             </label>
             <label>
-              <span>País <strong class="admin-console-required">*</strong></span>
+              <span>País <strong class="form-field-required" aria-hidden="true">*</strong></span>
               <input placeholder="País" formControlName="country" required />
             </label>
             <label>
-              <span>Rol <strong class="admin-console-required">*</strong></span>
+              <span>Rol <strong class="form-field-required" aria-hidden="true">*</strong></span>
               <select formControlName="role">
                 @for (role of assignableRoleKeys(); track role) {
                   <option [value]="role">{{ rolePermissionRowLabel(role) }}</option>
@@ -199,7 +203,7 @@
                   [checked]="createPrivacyAccepted()"
                   (change)="createPrivacyAccepted.set($any($event.target).checked)"
                 />
-                <span>Accepto les condicions de privacitat d'aquest entorn intern.</span>
+                <span>Accepto les condicions de privacitat d'aquest entorn intern. <strong class="form-field-required" aria-hidden="true">*</strong></span>
               </label>
               <div class="admin-console-modal__footer-actions">
                 <button type="submit" form="admin-create-user-form" class="admin-console-primary" [disabled]="!canCreateUser() || !createPrivacyAccepted()">
@@ -247,25 +251,25 @@
                 <input [value]="user.email" readonly />
               </label>
               <label>
-                <span>Nom visible</span>
+                <span>Nom visible <strong class="form-field-required" aria-hidden="true">*</strong></span>
                 @if (detailEditMode()) {
-                  <input formControlName="displayName" />
+                  <input formControlName="displayName" aria-required="true" />
                 } @else {
                   <input class="admin-console-static-field" [value]="user.displayName" readonly />
                 }
               </label>
               <label>
-                <span>Ciutat</span>
+                <span>Ciutat <strong class="form-field-required" aria-hidden="true">*</strong></span>
                 @if (detailEditMode()) {
-                  <input formControlName="city" />
+                  <input formControlName="city" aria-required="true" />
                 } @else {
                   <input class="admin-console-static-field" [value]="user.city || '-'" readonly />
                 }
               </label>
               <label>
-                <span>País</span>
+                <span>País <strong class="form-field-required" aria-hidden="true">*</strong></span>
                 @if (detailEditMode()) {
-                  <input formControlName="country" />
+                  <input formControlName="country" aria-required="true" />
                 } @else {
                   <input class="admin-console-static-field" [value]="user.country || '-'" readonly />
                 }
@@ -318,9 +322,9 @@
             </section>
 
             <label class="admin-console-form admin-console-form--readonly">
-              <span>Bio</span>
+              <span>Bio <strong class="form-field-required" aria-hidden="true">*</strong></span>
               @if (detailEditMode()) {
-                <textarea rows="4" formControlName="bio"></textarea>
+                <textarea rows="4" formControlName="bio" aria-required="true"></textarea>
               } @else {
                 <textarea class="admin-console-static-field" rows="4" [value]="user.bio || '-'" readonly></textarea>
               }
@@ -351,7 +355,7 @@
                     [checked]="detailPrivacyAccepted()"
                     (change)="detailPrivacyAccepted.set($any($event.target).checked)"
                   />
-                  <span>Accepto les condicions de privacitat.</span>
+                  <span>Accepto les condicions de privacitat. <strong class="form-field-required" aria-hidden="true">*</strong></span>
                 </label>
               }
 
@@ -590,8 +594,12 @@
             </div>
           </div>
           <form id="admin-create-permission-form" class="admin-console-form admin-console-form--inline admin-console-form--create" (ngSubmit)="submitCreatePermission()">
+            <p class="form-field-required-hint admin-console-form--full">
+              <strong class="form-field-required" aria-hidden="true">*</strong>
+              Camps obligatoris per crear el permís.
+            </p>
             <label>
-              <span>Clau interna <strong class="admin-console-required">*</strong></span>
+              <span>Clau interna <strong class="form-field-required" aria-hidden="true">*</strong></span>
               <input
                 [ngModel]="newPermissionDraft().key"
                 (ngModelChange)="updateCreatePermissionDraft({ key: $event })"
@@ -600,7 +608,7 @@
               />
             </label>
             <label>
-              <span>Nom visible <strong class="admin-console-required">*</strong></span>
+              <span>Nom visible <strong class="form-field-required" aria-hidden="true">*</strong></span>
               <input
                 [ngModel]="newPermissionDraft().displayName"
                 (ngModelChange)="updateCreatePermissionDraft({ displayName: $event })"
@@ -609,7 +617,7 @@
               />
             </label>
             <label>
-              <span>Tipus (àmbit) <strong class="admin-console-required">*</strong></span>
+              <span>Tipus (àmbit) <strong class="form-field-required" aria-hidden="true">*</strong></span>
               <select
                 [ngModel]="newPermissionDraft().scopeType"
                 (ngModelChange)="onCreatePermissionScopeTypeChange($event)"
@@ -654,7 +662,7 @@
             }
             @if (newPermissionDraft().scopeType === 'page') {
               <label class="admin-console-form--full">
-                <span>URL de la pàgina <strong class="admin-console-required">*</strong></span>
+                <span>URL de la pàgina <strong class="form-field-required" aria-hidden="true">*</strong></span>
                 <input
                   [ngModel]="createPermissionPageUrl()"
                   (ngModelChange)="createPermissionPageUrl.set($event)"
@@ -685,7 +693,7 @@
                   [checked]="createMaintenancePrivacyAccepted()"
                   (change)="createMaintenancePrivacyAccepted.set($any($event.target).checked)"
                 />
-                <span>Accepto les condicions de privacitat d'aquest entorn intern.</span>
+                <span>Accepto les condicions de privacitat d'aquest entorn intern. <strong class="form-field-required" aria-hidden="true">*</strong></span>
               </label>
               <div class="admin-console-modal__footer-actions">
                 <button
@@ -762,7 +770,7 @@
                     [checked]="createMaintenancePrivacyAccepted()"
                     (change)="createMaintenancePrivacyAccepted.set($any($event.target).checked)"
                   />
-                  <span>Accepto les condicions de privacitat d'aquest entorn intern.</span>
+                  <span>Accepto les condicions de privacitat d'aquest entorn intern. <strong class="form-field-required" aria-hidden="true">*</strong></span>
                 </label>
               }
               <div class="admin-console-modal__footer-actions">
@@ -836,22 +844,24 @@
               <input class="admin-console-static-field" [value]="perm.key" readonly />
             </label>
             <label>
-              <span>Nom visible</span>
+              <span>Nom visible <strong class="form-field-required" aria-hidden="true">*</strong></span>
               @if (permissionDetailEditMode()) {
                 <input
                   [ngModel]="editablePermissionDetail().displayName"
                   (ngModelChange)="editablePermissionDetail.set({ ...editablePermissionDetail(), displayName: $event })"
+                  aria-required="true"
                 />
               } @else {
                 <input class="admin-console-static-field" [value]="perm.displayName" readonly />
               }
             </label>
             <label>
-              <span>Tipus (àmbit)</span>
+              <span>Tipus (àmbit) <strong class="form-field-required" aria-hidden="true">*</strong></span>
               @if (permissionDetailEditMode()) {
                 <select
                   [ngModel]="editablePermissionDetail().scopeType"
                   (ngModelChange)="setEditablePermissionScopeType($event)"
+                  aria-required="true"
                 >
                   @for (opt of permissionScopeOptions; track opt.value) {
                     <option [value]="opt.value">{{ opt.label }}</option>
@@ -902,11 +912,12 @@
             }
             @if (editablePermissionDetail().scopeType === 'page') {
               <label class="admin-console-form--full">
-                <span>URL de la pàgina</span>
+                <span>URL de la pàgina <strong class="form-field-required" aria-hidden="true">*</strong></span>
                 @if (permissionDetailEditMode()) {
                   <input
                     [ngModel]="editablePermissionDetail().pageUrl"
                     (ngModelChange)="editablePermissionDetail.set({ ...editablePermissionDetail(), pageUrl: $event })"
+                    aria-required="true"
                   />
                 } @else {
                   <input class="admin-console-static-field" readonly [value]="editablePermissionDetail().pageUrl.trim() || '—'" />
@@ -1103,8 +1114,12 @@
             </div>
 
             <div class="admin-console-form admin-console-form--inline">
+              <p class="form-field-required-hint admin-console-form--full">
+                <strong class="form-field-required" aria-hidden="true">*</strong>
+                Camps obligatoris del menú.
+              </p>
               <label>
-                <span>Key <strong class="admin-console-required">*</strong></span>
+                <span>Key <strong class="form-field-required" aria-hidden="true">*</strong></span>
                 <input
                   [ngModel]="editableMenu().key"
                   (ngModelChange)="editableMenu.set({ ...editableMenu(), key: $event })"
@@ -1112,7 +1127,7 @@
                 />
               </label>
               <label>
-                <span>Label <strong class="admin-console-required">*</strong></span>
+                <span>Label <strong class="form-field-required" aria-hidden="true">*</strong></span>
                 <input [ngModel]="editableMenu().label" (ngModelChange)="editableMenu.set({ ...editableMenu(), label: $event })" />
               </label>
               <label>
@@ -1163,7 +1178,7 @@
                     [checked]="createMaintenancePrivacyAccepted()"
                     (change)="createMaintenancePrivacyAccepted.set($any($event.target).checked)"
                   />
-                  <span>Accepto les condicions de privacitat d'aquest entorn intern.</span>
+                  <span>Accepto les condicions de privacitat d'aquest entorn intern. <strong class="form-field-required" aria-hidden="true">*</strong></span>
                 </label>
                 <div class="admin-console-modal__footer-actions">
                   <button
@@ -1228,7 +1243,7 @@
                   <input [value]="editableMenu().key" readonly class="admin-console-static-field" />
                 </label>
                 <label>
-                  <span>Label <strong class="admin-console-required">*</strong></span>
+                  <span>Label <strong class="form-field-required" aria-hidden="true">*</strong></span>
                   <input [ngModel]="editableMenu().label" (ngModelChange)="editableMenu.set({ ...editableMenu(), label: $event })" />
                 </label>
                 <label>
@@ -1414,8 +1429,12 @@
             </div>
           </div>
           <div class="admin-console-form admin-console-form--inline">
+            <p class="form-field-required-hint admin-console-form--full">
+              <strong class="form-field-required" aria-hidden="true">*</strong>
+              Camps obligatoris del rol.
+            </p>
             <label>
-              <span>Clau <strong class="admin-console-required">*</strong></span>
+              <span>Clau <strong class="form-field-required" aria-hidden="true">*</strong></span>
               <input
                 [readonly]="!roleIsNew()"
                 [ngModel]="editableRole().key"
@@ -1424,7 +1443,7 @@
               />
             </label>
             <label>
-              <span>Nom visible <strong class="admin-console-required">*</strong></span>
+              <span>Nom visible <strong class="form-field-required" aria-hidden="true">*</strong></span>
               <input
                 [readonly]="!roleIsNew() && !roleDetailEditMode()"
                 [ngModel]="editableRole().displayName"
@@ -1594,25 +1613,29 @@
             </div>
           </div>
           <div class="admin-console-form admin-console-form--inline">
-            <label><span>Nom <strong class="admin-console-required">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().name" (ngModelChange)="editablePlace.set({ ...editablePlace(), name: $event })" /></label>
-            <label><span>Tipus <strong class="admin-console-required">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().type" (ngModelChange)="editablePlace.set({ ...editablePlace(), type: $event })" /></label>
-            <label><span>Ciutat <strong class="admin-console-required">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().city" (ngModelChange)="editablePlace.set({ ...editablePlace(), city: $event })" /></label>
-            <label><span>País <strong class="admin-console-required">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().country" (ngModelChange)="editablePlace.set({ ...editablePlace(), country: $event })" /></label>
-            <label><span>Adreça <strong class="admin-console-required">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().addressLine1" (ngModelChange)="editablePlace.set({ ...editablePlace(), addressLine1: $event })" /></label>
-            <label><span>Barri <strong class="admin-console-required">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().neighborhood" (ngModelChange)="editablePlace.set({ ...editablePlace(), neighborhood: $event })" /></label>
-            <label><span>Latitud <strong class="admin-console-required">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().latitude" (ngModelChange)="editablePlace.set({ ...editablePlace(), latitude: $event })" /></label>
-            <label><span>Longitud <strong class="admin-console-required">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().longitude" (ngModelChange)="editablePlace.set({ ...editablePlace(), longitude: $event })" /></label>
-            <label><span>Preu <strong class="admin-console-required">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().pricingLabel" (ngModelChange)="editablePlace.set({ ...editablePlace(), pricingLabel: $event })" /></label>
+            <p class="form-field-required-hint admin-console-form--full">
+              <strong class="form-field-required" aria-hidden="true">*</strong>
+              Camps obligatoris del lloc.
+            </p>
+            <label><span>Nom <strong class="form-field-required" aria-hidden="true">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().name" (ngModelChange)="editablePlace.set({ ...editablePlace(), name: $event })" /></label>
+            <label><span>Tipus <strong class="form-field-required" aria-hidden="true">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().type" (ngModelChange)="editablePlace.set({ ...editablePlace(), type: $event })" /></label>
+            <label><span>Ciutat <strong class="form-field-required" aria-hidden="true">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().city" (ngModelChange)="editablePlace.set({ ...editablePlace(), city: $event })" /></label>
+            <label><span>País <strong class="form-field-required" aria-hidden="true">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().country" (ngModelChange)="editablePlace.set({ ...editablePlace(), country: $event })" /></label>
+            <label><span>Adreça <strong class="form-field-required" aria-hidden="true">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().addressLine1" (ngModelChange)="editablePlace.set({ ...editablePlace(), addressLine1: $event })" /></label>
+            <label><span>Barri <strong class="form-field-required" aria-hidden="true">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().neighborhood" (ngModelChange)="editablePlace.set({ ...editablePlace(), neighborhood: $event })" /></label>
+            <label><span>Latitud <strong class="form-field-required" aria-hidden="true">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().latitude" (ngModelChange)="editablePlace.set({ ...editablePlace(), latitude: $event })" /></label>
+            <label><span>Longitud <strong class="form-field-required" aria-hidden="true">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().longitude" (ngModelChange)="editablePlace.set({ ...editablePlace(), longitude: $event })" /></label>
+            <label><span>Preu <strong class="form-field-required" aria-hidden="true">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().pricingLabel" (ngModelChange)="editablePlace.set({ ...editablePlace(), pricingLabel: $event })" /></label>
             <label><span>Rating</span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().ratingAverage" (ngModelChange)="editablePlace.set({ ...editablePlace(), ratingAverage: $event })" /></label>
             <label><span>Reviews</span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().reviewCount" (ngModelChange)="editablePlace.set({ ...editablePlace(), reviewCount: $event })" /></label>
             <label class="admin-console-inline"><input type="checkbox" [disabled]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().acceptsDogs" (ngModelChange)="editablePlace.set({ ...editablePlace(), acceptsDogs: !!$event })" /><span>Accepta gossos</span></label>
             <label class="admin-console-inline"><input type="checkbox" [disabled]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().acceptsCats" (ngModelChange)="editablePlace.set({ ...editablePlace(), acceptsCats: !!$event })" /><span>Accepta gats</span></label>
-            <label><span>Política mascotes <strong class="admin-console-required">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().petPolicyLabel" (ngModelChange)="editablePlace.set({ ...editablePlace(), petPolicyLabel: $event })" /></label>
-            <label><span>Cover URL <strong class="admin-console-required">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().coverImageUrl" (ngModelChange)="editablePlace.set({ ...editablePlace(), coverImageUrl: $event })" /></label>
+            <label><span>Política mascotes <strong class="form-field-required" aria-hidden="true">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().petPolicyLabel" (ngModelChange)="editablePlace.set({ ...editablePlace(), petPolicyLabel: $event })" /></label>
+            <label><span>Cover URL <strong class="form-field-required" aria-hidden="true">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().coverImageUrl" (ngModelChange)="editablePlace.set({ ...editablePlace(), coverImageUrl: $event })" /></label>
             <label><span>Tags (coma)</span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().tags" (ngModelChange)="editablePlace.set({ ...editablePlace(), tags: $event })" /></label>
             <label><span>Features (coma)</span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().features" (ngModelChange)="editablePlace.set({ ...editablePlace(), features: $event })" /></label>
-            <label class="admin-console-form admin-console-form--readonly"><span>Descripció curta <strong class="admin-console-required">*</strong></span><textarea rows="2" [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().shortDescription" (ngModelChange)="editablePlace.set({ ...editablePlace(), shortDescription: $event })"></textarea></label>
-            <label class="admin-console-form admin-console-form--readonly"><span>Descripció <strong class="admin-console-required">*</strong></span><textarea rows="4" [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().description" (ngModelChange)="editablePlace.set({ ...editablePlace(), description: $event })"></textarea></label>
+            <label class="admin-console-form admin-console-form--readonly"><span>Descripció curta <strong class="form-field-required" aria-hidden="true">*</strong></span><textarea rows="2" [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().shortDescription" (ngModelChange)="editablePlace.set({ ...editablePlace(), shortDescription: $event })"></textarea></label>
+            <label class="admin-console-form admin-console-form--readonly"><span>Descripció <strong class="form-field-required" aria-hidden="true">*</strong></span><textarea rows="4" [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().description" (ngModelChange)="editablePlace.set({ ...editablePlace(), description: $event })"></textarea></label>
             <label class="admin-console-form admin-console-form--readonly"><span>Notes política mascotes</span><textarea rows="3" [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().petPolicyNotes" (ngModelChange)="editablePlace.set({ ...editablePlace(), petPolicyNotes: $event })"></textarea></label>
 
             <div class="admin-console-form admin-console-form--readonly" style="grid-column: 1 / -1">
@@ -1672,7 +1695,7 @@
                     [checked]="createMaintenancePrivacyAccepted()"
                     (change)="createMaintenancePrivacyAccepted.set($any($event.target).checked)"
                   />
-                  <span>Accepto les condicions de privacitat d'aquest entorn intern.</span>
+                  <span>Accepto les condicions de privacitat d'aquest entorn intern. <strong class="form-field-required" aria-hidden="true">*</strong></span>
                 </label>
               }
               <div class="admin-console-modal__footer-actions">
@@ -1801,8 +1824,12 @@
             </div>
           </div>
           <div class="admin-console-form admin-console-form--inline">
+            <p class="form-field-required-hint admin-console-form--full">
+              <strong class="form-field-required" aria-hidden="true">*</strong>
+              Camps obligatoris del país.
+            </p>
             <label>
-              <span>Codi <strong class="admin-console-required">*</strong></span>
+              <span>Codi <strong class="form-field-required" aria-hidden="true">*</strong></span>
               <input
                 [readonly]="!countryIsNew() && !countryDetailEditMode()"
                 [ngModel]="editableCountry().code"
@@ -1811,7 +1838,7 @@
               />
             </label>
             <label>
-              <span>Nom <strong class="admin-console-required">*</strong></span>
+              <span>Nom <strong class="form-field-required" aria-hidden="true">*</strong></span>
               <input
                 [readonly]="!countryIsNew() && !countryDetailEditMode()"
                 [ngModel]="editableCountry().name"
@@ -1846,7 +1873,7 @@
                     [checked]="createMaintenancePrivacyAccepted()"
                     (change)="createMaintenancePrivacyAccepted.set($any($event.target).checked)"
                   />
-                  <span>Accepto les condicions de privacitat d'aquest entorn intern.</span>
+                  <span>Accepto les condicions de privacitat d'aquest entorn intern. <strong class="form-field-required" aria-hidden="true">*</strong></span>
                 </label>
               }
               <div class="admin-console-modal__footer-actions">
@@ -2002,9 +2029,13 @@
             </div>
           </div>
           <div class="admin-console-form admin-console-form--inline">
+            <p class="form-field-required-hint admin-console-form--full">
+              <strong class="form-field-required" aria-hidden="true">*</strong>
+              Camps obligatoris de la ciutat.
+            </p>
             @if (cityIsNew()) {
               <label>
-                <span>País <strong class="admin-console-required">*</strong></span>
+                <span>País <strong class="form-field-required" aria-hidden="true">*</strong></span>
                 <select
                   [ngModel]="editableCity().countryId"
                   (ngModelChange)="onCityCountryChange($event)"
@@ -2022,7 +2053,7 @@
               </label>
             }
             <label>
-              <span>Nom <strong class="admin-console-required">*</strong></span>
+              <span>Nom <strong class="form-field-required" aria-hidden="true">*</strong></span>
               <input
                 [readonly]="!cityIsNew() && !cityDetailEditMode()"
                 [ngModel]="editableCity().name"
@@ -2082,7 +2113,7 @@
                     [checked]="createMaintenancePrivacyAccepted()"
                     (change)="createMaintenancePrivacyAccepted.set($any($event.target).checked)"
                   />
-                  <span>Accepto les condicions de privacitat d'aquest entorn intern.</span>
+                  <span>Accepto les condicions de privacitat d'aquest entorn intern. <strong class="form-field-required" aria-hidden="true">*</strong></span>
                 </label>
               }
               <div class="admin-console-modal__footer-actions">

@@ -15,8 +15,7 @@ export const adminGuard: CanActivateFn = (_, state) => {
 
   notifications.notify(
     'Accés restringit',
-    'Aquesta vista només està disponible per a l’usuari administrador.'
-  );
+    'Aquesta vista només està disponible per a l’usuari administrador.', 'error');
 
   return router.createUrlTree([auth.isAuthenticated() ? '/' : '/login'], {
     queryParams: auth.isAuthenticated()

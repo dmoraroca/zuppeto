@@ -8,6 +8,7 @@
   --yp-color-surface: #ffffff;
   --yp-color-surface-soft: #f3f4f6;
   --yp-color-border: #d1d5db;
+  --yp-color-required: #c2410c;
   --yp-shadow-soft: 0 20px 45px -28px rgba(6, 95, 70, 0.45);
   --yp-max-width: 1120px;
 }
@@ -76,4 +77,39 @@ a {
 app-root router-outlet + * > main {
   flex: 1 1 auto;
   min-height: 0;
+}
+
+/* Required field marker — shared across profile, login and admin maintenance forms */
+.form-field-required {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 0.28rem;
+  min-width: 0.85rem;
+  color: var(--yp-color-required);
+  font-weight: 800;
+  font-size: 1.05em;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-shadow: 0 0 0.35rem rgba(194, 65, 12, 0.28);
+  vertical-align: text-top;
+}
+
+.form-field-required-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0 0 0.85rem;
+  padding: 0.45rem 0.7rem;
+  border-radius: 0.65rem;
+  border: 1px solid rgba(194, 65, 12, 0.22);
+  background: rgba(255, 247, 237, 0.92);
+  color: #9a3412;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.form-field-required-hint .form-field-required {
+  margin-left: 0;
 }

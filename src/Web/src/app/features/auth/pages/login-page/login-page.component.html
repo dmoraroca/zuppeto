@@ -11,13 +11,13 @@
 
         <form class="login-form" [formGroup]="form" (ngSubmit)="submit()">
           <label class="login-form__field">
-            <span>Email</span>
-            <input type="email" formControlName="email" placeholder="admin@admin.adm" />
+            <span>Email <strong class="form-field-required" aria-hidden="true">*</strong></span>
+            <input type="email" formControlName="email" placeholder="admin@admin.adm" aria-required="true" />
           </label>
 
           <label class="login-form__field">
-            <span>Contrasenya</span>
-            <input type="password" formControlName="password" placeholder="Admin123" />
+            <span>Contrasenya <strong class="form-field-required" aria-hidden="true">*</strong></span>
+            <input type="password" formControlName="password" placeholder="Admin123" aria-required="true" />
           </label>
 
           <button #loginSubmitButton class="login-form__submit" type="submit">Iniciar sessió</button>

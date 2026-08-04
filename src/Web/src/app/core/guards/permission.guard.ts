@@ -11,7 +11,7 @@ export function permissionGuard(permissionKey: string, deniedMessage: string): C
     const notifications = inject(ErrorNotificationsService);
 
     if (!auth.isAuthenticated()) {
-      notifications.notify('Cal iniciar sessió', 'Aquesta pantalla requereix una sessió activa.');
+      notifications.notify('Cal iniciar sessió', 'Aquesta pantalla requereix una sessió activa.', 'info');
 
       return router.createUrlTree(['/login'], {
         queryParams: {
@@ -24,7 +24,7 @@ export function permissionGuard(permissionKey: string, deniedMessage: string): C
       return true;
     }
 
-    notifications.notify('Accés restringit', deniedMessage);
+    notifications.notify('Accés restringit', deniedMessage, 'error');
     return router.createUrlTree(['/']);
   };
 }

@@ -73,15 +73,14 @@ export class ProfilePageComponent {
     if (!this.isAdmin() && !this.form.controls.privacyAccepted.value) {
       this.notifications.notify(
         'Consentiment obligatori',
-        'Per guardar el perfil cal acceptar el tractament de dades del manteniment d’usuari.'
-      );
+        'Per guardar el perfil cal acceptar el tractament de dades del manteniment d’usuari.', 'error');
 
       return;
     }
 
     if (this.form.invalid) {
       this.form.markAllAsTouched();
-      this.notifications.notify('Revisa el perfil', 'Completa tots els camps obligatoris abans de guardar.');
+      this.notifications.notify('Revisa el perfil', 'Completa tots els camps obligatoris abans de guardar.', 'error');
 
       return;
     }
@@ -96,12 +95,12 @@ export class ProfilePageComponent {
       privacyAccepted: this.isAdmin() ? true : value.privacyAccepted
     });
 
-    this.notifications.notify('Perfil actualitzat', 'Els canvis s’han guardat correctament sobre backend real.');
+    this.notifications.notify('Perfil actualitzat', 'Els canvis s’han guardat correctament sobre backend real.', 'success');
   }
 
   protected logout(): void {
     this.authService.logout();
-    this.notifications.notify('Sessió tancada', 'Has sortit del perfil de proves.');
+    this.notifications.notify('Sessió tancada', 'Has sortit del perfil de proves.', 'info');
     void this.router.navigate(['/login'], {
       replaceUrl: true
     });
@@ -114,7 +113,7 @@ export class ProfilePageComponent {
       this.form.controls.avatarUrl.setValue(dataUrl);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'No s’ha pogut preparar la imatge.';
-      this.notifications.notify('Imatge no vàlida', message);
+      this.notifications.notify('Imatge no vàlida', message, 'error');
     }
   }
 }

@@ -598,8 +598,9 @@
   font-weight: 700;
 }
 
+/* Prefer global .form-field-required; keep alias for any leftover markup */
 .admin-console-required {
-  color: #b91c1c;
+  color: var(--yp-color-required, #c2410c);
   font-weight: 800;
 }
 
