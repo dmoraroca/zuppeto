@@ -1,0 +1,40 @@
+---
+description: Protocol de backup abans de tocar l'Excel MAIN de proves pantalles
+globs: docs/probes-e2e/**
+alwaysApply: true
+---
+
+# Excel proves pantalles · backup obligatori
+
+Abans de **modificar, regenerar o substituir** l'Excel principal de proves de pàgines:
+
+**Fitxer viu:** `docs/probes-e2e/probes-pagines/MAIN_PROBES_ZUPETTO.xlsx`  
+**Carpeta backups:** `docs/probes-e2e/probes-pagines/BACKUPS/`
+
+## Protocol (ordre estricte)
+
+1. **Copiar** `MAIN_PROBES_ZUPETTO.xlsx` cap a `BACKUPS/`.
+2. **Anomenar la còpia** (no deixar el nom MAIN al backup) així:
+
+```text
+YYYYMMDD-NNN-PROBES E2E ZUPETTO.xlsx
+```
+
+- `YYYYMMDD`: data d'avui (Europe/Madrid).
+- `NNN`: índex incremental de **3 xifres** per a aquella data dins `BACKUPS/` (primer del dia `001`, després `002`, …). Mirar els fitxers ja existents amb el mateix `YYYYMMDD-` i agafar el següent.
+- Respectar el text exacte `PROBES E2E ZUPETTO` (com al nom del MAIN actual).
+
+3. Després del backup, sí es pot editar / regenerar / actualitzar el **MAIN** (el MAIN es queda amb el nom `MAIN_PROBES_ZUPETTO.xlsx`).
+
+## Com passar proves a l'usuari (xat)
+
+- Una línia per columna de la fila Excel, cadascuna iniciada amb `-`.
+- Filtre en curs (si l'usuari el defineix): p. ex. **Chrome** + **USER**.
+- **Sempre prioritzar per Prioritat** abans que per codi o ordre de fila: `Alta` → `Mitjana` → `Baixa` (o equivalents). Dins la mateixa prioritat, el següent PENDENT per ordre natural.
+- No omplir el xat amb formats llargs ni taules; només el bloc `- Columna: valor`.
+
+## Prohibit
+
+- Tocar el MAIN sense haver fet abans el pas 1–2.
+- Esborrar fitxers de `BACKUPS/` sense que l'usuari ho demani explícitament.
+- Moure o reorganitzar altres fitxers de `docs/probes-e2e/` sense instrucció explícita.
