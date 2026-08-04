@@ -1,0 +1,42 @@
+@if (visibleToasts().length) {
+  <section class="app-toast-stack" aria-label="Missatges del sistema">
+    @for (toast of visibleToasts(); track toast.id) {
+      <article
+        class="app-toast"
+        [class.app-toast--error]="toast.tone === 'error'"
+        [class.app-toast--info]="toast.tone === 'info'"
+        [class.app-toast--success]="toast.tone === 'success'"
+        [class.app-toast--leaving]="isFading(toast.id)"
+        role="alert"
+        aria-live="assertive"
+      >
+        <div class="app-toast__accent" aria-hidden="true"></div>
+
+        <div class="app-toast__icon" aria-hidden="true">
+          @if (toast.tone === 'success') {
+            <span>✓</span>
+          } @else if (toast.tone === 'info') {
+            <span>i</span>
+          } @else {
+            <span>!</span>
+          }
+        </div>
+
+        <div class="app-toast__content">
+          <p class="app-toast__eyebrow">{{ toneLabel(toast.tone) }}</p>
+          <strong class="app-toast__title">{{ toast.title }}</strong>
+          <p class="app-toast__message">{{ toast.message }}</p>
+        </div>
+
+        <button
+          type="button"
+          class="app-toast__close"
+          (click)="dismissToast(toast)"
+          aria-label="Tancar missatge"
+        >
+          ×
+        </button>
+      </article>
+    }
+  </section>
+}

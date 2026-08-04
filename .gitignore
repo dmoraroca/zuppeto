@@ -43,7 +43,7 @@ scripts/node_modules/
 src/Backend/Api/logs/*.log
 src/Backend/Api/logs/*.txt
 
-# Core dumps (crash dumps)
-core
-core.*
+# Core dumps (crash dumps) — only dump files, not folders named "core" (e.g. Angular app/core)
+/core
+/core.[0-9]*
 src/Backend/Api/core
