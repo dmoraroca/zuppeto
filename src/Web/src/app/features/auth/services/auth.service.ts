@@ -58,7 +58,7 @@ export class AuthService {
         })
       );
 
-      const mappedSession = this.toSession(session);
+      const mappedSession = this.toSession(this.normalizeSession(session));
       this.sessionState.set(mappedSession);
       this.authStore.saveSession(mappedSession);
       await this.loadNavigationMenu();
@@ -77,7 +77,7 @@ export class AuthService {
         })
       );
 
-      const mappedSession = this.toSession(session);
+      const mappedSession = this.toSession(this.normalizeSession(session));
       this.sessionState.set(mappedSession);
       this.authStore.saveSession(mappedSession);
       await this.loadNavigationMenu();
@@ -642,14 +642,12 @@ export class AuthService {
       });
   }
 
+  /**
+   * Force /perfil only for incomplete accounts (e.g. new federated users with empty location).
+   * Privacy/bio are required when saving the profile page, not on every login.
+   */
   private requiresProfileCompletion(user: AuthUser): boolean {
-    return (
-      !user.name.trim() ||
-      !user.city.trim() ||
-      !user.country.trim() ||
-      !user.bio.trim() ||
-      !user.privacyAccepted
-    );
+    return !(user.name ?? '').trim() || !(user.city ?? '').trim() || !(user.country ?? '').trim();
   }
 }
 

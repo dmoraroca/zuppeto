@@ -1563,7 +1563,7 @@ Punts encara previstos:
 Resum del diagrama:
 
 - el login converteix l'usuari public en `USER` o `ADMIN`
-- el `USER` entra al flux de perfil i a futur als favorits persistits
+- el `USER` amb perfil ja creat (nom, ciutat i país) entra a l'inici del producte; només es força `/perfil` si el compte encara no té aquestes dades bàsiques
 - l'`ADMIN` tindra acces a funcionalitats internes separades del flux public
 
 ### 8.2 Flux funcional de login estandard

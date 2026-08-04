@@ -1494,8 +1494,9 @@ Despres del login:
 
 - si existeix `redirectTo`, s'usa aquesta ruta
 - si no existeix:
-  - `USER` va a `/perfil`
-  - `ADMIN` va a `/permissions`
+  - comptes amb perfil incomplet (sense nom, ciutat o país, tipic d'alta federada nova) van a `/perfil`
+  - la resta van a `/` (inici); admin amb permisos pot anar a les pantalles internes corresponents
+  - el consentiment i la bio es demanen en desar el perfil, no es forcen a cada login
 
 ### 9.5 Perfil i consentiment
 

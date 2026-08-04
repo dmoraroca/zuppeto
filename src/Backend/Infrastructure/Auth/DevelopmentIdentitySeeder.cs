@@ -234,6 +234,39 @@ public sealed class DevelopmentIdentitySeeder(
             privacyAccepted: true,
             cancellationToken);
 
+        await EnsureUserAsync(
+            email: "user.e2e@zuppeto.local",
+            password: "Admin123",
+            role: "User",
+            displayName: "User E2E",
+            city: "Barcelona",
+            country: "Espanya",
+            bio: "Usuari E2E amb perfil complet per validar login sense forçar /perfil.",
+            privacyAccepted: true,
+            cancellationToken);
+
+        await EnsureUserAsync(
+            email: "viewer.e2e@zuppeto.local",
+            password: "Admin123",
+            role: "Viewer",
+            displayName: "Viewer E2E",
+            city: "Barcelona",
+            country: "Espanya",
+            bio: "Usuari E2E amb rol Viewer.",
+            privacyAccepted: true,
+            cancellationToken);
+
+        await EnsureUserAsync(
+            email: "developer.e2e@zuppeto.local",
+            password: "Admin123",
+            role: "Developer",
+            displayName: "Developer E2E",
+            city: "Barcelona",
+            country: "Espanya",
+            bio: "Usuari E2E amb rol Developer.",
+            privacyAccepted: true,
+            cancellationToken);
+
         await EnsureRolePermissionsAsync(cancellationToken);
         await EnsureMenuRolesAsync(cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -347,6 +380,11 @@ public sealed class DevelopmentIdentitySeeder(
             {
                 existing.Role = role;
             }
+
+            existing.DisplayName = displayName;
+            existing.City = city;
+            existing.Country = country;
+            existing.Bio = bio;
 
             if (privacyAccepted && !existing.PrivacyAccepted)
             {
