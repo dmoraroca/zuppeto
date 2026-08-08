@@ -79,7 +79,7 @@ export class PlaceService {
 
   async searchCitySuggestions(query: string, limit = 10): Promise<CitySuggestion[]> {
     const normalized = query.trim();
-    if (normalized.length < 3) {
+    if (normalized.length < 2) {
       return [];
     }
 
@@ -127,6 +127,29 @@ export class PlaceService {
         this.placesState.set(places.map((place) => this.toPlace(place)));
         this.loadedState.set(true);
       });
+  }
+
+  /** Public login explorer: places from API without requiring a session. */
+  async fetchPublicPlaces(filters: Partial<PlaceFilters> = {}): Promise<Place[]> {
+    const safeFilters = { ...DEFAULT_FILTERS, ...filters };
+    const params = this.shouldSendFilteredPlacesRequest(safeFilters)
+      ? this.buildPlacesQueryParams(safeFilters)
+      : undefined;
+
+    const places = await firstValueFrom(
+      this.http
+        .get<PlaceApiSummaryDto[]>(`${API_BASE_URL}/places`, params ? { params } : {})
+        .pipe(catchError(() => of([])))
+    );
+
+    return places.map((place) => this.toPlace(place));
+  }
+
+  /** Public login explorer: cities that already have places in the catalog. */
+  async fetchPublicCities(): Promise<string[]> {
+    return await firstValueFrom(
+      this.http.get<string[]>(`${API_BASE_URL}/places/cities`).pipe(catchError(() => of([])))
+    );
   }
 
   /**

@@ -21,15 +21,11 @@ public sealed class PostalAddress : ValueObject
             throw new DomainRuleException("Country is required.");
         }
 
-        if (string.IsNullOrWhiteSpace(neighborhood))
-        {
-            throw new DomainRuleException("Neighborhood is required.");
-        }
-
         Line1 = line1.Trim();
         City = city.Trim();
         Country = country.Trim();
-        Neighborhood = neighborhood.Trim();
+        // Neighborhood is optional (Google Places often omits it).
+        Neighborhood = string.IsNullOrWhiteSpace(neighborhood) ? string.Empty : neighborhood.Trim();
     }
 
     public string Line1 { get; }

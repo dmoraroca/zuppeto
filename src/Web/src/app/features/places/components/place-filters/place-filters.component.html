@@ -18,6 +18,7 @@
         [value]="filters().city"
         (valueChange)="onCityChange($event)"
         [staticOptions]="cities()"
+        [minCharsForRemote]="2"
       />
     </label>
   }

@@ -9,7 +9,15 @@ export function placeMatchesFreeTextSearch(place: Place, normalizedQuery: string
     return true;
   }
 
-  const haystack = [place.name, place.city, place.neighborhood, place.shortDescription, ...place.tags]
+  const haystack = [
+    place.name,
+    place.city,
+    place.country,
+    place.neighborhood,
+    place.address,
+    place.shortDescription,
+    ...place.tags
+  ]
     .join(' ')
     .toLowerCase();
 

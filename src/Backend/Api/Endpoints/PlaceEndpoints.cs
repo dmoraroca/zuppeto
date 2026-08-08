@@ -15,10 +15,11 @@ internal static class PlaceEndpoints
         var group = app.MapGroup("/api/places").RequireAuthorization().WithTags("Places");
         var adminGroup = app.MapGroup("/api/admin/places").RequireAuthorization().WithTags("Places");
 
-        group.MapGet("/", SearchAsync);
+        group.MapGet("/", SearchAsync).AllowAnonymous();
         group.MapGet("/searches/recent", GetRecentSearchesAsync);
         group.MapGet("/external/search", SearchExternalPlacesPreviewAsync);
         group.MapGet("/cities/search", SearchAvailableCitiesAsync)
+            .AllowAnonymous()
             .WithName("SearchAvailablePlaceCities")
             .WithSummary("Search distinct cities that have at least one place (typeahead).")
             .WithDescription(
@@ -26,7 +27,7 @@ internal static class PlaceEndpoints
                 "Requires at least 3 valid characters in q after normalization. " +
                 "Optional limit: default 50, maximum 100.");
 
-        group.MapGet("/cities", GetAvailableCitiesAsync);
+        group.MapGet("/cities", GetAvailableCitiesAsync).AllowAnonymous();
         group.MapGet("/{id:guid}", GetByIdAsync);
         group.MapPost("/", SaveAsync);
         group.MapPut("/{id:guid}", UpdateAsync);

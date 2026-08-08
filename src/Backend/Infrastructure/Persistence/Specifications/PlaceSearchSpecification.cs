@@ -33,7 +33,10 @@ internal sealed class PlaceSearchSpecification(PlaceSearchCriteria criteria) : I
                 EF.Functions.ILike(place.Name, searchPattern) ||
                 EF.Functions.ILike(place.ShortDescription, searchPattern) ||
                 EF.Functions.ILike(place.Description, searchPattern) ||
-                EF.Functions.ILike(place.City, searchPattern));
+                EF.Functions.ILike(place.City, searchPattern) ||
+                EF.Functions.ILike(place.Country, searchPattern) ||
+                EF.Functions.ILike(place.Neighborhood, searchPattern) ||
+                EF.Functions.ILike(place.AddressLine1, searchPattern));
         }
 
         return query;

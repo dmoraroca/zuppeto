@@ -19,6 +19,21 @@ internal sealed class PlaceRepository(ZuppetoDbContext dbContext) : IPlaceReposi
         return record is null ? null : PlacePersistenceMapper.ToDomain(record);
     }
 
+    public async Task<Place?> GetByGooglePlaceIdAsync(string googlePlaceId, CancellationToken cancellationToken = default)
+    {
+        var normalized = googlePlaceId.Trim();
+        if (normalized.Length == 0)
+        {
+            return null;
+        }
+
+        var record = await BuildGraphQuery()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(place => place.GooglePlaceId == normalized, cancellationToken);
+
+        return record is null ? null : PlacePersistenceMapper.ToDomain(record);
+    }
+
     public async Task<IReadOnlyCollection<Place>> SearchAsync(
         PlaceSearchCriteria criteria,
         CancellationToken cancellationToken = default)
@@ -109,6 +124,9 @@ internal sealed class PlaceRepository(ZuppetoDbContext dbContext) : IPlaceReposi
     {
         var record = PlacePersistenceMapper.ToRecord(place);
         PlacePersistenceMapper.SyncCollections(place, record);
+        var nowUtc = DateTimeOffset.UtcNow;
+        record.CreatedAtUtc = nowUtc;
+        record.UpdatedAtUtc = nowUtc;
 
         await AttachTagCatalogAsync(record, cancellationToken);
         await AttachFeatureCatalogAsync(record, cancellationToken);
@@ -129,6 +147,7 @@ internal sealed class PlaceRepository(ZuppetoDbContext dbContext) : IPlaceReposi
 
         PlacePersistenceMapper.Apply(place, record);
         PlacePersistenceMapper.SyncCollections(place, record);
+        record.UpdatedAtUtc = DateTimeOffset.UtcNow;
 
         await AttachTagCatalogAsync(record, cancellationToken);
         await AttachFeatureCatalogAsync(record, cancellationToken);

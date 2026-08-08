@@ -93,7 +93,7 @@
         <div class="login-page__explorer-head">
           <div>
             <strong>Explora llocs ara mateix</strong>
-            <p>Cerca prèvia oberta des del login, sense tallar el recorregut.</p>
+            <p>Cerca o ciutat (≥ 2): a Development, Google Places primer; si no n’hi ha, catàleg BD.</p>
           </div>
           <div class="login-page__explorer-pill">Vista pública</div>
         </div>
@@ -115,6 +115,7 @@
               [value]="previewFilters().city"
               (valueChange)="onPreviewCityChange($event)"
               [staticOptions]="previewCities()"
+              [minCharsForRemote]="2"
             />
           </label>
 
@@ -143,32 +144,40 @@
           <button type="button" class="login-page__primary" (click)="generateRoutesPreview()">Generar rutes</button>
         </div>
 
-        <section class="login-page__map-preview" aria-label="Mapa inicial d'Espanya">
-          <div class="login-page__map-copy">
-            <strong>Mapa inicial</strong>
-            <p>Sense dades carregades, el punt de partida és Espanya.</p>
-          </div>
-          <div #previewMapContainer class="login-page__map-frame" aria-label="Mapa inicial centrat a Espanya"></div>
-        </section>
+        <div class="login-page__explorer-results">
+          <section class="login-page__map-preview" aria-label="Mapa de llocs del preview públic">
+            <div class="login-page__map-copy">
+              <strong>Mapa</strong>
+              <p>{{ mapPreviewCopy() }}</p>
+            </div>
+            <div #previewMapContainer class="login-page__map-frame" aria-label="Mapa interactiu de llocs"></div>
+          </section>
 
-        <div class="login-page__mosaic">
-          @if (samplePlaces().length === 0) {
-            <p class="login-page__mosaic-empty">Cap lloc coincideix amb aquests filtres al preview públic.</p>
-          }
-          @for (place of samplePlaces(); track place.id) {
-            <article class="login-page__place-card">
-              <div class="login-page__place-card-top">
-                <p>{{ place.city }} · {{ place.country }}</p>
-                <span>{{ getTypeLabel(place.type) }}</span>
-              </div>
-              <h2>{{ place.name }}</h2>
-              <p>{{ place.shortDescription }}</p>
-              <div class="login-page__place-meta">
-                <span>{{ place.petPolicyLabel }}</span>
-                <span>{{ place.priceLabel }}</span>
-              </div>
-            </article>
-          }
+          <div class="login-page__mosaic">
+            @if (previewLoading()) {
+              <p class="login-page__mosaic-empty">Carregant llocs…</p>
+            } @else if (!previewHasDiscoveryQuery()) {
+              <p class="login-page__mosaic-empty">
+                Escriu almenys 2 caràcters a cerca o ciutat (Google Places primer en proves; si no, catàleg BD).
+              </p>
+            } @else if (samplePlaces().length === 0) {
+              <p class="login-page__mosaic-empty">Cap lloc coincideix amb aquesta cerca.</p>
+            }
+            @for (place of samplePlaces(); track place.id) {
+              <article class="login-page__place-card">
+                <div class="login-page__place-card-top">
+                  <p>{{ place.city }} · {{ place.country }}</p>
+                  <span>{{ getTypeLabel(place.type) }}</span>
+                </div>
+                <h2>{{ place.name }}</h2>
+                <p>{{ place.shortDescription }}</p>
+                <div class="login-page__place-meta">
+                  <span>{{ place.petPolicyLabel }}</span>
+                  <span>{{ place.priceLabel }}</span>
+                </div>
+              </article>
+            }
+          </div>
         </div>
       </section>
     </section>

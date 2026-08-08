@@ -121,6 +121,16 @@ public sealed class PlaceConfiguration : IEntityTypeConfiguration<PlaceRecord>
         builder.Property(place => place.LastGoogleSyncAt)
             .HasColumnName("last_google_sync_at");
 
+        builder.Property(place => place.CreatedAtUtc)
+            .HasColumnName("created_at_utc")
+            .HasDefaultValueSql("NOW()")
+            .IsRequired();
+
+        builder.Property(place => place.UpdatedAtUtc)
+            .HasColumnName("updated_at_utc")
+            .HasDefaultValueSql("NOW()")
+            .IsRequired();
+
         builder.HasIndex(place => place.GooglePlaceId)
             .IsUnique()
             .HasDatabaseName("ux_places_google_place_id")

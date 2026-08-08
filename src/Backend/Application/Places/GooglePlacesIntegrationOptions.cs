@@ -11,4 +11,9 @@ public sealed class GooglePlacesIntegrationOptions
     /// Days until advertised Google coordinate cache expiry. Aligns with operational refresh via Places Details using <c>place_id</c>.
     /// </summary>
     public int CoordinateCacheRetentionDays { get; set; } = 30;
+
+    /// <summary>
+    /// When true and the request has discovery text, call Google Places before the internal catalog (useful for local testing).
+    /// </summary>
+    public bool PreferExternalSearchFirst { get; set; }
 }

@@ -277,7 +277,7 @@ Resum del diagrama:
 
 Rutes reals validades:
 
-- el grup **`/api/places`** (tots els verbs i subrutes, inclòs `external/search`) queda darrere **`RequireAuthorization`** (JWT Bearer); vegeu també `docs/ca/api-ca.md`
+- el grup **`/api/places`** queda darrere **`RequireAuthorization`** (JWT Bearer) per defecte; les lectures públiques del preview de login (`GET /`, `GET /cities`, `GET /cities/search`) són **`AllowAnonymous`** perquè l’explorador del login consumeixi catàleg real sense sessió; vegeu també `docs/ca/api-ca.md`
 - `GET /api/places`
 - `GET /api/places/{id}`
 - `GET /api/places/cities`
@@ -552,10 +552,11 @@ Sobre la base anterior, la implementació ja incorpora aquestes peces tècniques
   - `place_search_query_results`
 - migració aplicada: `AddPlaceSearchQueryCache`
 - resolució de cerca a `PlaceApplicationService` amb patró:
+  0. si `GooglePlaces:PreferExternalSearchFirst` i hi ha context de descobriment (`searchText`/`city` ≥ 2): **Google Places primer**; els candidats vàlids es **upserten** a `places` (`google_place_id`, coordenades, `google_coordinates_cached_until` = ara + `CoordinateCacheRetentionDays`, `last_google_sync_at`, `data_provenance=GooglePlaces`, `exclude_from_osm_map=true`) i es desa snapshot de cerca
   1. prova de **snapshot fresc** (`place_search_queries` / `place_search_query_results`) per clau normalitzada (TTL aplicació: **12 h** — `SearchSnapshotTtl`)
-  2. si no hi ha snapshot vàlid: consulta al repositori de `places`
+  2. si no hi ha snapshot vàlid: consulta al repositori de `places` (`PlaceSearchSpecification`: `searchText` amb `ILike` sobre nom, descripcions, ciutat, **país**, barri i adreça; filtre exacte de `city` / tipus / mascota)
   3. si hi ha resultats interns: **persistència** d’un nou snapshot amb TTL **12 h**
-  4. si **no** hi ha resultats interns **i** la petició té prou text (`searchText` o `city`, mínim **2** caràcters vàlid): **fallback** a `GooglePlacesSuggestionProvider`; els candidats es mapen a `PlaceSummaryDto` amb IDs deterministes derivats del `place_id` Google, **sense** `INSERT` a `places`; marcadors DTO indiquen caché de coordenades fins `now + CoordinateCacheRetentionDays` i **exclusió OSM**
+  4. si **no** hi ha resultats interns **i** encara no s’ha intentat Google (mode normal, sense `PreferExternalSearchFirst`) **i** la petició té prou text: consulta Google Places, **upsert** al catàleg amb la mateixa política de caché (place_id indefinit; lat/lng fins a 30 dies) i retorna els DTO persistits
 - endpoint públic per observació de consultes recents:
   - `GET /api/places/searches/recent?limit=...`
 - connector extern base per locals:
@@ -567,9 +568,10 @@ Sobre la base anterior, la implementació ja incorpora aquestes peces tècniques
 
 Estat actual del flux (referència ràpida):
 
-- el grup **`/api/places`** exigeix **JWT** (tot el grup amb `RequireAuthorization`); `GET /api/places` incorpora **fallback Google** quan el catàleg intern està buit i la consulta té prou context (vegeu punts 1–4 de la llista anterior); els candidats externs **no** persisteixen com a files noves de `places`
+- el grup **`/api/places`** exigeix **JWT** per defecte; `GET /api/places`, `GET /api/places/cities` i `GET /api/places/cities/search` són anònims per al preview públic del login; amb `GooglePlaces:PreferExternalSearchFirst` (actiu a Development) la cerca amb `searchText`/`city` ≥ 2 consulta **Google Places abans** del catàleg; sense aquesta opció l’ordre és catàleg (snapshot/BD) i **fallback Google** si el catàleg està buit; en ambdós casos els candidats Google vàlids es **persisteixen** a `places` (upsert per `google_place_id`) amb caché de coordenades ≤ `CoordinateCacheRetentionDays` i timestamps `created_at_utc` / `updated_at_utc`; el login **no** crida el llistat sense consulta de descobriment; el combobox de ciutat del login usa typeahead remot amb **2** caràcters
 - **Compliment / retenció**: `GooglePlacesComplianceRetentionHostedService` pot **purgar** snapshots caducats (`place_search_queries`) i, si `GooglePlacesCompliance:Enabled`, **redactar** coordenades de files `places` amb procedència Google/Mixed quan `google_coordinates_cached_until < now` (detall a **§2.11.4**)
 - sense `GooglePlaces:ApiKey`, el preview extern i el fallback de cerca Google retornen llista buida (comportament esperat)
+- si Google Places respon `REQUEST_DENIED` (p. ex. facturació del projecte Cloud desactivada), el connector registra un warning i la cerca continua amb el catàleg BD quan n’hi ha
 
 Exemple de wiring d'endpoint (API):
 
@@ -694,7 +696,7 @@ Remissió funcional: `docs/ca/funcional-ca.md` (**§12.5** i **§12.5.1**).
 | `google_coordinates_cached_until` | Límit temporal operatiu de la caché de coordenades d’origen Google (nullable). |
 | `last_google_sync_at` | Darrer instant de sincronització amb Google (nullable). |
 | `latitude`, `longitude` | Nullables quan la coordenada **no** ha de persistir-se per compliment (vegeu mapper i worker). |
-| `exclude_from_osm_map` | Quan és cert: el producte **no** ha de pintar el pin a la capa OSM; el mapper persisteix `latitude`/`longitude` com a **NULL** en aquest cas (`PlacePersistenceMapper.Apply`). A la lectura cap al domini, si falten coordenades es poden usar valors de fallback només per mantenir invariant del valor objecte `GeoLocation` — la decisió de **mostrar** pin OSM ve dels DTO (`ExcludeFromOsmMap`, etc.). |
+| `exclude_from_osm_map` | Quan és cert: el producte **no** ha de pintar el pin a la capa OSM. Les coordenades **sí** es poden persistir mentre la caché Google sigui vigent (`google_coordinates_cached_until`); el worker de compliment les **redacta** (NULL) quan caduca. |
 
 Migracions de referència al repositori: `20260427120000_AddPlaceProvenance`; coordenades nullable / compliment OSM: `20260501141000_PlaceGoogleCoordinateRedaction`. El `ZuppetoDbContextModelSnapshot` ha de coincidir amb el runtime EF.
 

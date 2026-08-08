@@ -1,4 +1,4 @@
-export type PlaceType = 'restaurant' | 'hotel' | 'apartment' | 'park' | 'service';
+export type PlaceType = 'bar' | 'restaurant' | 'hotel' | 'apartment' | 'park' | 'service';
 export type PetFilter = 'all' | 'dogs' | 'cats';
 
 export interface PlaceCoordinates {

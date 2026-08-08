@@ -68,6 +68,7 @@
             [value]="reviewFilters().city"
             (valueChange)="updateReviewCity($event)"
             [staticOptions]="favoriteCities()"
+            [minCharsForRemote]="2"
           />
         </label>
 

@@ -43,5 +43,9 @@ export function visitContextForPlaceType(type: PlaceType): string {
     return 'Especialment útil com a parada ràpida, descans o passeig durant el dia.';
   }
 
+  if (type === 'bar') {
+    return 'Bona opció per una parada informal amb la mascota (terrassa o ambient relaxat).';
+  }
+
   return 'Bona opció per encaixar-la dins d’un recorregut urbà amb la mascota sense complicar-te.';
 }

@@ -1,6 +1,7 @@
 import { Place, PlaceType } from '../models/place.model';
 
 export const PLACE_TYPE_LABELS: Record<PlaceType, string> = {
+  bar: 'Bar',
   restaurant: 'Restaurant',
   hotel: 'Hotel',
   apartment: 'Apartament',

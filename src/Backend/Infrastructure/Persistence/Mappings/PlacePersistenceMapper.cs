@@ -74,17 +74,11 @@ internal static class PlacePersistenceMapper
         record.City = place.Address.City;
         record.Country = place.Address.Country;
         record.Neighborhood = place.Address.Neighborhood;
-        if (place.ExcludeFromOsmMap)
-        {
-            record.Latitude = null;
-            record.Longitude = null;
-        }
-        else
-        {
-            record.Latitude = place.Location.Latitude;
-            record.Longitude = place.Location.Longitude;
-        }
-
+        // Persist coordinates even when ExcludeFromOsmMap is true: Google cache (≤30 days)
+        // needs lat/lng in DB; OSM rendering is gated by the flag / DTO, not by nulling coords.
+        // Expired Google coordinates are redacted by GooglePlacesComplianceRetentionHostedService.
+        record.Latitude = place.Location.Latitude;
+        record.Longitude = place.Location.Longitude;
         record.ExcludeFromOsmMap = place.ExcludeFromOsmMap;
         record.AcceptsDogs = place.PetPolicy.AcceptsDogs;
         record.AcceptsCats = place.PetPolicy.AcceptsCats;

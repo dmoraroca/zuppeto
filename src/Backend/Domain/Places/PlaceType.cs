@@ -2,9 +2,10 @@ namespace Zuppeto.Domain.Places;
 
 public enum PlaceType
 {
-    Restaurant = 1,
-    Hotel = 2,
-    Apartment = 3,
-    Park = 4,
-    Service = 5
+    Bar = 1,
+    Restaurant = 2,
+    Hotel = 3,
+    Apartment = 4,
+    Park = 5,
+    Service = 6
 }

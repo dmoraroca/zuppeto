@@ -31,5 +31,5 @@ internal static class PlaceCitySearchDefaults
 {
     public const int DefaultLimit = 50;
     public const int MaxLimit = 100;
-    public const int MinQueryLength = 3;
+    public const int MinQueryLength = 2;
 }

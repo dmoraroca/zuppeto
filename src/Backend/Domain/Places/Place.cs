@@ -110,12 +110,8 @@ public sealed class Place : AggregateRoot<Guid>
 
     public void SetCoverImage(string coverImageUrl)
     {
-        if (string.IsNullOrWhiteSpace(coverImageUrl))
-        {
-            throw new DomainRuleException("Cover image is required.");
-        }
-
-        CoverImageUrl = coverImageUrl.Trim();
+        // Google Places cache rows may not include a photo URL yet.
+        CoverImageUrl = string.IsNullOrWhiteSpace(coverImageUrl) ? string.Empty : coverImageUrl.Trim();
     }
 
     public void Relocate(PostalAddress address, GeoLocation location)

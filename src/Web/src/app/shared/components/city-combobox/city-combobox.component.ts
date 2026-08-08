@@ -20,10 +20,11 @@ export class CityComboboxComponent {
   readonly valueChange = output<string>();
   /**
    * Extra values shown in the list (cities with places, favorites) so a focus click is not an empty
-   * list when the user has not typed 3+ characters yet.
+   * list when the user has not typed enough characters for the GeoNames / catalog remote search yet.
    */
   readonly staticOptions = input<string[]>([]);
-  readonly minCharsForRemote = input(3);
+  /** Minimum characters before calling GET /api/places/cities/search (catalog + GeoNames). */
+  readonly minCharsForRemote = input(2);
   readonly inputId = input(`app-city-cb-${++CityComboboxComponent.nextId}`);
 
   protected readonly text = signal('');

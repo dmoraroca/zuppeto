@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using System.Net.Http.Json;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Zuppeto.Application.Places;
 
@@ -7,7 +8,8 @@ namespace Zuppeto.Infrastructure.GooglePlaces;
 
 internal sealed class GooglePlacesSuggestionProvider(
     HttpClient httpClient,
-    IOptions<GooglePlacesOptions> options) : IExternalPlaceSuggestionProvider
+    IOptions<GooglePlacesOptions> options,
+    ILogger<GooglePlacesSuggestionProvider> logger) : IExternalPlaceSuggestionProvider
 {
     private readonly GooglePlacesOptions googleOptions = options.Value;
 
@@ -18,6 +20,7 @@ internal sealed class GooglePlacesSuggestionProvider(
         var apiKey = googleOptions.ApiKey?.Trim() ?? string.Empty;
         if (string.IsNullOrWhiteSpace(apiKey))
         {
+            logger.LogWarning("Google Places search skipped: ApiKey is empty.");
             return [];
         }
 
@@ -34,6 +37,18 @@ internal sealed class GooglePlacesSuggestionProvider(
         try
         {
             var payload = await httpClient.GetFromJsonAsync<GooglePlacesSearchResponse>(url, cancellationToken);
+            var status = payload?.Status?.Trim() ?? string.Empty;
+            if (!string.Equals(status, "OK", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(status, "ZERO_RESULTS", StringComparison.OrdinalIgnoreCase))
+            {
+                logger.LogWarning(
+                    "Google Places text search returned {Status} for query {Query}: {ErrorMessage}",
+                    status,
+                    query,
+                    payload?.ErrorMessage);
+                return [];
+            }
+
             var candidates = payload?.Results ?? [];
             return candidates
                 .Where(item => !string.IsNullOrWhiteSpace(item.Name))
@@ -51,8 +66,9 @@ internal sealed class GooglePlacesSuggestionProvider(
                 .Take(limit)
                 .ToArray();
         }
-        catch
+        catch (Exception ex)
         {
+            logger.LogWarning(ex, "Google Places text search failed for query {Query}.", query);
             return [];
         }
     }
@@ -94,6 +110,12 @@ internal sealed class GooglePlacesSuggestionProvider(
 
     private sealed class GooglePlacesSearchResponse
     {
+        [JsonPropertyName("status")]
+        public string? Status { get; init; }
+
+        [JsonPropertyName("error_message")]
+        public string? ErrorMessage { get; init; }
+
         [JsonPropertyName("results")]
         public List<GooglePlacesResult>? Results { get; init; }
     }

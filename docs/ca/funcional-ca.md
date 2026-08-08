@@ -1003,7 +1003,7 @@ Aquest apartat resumeix **el pla de producte** sobre el catàleg territorial; le
 
 ### 3.15.2 Flux d’autocomplete territorial: catàleg primer, GeoNames després, alta lazy
 
-Aquest apartat fixa el comportament quan l’usuari tria **ciutat** (i el **país** derivat) en formularis governats pel catàleg (`cities` / `countries` a base de dades). **No** substitueix **§3.10** (regles de UX de 3 caràcters, país entre parèntesis, etc.); les **afegeix** per al cas en què **no** hi hagi prou resultats només des del catàleg intern.
+Aquest apartat fixa el comportament quan l’usuari tria **ciutat** (i el **país** derivat) en formularis governats pel catàleg (`cities` / `countries` a base de dades). **No** substitueix **§3.10** (regles de UX de **≥ 2** caràcters per typeahead remot catàleg + GeoNames, país entre parèntesis, etc.); les **afegeix** per al cas en què **no** hi hagi prou resultats només des del catàleg intern.
 
 **Ordre de resolució (sempre des del backend)**
 
@@ -1090,11 +1090,12 @@ Per evitar cost i latència repetida, cada consulta funcional s'ha de poder guar
 
 **Tipologies prioritàries (ordre funcional inicial)**
 
-1. `service` (veterinaris, grooming, botigues pets)
-2. `park`
-3. `restaurant`
-4. `hotel`
-5. `apartment`
+1. `bar`
+2. `service` (veterinaris, grooming, botigues pets)
+3. `park`
+4. `restaurant`
+5. `hotel`
+6. `apartment`
 
 **Dades mínimes del local (v1 aprovada)**
 
@@ -1529,6 +1530,7 @@ No es planteja encara com a seguretat final de produccio, sino com a base de pro
 Punts funcionals ja implementats:
 
 - login estandard amb email
+- explorador públic al login: cerca o ciutat amb **≥ 2 caràcters**; en **Development** (`GooglePlaces:PreferExternalSearchFirst`) es consulta **Google Places primer** i els resultats es **persisteixen** al catàleg (cache); si Google no retorna res, catàleg BD; el combobox de ciutat fa typeahead remot a partir de 2 caràcters
 - rols `USER` i `ADMIN`
 - sessio d'usuari
 - logout
@@ -1737,9 +1739,10 @@ Aquest apartat concreta el que §12.5 resumeix en llenguatge de producte, perqu�
    - Funcionalment: **no** es mostra el pin a OSM com si fos coordenada pròpia; es manté el que diu §12.5 sobre **capa Google** o estats de fitxa clars quan la font és Google.
 
 4. **Cerca de locals (`GET /api/places`)**  
-   - Les crides al grup **`/api/places`** (lectura i cerques associades) van amb **JWT** per evitar consum anònim costós (p. ex. fallback Google); el producte ja orienta l’usuari a **iniciar sessió** per navegar llocs.  
-   - Sempre **primer** el catàleg intern de Zuppeto (amb **snapshot de cerca** de curta durada només per rendiment; vegeu tècnic).  
-   - Si no hi ha resultats i la consulta té prou context (regles al tècnic), es pot cridar **Google Places** i retornar candidats **només en la resposta HTTP** (identificadors interns deterministes per a la sessió), **sense crear** automàticament una fila nova al catàleg per cada candidat. Donar d’alta o fusionar un local al catàleg és una **acció explícita** (p. ex. administració o flux de creació).
+   - Les lectures públiques del preview de login (`GET /api/places`, cities) poden ser anònimes; la resta del grup va amb **JWT**.  
+   - Sempre **primer** el catàleg intern (amb **snapshot de cerca** de curta durada; vegeu tècnic), tret del mode de proves `PreferExternalSearchFirst`.  
+   - Si no hi ha resultats i la consulta té prou context, es crida **Google Places** i els candidats vàlids es **guarden al catàleg** (upsert per `google_place_id`): place_id indefinit, coordenades amb caducitat ~**30 dies**, `created_at_utc` / `updated_at_utc`, exclusió del pin OSM. Així les cerques posteriors reutilitzen BD sense tornar a pagar Google mentre la dada sigui útil.  
+   - Quan caduca la caché de coordenades, el manteniment pot **esborrar lat/lng** i cal **tornar a sincronitzar** amb Places Details usant el `place_id` guardat.
 
 5. **Snapshots de consultes**  
    - Les dades de snapshot de cerca **caduquen** i es poden purgar; **no** són una còpia permanent del directori Google ni substitueixen el catàleg propi.

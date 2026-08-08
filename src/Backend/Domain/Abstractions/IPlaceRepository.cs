@@ -8,6 +8,8 @@ public interface IPlaceRepository
 
     Task<Place?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
+    Task<Place?> GetByGooglePlaceIdAsync(string googlePlaceId, CancellationToken cancellationToken = default);
+
     Task<IReadOnlyCollection<Place>> SearchAsync(
         PlaceSearchCriteria criteria,
         CancellationToken cancellationToken = default);

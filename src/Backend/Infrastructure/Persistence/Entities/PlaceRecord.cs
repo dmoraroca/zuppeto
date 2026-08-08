@@ -50,6 +50,10 @@ public sealed class PlaceRecord
 
     public DateTimeOffset? LastGoogleSyncAt { get; set; }
 
+    public DateTimeOffset CreatedAtUtc { get; set; }
+
+    public DateTimeOffset UpdatedAtUtc { get; set; }
+
     public ICollection<FavoriteEntryRecord> FavoriteEntries { get; set; } = [];
 
     public ICollection<PlaceFeatureRecord> PlaceFeatures { get; set; } = [];

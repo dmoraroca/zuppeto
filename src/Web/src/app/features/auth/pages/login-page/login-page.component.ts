@@ -7,10 +7,8 @@ import {
   NotificationTone
 } from '../../../../core/services/error-notifications.service';
 import { CityComboboxComponent } from '../../../../shared/components/city-combobox/city-combobox.component';
-import { PLACES_FAKE } from '../../../places/mock/places.fake';
 import { Place, PlaceFilters } from '../../../places/models/place.model';
 import { PlaceService } from '../../../places/services/place.service';
-import { normalizeSearchQuery, placeMatchesFreeTextSearch } from '../../../places/utils/place-text-search';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
@@ -30,21 +28,43 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
   private readonly previewFiltersState = signal<PlaceFilters>({
     search: '',
     city: '',
-    type: 'hotel',
-    pet: 'dogs'
+    type: '',
+    pet: 'all'
   });
+  private readonly previewPlacesState = signal<Place[]>([]);
+  private readonly previewCitiesState = signal<string[]>([]);
+  private readonly previewLoadingState = signal(false);
 
   protected readonly previewFilters = this.previewFiltersState.asReadonly();
+  protected readonly previewLoading = this.previewLoadingState.asReadonly();
   protected readonly authProviders = signal<string[]>([]);
   protected readonly googleProvider = signal<{ clientId: string } | null>(null);
   protected readonly linkedInProvider = signal<boolean>(false);
   protected readonly facebookProvider = signal<boolean>(false);
   protected readonly googleButtonVisible = signal(false);
-  protected readonly previewCities = computed(() =>
-    [...new Set(LOGIN_PREVIEW_PLACES.map((place) => place.city))].sort((a, b) => a.localeCompare(b))
-  );
+  protected readonly previewCities = this.previewCitiesState.asReadonly();
   protected readonly previewTypes = this.placeService.getAvailableTypes();
-  protected readonly samplePlaces = computed(() => this.filterPreviewPlaces(this.previewFilters()).slice(0, 4));
+  /** Mosaic cards: API hits (BD first, Google Places fallback). */
+  protected readonly samplePlaces = computed(() => this.previewPlacesState().slice(0, 8));
+  /** Map markers: full API result set for the current public filters. */
+  protected readonly mapPlaces = computed(() => this.previewPlacesState());
+  /** Login explorer only searches after search/city have enough text (BD → Google fallback). */
+  protected readonly previewHasDiscoveryQuery = computed(() =>
+    this.hasPublicDiscoveryQuery(this.previewFilters())
+  );
+  protected readonly mapPreviewCopy = computed(() => {
+    const count = this.mapPlaces().length;
+    if (this.previewLoading()) {
+      return 'Carregant llocs…';
+    }
+    if (!this.previewHasDiscoveryQuery()) {
+      return 'Escriu cerca o ciutat (≥ 2 caràcters). Google Places (proves); si no n’hi ha, catàleg BD.';
+    }
+    if (count === 0) {
+      return 'Cap lloc amb aquesta cerca (Google Places ni catàleg).';
+    }
+    return count === 1 ? '1 lloc visible al mapa.' : `${count} llocs visibles al mapa.`;
+  });
   protected readonly loginPreviewRoute = computed(() => {
     const filters = this.previewFilters();
     const queryParams = {
@@ -72,6 +92,9 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
   private googleButtonRendered = false;
   private googleScriptPromise: Promise<void> | null = null;
   private previewMap?: import('leaflet').Map;
+  private previewMarkersLayer?: import('leaflet').LayerGroup;
+  private leafletModule?: typeof import('leaflet');
+  private previewReloadTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly isLocalhost =
     typeof window !== 'undefined' &&
     (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
@@ -81,6 +104,13 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
       this.googleProvider();
       queueMicrotask(() => {
         void this.tryRenderGoogleButtonAsync();
+      });
+    });
+
+    effect(() => {
+      const places = this.mapPlaces();
+      queueMicrotask(() => {
+        void this.renderPreviewMapMarkersAsync(places);
       });
     });
 
@@ -102,6 +132,7 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
     }
 
     void this.loadProvidersAsync();
+    void this.loadPublicPreviewAsync();
   }
 
   ngAfterViewInit(): void {
@@ -115,6 +146,13 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.previewMap?.remove();
+    this.previewMap = undefined;
+    this.previewMarkersLayer = undefined;
+    this.leafletModule = undefined;
+    if (this.previewReloadTimer) {
+      clearTimeout(this.previewReloadTimer);
+      this.previewReloadTimer = null;
+    }
   }
 
   protected async submit(): Promise<void> {
@@ -173,6 +211,7 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
       ...current,
       ...partial
     }));
+    this.queuePublicPreviewReload();
   }
 
   protected onPreviewSearch(event: Event): void {
@@ -238,6 +277,7 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
     }
 
     const leaflet = await import('leaflet');
+    this.leafletModule = leaflet;
     const container = this.previewMapContainer.nativeElement;
 
     // Leaflet can keep container metadata across fast re-renders or HMR in dev mode.
@@ -246,27 +286,80 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
     }
 
     const map = leaflet.map(container, {
-      zoomControl: false,
+      zoomControl: true,
       attributionControl: false,
-      scrollWheelZoom: false,
-      dragging: false,
-      doubleClickZoom: false,
-      boxZoom: false,
-      keyboard: false,
-      touchZoom: false
+      scrollWheelZoom: true,
+      dragging: true,
+      doubleClickZoom: true,
+      boxZoom: true,
+      keyboard: true,
+      touchZoom: true
     });
 
     leaflet
       .tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
       })
       .addTo(map);
 
+    this.previewMarkersLayer = leaflet.layerGroup().addTo(map);
     map.setView([40.25, -3.7], 6);
     this.previewMap = map;
-    setTimeout(() => {
-      this.previewMap?.invalidateSize();
-    }, 0);
+    this.schedulePreviewMapResize();
+  }
+
+  private schedulePreviewMapResize(): void {
+    // Leaflet needs a settled layout before tiles paint (grid height was collapsing).
+    for (const delayMs of [0, 80, 250]) {
+      setTimeout(() => {
+        this.previewMap?.invalidateSize({ animate: false });
+      }, delayMs);
+    }
+  }
+
+  private async renderPreviewMapMarkersAsync(places: Place[]): Promise<void> {
+    await this.ensurePreviewMapAsync();
+
+    const leaflet = this.leafletModule;
+    const map = this.previewMap;
+    const layer = this.previewMarkersLayer;
+    if (!leaflet || !map || !layer) {
+      return;
+    }
+
+    layer.clearLayers();
+    this.schedulePreviewMapResize();
+
+    const withCoordinates = places.filter(
+      (place) =>
+        Number.isFinite(place.coordinates.lat) &&
+        Number.isFinite(place.coordinates.lng) &&
+        !(place.coordinates.lat === 0 && place.coordinates.lng === 0)
+    );
+
+    if (withCoordinates.length === 0) {
+      map.setView([40.25, -3.7], 6);
+      return;
+    }
+
+    const bounds = leaflet.latLngBounds([]);
+    for (const place of withCoordinates) {
+      const marker = leaflet.circleMarker([place.coordinates.lat, place.coordinates.lng], {
+        radius: 8,
+        weight: 2,
+        color: '#0f766e',
+        fillColor: '#99f6e4',
+        fillOpacity: 0.85
+      });
+      marker.bindPopup(
+        `<strong>${place.name}</strong><br/>${place.city}, ${place.country}<br/>${place.shortDescription}`
+      );
+      marker.addTo(layer);
+      bounds.extend([place.coordinates.lat, place.coordinates.lng]);
+    }
+
+    map.fitBounds(bounds.pad(0.18), { maxZoom: 14 });
   }
 
   private async tryRenderGoogleButtonAsync(): Promise<void> {
@@ -361,39 +454,46 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
     this.notifications.notify(title, message, tone);
   }
 
-  private filterPreviewPlaces(filters: PlaceFilters): Place[] {
-    const normalizedSearch = normalizeSearchQuery(filters.search);
-    const cityFilter = (filters.city ?? '').trim();
-    const typeFilter = (filters.type ?? '').trim().toLowerCase();
+  private queuePublicPreviewReload(): void {
+    if (this.previewReloadTimer) {
+      clearTimeout(this.previewReloadTimer);
+    }
 
-    return LOGIN_PREVIEW_PLACES.filter((place) => {
-      const matchesSearch = placeMatchesFreeTextSearch(place, normalizedSearch);
-      const placeCity = (place.city ?? '').trim();
-      const matchesCity =
-        !cityFilter || placeCity.localeCompare(cityFilter, 'und', { sensitivity: 'base' }) === 0;
-      const matchesType = !typeFilter || place.type.toString().toLowerCase() === typeFilter;
-      const matchesPet = this.matchesPreviewPet(place, filters.pet);
-
-      return matchesSearch && matchesCity && matchesType && matchesPet;
-    });
+    this.previewReloadTimer = setTimeout(() => {
+      this.previewReloadTimer = null;
+      void this.loadPublicPreviewAsync();
+    }, 280);
   }
 
-  private matchesPreviewPet(place: Place, pet: PlaceFilters['pet']): boolean {
-    if (pet === 'all') {
-      return true;
-    }
+  /** Discovery needs search or city (≥ 2 chars) so the API can use BD and Google Places fallback. */
+  private hasPublicDiscoveryQuery(filters: PlaceFilters): boolean {
+    const search = (filters.search ?? '').trim();
+    const city = (filters.city ?? '').trim();
+    return search.length >= 2 || city.length >= 2;
+  }
 
-    if (pet === 'dogs') {
-      return place.acceptsDogs;
-    }
+  private async loadPublicPreviewAsync(): Promise<void> {
+    this.previewLoadingState.set(true);
+    try {
+      const cities = await this.placeService.fetchPublicCities();
+      this.previewCitiesState.set([...cities].sort((a, b) => a.localeCompare(b)));
 
-    if (pet === 'cats') {
-      return place.acceptsCats;
-    }
+      const filters = this.previewFilters();
+      if (!this.hasPublicDiscoveryQuery(filters)) {
+        this.previewPlacesState.set([]);
+        return;
+      }
 
-    return true;
+      const places = await this.placeService.fetchPublicPlaces(filters);
+      this.previewPlacesState.set(places);
+      const fromPlaces = [...new Set(places.map((place) => place.city).filter(Boolean))];
+      const merged = [...new Set([...cities, ...fromPlaces])].sort((a, b) => a.localeCompare(b));
+      this.previewCitiesState.set(merged);
+    } catch {
+      this.previewPlacesState.set([]);
+      this.previewCitiesState.set([]);
+    } finally {
+      this.previewLoadingState.set(false);
+    }
   }
 }
-
-/** Public login preview uses curated fake data (no authenticated API load). */
-const LOGIN_PREVIEW_PLACES = PLACES_FAKE;
