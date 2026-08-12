@@ -7,7 +7,8 @@ import {
   SimpleChanges,
   ViewChild,
   input,
-  output
+  output,
+  ChangeDetectionStrategy
 } from '@angular/core';
 
 import { Place } from '../../models/place.model';
@@ -19,6 +20,7 @@ type LeafletLayerGroup = import('leaflet').LayerGroup;
 @Component({
   selector: 'app-place-map',
   templateUrl: './place-map.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './place-map.component.scss'
 })
 export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {

@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 
 import { ErrorNotificationsService } from '../../../../core/services/error-notifications.service';
@@ -6,6 +6,7 @@ import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-auth-callback-page',
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: ''
 })
 export class AuthCallbackPageComponent {

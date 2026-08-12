@@ -9,7 +9,7 @@ Aquest document descriu el stack Docker local de `Zuppeto` per treballar amb web
 - `db`: `PostgreSQL 17`
 - `rabbitmq`: `RabbitMQ 4` amb plugin de gestió (`management`)
 - `api`: backend `.NET 10`
-- `web`: Angular 21 en mode desenvolupament
+- `web`: Angular 22 en mode desenvolupament
 
 ## Ports per defecte
 

@@ -2,9 +2,22 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "fix backend build perms",
+      "type": "shell",
+      "command": "bash \"${workspaceFolder}/scripts/fix-backend-build-perms-for-ide.sh\"",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "silent",
+        "panel": "shared",
+        "showReuseMessage": false,
+        "close": true
+      }
+    },
+    {
       "label": "build api (local)",
       "type": "shell",
       "command": "dotnet build \"${workspaceFolder}/src/Backend/Api/Api.csproj\" -c Debug",
+      "dependsOn": ["fix backend build perms"],
       "group": {
         "kind": "build",
         "isDefault": false

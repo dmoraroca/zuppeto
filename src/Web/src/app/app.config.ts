@@ -1,6 +1,6 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
-import { provideRouter, withInMemoryScrolling } from '@angular/router';
-import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { provideRouter, withInMemoryScrolling, withRouterConfig } from '@angular/router';
+import { provideHttpClient, withInterceptors, withXhr } from '@angular/common/http';
 
 import { routes } from './app.routes';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
@@ -13,7 +13,8 @@ import { FAVORITES_STORE } from './features/favorites/services/favorites-store.t
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
-    provideHttpClient(withInterceptors([authInterceptor, errorInterceptor])),
+    // Keep XHR backend (v22 defaults to Fetch); preserves upload-progress and interceptor behavior.
+    provideHttpClient(withXhr(), withInterceptors([authInterceptor, errorInterceptor])),
     {
       provide: FAVORITES_STORE,
       useExisting: MockFavoritesStoreService
@@ -24,6 +25,8 @@ export const appConfig: ApplicationConfig = {
     },
     provideRouter(
       routes,
+      // Preserve Angular ≤21 param inheritance (v22 default is 'always').
+      withRouterConfig({ paramsInheritanceStrategy: 'emptyOnly' }),
       withInMemoryScrolling({
         anchorScrolling: 'enabled',
         scrollPositionRestoration: 'enabled'

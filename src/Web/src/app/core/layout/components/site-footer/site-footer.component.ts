@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, ChangeDetectionStrategy } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { AuthService } from '../../../../features/auth/services/auth.service';
@@ -7,6 +7,7 @@ import { AuthService } from '../../../../features/auth/services/auth.service';
   selector: 'app-site-footer',
   imports: [RouterLink],
   templateUrl: './site-footer.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './site-footer.component.scss'
 })
 export class SiteFooterComponent {

@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, input, output, signal } from '@angular/core';
+import { Component, computed, effect, inject, input, output, signal, ChangeDetectionStrategy } from '@angular/core';
 
 import { CitySuggestion, PlaceService } from '../../../features/places/services/place.service';
 import { extractCityNameFromTypeaheadValue } from '../../../features/places/utils/city-typeahead.utils';
@@ -8,6 +8,7 @@ import { extractCityNameFromTypeaheadValue } from '../../../features/places/util
   standalone: true,
   templateUrl: './city-combobox.component.html',
   styleUrl: './city-combobox.component.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: []
 })
 export class CityComboboxComponent {

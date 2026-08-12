@@ -30,7 +30,7 @@ Aquest document funcional es llegeix conjuntament amb `project-phases.md`, que f
 
 La base funcional actual i la fase que s'obre a partir d'ara es recolzen en aquest stack:
 
-- `Angular 21` per la web
+- `Angular 22` per la web
 - `Leaflet` i `OpenStreetMap` per la capa de mapa (dades obertes, sense dependre de la plataforma de mapes de Google per al renderitzat; les decisions de cost i de proveïdor de tiles es detallen al tècnic si cal)
 - backend amb `.NET`
 - persistencia amb `PostgreSQL`

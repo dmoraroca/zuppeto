@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 
@@ -24,6 +24,7 @@ import { FavoriteReviewSort, sortPlacesForFavoriteReview } from '../../utils/fav
     PlaceCardComponent
   ],
   templateUrl: './favorites-page.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './favorites-page.component.scss'
 })
 export class FavoritesPageComponent {

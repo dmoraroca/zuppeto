@@ -3,7 +3,7 @@
 ## 1. Introduccio
 
 Aquest document descriu com esta construida **Zuppeto** a nivell tecnic.
-En l'estat actual, el projecte es una web Angular 21 connectada a un backend `.NET`, arquitectura per `features`
+En l'estat actual, el projecte es una web Angular 22 connectada a un backend `.NET`, arquitectura per `features`
 i una primera base funcional de mapa amb `Leaflet` i `OpenStreetMap`.
 
 Objectius:
@@ -48,7 +48,7 @@ Resum del diagrama:
 
 En aquest moment conviuen dues capes amb rols diferents:
 
-- un frontend Angular 21 que continua sent la base executable del producte
+- un frontend Angular 22 que continua sent la base executable del producte
 - un backend `.NET` complet a `Domain`, `Application`, `Infrastructure` i `Api`, ja integrat amb la web per als fluxos principals
 
 Aixo vol dir que:
@@ -59,6 +59,15 @@ Aixo vol dir que:
 - pero el model de domini ja no depen del model fake del frontend
 - el backend comenca pel domini i no per la base de dades
 - el domini continua separat de la persistencia ORM encara que `Entity Framework` ja estigui muntat a `Infrastructure`
+
+### 2.1.1 Frontend Angular 22
+
+Migració des d’Angular 21 amb `ng update` (paquet local `@angular/core` **22.1.1**, CLI **22.1.3**, TypeScript **~6.0.3**):
+
+- els components existents porten `changeDetection: ChangeDetectionStrategy.Eager` (a v22 el defecte nou és `OnPush`)
+- `provideHttpClient(withXhr())` conserva el backend XHR (a v22 el defecte és Fetch)
+- `paramsInheritanceStrategy: 'emptyOnly'` a `app.config.ts` conserva el comportament del router pre-v22
+- Node.js mínim: **22+** (alineat amb l’entorn local)
 
 ## 2.2 Base backend oberta a Fase III
 
@@ -353,6 +362,7 @@ Resum del diagrama:
 
 - la BBDD, l'API i la web ja es poden aixecar en una sola ordre
 - l'API aplica migracions d'`Entity Framework` a l'arrencada
+- la migració `ReorganizeAdminMenuData` crea el menú arrel `admin` si no existeix abans d'inserir `admin.negoci` / `admin.tecnic` (BD nova sense seed encara)
 - l'API s'executa des de la carpeta `src/Backend/Api`, evitant perdre `appsettings.Development.json` dins Docker
 - la web Angular s'executa en mode desenvolupament dins de contenidor
 - el flux local queda alineat amb el criteri operatiu usat a `escoles-publiques`
@@ -463,17 +473,11 @@ Resum del diagrama:
 
 ### 2.10.3 Build .NET a l'host i permisos a `obj-local` / `bin-local`
 
-Quan l'`API` o altres processos s'executen dins de **Docker** amb volums muntats al codi del repositori, les carpetes de sortida de build (sovint `obj-local` i `bin-local` sota `src/Backend/**`) poden quedar creades amb un **uid/gid** que no coincideixen amb l'usuari de desenvolupament a la màquina host (p. ex. `nobody` / `root`).
+El build Docker de l'`API` usa `ZUPPETO_BUILD_ROOT=/tmp/zuppeto-build` (`Directory.Build.props` + `docker-compose.yml`) perquè **no escrigui** a `obj-local` / `bin-local` del volum de l'host. El F5 local continua usant `obj-local` / `bin-local` al costat de cada projecte.
 
-Efecte típic: `dotnet build`, `dotnet restore` o `dotnet ef` fallen amb **“Permission denied”** en escriure a `obj`/`obj-local`.
+La tasca `fix backend build perms` (`scripts/fix-backend-build-perms-for-ide.sh`) és opcional i **no bloqueja el F5** si Cursor no pot usar Docker (`permission denied` al socket). En aquest cas, **reinicia Cursor** perquè agafi el grup `docker`.
 
-Mesures habituals a l'entorn de desenvolupament:
-
-- Ajustar **propietat** d'aquestes carpetes a l'usuari que compila a l'host, o
-- **Eliminar-les** (quan sigui segur) abans d'un build net a l'host, o
-- Fer `dotnet build` **només** dins del mateix entorn (contenidor) que les va generar, sense barrejar amb build a l'host sobre el mateix arbre de fitxers.
-
-Això afecta sobretot la reproductibilitat d'`Entity Framework` i l'arrencada de l'API quan l'entrada aplica `database update` al iniciar: si el model no compila o la migració no s'aplica, el contenidor d'API pot sortir i la web (p. ex. després d'un F5) es queda sense backend.
+Scripts manuals: `scripts/fix-backend-perms-after-docker.sh` i `scripts/fix-backend-dotnet-permissions.sh`.
 
 ## 3. Arquitectura aplicada
 

@@ -11,8 +11,13 @@ namespace Infrastructure.Persistence.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             // Data-only: group admin maintenance under Negoci / Tècnic; disambiguate admin "Llocs" label.
+            // Ensure parent 'admin' exists first (fresh DBs have empty menus until the identity seeder runs).
             migrationBuilder.Sql(
                 """
+                INSERT INTO menus (id, key, label, route, parent_key, sort_order, is_active)
+                SELECT gen_random_uuid(), 'admin', 'Del administrador', NULL, NULL, 60, true
+                WHERE NOT EXISTS (SELECT 1 FROM menus WHERE key = 'admin');
+
                 INSERT INTO menus (id, key, label, route, parent_key, sort_order, is_active)
                 SELECT gen_random_uuid(), 'admin.negoci', 'Negoci', NULL, 'admin', 10, true
                 WHERE NOT EXISTS (SELECT 1 FROM menus WHERE key = 'admin.negoci');

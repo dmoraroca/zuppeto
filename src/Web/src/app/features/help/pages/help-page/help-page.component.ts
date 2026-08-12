@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { SiteFooterComponent } from '../../../../core/layout/components/site-footer/site-footer.component';
@@ -16,6 +16,7 @@ import { SectionHeadingComponent } from '../../../../shared/components/section-h
     GenericInfoCardComponent
   ],
   templateUrl: './help-page.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './help-page.component.scss'
 })
 export class HelpPageComponent {

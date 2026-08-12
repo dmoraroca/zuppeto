@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
@@ -45,6 +45,7 @@ type AvatarSuccessOperation = 'crear' | 'modificar' | 'esborrar';
   selector: 'app-admin-console-page',
   imports: [FormsModule, ReactiveFormsModule, SiteHeaderComponent, SiteFooterComponent, SectionHeadingComponent],
   templateUrl: './admin-console-page.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './admin-console-page.component.scss'
 })
 export class AdminConsolePageComponent {

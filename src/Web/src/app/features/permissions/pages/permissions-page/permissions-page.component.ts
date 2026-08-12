@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 
 import { SiteFooterComponent } from '../../../../core/layout/components/site-footer/site-footer.component';
@@ -10,6 +10,7 @@ import { SectionHeadingComponent } from '../../../../shared/components/section-h
   selector: 'app-permissions-page',
   imports: [SiteHeaderComponent, SiteFooterComponent, GenericInfoCardComponent, SectionHeadingComponent],
   templateUrl: './permissions-page.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './permissions-page.component.scss'
 })
 export class PermissionsPageComponent {

@@ -1,4 +1,4 @@
-import { Component, input, output } from '@angular/core';
+import { Component, input, output, ChangeDetectionStrategy } from '@angular/core';
 
 import { CityComboboxComponent } from '../../../../shared/components/city-combobox/city-combobox.component';
 import { PlaceFilters } from '../../models/place.model';
@@ -8,6 +8,7 @@ import { PlaceFilters } from '../../models/place.model';
   standalone: true,
   imports: [CityComboboxComponent],
   templateUrl: './place-filters.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './place-filters.component.scss'
 })
 export class PlaceFiltersComponent {

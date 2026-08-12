@@ -1,9 +1,14 @@
 <Project>
   <PropertyGroup>
-    <!-- Avoid permission issues on root-owned obj/bin created by dockerized builds. -->
-    <BaseIntermediateOutputPath>obj-local/</BaseIntermediateOutputPath>
-    <MSBuildProjectExtensionsPath>obj-local/</MSBuildProjectExtensionsPath>
-    <BaseOutputPath>bin-local/</BaseOutputPath>
+    <!-- Host F5 uses obj-local/bin-local next to each project. -->
+    <!-- Docker sets ZUPPETO_BUILD_ROOT=/tmp/... so builds never touch the bind-mounted tree. -->
+    <_ZuppetoBuildRoot Condition="'$(ZUPPETO_BUILD_ROOT)' != ''">$(ZUPPETO_BUILD_ROOT)/$(MSBuildProjectName)</_ZuppetoBuildRoot>
+    <BaseIntermediateOutputPath Condition="'$(_ZuppetoBuildRoot)' != ''">$(_ZuppetoBuildRoot)/obj/</BaseIntermediateOutputPath>
+    <MSBuildProjectExtensionsPath Condition="'$(_ZuppetoBuildRoot)' != ''">$(_ZuppetoBuildRoot)/obj/</MSBuildProjectExtensionsPath>
+    <BaseOutputPath Condition="'$(_ZuppetoBuildRoot)' != ''">$(_ZuppetoBuildRoot)/bin/</BaseOutputPath>
+    <BaseIntermediateOutputPath Condition="'$(_ZuppetoBuildRoot)' == ''">obj-local/</BaseIntermediateOutputPath>
+    <MSBuildProjectExtensionsPath Condition="'$(_ZuppetoBuildRoot)' == ''">obj-local/</MSBuildProjectExtensionsPath>
+    <BaseOutputPath Condition="'$(_ZuppetoBuildRoot)' == ''">bin-local/</BaseOutputPath>
     <DefaultItemExcludes>$(DefaultItemExcludes);**/obj/**;**/bin/**;**/obj-local/**;**/bin-local/**</DefaultItemExcludes>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>

@@ -1,4 +1,4 @@
-import { Component, ElementRef, HostListener, ViewChild, computed, inject } from '@angular/core';
+import { Component, ElementRef, HostListener, ViewChild, computed, inject, ChangeDetectionStrategy } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 
 import { NavigationMenuItem } from '../../../models/navigation-menu.model';
@@ -9,6 +9,7 @@ import { ErrorNotificationsService } from '../../../services/error-notifications
   selector: 'app-site-header',
   imports: [RouterLink, RouterLinkActive],
   templateUrl: './site-header.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './site-header.component.scss'
 })
 export class SiteHeaderComponent {

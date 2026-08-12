@@ -48,13 +48,14 @@ services:
     entrypoint: ["/bin/bash", "-lc"]
     command:
       [
-        "until pg_isready -h db -p 5432 -U ${POSTGRES_USER:-app} -d ${POSTGRES_DB:-zuppeto}; do sleep 2; done && find src/Backend -type d \\( -name bin -o -name obj -o -name bin-local -o -name obj-local \\) -prune -exec rm -rf {} + && dotnet restore Zuppeto.sln --ignore-failed-sources && dotnet build src/Backend/Api/Api.csproj -c Debug --no-restore && dotnet-ef database update --project src/Backend/Infrastructure/Infrastructure.csproj --startup-project src/Backend/Api/Api.csproj --no-build && cd src/Backend/Api && exec dotnet bin-local/Debug/net10.0/Api.dll --urls http://0.0.0.0:${API_PORT:-5211}"
+        "until pg_isready -h db -p 5432 -U ${POSTGRES_USER:-app} -d ${POSTGRES_DB:-zuppeto}; do sleep 2; done && dotnet restore Zuppeto.sln --ignore-failed-sources && dotnet build src/Backend/Api/Api.csproj -c Debug --no-restore && dotnet-ef database update --project src/Backend/Infrastructure/Infrastructure.csproj --startup-project src/Backend/Api/Api.csproj --no-build && cd src/Backend/Api && exec dotnet $${ZUPPETO_BUILD_ROOT}/Api/bin/Debug/net10.0/Api.dll --urls http://0.0.0.0:${API_PORT:-5211}"
       ]
     ports:
       - "${API_PORT:-5211}:${API_PORT:-5211}"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ZUPPETO_FILE_LOGS: "true"
+      ZUPPETO_BUILD_ROOT: /tmp/zuppeto-build
       ConnectionStrings__Zuppeto: Host=db;Port=5432;Database=${POSTGRES_DB:-zuppeto};Username=${POSTGRES_USER:-app};Password=${POSTGRES_PASSWORD:-app}
       RabbitMq__Enabled: "true"
       RabbitMq__HostName: rabbitmq

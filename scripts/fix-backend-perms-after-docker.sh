@@ -8,8 +8,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-echo "Esborrant bin/obj de src/Backend (cal sudo si són de root)..."
-sudo rm -rf src/Backend/*/obj src/Backend/*/bin
+echo "Esborrant bin/obj/bin-local/obj-local de src/Backend (cal sudo si són de root)..."
+sudo rm -rf src/Backend/*/obj src/Backend/*/bin src/Backend/*/obj-local src/Backend/*/bin-local
 
 echo "Restaurant propietari de src/Backend..."
 sudo chown -R "$(whoami):$(whoami)" src/Backend

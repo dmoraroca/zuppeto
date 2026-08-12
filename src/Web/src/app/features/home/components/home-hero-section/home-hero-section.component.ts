@@ -1,4 +1,4 @@
-import { Component, input } from '@angular/core';
+import { Component, input, ChangeDetectionStrategy } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { HomeHeroContent } from '../../models/home-content.model';
@@ -7,6 +7,7 @@ import { HomeHeroContent } from '../../models/home-content.model';
   selector: 'app-home-hero-section',
   imports: [RouterLink],
   templateUrl: './home-hero-section.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './home-hero-section.component.scss'
 })
 export class HomeHeroSectionComponent {

@@ -90,7 +90,7 @@
             @if (hasAvatar()) {
               <img
                 class="site-header__account-avatar"
-                [src]="currentUser()?.avatarUrl"
+                [src]="$safeNavigationMigration(currentUser()?.avatarUrl)"
                 [alt]="currentUser()?.name ?? 'Usuari'"
               />
             } @else {

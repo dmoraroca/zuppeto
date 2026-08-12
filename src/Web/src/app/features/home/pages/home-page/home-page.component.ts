@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, ChangeDetectionStrategy } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { SiteFooterComponent } from '../../../../core/layout/components/site-footer/site-footer.component';
@@ -26,6 +26,7 @@ import { PlaceService } from '../../../places/services/place.service';
     WhyZuppetoSectionComponent
   ],
   templateUrl: './home-page.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './home-page.component.scss'
 })
 export class HomePageComponent {

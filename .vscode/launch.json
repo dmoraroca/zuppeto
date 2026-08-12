@@ -17,15 +17,15 @@
       },
       "serverReadyAction": {
         "action": "startDebugging",
-        "name": "Open Swagger + Web (Chrome)",
+        "name": "Zuppeto Swagger + Web (Chrome)",
         "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
       }
     },
     {
-      "name": "Open Swagger + Web (Chrome)",
+      "name": "Zuppeto Swagger + Web (Chrome)",
       "type": "node-terminal",
       "request": "launch",
-      "command": "chromium http://localhost:5211/swagger/index.html; chromium http://localhost:4200",
+      "command": "/var/lib/flatpak/exports/bin/com.google.Chrome --new-window http://localhost:5211/swagger/index.html http://localhost:4200",
       "preLaunchTask": "web up + ready"
     },
     {
@@ -82,20 +82,20 @@
       "name": "Docker: Swagger",
       "type": "node-terminal",
       "request": "launch",
-      "command": "chromium http://localhost:5211/swagger/index.html",
+      "command": "/var/lib/flatpak/exports/bin/com.google.Chrome --new-window http://localhost:5211/swagger/index.html",
       "preLaunchTask": "api up + ready + vsdbg"
     },
     {
       "name": "Docker: Swagger (from stack)",
       "type": "node-terminal",
       "request": "launch",
-      "command": "chromium http://localhost:5211/swagger/index.html"
+      "command": "/var/lib/flatpak/exports/bin/com.google.Chrome --new-window http://localhost:5211/swagger/index.html"
     },
     {
       "name": "Docker: Web (Debug)",
       "type": "node-terminal",
       "request": "launch",
-      "command": "chromium http://localhost:4200",
+      "command": "/var/lib/flatpak/exports/bin/com.google.Chrome --new-window http://localhost:4200",
       "preLaunchTask": "web up + ready"
     },
     {
@@ -104,10 +104,10 @@
       "request": "launch",
       "url": "http://localhost:4200",
       "webRoot": "${workspaceFolder}/src/Web",
-      "runtimeExecutable": "/snap/bin/chromium",
+      "runtimeExecutable": "/var/lib/flatpak/exports/bin/com.google.Chrome",
       "runtimeArgs": [
         "--new-window",
-        "--user-data-dir=/tmp/chromium-zuppeto",
+        "--user-data-dir=/tmp/chrome-zuppeto",
         "--no-first-run"
       ],
       "preLaunchTask": "web up + ready"
@@ -116,7 +116,7 @@
       "name": "Docker: Web (Debug, from stack)",
       "type": "node-terminal",
       "request": "launch",
-      "command": "chromium http://localhost:4200"
+      "command": "/var/lib/flatpak/exports/bin/com.google.Chrome --new-window http://localhost:4200"
     },
     {
       "name": "Docker: Web (Debug, Chrome, from stack)",
@@ -124,10 +124,10 @@
       "request": "launch",
       "url": "http://localhost:4200",
       "webRoot": "${workspaceFolder}/src/Web",
-      "runtimeExecutable": "/snap/bin/chromium",
+      "runtimeExecutable": "/var/lib/flatpak/exports/bin/com.google.Chrome",
       "runtimeArgs": [
         "--new-window",
-        "--user-data-dir=/tmp/chromium-zuppeto",
+        "--user-data-dir=/tmp/chrome-zuppeto",
         "--no-first-run"
       ]
     }

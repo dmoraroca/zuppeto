@@ -6,7 +6,7 @@
 ## 1. Introduccio
 
 Aquest document descriu l'estat tecnic actual de **Zuppeto** i com s'esta construint a nivell de frontend.
-Ara mateix el projecte treballa amb enfocament `mock-first`, Angular 21 i una arquitectura per `features`.
+Ara mateix el projecte treballa amb enfocament `mock-first`, Angular 22 i una arquitectura per `features`.
 
 Objectius:
 
@@ -56,7 +56,7 @@ Situacio actual:
 
 - fase I tancada
 - fase II iniciada
-- frontend Angular 21 a `src/Web`
+- frontend Angular 22 a `src/Web`
 - sense backend real encara
 - dades simulades estructurades per models i serveis
 - mapa ja integrat com a component reutilitzable

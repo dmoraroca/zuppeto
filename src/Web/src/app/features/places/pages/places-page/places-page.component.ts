@@ -1,4 +1,4 @@
-import { Component, ElementRef, ViewChild, computed, effect, inject, signal } from '@angular/core';
+import { Component, ElementRef, ViewChild, computed, effect, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
@@ -24,6 +24,7 @@ import { PlaceService } from '../../services/place.service';
     PlaceCardComponent
   ],
   templateUrl: './places-page.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './places-page.component.scss'
 })
 export class PlacesPageComponent {

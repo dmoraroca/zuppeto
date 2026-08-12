@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 
@@ -13,6 +13,7 @@ import { AuthService } from '../../services/auth.service';
   selector: 'app-profile-page',
   imports: [ReactiveFormsModule, SiteHeaderComponent, SiteFooterComponent, SectionHeadingComponent],
   templateUrl: './profile-page.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './profile-page.component.scss'
 })
 export class ProfilePageComponent {

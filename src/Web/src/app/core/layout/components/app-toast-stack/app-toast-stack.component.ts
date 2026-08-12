@@ -1,4 +1,4 @@
-import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, effect, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 
 import {
   ErrorNotification,
@@ -12,6 +12,7 @@ const TOAST_FADE_MS = 2000;
 @Component({
   selector: 'app-toast-stack',
   templateUrl: './app-toast-stack.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './app-toast-stack.component.scss'
 })
 export class AppToastStackComponent {

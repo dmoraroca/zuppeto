@@ -1,8 +1,9 @@
-import { Component, input, output } from '@angular/core';
+import { Component, input, output, ChangeDetectionStrategy } from '@angular/core';
 
 @Component({
   selector: 'app-favorite-toggle-button',
   templateUrl: './favorite-toggle-button.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './favorite-toggle-button.component.scss'
 })
 export class FavoriteToggleButtonComponent {

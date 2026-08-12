@@ -1,4 +1,4 @@
-import { Component, computed, effect, input, output, signal } from '@angular/core';
+import { Component, computed, effect, input, output, signal, ChangeDetectionStrategy } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { FavoriteToggleButtonComponent } from '../../../../shared/components/favorite-toggle-button/favorite-toggle-button.component';
@@ -8,6 +8,7 @@ import { Place } from '../../models/place.model';
   selector: 'app-place-card',
   imports: [RouterLink, FavoriteToggleButtonComponent],
   templateUrl: './place-card.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './place-card.component.scss'
 })
 export class PlaceCardComponent {
