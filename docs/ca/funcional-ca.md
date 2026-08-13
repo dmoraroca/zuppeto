@@ -26,6 +26,8 @@ Aquest document funcional es llegeix conjuntament amb `project-phases.md`, que f
 - l'ordre de la Fase III ha de ser: tancar el model de domini, després contractes i persistència, després model relacional a `PostgreSQL`, `Entity Framework`, mapatges, migracions i API
 - si hi ha una opcio mes moderna, mes simple o tecnologicament millor, s'ha de proposar abans d'implementar-la
 
+**Punt estable:** el commit **`068`** queda marcat com a versió **funcional** de referència a **Fedora** (producte operable en aquest punt de la Fase IV). Detall tècnic a `tecnic-ca.md` i traça a `project-phases.md`.
+
 ## 2. Eines i tecnologia previstes
 
 La base funcional actual i la fase que s'obre a partir d'ara es recolzen en aquest stack:

@@ -35,6 +35,10 @@ Zuppeto ha de créixer com una plataforma pet-friendly per descobrir llocs, esta
 - Es prioritzaran patrons de disseny quan aportin mantenibilitat, claredat i facilitat d'evolució
 - Si apareix una solució més moderna, més simple o tecnològicament millor, s'ha de plantejar abans d'implementar-la
 
+## Punt estable conegut
+
+- **Commit `068`** (`fase IV`): entorn **funcional** validat a **Fedora** (web Angular 22, API, stack Docker/F5 local amb Chrome Flatpak Swagger+Web). Serveix de referència segura per continuar la Fase IV; no implica que la fase estigui tancada.
+
 ## Fase I · Frontend base funcional amb dades simulades (**FET**)
 
 ### Objectiu

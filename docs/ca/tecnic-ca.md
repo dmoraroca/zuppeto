@@ -69,6 +69,8 @@ Migració des d’Angular 21 amb `ng update` (paquet local `@angular/core` **22.
 - `paramsInheritanceStrategy: 'emptyOnly'` a `app.config.ts` conserva el comportament del router pre-v22
 - Node.js mínim: **22+** (alineat amb l’entorn local)
 
+**Punt estable `068`:** aquest commit (Angular 22, `ZUPPETO_BUILD_ROOT` al Docker, F5 amb Chrome Flatpak Swagger+Web, fix migració menús) queda com a baseline **funcional** validada a l’entorn de desenvolupament Fedora/Cursor.
+
 ## 2.2 Base backend oberta a Fase III
 
 La Fase III s'ha obert amb una primera capa `Domain` a:
