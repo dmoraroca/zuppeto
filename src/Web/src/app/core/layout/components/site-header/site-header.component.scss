@@ -338,6 +338,8 @@
   width: 100%;
   justify-content: space-between;
   border-radius: 0;
+  /* Avoid double divider with .site-header__nested-dropdown border-bottom. */
+  border-bottom: none;
   padding-left: 0.35rem;
   padding-right: 0.35rem;
   padding-bottom: 0.95rem;
