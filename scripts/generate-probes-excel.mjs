@@ -2,11 +2,97 @@
  * Generates the Zuppeto manual test workbook (all screens).
  * Run: node scripts/generate-probes-excel.mjs
  * Requires exceljs (installed via npm in repo or EXCELJS_PATH env).
+ *
+ * Copy rule: every user-facing cell (screen, description, steps, expected)
+ * must be readable by a non-programmer. No developer jargon (Hero, CTA, OAuth, etc.).
  */
 import ExcelJS from 'exceljs';
 import { fileURLToPath } from 'url';
 import path from 'path';
 import fs from 'fs';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+/** Keep probe copy free of programmer jargon for manual testers. */
+function plainLanguageForTesters(input) {
+  if (typeof input !== 'string') return input;
+  let t = input.replace(/\/auth\/callback/g, '<<<AUTHCB>>>');
+  const pairs = [
+    [/Auth callback \(\/auth\/callback\)/gi, 'Retorn del login (/auth/callback)'],
+    [/Callback OAuth Google\/LinkedIn \(flux complet\)/gi, 'Retorn del login amb Google o LinkedIn (flux complet)'],
+    [/Callback OAuth sense paràmetres/gi, 'Retorn del login sense dades del proveïdor'],
+    [/Guest guard:\s*/gi, "Control d'accés: "],
+    [/Hero principal/gi, 'Franja principal de la portada'],
+    [/Chips del hero/gi, 'Etiquetes de la franja principal'],
+    [/Top favorits al hero/gi, 'Favorits destacats a la franja principal'],
+    [/CTAs cap a places i favorits/gi, 'Botons cap a llocs i favorits'],
+    [/CTA Veure com funciona/gi, 'Botó «Veure com funciona»'],
+    [/CTA Anar a llocs/gi, 'Botó «Anar a llocs»'],
+    [/CTA «Anar a llocs»/gi, 'Botó «Anar a llocs»'],
+    [/CTA «Revisar favorits»/gi, 'Botó «Revisar favorits»'],
+    [/Peu de pàgina \(footer\)/gi, 'Peu de pàgina'],
+    [/Dropdown de compte/gi, 'Menú del compte'],
+    [/Filtres: ciutat \(combobox\)/gi, 'Filtres: ciutat (llista desplegable)'],
+    [/Ciutat al combobox de places/gi, 'Ciutat a la llista desplegable de llocs'],
+    [/Spotlight últim guardat/gi, "Destacat de l'últim guardat"],
+    [/Place cards amb/gi, 'Targetes de lloc amb'],
+    [/journey cards/gi, 'targetes del recorregut'],
+    [/Info cards/gi, 'Targetes informatives'],
+    [/info cards/gi, 'targetes informatives'],
+    [/Títol hero,/gi, 'Títol de la portada,'],
+    [/chips pet-friendly i CTAs/gi, 'etiquetes pet-friendly i botons'],
+    [/un chip del hero/gi, 'una etiqueta de la franja principal'],
+    [/enllaços del hero/gi, 'enllaços de la franja principal'],
+    [/del hero/gi, 'de la franja principal'],
+    [/al hero/gi, 'a la franja principal'],
+    [/revisar hero/gi, 'revisar la franja principal'],
+    [/Footer visible/gi, 'Peu de pàgina visible'],
+    [/al header amb/gi, 'a la capçalera amb'],
+    [/revisar header/gi, 'revisar la capçalera'],
+    [/Header es refresca/gi, 'La capçalera es refresca'],
+    [/visible al header\/compte/gi, 'visible a la capçalera i al menú del compte'],
+    [/visible al header/gi, 'visible a la capçalera'],
+    [/Text actualitzat al header/gi, 'Text actualitzat a la capçalera'],
+    [/desapareix del header/gi, 'desapareix de la capçalera'],
+    [/actualitzat al header/gi, 'actualitzat a la capçalera'],
+    [/Mapa Leaflet/gi, 'Mapa'],
+    [/mapa Leaflet/gi, 'mapa'],
+    [/Redirecció OAuth o/gi, 'Redirecció al proveïdor de login o'],
+    [/Completar login federat des del proveïdor/gi, 'Completar el login amb Google o LinkedIn'],
+    [/flux de places \(guest\/login segons estat\)/gi, "cerca de llocs (amb o sense sessió, segons l'estat)"],
+    [/sense trencar la UI/gi, 'sense trencar la pantalla'],
+    [/query params de filtre/gi, "filtres aplicats a l'adreça de la pàgina"],
+    [/des de l'API amb caché/gi, 'des del servidor (amb memòria de cerca)'],
+    [/coordenades del backend/gi, 'coordenades del lloc'],
+    [/Panell\/modal detall/gi, 'Panell o finestra de detall'],
+    [/al combobox/gi, 'a la llista desplegable'],
+    [/coherent amb comboboxs/gi, 'coherent amb les llistes desplegables'],
+    [/provar combobox a \/places/gi, 'provar la llista de ciutats a /places'],
+    [/Badge\/indicador/gi, 'Indicador'],
+    [/Empty state «/gi, 'Pantalla buida «'],
+    [/chips i canal/gi, 'etiquetes i canal'],
+    [/chips de filtres/gi, 'etiquetes de filtres'],
+    [/lazy load/gi, 'càrrega sota demanda'],
+    [/dropzone/gi, 'zona per deixar el fitxer'],
+    [/relogin/gi, 'tornar a iniciar sessió'],
+    [/\bCTAs?\b/g, 'botons'],
+    [/\bHero\b/g, 'franja principal'],
+    [/\bfooter\b/gi, 'peu de pàgina'],
+    [/\bheader\b/gi, 'capçalera'],
+    [/\bcombobox\b/gi, 'llista desplegable'],
+    [/\bmodal\b/gi, 'finestra'],
+    [/\bOAuth\b/g, 'login amb proveïdor extern'],
+    [/\bLeaflet\b/g, 'mapa'],
+    [/\bUI\b/g, 'pantalla'],
+    [/\bAPI\b/g, 'servidor'],
+    [/\bcallback\b/gi, 'retorn del login'],
+    [/\btoast\b/gi, 'missatge emergent'],
+  ];
+  for (const [re, rep] of pairs) t = t.replace(re, rep);
+  t = t.replace(/<<<AUTHCB>>>/g, '/auth/callback');
+  t = t.replace(/\/auth\/retorn del login/gi, '/auth/callback');
+  return t;
+}
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -299,6 +385,7 @@ const screenColors = {
   'Capçalera / Navegació': 'FF1E40AF',
   'Login (/login)': 'FF7C3AED',
   'Auth callback (/auth/callback)': 'FF6D28D9',
+  'Retorn del login (/auth/callback)': 'FF6D28D9',
   'Inici (/)': 'FF0369A1',
   'Llocs (/places)': 'FF0D9488',
   'Detall lloc (/places/:id)': 'FF0F766E',
@@ -474,12 +561,12 @@ async function main() {
     roles.forEach((roleName) => {
       BROWSERS.forEach((browser) => {
         const row = sheet.addRow({
-          screen: t.screen,
+          screen: plainLanguageForTesters(t.screen),
           priority: t.priority,
           code: t.code,
-          description: t.description,
-          steps: t.steps,
-          expected: t.expected,
+          description: plainLanguageForTesters(t.description),
+          steps: plainLanguageForTesters(t.steps),
+          expected: plainLanguageForTesters(t.expected),
           browser: browser.name,
           role: roleName,
           date: '',

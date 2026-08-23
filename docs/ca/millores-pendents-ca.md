@@ -36,3 +36,13 @@ No substitueix `docs/project-phases.md` ni el joc de proves Excel: aquí només 
 **Millora:** enriquir la **descripció** (i, si cal, la descripció curta / popup del mapa) amb **més detall** útil per a l’usuari: ambient, política pet quan es conegui, tipicitat del local, barri, etc. Fonts possibles: Places Details / camps addicionals de Google, contingut editorial propi, o generació assistida (p. ex. Gemini) amb revisió. Objectiu: que el bàsic segueixi funcionant, però el text deixi de ser stub i aporti valor de producte.
 
 **Estat:** pendent de comentar / prioritzar (no implementar de moment; a proves anotar OK del bàsic).
+
+---
+
+## 2026-08-23 12:42 CEST
+
+**Àmbit:** Excel de proves manuals (`MAIN_PROBES_ZUPETTO.xlsx`)
+
+**Millora / criteri:** els textos de les proves (pantalla, descripció, passos, resultat esperat) han de ser **sempre llegibles per qualsevol persona**, sense argot de programador (`Hero`, `CTA`, `OAuth`, `header`, `Leaflet`, etc.). S’ha netejat l’Excel viu i el generador aplica el mateix criteri.
+
+**Estat:** aplicat a l’Excel (backup `20260823-004`); mantenir el criteri en noves proves.
