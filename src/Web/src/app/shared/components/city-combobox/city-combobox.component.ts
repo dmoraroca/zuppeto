@@ -1,4 +1,15 @@
-import { Component, computed, effect, inject, input, output, signal, ChangeDetectionStrategy } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  HostListener,
+  computed,
+  effect,
+  inject,
+  input,
+  output,
+  signal
+} from '@angular/core';
 
 import { CitySuggestion, PlaceService } from '../../../features/places/services/place.service';
 import { extractCityNameFromTypeaheadValue } from '../../../features/places/utils/city-typeahead.utils';
@@ -15,6 +26,7 @@ export class CityComboboxComponent {
   private static nextId = 0;
 
   private readonly placeService = inject(PlaceService);
+  private readonly host = inject(ElementRef<HTMLElement>);
 
   /** Bound city name (plain name, as stored for places and query params). */
   readonly value = input<string>('');
@@ -72,6 +84,22 @@ export class CityComboboxComponent {
     });
   }
 
+  /** Native selects close on outside click; custom combobox must do the same (blur alone is not enough). */
+  @HostListener('document:click', ['$event'])
+  protected onDocumentClick(event: MouseEvent): void {
+    const target = event.target as Node | null;
+    if (!target || this.host.nativeElement.contains(target)) {
+      return;
+    }
+
+    this.closePanel();
+  }
+
+  @HostListener('document:keydown.escape')
+  protected onEscape(): void {
+    this.closePanel();
+  }
+
   protected onInput(event: Event): void {
     const raw = (event.target as HTMLInputElement).value;
     this.text.set(raw);
@@ -98,6 +126,11 @@ export class CityComboboxComponent {
     }
   }
 
+  private closePanel(): void {
+    this.cancelCloseAfterBlur();
+    this.open.set(false);
+  }
+
   /**
    * Prevents the text input from blurring (and the panel closing) when interacting with the
    * pointer on the list or the toggle, matching a native combobox.
@@ -112,7 +145,7 @@ export class CityComboboxComponent {
     this.text.set(t);
     this.valueChange.emit(t);
     this.apiSuggestions.set([]);
-    this.open.set(false);
+    this.closePanel();
   }
 
   protected selectApiSuggestion(s: CitySuggestion): void {
@@ -120,13 +153,13 @@ export class CityComboboxComponent {
     this.text.set(t);
     this.valueChange.emit(t);
     this.apiSuggestions.set([]);
-    this.open.set(false);
+    this.closePanel();
   }
 
   protected toggleButtonClick(): void {
     this.cancelCloseAfterBlur();
     if (this.open()) {
-      this.open.set(false);
+      this.closePanel();
       return;
     }
     this.open.set(true);
