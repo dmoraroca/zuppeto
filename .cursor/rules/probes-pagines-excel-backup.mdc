@@ -37,6 +37,19 @@ YYYYMMDD-NNN-PROBES E2E ZUPETTO.xlsx
 
 Durant les proves manuals normals: marcar `Resultat` (OK/KO/N/A/PENDENT), `Data`, `Observacions`, correccions, etc. **Sense** copiar a `BACKUPS/` tret que l’usuari ho demani.
 
+## Quan hi ha KO i es corregeix codi
+
+Omplir **sempre** a la fila afectada (filtre en curs, p. ex. Chrome + USER):
+
+- `Resultat`: `KO`
+- `Data`: data de la prova
+- `Observacions`: què ha fallat (visible per a qui prova)
+- `Data Correcció`: data del fix
+- `Resultat Correcció`: `PENDENT retest` fins que l’usuari revalidï; després `OK` / `KO`
+- `Tasques Fetes`: què s’ha canviat (breu) i fitxers tocats (`Què s'ha fet: … Fitxers: …`)
+
+No deixar un fix de codi sense aquesta traça a l’Excel.
+
 ## Com passar proves a l'usuari (xat)
 
 - Una línia per columna de la fila Excel, cadascuna iniciada amb `-`.

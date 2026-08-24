@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Zuppeto.Domain.Abstractions;
 using Zuppeto.Domain.Favorites;
+using Zuppeto.Infrastructure.Persistence.Entities;
 using Zuppeto.Infrastructure.Persistence.Mappings;
 
 namespace Zuppeto.Infrastructure.Persistence.Repositories;
@@ -42,7 +43,40 @@ internal sealed class FavoriteListRepository(ZuppetoDbContext dbContext) : IFavo
         }
 
         FavoriteListPersistenceMapper.Apply(favoriteList, record);
-        FavoriteListPersistenceMapper.SyncEntries(favoriteList, record);
+
+        var desiredById = favoriteList.Entries.ToDictionary(entry => entry.Id);
+        var existingById = record.Entries.ToDictionary(entry => entry.Id);
+
+        foreach (var stale in existingById.Values.Where(entry => !desiredById.ContainsKey(entry.Id)).ToArray())
+        {
+            record.Entries.Remove(stale);
+            dbContext.FavoriteEntries.Remove(stale);
+        }
+
+        foreach (var entry in favoriteList.Entries)
+        {
+            if (existingById.TryGetValue(entry.Id, out var current))
+            {
+                current.PlaceId = entry.PlaceId;
+                current.SavedAtUtc = entry.SavedAtUtc;
+                continue;
+            }
+
+            var created = new FavoriteEntryRecord
+            {
+                Id = entry.Id,
+                FavoriteListId = favoriteList.Id,
+                PlaceId = entry.PlaceId,
+                SavedAtUtc = entry.SavedAtUtc
+            };
+
+            record.Entries.Add(created);
+            await dbContext.FavoriteEntries.AddAsync(created, cancellationToken);
+            // Client-assigned GUID must not stay temporary or EF emits UPDATE instead of INSERT.
+            var tracked = dbContext.Entry(created);
+            tracked.State = EntityState.Added;
+            tracked.Property(e => e.Id).IsTemporary = false;
+        }
 
         await dbContext.SaveChangesAsync(cancellationToken);
     }

@@ -11,7 +11,8 @@ internal static class FavoriteListPersistenceMapper
 
         foreach (var entry in record.Entries.OrderBy(entry => entry.SavedAtUtc))
         {
-            favoriteList.AddPlace(entry.PlaceId, entry.SavedAtUtc);
+            // Preserve persisted entry ids so SyncEntries can match rows instead of delete+orphan updates.
+            favoriteList.RestorePersistedEntry(entry.Id, entry.PlaceId, entry.SavedAtUtc);
         }
 
         return favoriteList;
