@@ -43,10 +43,17 @@ Omplir **sempre** a la fila afectada (filtre en curs, p. ex. Chrome + USER):
 
 - `Resultat`: `KO`
 - `Data`: data de la prova
-- `Observacions`: què ha fallat (visible per a qui prova)
-- `Data Correcció`: data del fix
-- `Resultat Correcció`: `PENDENT retest` fins que l’usuari revalidï; després `OK` / `KO`
-- `Tasques Fetes`: què s’ha canviat (breu) i fitxers tocats (`Què s'ha fet: … Fitxers: …`)
+- `Observacions`: què ha fallat (visible per a qui prova), text **llegible** (línies / pics)
+- `Data Correcció`: data del fix (mateix format de data que `Data`)
+- `Resultat Correcció`: `PENDENT` fins retest; després `OK` / `KO`
+- `Tasques Fetes`: què s’ha canviat **complet** i fitxers (`Què s'ha fet: …`), text llegible
+
+### Format de les dues columnes d’estat (obligatori)
+
+`Resultat` i `Resultat Correcció` han de tenir **el mateix format visual** i el **mateix combo** (`OK,KO,PENDENT,N/A`):
+
+- centrat, negreta, color segons valor (OK verd / KO vermell / PENDENT gris / N/A ambre)
+- quan després d’un KO es posa `OK` a `Resultat Correcció`, ha de quedar **igual de maco** que un `OK` a `Resultat`
 
 No deixar un fix de codi sense aquesta traça a l’Excel.
 
