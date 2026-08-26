@@ -1,0 +1,38 @@
+---
+description: Caché Google Places, Development només BD, i control de cost en proves
+alwaysApply: true
+---
+
+# Google Places · caché i Development (acord producte)
+
+## Decisió Development (acord 2026-08-26)
+
+- En **Development / proves manuals**, la cerca de llocs consulta **només el catàleg BD** (i snapshots de cerca), **sense** Text Search a Google.
+- Aplicat: `GooglePlaces:Enabled=false` i `PreferExternalSearchFirst=false` a `appsettings.Development.json`; el provider i `PlaceApplicationService` respecten `Enabled`.
+- Per tornar a Google en local: posar `Enabled=true` (i opcionalment `PreferExternalSearchFirst`).
+- Després de proves USER: híbrid BD+nous, Details als 30 dies, etc. (commit propi).
+
+## Caché (què vam acordar)
+
+1. **Caché de cerca** (`place_search_queries` + results): mateixa clau de cerca → reutilitzar IDs, no tornar a Google.
+2. **Caché de local** (`places`): `google_place_id`, lat/lng, `google_coordinates_cached_until` (~30 dies), `last_google_sync_at`.
+3. Google **no** mira la nostra BD: si es crida Text Search, cobra la petició encara que els `place_id` ja existeixin.
+4. Estalvi real = **no cridar** Google quan BD/snapshot ja cobreix.
+5. Després de ~30 dies: redactar coords si cal; **recuperar** amb Places Details pel `place_id` (pendent d’implementar del tot), no redescobrir amb Text Search.
+
+## Híbrid objectiu (quan Google torni a estar actiu)
+
+- BD primer; si n’hi ha prou → no Google.
+- Si en falten → Text Search; **filtrar** `place_id` ja existents; upsert només nous; barrejar BD + nous.
+- Text Search no pot “excloure” place_ids a la petició.
+
+## Relació amb proves
+
+- ZUP-046 (mapa ≠ llistat) és UX/mapa; les millores BD/API de cerca van en **commit propi** després de tancar/retestar proves, no barrejar amb el fix de pins.
+- No avançar proves ni commits sols; esperar ordres de l’usuari.
+
+## Docs
+
+- Detall funcional: `docs/ca/funcional-ca.md` §12.5 / §12.5.1
+- Detall tècnic: `docs/ca/tecnic-ca.md` §2.11.4
+- Backlog: `docs/ca/millores-pendents-ca.md` (entrada 2026-08-26)

@@ -708,7 +708,8 @@ Migracions de referència al repositori: `20260427120000_AddPlaceProvenance`; co
 
 #### Configuració
 
-- **`GooglePlaces`** (`GooglePlacesOptions` a Infrastructure, `GooglePlacesIntegrationOptions` a Application): mateixa secció JSON. Camps habituals: `BaseUrl`, `ApiKey`, `TimeoutSeconds`, **`CoordinateCacheRetentionDays`** (per defecte **30**).  
+- **`GooglePlaces`** (`GooglePlacesOptions` a Infrastructure, `GooglePlacesIntegrationOptions` a Application): mateixa secció JSON. Camps habituals: **`Enabled`** (si és `false`, no hi ha Text Search; només catàleg/snapshots), `BaseUrl`, `ApiKey`, `TimeoutSeconds`, **`CoordinateCacheRetentionDays`** (per defecte **30**), `PreferExternalSearchFirst`.  
+  - En **Development** (`appsettings.Development.json`): `Enabled=false` i `PreferExternalSearchFirst=false` mentre es fan proves manuals (catàleg local ~100+ locals ja persistits).  
   - Registre: `Program.cs` fa `Configure<GooglePlacesIntegrationOptions>(configuration.GetSection(...))` abans de `AddApplication()`.
 - **`GooglePlacesCompliance`**: `GooglePlacesComplianceOptions` — `Enabled`, `RunIntervalMinutes`.
 

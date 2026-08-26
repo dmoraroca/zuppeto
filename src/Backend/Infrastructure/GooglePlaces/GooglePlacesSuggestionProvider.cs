@@ -18,6 +18,12 @@ internal sealed class GooglePlacesSuggestionProvider(
         CancellationToken cancellationToken = default)
     {
         var apiKey = googleOptions.ApiKey?.Trim() ?? string.Empty;
+        if (!googleOptions.Enabled)
+        {
+            logger.LogDebug("Google Places search skipped: Enabled is false.");
+            return [];
+        }
+
         if (string.IsNullOrWhiteSpace(apiKey))
         {
             logger.LogWarning("Google Places search skipped: ApiKey is empty.");

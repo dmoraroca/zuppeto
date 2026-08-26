@@ -7,6 +7,21 @@ No substitueix `docs/project-phases.md` ni el joc de proves Excel: aquí només 
 
 ---
 
+## 2026-08-26 22:39 CEST
+
+**Àmbit:** cerca de llocs / Google Places / Development / proves manuals
+
+**Acord de producte (pendent d’implementar en commit propi, després de ZUP-046 / proves):**
+
+1. **Development / proves:** per defecte **només consulta BD** (catàleg + snapshots). Sense Text Search Google mentre es proven pantalles (evitar quota).
+2. Caché de cerca + caché de local (`place_id`, ~30 dies) com ja documentat a funcional §12.5.1; Google no filtra pels nostres IDs — l’estalvi és no cridar.
+3. Quan Google torni a ser actiu (no-dev o flag): BD primer; si falta cobertura → Text Search; descartar `place_id` ja existents; upsert només nous. Refresh caducat → Places Details per `place_id`.
+4. Traça/control de crides Google vs hits de caché: millora futura (ara només `place_search_queries`).
+
+**Estat:** acordat; **Development aplicat** (`GooglePlaces:Enabled=false`, `PreferExternalSearchFirst=false` a `appsettings.Development.json` + guard al servei/provider). Híbrid BD+Google i Places Details: pendent després de proves USER.
+
+---
+
 ## 2026-08-13 20:58 CEST
 
 **Àmbit:** cerca de llocs / Google Places / tipus `Bar`

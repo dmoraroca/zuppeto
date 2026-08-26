@@ -44,7 +44,9 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
         CancellationToken cancellationToken = default)
     {
         var nowUtc = DateTimeOffset.UtcNow;
-        var preferExternalFirst = googlePlacesIntegrationOptions.Value.PreferExternalSearchFirst;
+        var googlePlacesEnabled = googlePlacesIntegrationOptions.Value.Enabled;
+        var preferExternalFirst =
+            googlePlacesEnabled && googlePlacesIntegrationOptions.Value.PreferExternalSearchFirst;
 
         // Local testing: Google Places first when the query has enough discovery context.
         if (preferExternalFirst && ShouldAttemptGooglePlacesFallback(request))
@@ -90,9 +92,9 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
             return ordered.Select(ToSummaryDto).ToArray();
         }
 
-        if (preferExternalFirst || !ShouldAttemptGooglePlacesFallback(request))
+        if (!googlePlacesEnabled || preferExternalFirst || !ShouldAttemptGooglePlacesFallback(request))
         {
-            // External already attempted above when PreferExternalSearchFirst, or query has no discovery text.
+            // External disabled, already attempted above when PreferExternalSearchFirst, or query has no discovery text.
             return [];
         }
 
