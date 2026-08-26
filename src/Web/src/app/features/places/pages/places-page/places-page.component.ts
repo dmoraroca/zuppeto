@@ -62,6 +62,7 @@ export class PlacesPageComponent {
   protected readonly cities = computed(() => this.placeService.getAvailableCities());
   protected readonly types = this.placeService.getAvailableTypes();
   protected readonly places = computed(() => this.placeService.getPlaces(this.filters()));
+  /** Same filtered set as the list; only places without plottable coordinates are omitted. */
   protected readonly mapPlaces = computed(() => this.places().filter((place) => !place.excludeFromOsmMap));
   protected readonly selectedPlaceId = this.selectedPlaceIdState.asReadonly();
   protected readonly selectedPlace = computed(() => {

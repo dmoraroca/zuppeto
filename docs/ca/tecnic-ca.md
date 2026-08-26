@@ -558,7 +558,7 @@ Sobre la base anterior, la implementació ja incorpora aquestes peces tècniques
   - `place_search_query_results`
 - migració aplicada: `AddPlaceSearchQueryCache`
 - resolució de cerca a `PlaceApplicationService` amb patró:
-  0. si `GooglePlaces:PreferExternalSearchFirst` i hi ha context de descobriment (`searchText`/`city` ≥ 2): **Google Places primer**; els candidats vàlids es **upserten** a `places` (`google_place_id`, coordenades, `google_coordinates_cached_until` = ara + `CoordinateCacheRetentionDays`, `last_google_sync_at`, `data_provenance=GooglePlaces`, `exclude_from_osm_map=true`) i es desa snapshot de cerca
+  0. si `GooglePlaces:PreferExternalSearchFirst` i hi ha context de descobriment (`searchText`/`city` ≥ 2): **Google Places primer**; els candidats vàlids es **upserten** a `places` (`google_place_id`, coordenades, `google_coordinates_cached_until` = ara + `CoordinateCacheRetentionDays`, `last_google_sync_at`, `data_provenance=GooglePlaces`, `exclude_from_osm_map=false` mentre hi hagi lat/lng) i es desa snapshot de cerca
   1. prova de **snapshot fresc** (`place_search_queries` / `place_search_query_results`) per clau normalitzada (TTL aplicació: **12 h** — `SearchSnapshotTtl`)
   2. si no hi ha snapshot vàlid: consulta al repositori de `places` (`PlaceSearchSpecification`: `searchText` amb `ILike` sobre nom, descripcions, ciutat, **país**, barri i adreça; filtre exacte de `city` / tipus / mascota)
   3. si hi ha resultats interns: **persistència** d’un nou snapshot amb TTL **12 h**
@@ -653,7 +653,7 @@ Exemple de payload de resposta (preview extern):
 Decisio tecnica acordada per al següent increment (alineada amb funcional):
 
 - el cataleg persistent de `places` queda com a **font de producte**; `Google Places` queda com a **proveïdor de descobriment i completar dades** quan calgui (incloent identificador estable `place_id` / `externalId` i camps d'emplaçament segons el cas).
-- el client actual mostra mapa amb `Leaflet` + `OpenStreetMap` com a **capa "Zuppeto"**; el disseny funcional exigeix separar la presentacio de contingut **origen Google** (veure `docs/ca/funcional-ca.md` **§12.5**).
+- el client actual mostra mapa amb `Leaflet` + `OpenStreetMap`; els pins coincideixen amb el llistat quan hi ha coordenades plotables (inclòs origen Google mentre la caché sigui vigent). Evolució opcional: capa Google / atribució (veure `docs/ca/funcional-ca.md` **§12.5**).
 - `Gemini` queda com a capa d'enriquiment (resum, context i senyals inferits), mai com a substitut de la fitxa base.
 - la sortida inferida per IA s'ha de persistir amb metadades de traçabilitat (`source`, `confidence`, `generatedAtUtc`, versio de prompt/estrategia).
 - la governanca del camp `pet friendly` manté regla estricta `manual > auto`.
@@ -702,7 +702,7 @@ Remissió funcional: `docs/ca/funcional-ca.md` (**§12.5** i **§12.5.1**).
 | `google_coordinates_cached_until` | Límit temporal operatiu de la caché de coordenades d’origen Google (nullable). |
 | `last_google_sync_at` | Darrer instant de sincronització amb Google (nullable). |
 | `latitude`, `longitude` | Nullables quan la coordenada **no** ha de persistir-se per compliment (vegeu mapper i worker). |
-| `exclude_from_osm_map` | Quan és cert: el producte **no** ha de pintar el pin a la capa OSM. Les coordenades **sí** es poden persistir mentre la caché Google sigui vigent (`google_coordinates_cached_until`); el worker de compliment les **redacta** (NULL) quan caduca. |
+| `exclude_from_osm_map` | Quan no hi ha lat/lng plotables (p. ex. després de redacció per caducitat), el pin no es pinta. Amb coordenades vigents (inclòs origen Google) el local surt al mapa **i** al llistat. El valor persistit a BD pot quedar desfasat; el mapper deriva l’exclusió de `Latitude`/`Longitude` null. |
 
 Migracions de referència al repositori: `20260427120000_AddPlaceProvenance`; coordenades nullable / compliment OSM: `20260501141000_PlaceGoogleCoordinateRedaction`. El `ZuppetoDbContextModelSnapshot` ha de coincidir amb el runtime EF.
 
@@ -726,7 +726,7 @@ Migracions de referència al repositori: `20260427120000_AddPlaceProvenance`; co
 #### Domini i persistència
 
 - `Place.SetDataProvenance`: si procedència és **GooglePlaces** o **Mixed**, `googlePlaceId` no pot ser buit (regla de domini).
-- `PlacePersistenceMapper.ToDomain`: deriva `excludeFromOsmMap` també quan `Latitude`/`Longitude` són null al registre.
+- `PlacePersistenceMapper.ToDomain`: `excludeFromOsmMap` es deriva **només** quan `Latitude`/`Longitude` són null (no s’amaga el pin només per procedència Google).
 
 #### Hosted service de compliment (`GooglePlacesComplianceRetentionHostedService`)
 

@@ -1718,11 +1718,11 @@ Per al producte actual, es fixa aquesta decisio funcional:
 Objectiu: compatibilitat amb l'esperit dels termes d'us de `Google Maps Platform` sense confondre l'usuari.
 
 - **Procedencia explícita per local**: cada fitxa ha de saber si el contingut d'emplaçament i identitat pro ve majoritariament de `Zuppeto` o si inclou dades de `Google Places` (fins i tot com a metadada visible en disseny, si cal).
-- **Mapa OSM (actual) = capa "Zuppeto"**: el mapa amb `OpenStreetMap` mostra **només** el que el producte tracta com a coordenades **pròpies** o del cataleg intern (no com a re-presentacio d'un servei "mirall" de Google).
-- **Contingut Google = capa "Google"**: quan un local es basa en dades de `Google Places`, el producte ofereix una **experiencia de mapa/ fitxa d'acord amb el que exigeix Google** (incloent, si escau, atribucio visible i el paquet d'UI que imposi el cas: mapa Google o elements de brand/powered-by segons el disseny tancat).
-- **No "barrejar" en la mateixa capa de mapa sense regles**: no es reprojecta el pin de Google sobre el mapa OSM com a solucio per defecte; es separa en dues visualitzacions o en estats de producte clars.
+- **Mapa i llistat sincronitzats**: els resultats filtrats que tenen **coordenades plotables** es mostren al **mateix** mapa OSM (Leaflet) i al llistat. No s’amaguen pins només perquè la procedència sigui Google Places.
+- **Sense coordenades = sense pin**: si la caché de coordenades ha caducat i s’han redactat (lat/lng null), el local pot continuar al llistat/fitxa però **no** es pinta al mapa fins a una nova sincronització.
+- **Capa Google (evolució)**: més endavant es pot afegir atribució / mapa Google quan el producte ho exigeixi; mentre tant, la UX prioritària és que mapa i llistat coincideixin amb les coordenades disponibles.
 - **Caché i coordenades**: les coordenades obtingudes via Google es tracten com a **caché amb caducitat**, no com a geoposició “permanent” del catàleg Zuppeto. Passada la finestra operativa, cal **renovar** amb la API de Google (utilitzant el `place_id` guardat) o mostrar el local sense tractar-lo com a pin propi a OSM. El desglossament (dies, neteja automàtica, cerca, administració) és al **§12.5.1**; camps i codi al `tecnic-ca.md` (**§2.11.4**).
-- **Model de dades intern**: el catàleg pot persistir **procedència de dades** (p. ex. intern vs integració Google / mixt), **`google_place_id`** quan apliqui, **dates de caducitat de caché de coordenades**, **darrera sincronització amb Google** i indicadors per **excloure el pin del mapa OSM** quan les regles de compliment ho exigeixin. Això alinea la UI (dues capes, expiració, mapa Google quan calgui) amb aquest document.
+- **Model de dades intern**: el catàleg pot persistir **procedència de dades** (p. ex. intern vs integració Google / mixt), **`google_place_id`** quan apliqui, **dates de caducitat de caché de coordenades**, **darrera sincronització amb Google** i l’indicador **`exclude_from_osm_map`** quan **no** hi ha coordenades plotables (p. ex. després de redacció per caducitat).
 - **Contingut mostrat "tal qual"** quan la font es Google: no es reescriu el nom/adreces/categories d'origen Google com si fossin creades per `Zuppeto`; la capa de valor de `Zuppeto` (pet friendly, comunitat, IA) es mostra a banda o clarament etiquetada.
 
 ### 12.5.1 Retenció, `place_id` i cerca (comportament acordat)
@@ -1737,13 +1737,13 @@ Aquest apartat concreta el que §12.5 resumeix en llenguatge de producte, perqu�
    - Si un local persistit té procedència **Google Places** o **mixta**, ha d’existir el **`google_place_id`** (identificador estable de Google). Serveix per tornar a consultar la API (p. ex. Places Details) i **refrescar coordenades** després de la caducitat de la caché, sense tractar coordenades velles com a veritat única.
 
 3. **Després de caducar la caché de coordenades**  
-   - Amb el manteniment automàtic activat (`GooglePlacesCompliance`, vegeu tècnic), el sistema pot **eliminar les coordenades persistides** associades a aquella caché caducada i marcar el local com **no representable al mapa OSM** (capa Zuppeto), **sense esborrar** el `google_place_id` ni la procedència: així es pot **tornar a sincronitzar** quan calgui.  
-   - Funcionalment: **no** es mostra el pin a OSM com si fos coordenada pròpia; es manté el que diu §12.5 sobre **capa Google** o estats de fitxa clars quan la font és Google.
+   - Amb el manteniment automàtic activat (`GooglePlacesCompliance`, vegeu tècnic), el sistema pot **eliminar les coordenades persistides** associades a aquella caché caducada i marcar el local com **no representable al mapa** (sense lat/lng), **sense esborrar** el `google_place_id` ni la procedència: així es pot **tornar a sincronitzar** quan calgui.  
+   - Funcionalment: **no** hi ha pin al mapa fins a refrescar coordenades; el local pot seguir al llistat.
 
 4. **Cerca de locals (`GET /api/places`)**  
    - Les lectures públiques del preview de login (`GET /api/places`, cities) poden ser anònimes; la resta del grup va amb **JWT**.  
    - Sempre **primer** el catàleg intern (amb **snapshot de cerca** de curta durada; vegeu tècnic), tret del mode de proves `PreferExternalSearchFirst`.  
-   - Si no hi ha resultats i la consulta té prou context, es crida **Google Places** i els candidats vàlids es **guarden al catàleg** (upsert per `google_place_id`): place_id indefinit, coordenades amb caducitat ~**30 dies**, `created_at_utc` / `updated_at_utc`, exclusió del pin OSM. Així les cerques posteriors reutilitzen BD sense tornar a pagar Google mentre la dada sigui útil.  
+   - Si no hi ha resultats i la consulta té prou context, es crida **Google Places** i els candidats vàlids es **guarden al catàleg** (upsert per `google_place_id`): place_id indefinit, coordenades amb caducitat ~**30 dies**, `created_at_utc` / `updated_at_utc`; amb coordenades vigents es mostren també al mapa. Així les cerques posteriors reutilitzen BD sense tornar a pagar Google mentre la dada sigui útil.  
    - Quan caduca la caché de coordenades, el manteniment pot **esborrar lat/lng** i cal **tornar a sincronitzar** amb Places Details usant el `place_id` guardat.
 
 5. **Snapshots de consultes**  

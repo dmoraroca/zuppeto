@@ -197,7 +197,7 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
             googlePlaceId,
             cacheUntil,
             nowUtc,
-            excludeFromOsmMap: true);
+            excludeFromOsmMap: false);
 
         if (existing is not null)
         {

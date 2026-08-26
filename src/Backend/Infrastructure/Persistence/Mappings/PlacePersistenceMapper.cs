@@ -15,7 +15,9 @@ internal static class PlacePersistenceMapper
             ? parsedType
             : PlaceType.Service;
 
-        var excludeFromOsmMap = record.ExcludeFromOsmMap || record.Latitude is null || record.Longitude is null;
+        // Plottable when lat/lng exist. Google provenance alone does not hide pins (map ≡ listing).
+        // Redacted / withheld coordinates stay null in DB and are excluded from the map.
+        var excludeFromOsmMap = record.Latitude is null || record.Longitude is null;
         var latitude = record.Latitude ?? WithheldLatitudeFallback;
         var longitude = record.Longitude ?? WithheldLongitudeFallback;
         var place = new Place(
@@ -74,9 +76,8 @@ internal static class PlacePersistenceMapper
         record.City = place.Address.City;
         record.Country = place.Address.Country;
         record.Neighborhood = place.Address.Neighborhood;
-        // Persist coordinates even when ExcludeFromOsmMap is true: Google cache (≤30 days)
-        // needs lat/lng in DB; OSM rendering is gated by the flag / DTO, not by nulling coords.
-        // Expired Google coordinates are redacted by GooglePlacesComplianceRetentionHostedService.
+        // Persist coordinates even when the stored ExcludeFromOsmMap flag is true: Google cache
+        // (≤30 days) needs lat/lng in DB. Map rendering uses null lat/lng (redaction) as the gate.
         record.Latitude = place.Location.Latitude;
         record.Longitude = place.Location.Longitude;
         record.ExcludeFromOsmMap = place.ExcludeFromOsmMap;
