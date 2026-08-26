@@ -384,6 +384,8 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
     private static PlaceSummaryDto ToSummaryDto(Place place)
     {
         var (cacheExpired, requiresGoogleMap) = ComputeGoogleCoordinateFlags(place);
+        // Map ≡ listing: do not hide pins while Google coordinate cache is still valid.
+        var excludeFromOsmMap = place.ExcludeFromOsmMap && !requiresGoogleMap;
         return new PlaceSummaryDto(
             place.Id,
             place.Name,
@@ -403,7 +405,7 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
             place.LastGoogleSyncAt,
             cacheExpired,
             requiresGoogleMap,
-            place.ExcludeFromOsmMap,
+            excludeFromOsmMap,
             place.PetPolicy.AcceptsDogs,
             place.PetPolicy.AcceptsCats,
             place.PetPolicy.Label,
@@ -418,6 +420,7 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
     private static PlaceDetailDto ToDetailDto(Place place)
     {
         var (cacheExpired, requiresGoogleMap) = ComputeGoogleCoordinateFlags(place);
+        var excludeFromOsmMap = place.ExcludeFromOsmMap && !requiresGoogleMap;
         return new PlaceDetailDto(
             place.Id,
             place.Name,
@@ -437,7 +440,7 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
             place.LastGoogleSyncAt,
             cacheExpired,
             requiresGoogleMap,
-            place.ExcludeFromOsmMap,
+            excludeFromOsmMap,
             place.PetPolicy.AcceptsDogs,
             place.PetPolicy.AcceptsCats,
             place.PetPolicy.Label,

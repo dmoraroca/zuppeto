@@ -89,8 +89,11 @@ export class PlaceDetailPageComponent {
   protected get placeAsArray() {
     const currentPlace = this.place();
 
-    // excludeFromOsmMap means no plottable coordinates (e.g. redacted Google cache).
-    if (!currentPlace || currentPlace.excludeFromOsmMap) {
+    // Omit map when there are no plottable coordinates (redacted cache and no valid Google cache).
+    if (
+      !currentPlace ||
+      (currentPlace.excludeFromOsmMap && !currentPlace.requiresGoogleMapForGoogleCoordinates)
+    ) {
       return [];
     }
 

@@ -727,6 +727,8 @@ Migracions de referència al repositori: `20260427120000_AddPlaceProvenance`; co
 
 - `Place.SetDataProvenance`: si procedència és **GooglePlaces** o **Mixed**, `googlePlaceId` no pot ser buit (regla de domini).
 - `PlacePersistenceMapper.ToDomain`: `excludeFromOsmMap` es deriva **només** quan `Latitude`/`Longitude` són null (no s’amaga el pin només per procedència Google).
+- `PlaceSummaryDto` / `PlaceDetailDto`: `excludeFromOsmMap` es força a **false** mentre `requiresGoogleMapForGoogleCoordinates` (caché de coordenades Google vigent), perquè mapa i llistat coincideixin.
+- `PlacesPage.mapPlaces` / detall: també pinten si `requiresGoogleMapForGoogleCoordinates` és cert.
 
 #### Hosted service de compliment (`GooglePlacesComplianceRetentionHostedService`)
 

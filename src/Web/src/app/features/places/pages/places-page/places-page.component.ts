@@ -62,8 +62,15 @@ export class PlacesPageComponent {
   protected readonly cities = computed(() => this.placeService.getAvailableCities());
   protected readonly types = this.placeService.getAvailableTypes();
   protected readonly places = computed(() => this.placeService.getPlaces(this.filters()));
-  /** Same filtered set as the list; only places without plottable coordinates are omitted. */
-  protected readonly mapPlaces = computed(() => this.places().filter((place) => !place.excludeFromOsmMap));
+  /**
+   * Same filtered set as the list. Plot when coordinates are usable:
+   * either not excluded, or Google cache still valid (requiresGoogleMapForGoogleCoordinates).
+   */
+  protected readonly mapPlaces = computed(() =>
+    this.places().filter(
+      (place) => !place.excludeFromOsmMap || !!place.requiresGoogleMapForGoogleCoordinates
+    )
+  );
   protected readonly selectedPlaceId = this.selectedPlaceIdState.asReadonly();
   protected readonly selectedPlace = computed(() => {
     const selectedPlaceId = this.selectedPlaceId();
