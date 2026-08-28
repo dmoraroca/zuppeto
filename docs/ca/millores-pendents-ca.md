@@ -7,6 +7,30 @@ No substitueix `docs/project-phases.md` ni el joc de proves Excel: aquí només 
 
 ---
 
+## 2026-08-26 23:12 CEST
+
+**Àmbit:** detall de lloc des del mapa (`/places/:id`) · UX navegació
+
+**Què funciona:** des de Llocs, amb selecció al mapa, «Veure detall» obre la fitxa (ZUP-053 OK).
+
+**Millora:** el comportament/UX de la fitxa quan s’arriba des del mapa no acaba d’encaixar (p. ex. imatge trencada/placeholder, botó «Has arribat des del mapa», layout/accions). Revisar flux mapa → detall → tornar al llistat perquè sigui més clar i coherent. Relacionat també: «Veure detall» al popup del marcador (ara només a la targeta sota el mapa).
+
+**Estat:** pendent; no implementar ara.
+
+---
+
+## 2026-08-26 23:08 CEST
+
+**Àmbit:** mapa · popup del marcador (Leaflet)
+
+**Què es veu:** al clicar un marcador, el popup mostra tipus, nom, ciutat/país i adreça, però el text d’adreça surt **redundant** (p. ex. CP/ciutat/país repetits a la mateixa línia).
+
+**Millora:** netejar el text del popup (i, si cal, la targeta «Seleccionat al mapa») perquè l’adreça sigui llegible i sense duplicats. Acordat: **ja es canviarà** (no bloqueja proves ZUP-052).
+
+**Estat:** pendent; no implementar ara.
+
+---
+
 ## 2026-08-26 22:39 CEST
 
 **Àmbit:** cerca de llocs / Google Places / Development / proves manuals
