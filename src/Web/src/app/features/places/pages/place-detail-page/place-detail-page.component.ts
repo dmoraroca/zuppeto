@@ -6,6 +6,7 @@ import { SiteFooterComponent } from '../../../../core/layout/components/site-foo
 import { SiteHeaderComponent } from '../../../../core/layout/components/site-header/site-header.component';
 import { FavoriteToggleButtonComponent } from '../../../../shared/components/favorite-toggle-button/favorite-toggle-button.component';
 import { FavoritesService } from '../../../favorites/services/favorites.service';
+import { PlaceCoverImageComponent } from '../../components/place-cover-image/place-cover-image.component';
 import { PlaceMapComponent } from '../../components/place-map/place-map.component';
 import { PlaceService } from '../../services/place.service';
 import {
@@ -21,6 +22,7 @@ import {
     SiteHeaderComponent,
     SiteFooterComponent,
     FavoriteToggleButtonComponent,
+    PlaceCoverImageComponent,
     PlaceMapComponent
   ],
   templateUrl: './place-detail-page.component.html',

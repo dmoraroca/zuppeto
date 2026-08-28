@@ -1429,6 +1429,8 @@ Flux principal:
 2. consulta descripcio, adreca, notes pet-friendly i tags
 3. veu la ubicacio aproximada en el mapa
 
+Si el lloc no té imatge de portada (o la URL falla), la fitxa mostra un placeholder «Imatge no disponible» en lloc d'una imatge trencada.
+
 ### UC-04 Guardar favorits
 
 Actor:
@@ -1700,6 +1702,7 @@ Part de la informacio de fitxa i del contingut visual dels locals pot provenir d
 ### 12.3 Regles funcionals per a imatges de locals
 
 - font prioritaria: fotos oficials obtingudes via API oficial (`Google Places Photo`) o fonts propies verificades.
+- si un local no té imatge, la fitxa de detall mostra un placeholder «Imatge no disponible» (no un `img` buit o trencat).
 - no es considera valid reutilitzar imatges extretes directament de cercadors sense marc legal clar.
 - per cada imatge s'ha de conservar traca minima de font i atribucio per poder auditar origen i condicions d'us.
 

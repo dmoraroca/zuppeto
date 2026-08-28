@@ -1276,6 +1276,7 @@ Peces principals:
 - `place-filters`
 - `place-map`
 - `place-card`
+- `place-cover-image`
 - `places-page`
 - `place-detail-page`
 
@@ -1284,6 +1285,7 @@ Decisions tecniques rellevants:
 - `places-page` centralitza query params, filtres actius i resultats
 - `place-map` es reutilitzable i parametritzable
 - `place-card` es reutilitza a llistat i favorits
+- `place-cover-image` pinta la portada o un placeholder («Imatge no disponible») si no hi ha URL o si la càrrega falla; el fan servir el detall i els llocs relacionats
 
 ### 5.3 Favorites
 

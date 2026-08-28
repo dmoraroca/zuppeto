@@ -11,7 +11,12 @@
     </nav>
 
     <section class="place-detail-page__hero">
-      <img [src]="selectedPlace.imageUrl" [alt]="selectedPlace.name" />
+      <app-place-cover-image
+        class="place-detail-page__hero-cover"
+        [imageUrl]="selectedPlace.imageUrl"
+        [alt]="selectedPlace.name"
+        variant="hero"
+      />
 
       <div class="place-detail-page__hero-content">
         <p class="place-detail-page__eyebrow">
@@ -115,7 +120,11 @@
         <div class="place-detail-page__related-grid">
           @for (relatedPlace of relatedPlaces(); track relatedPlace.id) {
             <a class="place-detail-page__related-card" [routerLink]="['/places', relatedPlace.id]">
-              <img [src]="relatedPlace.imageUrl" [alt]="relatedPlace.name" />
+              <app-place-cover-image
+                [imageUrl]="relatedPlace.imageUrl"
+                [alt]="relatedPlace.name"
+                variant="related"
+              />
               <div>
                 <p class="place-detail-page__related-eyebrow">
                   {{ getTypeLabel(relatedPlace.type) }} · {{ relatedPlace.rating }}

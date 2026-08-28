@@ -3,7 +3,19 @@
 Backlog de millores detectades mentre es treballa o es fan proves manuals.
 No substitueix `docs/project-phases.md` ni el joc de proves Excel: aquí només anotem idees per comentar i prioritzar després.
 
-**Format d’entrada:** data i hora (Europe/Madrid), després la descripció.
+**Format d’entrada:** data i hora (Europe/Madrid), després la descripció. Si la millora ja està feta, al final de l’entrada es marca **FET**.
+
+---
+
+## 2026-08-29 00:06 CEST
+
+**Àmbit:** detall de lloc (`/places/:id`) · imatge de portada
+
+**Què es veu (ZUP-055):** la fitxa carrega (nom, descripció, mètriques), però **la imatge no surt perquè el lloc no en té** (`CoverImageUrl` buit). El detall pinta sempre un `<img>`; a les targetes del llistat ja hi ha placeholder si no hi ha URL.
+
+**Millora:** al detall (i llocs relacionats, si cal), mateix criteri que la targeta: si no hi ha imatge, mostrar placeholder, no un `img` buit/trencat.
+
+**Estat:** placeholder «Imatge no disponible» a la fitxa i als relacionats. No s’havia d’implementar durant les proves (només anotar); s’ha fet per error de l’agent. **FET**
 
 ---
 
@@ -84,4 +96,4 @@ No substitueix `docs/project-phases.md` ni el joc de proves Excel: aquí només 
 
 **Millora / criteri:** els textos de les proves (pantalla, descripció, passos, resultat esperat) han de ser **sempre llegibles per qualsevol persona**, sense argot de programador (`Hero`, `CTA`, `OAuth`, `header`, `Leaflet`, etc.). S’ha netejat l’Excel viu i el generador aplica el mateix criteri.
 
-**Estat:** aplicat a l’Excel (backup `20260823-004`); mantenir el criteri en noves proves.
+**Estat:** aplicat a l’Excel (backup `20260823-004`); mantenir el criteri en noves proves. **FET**
