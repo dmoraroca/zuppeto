@@ -235,11 +235,20 @@ Justificacio funcional:
 - `TOTP` dona una base mes portable i neutra que una integracio propietaria amb una sola plataforma
 - `Microsoft Authenticator` i `Google Authenticator` son prou coneguts per l'usuari final i no bloquegen l'arquitectura
 
-Abast inicial proposat per a aquest punt:
+Abast ja implementat al perfil (`/perfil`; detall de pantalles a §3.11):
 
-- canvi de contrasenya des del perfil
-- confirmacio o enviament de codi per `email` si el flux ho requereix
-- estudi o preparacio de `TOTP` com a segon factor compatible
+- canvi d'`email` i de contrasenya des del perfil (login propi; la sessió es reemet)
+- `email` amb format invàlid: missatge sota el camp i **Guardar** desactivat; no pot coincidir amb un altre compte
+- canvi d'`email` **sense** exigir la contrasenya actual (l’actual buida no bloqueja desar la fitxa ni l’email)
+- contrasenya actual entra **sempre buida**; nova i confirmació resten **desactivades** fins que l’actual **coincideix** amb la del compte
+- nova i confirmació validen format (mínim **6**, han de ser **iguals**, línia de força, ull); si la nova té text i la confirmació és buida o diferent: «Les contrasenyes no coincideixen.»
+- **dèbil:** text però menys de 6; **mitjana:** mínim 6 però incompleta; **forta:** mínim 6 + majúscula + minúscula + número + especial
+- al **Guardar**, si l’actual té text es revalida contra el compte; si no coincideix: notificació «Contrasenya incorrecta» i no es toca la contrasenya
+- si l’actual és **buida**, es desa la fitxa (i l’email si ha canviat) **sense** tocar la contrasenya
+- compte **Google**: no hi ha contrasenya local coneguda; el canvi de contrasenya del perfil es prova amb **login propi**
+- **Guardar** desactivat en entrar (formulari sense canvis); actiu si l’usuari ha editat, els obligatoris són plens i, per a `USER`, el consentiment està marcat
+- confirmacio o enviament de codi per `email` si el flux ho requereix (**pendent**)
+- estudi o preparacio de `TOTP` com a segon factor compatible (**pendent**)
 
 Fora d'abast inicial:
 
@@ -248,7 +257,7 @@ Fora d'abast inicial:
 - flux complet de recuperacio de compte per `SMS`
 - dependencia funcional d'una app concreta de fabricant
 
-Quan aquest punt passi a implementacio, el detall de pantalles, camps obligatoris, regles i passos d'usuari s'haura d'afegir en aquest mateix document o en un funcional especific derivat, pero no a `project-phases.md`.
+El detall de pantalles, camps, regles i passos d'usuari del canvi de credencials viu a §3.11 i UC-07, no a `project-phases.md`.
 
 ### 3.5 Base funcional consolidada de Fase I
 
@@ -701,6 +710,7 @@ Funcions d'aquesta pantalla:
 
 - consulta de dades pròpies del compte
 - edició del perfil propi
+- canvi d'`email` i de `contrasenya` (login propi; la sessió es reemet)
 - validació de camps obligatoris
 - control de consentiment quan pertoqui
 - tancament de sessió
@@ -708,32 +718,64 @@ Funcions d'aquesta pantalla:
 Camps funcionals principals del perfil:
 
 - `nom visible`
+- `email`
+- `contrasenya actual` / `contrasenya nova` / `confirmació`
 - `ciutat`
 - `pais`
 - `url de foto`
 - `bio`
 - `consentiment`
+- `rol` (només lectura)
 
 Criteri funcional de camps:
 
-- `nom visible` és editable
-- `ciutat` és editable amb catàleg validat
-- `pais` queda emplenat automàticament a partir de la ciutat vàlida
-- `url de foto` és opcional
-- `bio` és editable
-- `consentiment` es mostra o s'exigeix segons rol i context funcional
+- `nom visible` és editable (mínim 3 caràcters)
+- `email` és editable; no pot coincidir amb un altre compte
+- `bio` és editable i **opcional**: el camp **entra buit** si a la BD no n’hi ha; si n’hi ha una de desada, es carrega d’allà. El seed de Development i l’alta per Google **no** fabriquen textos de bio
+- `url de foto` és opcional; sense foto es mostra el placeholder `NONE`
+- `consentiment` no porta `*`; per a `USER`, el check marcat és condició per activar **Guardar** (junt amb la resta)
+- `rol` només es veu; el canvia `ADMIN`
+
+#### Compte · email
+
+- si el format no és vàlid, **sempre** es mostra sota el camp «L’email té un format incorrecte» i **Guardar** resta desactivat
+- un email ja usat per un altre compte no es pot desar
+- canviar només l’email **no** exigeix omplir la contrasenya actual: amb l’actual **buida** es pot guardar fitxa + email
+- després d’un canvi d’email vàlid, la sessió es **reemet** (el token reflecteix el compte nou)
+
+#### Compte · contrasenya (flux tancat)
+
+- **Contrasenya actual** entra **sempre buida**. No es pot mostrar la de la BD (només hi ha hash). El navegador no l’ha d’omplir sol (s’ignora l’autofill).
+- **Nova** i **confirmació** entren **desactivades**: no s’hi pot escriure ni porten `*` fins que l’actual **coincideix** amb la del compte.
+- Nova i confirmació **no** són camps a la BD: serveixen per **validar el format**. Si són correctes, al guardar **substitueixen** la contrasenya del compte.
+- Format: mínim **6** caràcters; les dues han de ser **iguals**. Si la nova té text i la confirmació és buida (o no coincideix), es mostra **«Les contrasenyes no coincideixen.»** Línia de força sota la nova: **dèbil** (text però &lt; 6), **mitjana** (≥6 incompleta), **forta** (≥6 + majúscula + minúscula + número + especial). Cada camp té **ull** per mostrar o amagar.
+- Si l’**actual és buida**, es pot **guardar** el perfil (nom, ciutat, bio, foto, email, etc.); nova i confirmació resten **desactivades** i **no** es toca la contrasenya del compte.
+- Al **Guardar**, si l’actual té text, es **comprova de nou** contra el compte. Si no coincideix: notificació **«Contrasenya incorrecta»**, no es desa el canvi de contrasenya ni es continua el guardat de compte.
+- Una sessió **Google** no té una contrasenya local coneguda (el hash inicial és aleatori): l’actual no coincidirà amb la de Gmail. El canvi de contrasenya del perfil es prova amb **login propi**.
+
+**Guardar** (decisió de producte):
+
+- entra **desactivat** (formulari sense canvis / pristine)
+- s’activa si l’usuari ha editat, els obligatoris són plens i, per a `USER`, el consentiment està marcat
+- obligatoris de la fitxa: nom visible, email vàlid, ciutat, país
+- si s’està canviant la contrasenya (actual ja coincideix i hi ha text a nova o confirmació): també cal nova amb mínim 6 i confirmació igual
+- si en falta algun, sota l’avís es llista **Falten: …** (els mateixos criteris que activen o desactiven el botó)
+- **actual buida:** desa fitxa; si l’email ha canviat, també desa el compte; **no** verifica ni canvia la contrasenya
+- **actual amb text:** revalida; si falla, notificació i no desa; si coincideix i la nova és vàlida, substitueix la contrasenya (i l’email si ha canviat) i després desa la fitxa
+- es pot desar nom, ciutat, bio, foto, consentiment, etc. **sense** tocar la contrasenya
 
 Regles funcionals rellevants:
 
-- el perfil no s'ha de poder guardar si falten camps obligatoris
+- el perfil no s'ha de poder guardar si falten camps obligatoris o l’email té format incorrecte
+- si en falta algun, sota l’avís de camps obligatoris es llista un resum dels que falten
 - el perfil no s'ha de poder guardar si la `ciutat` no coincideix amb una entrada vàlida del catàleg
 - `pais` no s'ha de considerar un camp lliure si depen de la ciutat
-- per al rol `USER`, el consentiment funcional continua sent obligatori mentre es mantingui aquest criteri
-- per al rol `ADMIN`, el tractament funcional del consentiment pot seguir criteri específic diferenciat
+- per al rol `USER`, **Guardar** només s’activa si el consentiment està marcat i es compleixen també les altres condicions
+- per al rol `ADMIN`, el tractament funcional del consentiment pot seguir criteri específic diferenciat (exempt del check per activar **Guardar**)
 
 La pantalla de perfil no ha de barrejar-se amb:
 
-- canvi avançat de credencials
+- canvi avançat de credencials (2FA / TOTP / recuperació)
 - manteniment de rols
 - manteniment d'altres usuaris
 - metadades administratives com `data d'alta` o `ultim acces`
@@ -1480,11 +1522,23 @@ Actor:
 
 Flux principal:
 
-1. l'usuari entra a `Perfil`
-2. edita nom, ciutat, pais, bio i foto
-3. si no hi ha foto, veu el placeholder `NONE`
-4. si el rol es `USER`, ha d'acceptar el consentiment de manteniment de dades
-5. el sistema guarda els canvis en mode fake
+1. l'usuari entra a `Perfil` (sessió real; dades de BD / sessió)
+2. veu nom, email, ciutat, país, bio (buida si no n’hi ha a la BD), foto o placeholder `NONE`, rol (només lectura) i consentiment
+3. **Guardar** entra desactivat; la contrasenya actual entra buida; nova i confirmació desactivades
+4. edita la fitxa (nom, ciutat, país, bio opcional, foto) i/o l’email
+5. si l’email té format incorrecte, veu sempre el missatge sota el camp i no pot guardar
+6. si vol canviar la contrasenya: escriu l’actual; només quan coincideix amb el compte s’activen nova i confirmació (format, iguals, força, ull)
+7. si el rol es `USER`, ha d'acceptar el consentiment de manteniment de dades (sense `*` al check)
+8. prem **Guardar**:
+   - actual **buida** → desa fitxa; si l’email ha canviat, també desa el compte; no toca la contrasenya
+   - actual **amb text** → revalida; si no coincideix, notificació «Contrasenya incorrecta» i no desa; si coincideix i la nova és vàlida, substitueix la contrasenya i desa fitxa + compte
+9. el sistema desa sobre backend real i, si ha canviat email o contrasenya, reemet la sessió
+
+Fluxos alternatius:
+
+- sessió Google: l’actual no coincideix amb Gmail; el canvi de contrasenya es fa amb login propi
+- email ja usat per un altre compte: no es desa
+- ciutat fora del catàleg: no es pot guardar
 
 ### UC-00 Iniciar sessio
 
@@ -1519,7 +1573,14 @@ Flux principal:
 - si no hi ha sessio, les rutes protegides redirigeixen a `Login`
 - si hi ha `redirectTo`, el login hi ha de tornar despres d'autenticar
 - si el rol es `ADMIN`, `Del desenvolupador` nomes ha de ser visible i accessible per aquest rol
-- el consentiment de manteniment de dades es obligatori per a `USER`
+- el consentiment de manteniment de dades es obligatori per a `USER` per poder **Guardar** el perfil
+- al perfil, **Guardar** entra desactivat fins que l’usuari ha editat i els obligatoris són vàlids
+- email amb format incorrecte: missatge sota el camp i **Guardar** desactivat
+- canvi d’email sense omplir la contrasenya actual és permès
+- canvi de contrasenya: actual buida a l’entrada; nova i confirmació desactivades fins que l’actual coincideix; al guardar es revalida
+- actual buida al guardar: desa la fitxa (i l’email si ha canviat) sense tocar la contrasenya
+- actual incorrecta al guardar: notificació «Contrasenya incorrecta» i no es canvia la contrasenya
+- bio opcional; si no n’hi ha a la BD, el camp entra buit
 
 ## 8. Login i perfil · Estat actual i futur immediat
 
@@ -1538,8 +1599,11 @@ Punts funcionals ja implementats:
 - rols `USER` i `ADMIN`
 - sessio d'usuari
 - logout
-- pagina de perfil
-- manteniment basic de perfil
+- pagina de perfil sobre backend real
+- manteniment de perfil (nom, email, ciutat, país, bio opcional, foto)
+- canvi d’email des del perfil (format sota el camp; unicitat; sessió reemesa)
+- canvi de contrasenya: actual buida, nova/confirmació bloquejades fins que l’actual coincideix; al guardar es revalida i es notifica si és incorrecta
+- **Guardar** desactivat en pristine; resum **Falten: …**; consentiment `USER` sense `*` però obligatori per activar el botó
 - foto de perfil opcional
 - placeholder si no hi ha foto
 - redireccio automatica a `Login` des de rutes protegides
@@ -1549,9 +1613,9 @@ Punts funcionals ja implementats:
 
 Punts encara previstos:
 
-- login social posterior
-- persistencia real de sessio contra backend
-- favorits persistits per usuari autenticat
+- confirmació o recuperació de compte per `email`
+- `TOTP` com a segon factor
+- login social addicional (LinkedIn, Facebook, Apple, Microsoft); Google ja és al login
 
 ### 8.1 Actors i accessos de login
 
@@ -1590,19 +1654,27 @@ Resum del diagrama:
 ### 8.3 Flux funcional de manteniment de perfil
 
 <pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">flowchart TD</span>
-  <span style="color:#93c5fd;">A[Entrar al perfil]</span> --&gt; <span style="color:#c4b5fd;">B[Editar dades basiques]</span>
-  <span style="color:#c4b5fd;">B</span> --&gt; <span style="color:#86efac;">C[Afegir o canviar foto]</span>
-  <span style="color:#86efac;">C</span> --&gt; <span style="color:#67e8f9;">D{Hi ha foto?}</span>
-  <span style="color:#67e8f9;">D</span> --&gt;|No| <span style="color:#fcd34d;">E[Mostrar placeholder NONE]</span>
-  <span style="color:#67e8f9;">D</span> --&gt;|Si| <span style="color:#fcd34d;">F[Mostrar foto de perfil]</span>
-  <span style="color:#fcd34d;">E</span> --&gt; <span style="color:#f9a8d4;">G[Guardar canvis]</span>
-  <span style="color:#fcd34d;">F</span> --&gt; <span style="color:#f9a8d4;">G</span></code></pre>
+  <span style="color:#93c5fd;">A[Entrar al perfil]</span> --&gt; <span style="color:#c4b5fd;">B[Carregar dades de BD]</span>
+  <span style="color:#c4b5fd;">B</span> --&gt; <span style="color:#86efac;">C[Editar fitxa, email, foto, bio]</span>
+  <span style="color:#86efac;">C</span> --&gt; <span style="color:#67e8f9;">D{Vol canviar contrasenya?}</span>
+  <span style="color:#67e8f9;">D</span> --&gt;|Actual buida| <span style="color:#fcd34d;">E[Guardar]</span>
+  <span style="color:#67e8f9;">D</span> --&gt;|Omple actual| <span style="color:#f9a8d4;">F{Coincideix amb el compte?}</span>
+  <span style="color:#f9a8d4;">F</span> --&gt;|No| <span style="color:#93c5fd;">G[Nova i confirmacio desactivades]</span>
+  <span style="color:#f9a8d4;">F</span> --&gt;|Si| <span style="color:#86efac;">H[Activar nova i confirmacio]</span>
+  <span style="color:#86efac;">H</span> --&gt; <span style="color:#c4b5fd;">I[Validar format i coincidencia]</span>
+  <span style="color:#c4b5fd;">I</span> --&gt; <span style="color:#fcd34d;">E</span>
+  <span style="color:#fcd34d;">E</span> --&gt; <span style="color:#67e8f9;">J{Actual te text?}</span>
+  <span style="color:#67e8f9;">J</span> --&gt;|No| <span style="color:#86efac;">K[Desar fitxa i email si ha canviat]</span>
+  <span style="color:#67e8f9;">J</span> --&gt;|Si| <span style="color:#f9a8d4;">L{Revalidar actual}</span>
+  <span style="color:#f9a8d4;">L</span> --&gt;|Incorrecta| <span style="color:#93c5fd;">M[Notificacio Contrasenya incorrecta]</span>
+  <span style="color:#f9a8d4;">L</span> --&gt;|Correcta| <span style="color:#86efac;">N[Desar compte i fitxa]</span></code></pre>
 
 Resum del diagrama:
 
-- el perfil ja inclou manteniment basic de dades i foto
-- si no hi ha foto, la UI mostrara un placeholder clar i visible
-- aquesta base ja permet validar UX abans de connectar persistencia real
+- el perfil carrega dades reals; bio buida si no n’hi ha; foto o placeholder `NONE`
+- nova i confirmació només s’activen quan l’actual coincideix amb el compte
+- **Guardar** amb actual buida desa fitxa (i email si ha canviat) sense tocar la contrasenya
+- **Guardar** amb actual plena revalida; si falla, notificació i no desa; si passa, substitueix la contrasenya
 
 ### 8.4 Flux funcional de consentiment
 
@@ -1618,6 +1690,7 @@ Resum del diagrama:
 Resum del diagrama:
 
 - el consentiment ja forma part funcional del manteniment de perfil
+- el check de `USER` no porta `*`, però **Guardar** no s’activa si no està marcat
 - `ADMIN` queda exempt segons el criteri actual acordat
 - la resta d'usuaris no podran desar canvis sense acceptacio valida
 
@@ -1649,6 +1722,11 @@ Resum del diagrama:
 - si no hi ha sessio, les rutes protegides redirigeixen a `Login`
 - si hi ha `redirectTo`, despres del login es torna a la ruta demanada
 - el `USER` pot entrar a `Perfil` i mantenir les seves dades
+- al perfil, **Guardar** no s’activa en entrar; s’activa després d’editar si els obligatoris (i el consentiment `USER`) són vàlids
+- email amb format incorrecte mostra sempre l’error sota el camp i desactiva **Guardar**
+- es pot canviar l’email sense omplir la contrasenya actual
+- nova i confirmació resten desactivades fins que la contrasenya actual coincideix
+- actual buida al guardar no canvia la contrasenya; actual incorrecta mostra «Contrasenya incorrecta»
 - l'`ADMIN` pot veure i obrir `Del desenvolupador`
 - es pot navegar de `home` a `places`
 - el `hero` diferencia entre explorar `places` i entendre el flux a `Ajuda`

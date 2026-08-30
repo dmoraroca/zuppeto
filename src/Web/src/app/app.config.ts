@@ -5,6 +5,19 @@ import { provideHttpClient, withInterceptors, withXhr } from '@angular/common/ht
 import { routes } from './app.routes';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { errorInterceptor } from './core/interceptors/error.interceptor';
+import {
+  PASSWORD_STRENGTH_POLICY,
+  PasswordStrengthPolicy,
+  RecommendedPasswordStrengthPolicy
+} from './features/auth/policies/password-strength.policy';
+import {
+  DefaultProfilePasswordChangePolicy,
+  PROFILE_PASSWORD_CHANGE_POLICY
+} from './features/auth/policies/profile-password-change.policy';
+import {
+  CatalogProfileSavePolicy,
+  PROFILE_SAVE_POLICY
+} from './features/auth/policies/profile-save.policy';
 import { BrowserAuthStoreService } from './features/auth/services/browser-auth-store.service';
 import { AUTH_STORE } from './features/auth/services/auth-store.token';
 import { MockFavoritesStoreService } from './features/favorites/mock/mock-favorites-store.service';
@@ -22,6 +35,19 @@ export const appConfig: ApplicationConfig = {
     {
       provide: AUTH_STORE,
       useExisting: BrowserAuthStoreService
+    },
+    {
+      provide: PASSWORD_STRENGTH_POLICY,
+      useClass: RecommendedPasswordStrengthPolicy
+    },
+    {
+      provide: PROFILE_SAVE_POLICY,
+      useFactory: (strength: PasswordStrengthPolicy) => new CatalogProfileSavePolicy(strength),
+      deps: [PASSWORD_STRENGTH_POLICY]
+    },
+    {
+      provide: PROFILE_PASSWORD_CHANGE_POLICY,
+      useClass: DefaultProfilePasswordChangePolicy
     },
     provideRouter(
       routes,

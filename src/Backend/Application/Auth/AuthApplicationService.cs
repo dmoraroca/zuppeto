@@ -163,7 +163,7 @@ internal sealed class AuthApplicationService(
                     ResolveDisplayName(identity),
                     string.Empty,
                     string.Empty,
-                    $"Perfil creat a través de {providerDisplayName}.",
+                    string.Empty,
                     identity.AvatarUrl),
                 shouldBeAdmin
                     ? new PrivacyConsent(true, DateTimeOffset.UtcNow)
@@ -196,9 +196,7 @@ internal sealed class AuthApplicationService(
                         ResolveDisplayName(identity),
                         user.Profile.City,
                         user.Profile.Country,
-                        string.IsNullOrWhiteSpace(user.Profile.Bio)
-                            ? $"Perfil sincronitzat a través de {providerDisplayName}."
-                            : user.Profile.Bio,
+                        user.Profile.Bio,
                         string.IsNullOrWhiteSpace(identity.AvatarUrl) ? user.Profile.AvatarUrl : identity.AvatarUrl));
                 shouldPersist = true;
             }

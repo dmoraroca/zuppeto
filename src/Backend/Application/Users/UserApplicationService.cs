@@ -2,6 +2,7 @@ using Zuppeto.Domain.Abstractions;
 using Zuppeto.Domain.Users;
 using Zuppeto.Domain.Users.ValueObjects;
 using Zuppeto.Application.Factories;
+using Zuppeto.Application.Validation;
 
 namespace Zuppeto.Application.Users;
 
@@ -61,6 +62,61 @@ internal sealed class UserApplicationService(
                 request.AvatarUrl));
 
         await userRepository.UpdateAsync(user, cancellationToken);
+    }
+
+    public async Task<ValidationResult> ChangeAccountAsync(
+        UserAccountUpdateRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var result = ValidationResult.Success();
+        var user = await userRepository.GetByIdAsync(request.Id, cancellationToken);
+        if (user is null)
+        {
+            result.Add(nameof(request.Id), "No s’ha trobat l’usuari.");
+            return result;
+        }
+
+        var nextEmail = request.Email.Trim().ToLowerInvariant();
+        var emailChanged = !string.Equals(user.Email, nextEmail, StringComparison.Ordinal);
+        if (emailChanged)
+        {
+            var existing = await userRepository.GetByEmailAsync(nextEmail, cancellationToken);
+            if (existing is not null && existing.Id != user.Id)
+            {
+                result.Add(nameof(request.Email), "Aquest email ja està en ús.");
+                return result;
+            }
+
+            user.ChangeEmail(nextEmail);
+        }
+
+        var newPassword = request.NewPassword?.Trim() ?? string.Empty;
+        if (newPassword.Length > 0)
+        {
+            if (!passwordHasher.Verify(user.PasswordHash, request.CurrentPassword))
+            {
+                result.Add(nameof(request.CurrentPassword), "La contrasenya actual no és correcta.");
+                return result;
+            }
+
+            user.ChangePasswordHash(passwordHasher.Hash(newPassword));
+        }
+
+        if (emailChanged || newPassword.Length > 0)
+        {
+            await userRepository.UpdateAsync(user, cancellationToken);
+        }
+
+        return result;
+    }
+
+    public async Task<UserPasswordVerifyDto?> VerifyCurrentPasswordAsync(
+        Guid userId,
+        string password,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await userRepository.GetByIdAsync(userId, cancellationToken);
+        return user is null ? null : new UserPasswordVerifyDto(passwordHasher.Verify(user.PasswordHash, password));
     }
 
     private static UserDto ToDto(User user)

@@ -33,3 +33,14 @@ public sealed record UserProfileUpdateRequest(
     string? AvatarUrl,
     bool PrivacyAccepted,
     DateTimeOffset? PrivacyAcceptedAtUtc);
+
+public sealed record UserAccountUpdateRequest(
+    Guid Id,
+    string Email,
+    string CurrentPassword,
+    string? NewPassword,
+    string? ConfirmNewPassword);
+
+public sealed record UserPasswordVerifyRequest(string Password);
+
+public sealed record UserPasswordVerifyDto(bool Matches);

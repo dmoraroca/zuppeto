@@ -40,15 +40,6 @@ public sealed class UserProfileUpdateRequestValidator : IValidator<UserProfileUp
             result.Add(nameof(request.Country), "Country must be at least 2 characters long.");
         }
 
-        if (string.IsNullOrWhiteSpace(request.Bio))
-        {
-            result.Add(nameof(request.Bio), "Bio is required.");
-        }
-        else if (request.Bio.Trim().Length < 12)
-        {
-            result.Add(nameof(request.Bio), "Bio must be at least 12 characters long.");
-        }
-
         if (request.PrivacyAccepted && request.PrivacyAcceptedAtUtc is null)
         {
             result.Add(nameof(request.PrivacyAcceptedAtUtc), "Privacy acceptance date is required.");

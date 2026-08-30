@@ -35,6 +35,13 @@ export interface AuthProfileUpdate {
   privacyAccepted: boolean;
 }
 
+export interface AuthAccountUpdate {
+  email: string;
+  currentPassword: string;
+  newPassword: string;
+  confirmNewPassword: string;
+}
+
 export interface AuthProvider {
   key: string;
   displayName: string;

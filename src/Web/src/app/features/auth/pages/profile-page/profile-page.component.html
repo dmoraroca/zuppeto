@@ -7,8 +7,8 @@
       [title]="isAdmin() ? 'Perfil d’administració i accés intern.' : 'Perfil d’usuari i manteniment bàsic.'"
     />
     <p>
-      Base fake de fase II per validar sessió, rols, consentiments i manteniment de dades abans de
-      passar a backend real i login social.
+      Dades del compte sobre backend real. La contrasenya actual ha de coincidir amb la del compte
+      per activar nova i confirmació.
     </p>
   </section>
 
@@ -34,7 +34,7 @@
         @if (isAdmin()) {
           Perfil intern sense exigència de consentiment en aquesta fase.
         } @else {
-          Perfil estàndard amb consentiment obligatori per manteniment de dades segons criteri actual.
+          Perfil estàndard. El consentiment de dades activa el botó Guardar si la resta de condicions també es compleixen.
         }
       </p>
 
@@ -43,15 +43,80 @@
 
     <section class="profile-form-shell">
       <form class="profile-form" [formGroup]="form" (ngSubmit)="save()">
-        <p class="form-field-required-hint">
-          <strong class="form-field-required" aria-hidden="true">*</strong>
-          Camps obligatoris per poder guardar el perfil.
-        </p>
+        <div class="form-field-required-hint profile-form__required-hint">
+          <p>
+            <strong class="form-field-required" aria-hidden="true">*</strong>
+            Camps obligatoris per poder guardar el perfil.
+          </p>
+          @if (missingRequiredFields().length) {
+            <p class="profile-form__missing" role="status">
+              Falten: {{ missingRequiredFields().join(', ') }}.
+            </p>
+          }
+        </div>
 
         <label class="profile-form__field">
           <span>Nom visible <strong class="form-field-required" aria-hidden="true">*</strong></span>
           <input type="text" formControlName="name" aria-required="true" />
         </label>
+
+        <p class="profile-form__section-title">Compte</p>
+
+        <label class="profile-form__field">
+          <span>Email <strong class="form-field-required" aria-hidden="true">*</strong></span>
+          <input
+            type="email"
+            formControlName="email"
+            autocomplete="email"
+            aria-required="true"
+            [class.profile-form__control--invalid]="emailFormatInvalid()"
+          />
+          @if (emailFormatInvalid()) {
+            <p class="profile-form__error" role="alert">L’email té un format incorrecte.</p>
+          }
+        </label>
+
+        <div class="profile-form__autofill-trap" aria-hidden="true">
+          <input type="text" tabindex="-1" autocomplete="username" />
+          <input type="password" tabindex="-1" autocomplete="current-password" />
+        </div>
+
+        <app-password-field
+          label="Contrasenya actual"
+          [control]="form.controls.currentPassword"
+          autocomplete="off"
+          [blockAutofill]="true"
+          (focused)="onCurrentPasswordFocused()"
+          (valueChanged)="onPasswordFieldChanged()"
+        />
+
+        <div class="profile-form__grid">
+          <app-password-field
+            label="Contrasenya nova"
+            [control]="form.controls.newPassword"
+            [required]="requireNewPasswords()"
+            [locked]="!currentPasswordMatches()"
+            autocomplete="off"
+            [showStrength]="true"
+            (valueChanged)="onPasswordFieldChanged()"
+          />
+
+          <app-password-field
+            label="Confirmar contrasenya"
+            [control]="form.controls.confirmNewPassword"
+            [required]="requireNewPasswords()"
+            [locked]="!currentPasswordMatches()"
+            autocomplete="off"
+            [matchControl]="form.controls.newPassword"
+            (valueChanged)="onPasswordFieldChanged()"
+          />
+        </div>
+
+        <p class="profile-form__hint">
+          La contrasenya actual entra buida. Quan coincideix amb la del compte, s’activen nova i confirmació
+          (format: mínim 6, iguals, línia de força). Al guardar es comprova de nou l’actual i la nova passa a ser
+          la del compte. El rol no es pot canviar des d’aquí.
+        </p>
 
         <div class="profile-form__grid">
           <label class="profile-form__field">
@@ -93,17 +158,16 @@
         </section>
 
         <label class="profile-form__field">
-          <span>Bio <strong class="form-field-required" aria-hidden="true">*</strong></span>
-          <textarea rows="5" formControlName="bio" aria-required="true"></textarea>
+          <span>Bio</span>
+          <textarea rows="5" formControlName="bio"></textarea>
         </label>
 
         @if (!isAdmin()) {
           <label class="profile-form__consent">
-            <input type="checkbox" formControlName="privacyAccepted" aria-required="true" />
+            <input type="checkbox" formControlName="privacyAccepted" />
             <span>
               Accepto el tractament de les dades del meu perfil per a manteniment, actualitzacions i
               insercions, d’acord amb el criteri LGPD/GDPR definit per Zuppeto.
-              <strong class="form-field-required" aria-hidden="true">*</strong>
             </span>
           </label>
         } @else {
@@ -113,7 +177,7 @@
         }
 
         <div class="profile-form__actions">
-          <button type="submit">Guardar canvis</button>
+          <button type="submit" [disabled]="!canSave()">Guardar canvis</button>
         </div>
       </form>
     </section>

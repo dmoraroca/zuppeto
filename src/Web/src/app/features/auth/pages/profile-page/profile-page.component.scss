@@ -131,7 +131,7 @@
   gap: 0.42rem;
 }
 
-.profile-form__field span {
+.profile-form__field > span {
   font-weight: 700;
   color: var(--yp-color-primary-dark);
 }
@@ -147,6 +147,56 @@
 
 .profile-form__field textarea {
   resize: vertical;
+}
+
+.profile-form__control--invalid {
+  border-color: #dc2626;
+}
+
+.profile-form__error {
+  margin: 0;
+  color: #b91c1c;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.profile-form__section-title {
+  margin: 0.4rem 0 0;
+  color: var(--yp-color-primary-dark);
+  font-size: 0.92rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.profile-form__autofill-trap {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.profile-form__hint {
+  margin: 0;
+  color: var(--yp-color-text-muted);
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+.profile-form__required-hint {
+  display: grid;
+  align-items: start;
+  gap: 0.35rem;
+}
+
+.profile-form__required-hint > p {
+  margin: 0;
+}
+
+.profile-form__missing {
+  margin: 0;
+  font-weight: 800;
 }
 
 .profile-avatar-editor {
@@ -259,6 +309,12 @@
   color: #fff;
   font-weight: 800;
   cursor: pointer;
+}
+
+.profile-form__actions button:disabled {
+  background: rgba(148, 163, 184, 0.42);
+  color: rgba(15, 23, 42, 0.45);
+  cursor: not-allowed;
 }
 
 @media (max-width: 900px) {

@@ -5,7 +5,7 @@ import { Observable, firstValueFrom } from 'rxjs';
 
 import { API_BASE_URL } from '../../../core/config/api.config';
 import { NavigationMenuItem } from '../../../core/models/navigation-menu.model';
-import { AuthCredentials, AuthProfileUpdate, AuthProvider, AuthRole, AuthSession, AuthUser } from '../models/auth-user.model';
+import { AuthAccountUpdate, AuthCredentials, AuthProfileUpdate, AuthProvider, AuthRole, AuthSession, AuthUser } from '../models/auth-user.model';
 import { AUTH_STORE, AuthStore } from './auth-store.token';
 
 @Injectable({
@@ -138,6 +138,46 @@ export class AuthService {
     this.authStore.saveSession(this.sessionState());
 
     return nextUser;
+  }
+
+  async verifyCurrentPassword(password: string): Promise<boolean> {
+    const current = this.currentUser();
+
+    if (!current || !password.trim()) {
+      return false;
+    }
+
+    const result = await firstValueFrom(
+      this.http.post<{ matches: boolean }>(`${API_BASE_URL}/users/${current.id}/password/verify`, {
+        password
+      })
+    );
+
+    return result.matches === true;
+  }
+
+  async updateAccount(update: AuthAccountUpdate): Promise<AuthUser | null> {
+    const current = this.currentUser();
+
+    if (!current) {
+      return null;
+    }
+
+    const session = await firstValueFrom(
+      this.http.put<AuthSessionApiDto>(`${API_BASE_URL}/users/${current.id}/account`, {
+        id: current.id,
+        email: update.email.trim(),
+        currentPassword: update.currentPassword,
+        newPassword: update.newPassword.trim() || null,
+        confirmNewPassword: update.confirmNewPassword.trim() || null
+      })
+    );
+
+    const mappedSession = this.toSession(this.normalizeSession(session));
+    this.sessionState.set(mappedSession);
+    this.authStore.saveSession(mappedSession);
+
+    return mappedSession.user;
   }
 
   async getProviders(): Promise<AuthProvider[]> {
@@ -644,7 +684,7 @@ export class AuthService {
 
   /**
    * Force /perfil only for incomplete accounts (e.g. new federated users with empty location).
-   * Privacy/bio are required when saving the profile page, not on every login.
+   * Privacy is required when saving the profile page, not on every login. Bio is optional.
    */
   private requiresProfileCompletion(user: AuthUser): boolean {
     return !(user.name ?? '').trim() || !(user.city ?? '').trim() || !(user.country ?? '').trim();

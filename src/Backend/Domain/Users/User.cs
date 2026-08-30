@@ -69,6 +69,16 @@ public sealed class User : AggregateRoot<Guid>
         Role = NormalizeRole(role);
     }
 
+    public void ChangeEmail(string email)
+    {
+        SetEmail(email);
+    }
+
+    public void ChangePasswordHash(string passwordHash)
+    {
+        SetPasswordHash(passwordHash);
+    }
+
     public void RecordAccess(DateTimeOffset accessedAtUtc)
     {
         LastAccessedAtUtc = accessedAtUtc;

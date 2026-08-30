@@ -208,7 +208,7 @@ public sealed class DevelopmentIdentitySeeder(
             displayName: "Administrador Zuppeto",
             city: "Barcelona",
             country: "Espanya",
-            bio: "Accés intern per revisar arquitectura, permisos i evolució del producte.",
+            bio: "",
             privacyAccepted: true,
             cancellationToken);
 
@@ -219,7 +219,7 @@ public sealed class DevelopmentIdentitySeeder(
             displayName: "Usuari de prova",
             city: "Madrid",
             country: "Espanya",
-            bio: "Usuari local de desenvolupament per validar autenticació, sessió i perfil real.",
+            bio: "",
             privacyAccepted: true,
             cancellationToken);
 
@@ -230,7 +230,7 @@ public sealed class DevelopmentIdentitySeeder(
             displayName: "David Moraroca",
             city: "Barcelona",
             country: "Espanya",
-            bio: "Usuari de desenvolupament amb rol USER.",
+            bio: "",
             privacyAccepted: true,
             cancellationToken);
 
@@ -241,7 +241,7 @@ public sealed class DevelopmentIdentitySeeder(
             displayName: "User E2E",
             city: "Barcelona",
             country: "Espanya",
-            bio: "Usuari E2E amb perfil complet per validar login sense forçar /perfil.",
+            bio: "",
             privacyAccepted: true,
             cancellationToken);
 
@@ -252,7 +252,7 @@ public sealed class DevelopmentIdentitySeeder(
             displayName: "Viewer E2E",
             city: "Barcelona",
             country: "Espanya",
-            bio: "Usuari E2E amb rol Viewer.",
+            bio: "",
             privacyAccepted: true,
             cancellationToken);
 
@@ -263,7 +263,7 @@ public sealed class DevelopmentIdentitySeeder(
             displayName: "Developer E2E",
             city: "Barcelona",
             country: "Espanya",
-            bio: "Usuari E2E amb rol Developer.",
+            bio: "",
             privacyAccepted: true,
             cancellationToken);
 
@@ -384,7 +384,10 @@ public sealed class DevelopmentIdentitySeeder(
             existing.DisplayName = displayName;
             existing.City = city;
             existing.Country = country;
-            existing.Bio = bio;
+            if (IsSyntheticSeedBio(existing.Bio))
+            {
+                existing.Bio = string.Empty;
+            }
 
             if (privacyAccepted && !existing.PrivacyAccepted)
             {
@@ -404,11 +407,26 @@ public sealed class DevelopmentIdentitySeeder(
             DisplayName = displayName,
             City = city,
             Country = country,
-            Bio = bio,
+            Bio = string.IsNullOrWhiteSpace(bio) ? string.Empty : bio,
             AvatarUrl = null,
             PrivacyAccepted = privacyAccepted,
             PrivacyAcceptedAtUtc = privacyAccepted ? DateTimeOffset.UtcNow : null
         });
+    }
+
+    private static bool IsSyntheticSeedBio(string? bio)
+    {
+        if (string.IsNullOrWhiteSpace(bio))
+        {
+            return false;
+        }
+
+        return bio.StartsWith("Usuari de desenvolupament", StringComparison.Ordinal)
+            || bio.StartsWith("Usuari local de desenvolupament", StringComparison.Ordinal)
+            || bio.StartsWith("Usuari E2E", StringComparison.Ordinal)
+            || bio.StartsWith("Accés intern per revisar", StringComparison.Ordinal)
+            || bio.StartsWith("Perfil creat a través de", StringComparison.Ordinal)
+            || bio.StartsWith("Perfil sincronitzat a través de", StringComparison.Ordinal);
     }
 
     private async Task EnsureRolePermissionsAsync(CancellationToken cancellationToken)

@@ -201,12 +201,21 @@ export class ErrorNotificationsService {
     if (!errors || typeof errors !== 'object') {
       return null;
     }
+    const fieldLabels: Record<string, string> = {
+      CurrentPassword: 'Contrasenya actual',
+      NewPassword: 'Contrasenya nova',
+      ConfirmNewPassword: 'Confirmació',
+      Email: 'Email',
+      Id: 'Usuari'
+    };
+
     const lines: string[] = [];
     for (const [field, messages] of Object.entries(errors as Record<string, unknown>)) {
       if (Array.isArray(messages)) {
+        const label = fieldLabels[field] ?? field;
         for (const m of messages) {
           if (typeof m === 'string' && m.trim()) {
-            lines.push(`${field}: ${m.trim()}`);
+            lines.push(`${label}: ${m.trim()}`);
           }
         }
       }

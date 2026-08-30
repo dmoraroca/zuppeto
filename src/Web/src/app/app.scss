@@ -1,14 +1,7 @@
 :host {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
-}
-
-/* Routed page host follows router-outlet; stretch main so footer sits at viewport bottom */
-router-outlet + * {
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
+  height: 100%;
   min-height: 0;
-  width: 100%;
+  overflow: hidden;
 }

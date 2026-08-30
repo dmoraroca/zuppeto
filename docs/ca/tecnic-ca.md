@@ -298,6 +298,8 @@ Rutes reals validades:
 - `GET /api/users/by-email/{email}`
 - `POST /api/users`
 - `PUT /api/users/{id}/profile`
+- `PUT /api/users/{id}/account` — canvi d'email i/o contrasenya (JWT del mateix `id`; reemet sessió); email sense nova no exigeix actual; si hi ha contrasenya nova, exigeix actual i la comprova contra el hash PBKDF2; email duplicat → validació
+- `POST /api/users/{id}/password/verify` — cos `{ password }` → `{ matches }`; només l’usuari autenticat sobre el seu `id`; serveix per desbloquejar nova/confirmació al perfil i per revalidar al **Guardar**
 - `GET /api/favorites/{ownerUserId}`
 - `POST /api/favorites/{ownerUserId}/places/{placeId}`
 - `DELETE /api/favorites/{ownerUserId}/places/{placeId}`
@@ -318,7 +320,7 @@ Peces integrades:
 - `PlaceService` carregant `places` des d'HTTP real
 - `FavoritesService` persistint favorits contra backend
 - `AuthService` sincronitzant usuaris locals amb l'endpoint de `users`
-- `ProfilePage` guardant sobre backend real
+- `ProfilePage` sobre backend real: `PUT /api/users/{id}/profile` (fitxa) i `PUT /api/users/{id}/account` (email i/o contrasenya, reemet JWT); `POST /api/users/{id}/password/verify` per desbloquejar nova/confirmació i per revalidar al guardar; `PROFILE_SAVE_POLICY` + `PASSWORD_STRENGTH_POLICY` + `PROFILE_PASSWORD_CHANGE_POLICY`
 - `Api` amb `CORS` habilitat per `http://localhost:4200`
 - arrencada Docker de l'`Api` corregida perquè el `content root` sigui `src/Backend/Api` i carregui la configuració real de `Development`
 
@@ -782,7 +784,8 @@ Remissió funcional: `docs/ca/funcional-ca.md` (**§3.12**).
 La primera entrega tècnica real de Fase IV ja incorpora:
 
 - `AuthApplicationService`
-- `Pbkdf2PasswordHasher`
+- `Pbkdf2PasswordHasher` (PBKDF2 + SHA-256 com a funció interna, 100.000 iteracions i salt; **no** es desa SHA-256 pla); el mateix hasher serveix login, `password/verify` i canvi de contrasenya
+- `User.ChangeEmail` / `User.ChangePasswordHash`; `UserApplicationService.ChangeAccountAsync` / `VerifyCurrentPasswordAsync`
 - `JwtAccessTokenIssuer`
 - `GoogleIdTokenVerifier`
 - `DevelopmentIdentitySeeder`
@@ -1040,6 +1043,8 @@ La primera versio del domini backend ja no es basa en interfaces TypeScript del 
     +UserRole Role
     +UserProfile Profile
     +PrivacyConsent PrivacyConsent
+    +ChangeEmail(email)
+    +ChangePasswordHash(passwordHash)
   }
 
   <span style="color:#c4b5fd;">class</span> <span style="color:#fcd34d;">FavoriteList</span> {
@@ -1126,6 +1131,8 @@ Regles ja codificades:
 - una `GeoLocation` obliga a latitud i longitud valides
 - una `PetPolicy` obliga a admetre almenys gossos o gats
 - un `User` obliga a email valid i `passwordHash`
+- `User.ChangeEmail` normalitza i substitueix l’email; `User.ChangePasswordHash` substitueix el hash (mai text pla)
+- `ChangeAccountAsync`: email nou no pot coincidir amb un altre compte; si hi ha `NewPassword`, `IPasswordHasher.Verify` ha de passar abans de `Hash` + `ChangePasswordHash`
 - un `User` amb rol `User` no pot actualitzar perfil sense consentiment actiu
 - una `FavoriteList` no duplica el mateix lloc
 - una `PlaceReview` obliga a puntuacio entre 1 i 5
@@ -1308,6 +1315,7 @@ Peces principals:
 
 - `login-page`
 - `profile-page`
+- `password-field` (ull + línia dèbil/forta)
 - `auth.service`
 - `authGuard`
 - `guestGuard`
@@ -1315,10 +1323,26 @@ Peces principals:
 
 Decisions tecniques rellevants:
 
-- la sessio actual es fake i es manté a `localStorage`
-- el login treballa contra `AUTH_USERS_FAKE`
+- la sessió és JWT real (`AuthService` + `localStorage` com a cache); `auth/me` refresca la fitxa
 - `USER` i `ADMIN` comparteixen base de sessio però divergeixen en permisos i rutes
-- `Perfil` funciona com a pantalla de manteniment fake abans de connectar backend real
+- **Strategy + DIP:** `PASSWORD_STRENGTH_POLICY` (`RecommendedPasswordStrengthPolicy`), `PROFILE_SAVE_POLICY` (`CatalogProfileSavePolicy`) i `PROFILE_PASSWORD_CHANGE_POLICY` (`DefaultProfilePasswordChangePolicy`) registrats a `app.config.ts`; `ProfilePage` orquestra, no posseeix les regles
+- **Specification / catàleg (O):** cada camp obligatori del perfil és una `ProfileRequiredFieldRule`; `canSave` i «Falten: …» surten de la mateixa llista (nom ≥ 3, email no buit i no `invalid`, ciutat, país; si `wantsPasswordChange`: nova ≥ 6 i confirmació igual)
+- **SRP:** `PasswordFieldComponent` encapsula mostrar/amagar, bloqueig (`disabled` / `readonly`) i la línia de força; no viu a `shared` per no dependre d’auth des de compartit
+- **Strategy (canvi de contrasenya):** `resolveSave` — actual buida → `save-without-password-check` (`writeAccount` només si l’email ha canviat); actual plena → `verify-current` i, si coincideix, escriure contrasenya i/o email; `canUnlockNewFields`; `shouldVerifyTypedCurrent` (només si l’usuari ha editat l’actual i té text); `shouldWipeAutofill` (esborra autofill si l’usuari no ha editat)
+- camps de contrasenya: `currentPassword` buit a l’entrada; `newPassword` / `confirmNewPassword` `disabled` fins `matches === true`; autofill ignorat amb retards `50/300/800/1600` ms; al `save` es revalida i, si falla, notificació «Contrasenya incorrecta» i no es crida `updateAccount` amb nova
+- `AuthService.updateAccount` / `updateProfile` / `verifyCurrentPassword` contra l’API; el hash nou el calcula el backend (`Pbkdf2PasswordHasher`)
+- `error-notifications.service` mapeja labels de validació de compte (email, actual, nova, confirmació)
+
+Implementació web (fitxers):
+
+- `src/Web/src/app/features/auth/pages/profile-page/` (`ts` / `html` / `scss`)
+- `src/Web/src/app/features/auth/components/password-field/` (`ts` / `html` / `scss`)
+- `src/Web/src/app/features/auth/policies/password-strength.policy.ts`
+- `src/Web/src/app/features/auth/policies/profile-save.policy.ts`
+- `src/Web/src/app/features/auth/policies/profile-password-change.policy.ts`
+- `src/Web/src/app/features/auth/services/auth.service.ts`
+- `src/Web/src/app/features/auth/models/auth-user.model.ts` (`AuthAccountUpdate`)
+- `src/Web/src/app/app.config.ts`
 
 ## 6. Serveis i dades simulades
 
@@ -1367,25 +1391,21 @@ Notes tecniques:
 
 Responsabilitats:
 
-- validar credencials fake
-- obrir i tancar sessio
+- login propi i federat (Google) contra API real
+- obrir i tancar sessio (JWT a cache de navegador)
 - exposar usuari actual, rol i estat autenticat
 - decidir la ruta per defecte despres del login
-- actualitzar el perfil fake de l'usuari actiu
-
-Fonts de dades:
-
-- `AUTH_USERS_FAKE`
-- `localStorage`
+- actualitzar fitxa (`updateProfile`) i compte (`updateAccount`)
+- verificar la contrasenya actual (`verifyCurrentPassword`) per al perfil
 
 Notes tecniques:
 
-- `login` valida `email` i `password` contra usuaris simulats
+- `login` / `loginWithGoogle` consumeixen `/api/auth/*` i desen token + fitxa
 - `logout` esborra la sessio local
-- `updateProfile` actualitza l'usuari actual i persisteix l'estat simulat
-- `AuthService` ja no depen directament de `AUTH_USERS_FAKE` ni de `localStorage`
-- treballa contra un port injectable (`AUTH_STORE`)
-- el mock actual entra per `MockAuthStoreService`
+- `updateProfile` → `PUT /api/users/{id}/profile`
+- `updateAccount` → `PUT /api/users/{id}/account` (email i/o nova; si la resposta porta sessió, substitueix el JWT)
+- `verifyCurrentPassword` → `POST /api/users/{id}/password/verify` `{ password }` → `{ matches }`
+- el hash no es calcula al web; el backend usa `Pbkdf2PasswordHasher`
 
 ## 7. Responsive fi de pantalles
 
@@ -1509,34 +1529,70 @@ Despres del login:
 - si no existeix:
   - comptes amb perfil incomplet (sense nom, ciutat o país, tipic d'alta federada nova) van a `/perfil`
   - la resta van a `/` (inici); admin amb permisos pot anar a les pantalles internes corresponents
-  - el consentiment i la bio es demanen en desar el perfil, no es forcen a cada login
+  - el consentiment es demana en desar el perfil, no es força a cada login; la bio és opcional
 
-### 9.5 Perfil i consentiment
+### 9.5 Perfil, compte i consentiment
 
-La pagina `Perfil` permet mantenir:
+La pagina `Perfil` desa sobre API real. Els tres endpoints d’usuari exigeixen JWT i que el `id` de ruta sigui el de l’usuari autenticat (`Forbid` si no):
 
-- nom
-- ciutat
-- pais
-- bio
-- foto de perfil opcional
-- consentiment de manteniment de dades
+- `PUT /api/users/{id}/profile` — nom, ciutat, país, bio, avatar, consentiment
+- `PUT /api/users/{id}/account` — email i/o contrasenya nova; si hi ha nova, exigeix actual i la verifica; reemet `AuthSessionDto` (JWT nou)
+- `POST /api/users/{id}/password/verify` — `{ password }` → `{ matches }`
 
-Regles actuals:
+#### Fitxa (`profile`)
 
-- si no hi ha foto, es mostra un placeholder `NONE`
-- `USER` ha d'acceptar el consentiment per poder guardar
-- `ADMIN` queda exempt segons el criteri funcional actual
+- nom, ciutat, país, avatar, consentiment
+- bio **opcional**: el formulari carrega el valor de sessió/`GET` (BD); si és buit, el camp es veu buit; `UserProfileUpdateRequestValidator` ja no obliga bio
+- foto opcional; placeholder `NONE`
+- consentiment: `USER` l’ha de tenir marcat per `canSave`; `ADMIN` exempt (`isAdmin` a l’snapshot)
+
+#### Compte (`account`)
+
+- `UserAccountUpdateRequest` + `UserAccountUpdateRequestValidator`: email amb `@`; si `NewPassword` té text, cal `CurrentPassword`, nova ≥ 6 i confirmació igual; si només hi ha confirmació, error
+- `ChangeAccountAsync`: email normalitzat a minúscules; unicitat; si `NewPassword` no és buit, `passwordHasher.Verify` de l’actual; després `Hash` + `ChangePasswordHash`
+- canvi només d’email: no cal actual; el web envia `updateAccount` quan `wantsEmailChange` i `resolveSave` indica `writeAccount`
+- `UpdateAccountAsync` a `UserEndpoints` reemet sessió via `IAuthApplicationService.GetSessionByUserIdAsync`
+
+#### Contrasenya i hash
+
+- no es persisteix en clar ni en SHA-256 pla: `Pbkdf2PasswordHasher` (`pbkdf2$iteracions$salt$hash`, SHA-256 només com a PRF, 100.000 iteracions)
+- `VerifyCurrentPasswordAsync` només retorna `matches`; el web el crida en escriure l’actual (debounce) i de nou al `save` si l’actual té text
+- `DevelopmentIdentitySeeder` no pisa bios reals ni omple frases de seed; `AuthApplicationService` (alta Google) deixa la bio buida
+- el web no envia nova/confirmació com a columnes persistides: el valor validat es desa com a `PasswordHash`
+
+#### Decisió de guardat al web (`DefaultProfilePasswordChangePolicy.resolveSave`)
+
+- actual buida → `save-without-password-check`; `writeAccount` = l’email ha canviat; després sempre `updateProfile`
+- actual plena → `verify-current`; si `matches` és fals, notificació i stop; si és cert, `writeAccountIfMatch` = email canviat o nova no buida, i `writePasswordIfMatch` = nova no buida
+
+#### Alta Google vs login propi
+
+- Google crea hash aleatori: `verify` amb la contrasenya de Gmail no coincidirà
+- proves de canvi de contrasenya: compte amb login propi (seed Development)
+
+Implementació backend (fitxers):
+
+- `src/Backend/Domain/Users/User.cs`
+- `src/Backend/Application/Users/UserContracts.cs`
+- `src/Backend/Application/Users/IUserApplicationService.cs`
+- `src/Backend/Application/Users/UserApplicationService.cs`
+- `src/Backend/Application/Users/Validators/UserAccountUpdateRequestValidator.cs`
+- `src/Backend/Application/Users/Validators/UserProfileUpdateRequestValidator.cs`
+- `src/Backend/Application/DependencyInjection.cs`
+- `src/Backend/Api/Endpoints/UserEndpoints.cs`
+- `src/Backend/Application/Auth/AuthApplicationService.cs`
+- `src/Backend/Infrastructure/Auth/DevelopmentIdentitySeeder.cs`
+
+`USER` ha d'acceptar el consentiment per poder guardar. `ADMIN` queda exempt segons el criteri funcional actual.
 
 ### 9.6 Punts pendents
 
 La base actual prepara pero no implementa encara:
 
-- autenticacio real contra API
-- refresh tokens o expiracio real de sessio
-- recuperacio real de contrasenya
-- login social
-- persistencia real de perfil i favorits per usuari
+- refresh tokens o rotació de sessió
+- recuperacio real de contrasenya per email
+- `TOTP` / 2FA
+- login social addicional (LinkedIn, Facebook, Apple, Microsoft)
 ## 7. Implementacio del mapa
 
 ### 7.1 Llibreries utilitzades
@@ -1900,10 +1956,11 @@ Patrons aplicats amb exemples reals:
   - Exemple: `MenuRepository`, `UserRepository`, `RolePermissionRepository`.
 - Dependency Injection: serveis registrats a `Application` i `Infrastructure`.
   - Exemple: `DependencyInjection.cs` a `src/Backend/Application`.
-- Strategy: clients OAuth/IdToken intercanviables.
+- Strategy: clients OAuth/IdToken intercanviables; polítiques de perfil al web.
   - Exemple: `IGoogleIdTokenVerifier`, `ILinkedInOAuthClient`, `IFacebookOAuthClient`.
+  - Exemple web: `PASSWORD_STRENGTH_POLICY`, `PROFILE_SAVE_POLICY` (`CatalogProfileSavePolicy`), `PROFILE_PASSWORD_CHANGE_POLICY` (`DefaultProfilePasswordChangePolicy`).
 - Validator: validació explícita a la capa d'entrada (API).
-  - Exemple: `CreateAdminUserRequestValidator`, `LoginRequestValidator`.
+  - Exemple: `CreateAdminUserRequestValidator`, `LoginRequestValidator`, `UserAccountUpdateRequestValidator`.
 - Observer: events publicats des de `Application` amb handlers registrats a DI.
   - Exemple: `UserCreatedEvent`, `UserRoleChangedEvent`, `AuditUserEventsHandler`.
 - Factory: construcció d'objectes de domini des de requests.
@@ -1914,6 +1971,7 @@ Patrons aplicats amb exemples reals:
   - Exemple: `CreateAdminUserCommandHandler`, `UpdateUserRoleCommandHandler`.
 - Specification: criteris de consulta encapsulats per reutilitzar filtres.
   - Exemple: `PlaceSearchSpecification` a `PlaceRepository`.
+  - Exemple web: catàleg `ProfileRequiredFieldRule` (resum «Falten» i `canSave` comparteixen les mateixes regles).
 
 Nota SOLID:
 

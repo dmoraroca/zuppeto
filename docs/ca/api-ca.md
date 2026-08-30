@@ -64,6 +64,7 @@ Valors de `type` admesos actualment:
 - `GET /api/users/by-email/{email}`
 - `POST /api/users`
 - `PUT /api/users/{id}/profile`
+- `PUT /api/users/{id}/account`
 
 ### Favorites
 

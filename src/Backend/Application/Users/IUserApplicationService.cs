@@ -1,3 +1,5 @@
+using Zuppeto.Application.Validation;
+
 namespace Zuppeto.Application.Users;
 
 public interface IUserApplicationService
@@ -11,4 +13,13 @@ public interface IUserApplicationService
     Task<Guid> RegisterAsync(UserRegistrationRequest request, CancellationToken cancellationToken = default);
 
     Task UpdateProfileAsync(UserProfileUpdateRequest request, CancellationToken cancellationToken = default);
+
+    Task<ValidationResult> ChangeAccountAsync(
+        UserAccountUpdateRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<UserPasswordVerifyDto?> VerifyCurrentPasswordAsync(
+        Guid userId,
+        string password,
+        CancellationToken cancellationToken = default);
 }

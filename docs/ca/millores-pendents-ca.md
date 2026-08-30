@@ -7,15 +7,37 @@ No substitueix `docs/project-phases.md` ni el joc de proves Excel: aquí només 
 
 ---
 
+## 2026-08-30 23:48 CEST
+
+**Àmbit:** procés · proves manuals Chrome + USER · refactor
+
+**Acordat:** la **refactorització de codi** (SOLID, patrons, neteja estructural) es fa **després** de tancar el test / el filtre **USER**, no a mig prova.
+
+**Per què:** durant USER cal estabilitat per retestar (ZUP-076 i següents). Refactor a mig test barreja comportament i estructura.
+
+**Estat:** anotació de procés; aplicar a partir d’ara.
+
+---
+
+## 2026-08-30 23:50 CEST
+
+**Àmbit:** perfil (`/perfil`) · requadre de camps obligatoris · resum «Falten: …»
+
+**Millora:** fer el **summary espectacular** (UX visual; no només una línia de text).
+
+**Estat:** pendent; no implementar ara.
+
+---
+
 ## 2026-08-30 21:07 CEST
 
 **Àmbit:** Perfil (`/perfil`) · USER · email i contrasenya
 
 **Què es veu (ZUP-076 KO):** la fitxa carrega (avatar, email visible, rol, formulari), però **no es pot canviar l’email ni la contrasenya**.
 
-**Millora / correcció:** al perfil USER, poder **canviar email** i **canviar contrasenya** (contrasenya actual + nova + confirmació). No implementar durant les proves.
+**Millora / correcció:** al perfil USER, poder **canviar email** i **canviar contrasenya** (contrasenya actual + nova + confirmació).
 
-**Estat:** pendent; no implementar ara. Relacionat: ZUP-076 KO (Chrome/USER).
+**Estat:** implementat (`PUT /api/users/{id}/account`, camps al formulari de `/perfil`). Retest ZUP-076 OK (31-08-2026, Chrome/USER). **FET**
 
 ---
 
