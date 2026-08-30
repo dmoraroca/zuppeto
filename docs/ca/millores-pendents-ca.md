@@ -7,6 +7,44 @@ No substitueix `docs/project-phases.md` ni el joc de proves Excel: aquí només 
 
 ---
 
+## 2026-08-30 21:07 CEST
+
+**Àmbit:** Perfil (`/perfil`) · USER · email i contrasenya
+
+**Què es veu (ZUP-076 KO):** la fitxa carrega (avatar, email visible, rol, formulari), però **no es pot canviar l’email ni la contrasenya**.
+
+**Millora / correcció:** al perfil USER, poder **canviar email** i **canviar contrasenya** (contrasenya actual + nova + confirmació). No implementar durant les proves.
+
+**Estat:** pendent; no implementar ara. Relacionat: ZUP-076 KO (Chrome/USER).
+
+---
+
+## 2026-08-30 20:58 CEST
+
+**Àmbit:** proves per navegador · E2E (després de Chrome manual)
+
+**Acordat:** Chrome es fa **manual** (joc Excel, tots els rols). La resta de navegadors no es repetiran a mà fila a fila.
+
+**Millora (primera a fer quan tanquem les proves manuals Chrome):** E2E per **cada navegador** de l’Excel (motor/perfil real, no “tot és Chromium”). Brave ja ha fallat; Edge també s’ha de cobrir. Smoke manual curt a Brave i Edge (login, llocs, mapa, favorits, perfil). IE 11: N/A.
+
+**Prioritat:** **la primera** del backlog de millores, just després de les proves manuals Chrome.
+
+**Estat:** pendent; no implementar ara.
+
+---
+
+## 2026-08-30 20:23 CEST
+
+**Àmbit:** Favorits (`/favorites`) · botó de la targeta
+
+**Què es veu:** a Favorits, el botó de baix a la dreta de la targeta diu **Guardat**.
+
+**Millora:** en aquesta pantalla hauria de dir **Treure** (o equivalent), perquè l’acció és treure el lloc de favorits, no “guardar-lo” de nou.
+
+**Estat:** pendent; no implementar ara.
+
+---
+
 ## 2026-08-29 00:06 CEST
 
 **Àmbit:** detall de lloc (`/places/:id`) · imatge de portada
