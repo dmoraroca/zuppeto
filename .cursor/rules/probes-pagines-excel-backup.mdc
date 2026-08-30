@@ -59,10 +59,21 @@ No deixar un fix de codi sense aquesta traça a l’Excel.
 
 ## Com passar proves a l'usuari (xat)
 
-- Una línia per columna de la fila Excel, cadascuna iniciada amb `-`.
-- Filtre en curs (si l'usuari el defineix): p. ex. **Chrome** + **USER**.
-- **Sempre prioritzar per Prioritat** abans que per codi o ordre de fila: `Alta` → `Mitjana` → `Baixa` (o equivalents). Dins la mateixa prioritat, el següent PENDENT per ordre natural.
-- No omplir el xat amb formats llargs ni taules; només el bloc `- Columna: valor`.
+Filtre en curs (si l'usuari el defineix): p. ex. **Chrome** + **USER**.  
+Prioritat: `Alta` → `Mitjana`/`Mitja` → `Baixa`. Dins la mateixa prioritat, el següent PENDENT per ordre natural.
+
+### Després d’un OK (sempre així)
+
+Marcar l’Excel i **de seguida** presentar el següent test així:
+
+- una línia amb el **codi** (`ZUP-NNN`)
+- a sota, el **pas a pas** numerat per executar-lo (i criteri OK/KO breu)
+
+No presentis el bloc de columnes Excel en aquest moment.
+
+### Quan l’usuari demana detall
+
+Llavors sí: una línia per columna de la fila Excel, cadascuna iniciada amb `-`. Sense taules ni text extra al voltant.
 
 ## Prohibit
 
