@@ -32,6 +32,8 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   readonly emptyTitle = input('No hi ha ubicacions per mostrar');
   readonly emptyCopy = input('Ajusta els filtres per veure llocs al mapa.');
   readonly showToolbarActions = input(true);
+  /** When there are no markers, centre the map here (selected city) instead of Europe. */
+  readonly focusCenter = input<{ lat: number; lng: number } | null>(null);
   readonly placeSelected = output<string>();
   readonly selectionCleared = output<void>();
 
@@ -44,6 +46,8 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   /** Europe-wide default (aligned with the login map preview) when there are no markers. */
   private static readonly defaultMapCenter: [number, number] = [40.25, -3.7];
   private static readonly defaultMapZoom = 5;
+  /** City-level zoom when a city is selected but there are no place pins. */
+  private static readonly cityFocusZoom = 13;
 
   async ngAfterViewInit(): Promise<void> {
     await this.ensureMap();
@@ -79,7 +83,7 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     if (this.hasPlaces) {
       this.fitMapToPlaces();
     } else {
-      this.setDefaultMapView();
+      this.setEmptyMapView();
     }
   }
 
@@ -88,7 +92,7 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     if (this.hasPlaces) {
       this.fitMapToPlaces();
     } else {
-      this.setDefaultMapView();
+      this.setEmptyMapView();
     }
   }
 
@@ -140,7 +144,7 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       this.markers.clear();
 
       if (!this.hasPlaces) {
-        this.setDefaultMapView();
+        this.setEmptyMapView();
         return;
       }
 
@@ -191,8 +195,14 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     });
   }
 
-  private setDefaultMapView(): void {
+  private setEmptyMapView(): void {
     if (!this.map) {
+      return;
+    }
+
+    const focus = this.focusCenter();
+    if (focus) {
+      this.map.setView([focus.lat, focus.lng], PlaceMapComponent.cityFocusZoom);
       return;
     }
 

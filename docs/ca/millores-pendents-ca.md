@@ -7,6 +7,30 @@ No substitueix `docs/project-phases.md` ni el joc de proves Excel: aquí només 
 
 ---
 
+## 2026-08-31 17:53 CEST
+
+**Àmbit:** Contacte (`/contacte`) · login · ZUP-013
+
+**Què es veu:** des del login, «Demana usuari o recuperació de contrasenya» obre `/contacte`. La pàgina **carrega**, però **no s’entén** i **no agrada**: és una fitxa genèrica (partnerships, feedback, ciutats, correus `.fake`), no una via per demanar usuari ni recuperar contrasenya.
+
+**Millora:** redissenyar Contacte perquè sigui clara i útil. El text del login i el que trobes a la pàgina han de coincidir (demanar accés / recuperar contrasenya, o canviar l’enllaç si Contacte és una altra cosa).
+
+**Estat:** pendent; no implementar ara.
+
+---
+
+## 2026-08-31 17:31 CEST
+
+**Àmbit:** accés denegat · `/permissions` (i vistes només ADMIN) · USER · ZUP-151
+
+**Què es veu:** USER obre `/permissions` i **se’n va a Inici**. El criteri de la prova (no accedir) es compleix.
+
+**Millora:** l’avís d’accés restringit ha de ser **clarament visible** (toast que es noti, o missatge a Inici). Ara és fàcil no veure’l i sembla només una redirecció silenciosa.
+
+**Estat:** pendent; no implementar ara.
+
+---
+
 ## 2026-08-30 23:48 CEST
 
 **Àmbit:** procés · proves manuals Chrome + USER · refactor

@@ -428,6 +428,31 @@ function countExecutionRows(testCases) {
 
 const TEST_DEF_COLUMNS = ['A', 'B', 'C', 'D', 'E', 'F'];
 
+/** Live counts from Proves (G=Navegador, H=Rol, J=Resultat). Keys: executions, ok, ko, pending, na. */
+function applyProvesResultFormulas(row, matchColumnLetter, matchCellColumn) {
+  const n = row.number;
+  const match = `${matchCellColumn}${n}`;
+  const col = matchColumnLetter;
+  row.getCell('executions').value = {
+    formula: `COUNTIF(Proves!$${col}:$${col},${match})`
+  };
+  row.getCell('ok').value = {
+    formula: `COUNTIFS(Proves!$${col}:$${col},${match},Proves!$J:$J,"OK")`
+  };
+  row.getCell('ko').value = {
+    formula: `COUNTIFS(Proves!$${col}:$${col},${match},Proves!$J:$J,"KO")`
+  };
+  row.getCell('pending').value = {
+    formula: `COUNTIFS(Proves!$${col}:$${col},${match},Proves!$J:$J,"PENDENT")`
+  };
+  row.getCell('na').value = {
+    formula: `COUNTIFS(Proves!$${col}:$${col},${match},Proves!$J:$J,"N/A")`
+  };
+  for (const key of ['executions', 'ok', 'ko', 'pending', 'na']) {
+    row.getCell(key).alignment = { vertical: 'middle', horizontal: 'center' };
+  }
+}
+
 function applyCellBorder(cell) {
   cell.border = {
     top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
@@ -716,6 +741,7 @@ async function main() {
       pending: executions,
       na: 0,
     });
+    applyProvesResultFormulas(row, 'G', 'A');
     row.getCell('browser').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: browser.fill } };
     row.getCell('browser').font = { bold: true, color: { argb: browser.accent } };
   });
@@ -751,6 +777,7 @@ async function main() {
       pending: executions,
       na: 0,
     });
+    applyProvesResultFormulas(row, 'H', 'A');
     row.getCell('role').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: roleStyle.fill } };
     row.getCell('role').font = { bold: true, color: { argb: roleStyle.accent } };
   });

@@ -1700,6 +1700,7 @@ Inputs:
 - `height`
 - `emptyTitle`
 - `emptyCopy`
+- `focusCenter` — si no hi ha marcadors, centra el mapa en aquesta ciutat (p. ex. filtre Berlín/Lisboa) en lloc del zoom d’Europa
 
 Output:
 
@@ -1719,6 +1720,10 @@ readonly placeSelected = output<string>();
 Ubicacio:
 
 - `src/Web/src/app/features/places/components/place-map/place-map.component.ts`
+
+Helper de focus per ciutat:
+
+- `src/Web/src/app/features/places/utils/city-map-focus.ts`
 
 ### 7.6 Carrega lazy de Leaflet
 

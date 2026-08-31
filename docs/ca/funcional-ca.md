@@ -319,6 +319,7 @@ Pel que fa a `places`, la decisio funcional forta d'aquesta fase va ser que el p
 - filtres a dalt
 - mapa com a eina de context i comparacio
 - llistat sincronitzat com a element principal de decisio
+- si filtres per ciutat i no hi ha pins, el mapa es centra **dins aquella ciutat** (com Madrid), no a tot Europa
 
 No es va triar ni una experiencia purament de mapa ni una experiencia purament de llista. Es va prioritzar un model que permet comparar llocs, entendre distribucio geografica i mantenir una lectura clara de resultats. En aquesta mateixa fase es va decidir no introduir encara clustering mentre el volum de dades seguís sent assumible.
 
@@ -328,6 +329,7 @@ Sobre la UX de mapa, es va consolidar:
 - accions per veure tots els resultats o netejar seleccio
 - relacio visual entre marcador seleccionat i `place-card`
 - reutilitzacio del mateix component de mapa a diferents pantalles
+- ciutat filtrada sense resultats: el mapa entra a la ciutat (Berlín, Lisboa, …), no es queda al mapa general
 
 Sobre la portada, la millora funcional no va ser nomes estetica. Es va reorientar la narrativa del producte:
 

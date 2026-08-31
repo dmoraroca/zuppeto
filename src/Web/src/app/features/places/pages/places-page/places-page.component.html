@@ -36,6 +36,7 @@
     <app-place-map
       [places]="mapPlaces()"
       [selectedPlaceId]="selectedPlaceId()"
+      [focusCenter]="cityMapFocus()"
       height="25rem"
       emptyTitle="Cap resultat al mapa"
       emptyCopy="Quan els filtres retornin llocs, també els veuràs aquí."

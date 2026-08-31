@@ -11,6 +11,7 @@ import { PlaceFiltersComponent } from '../../components/place-filters/place-filt
 import { PlaceMapComponent } from '../../components/place-map/place-map.component';
 import { PlaceFilters } from '../../models/place.model';
 import { PlaceService } from '../../services/place.service';
+import { resolveCityMapFocus } from '../../utils/city-map-focus';
 
 @Component({
   selector: 'app-places-page',
@@ -71,6 +72,8 @@ export class PlacesPageComponent {
       (place) => !place.excludeFromOsmMap || !!place.requiresGoogleMapForGoogleCoordinates
     )
   );
+  /** City centre when the filter has a known city but no pins (e.g. Berlin / Lisboa). */
+  protected readonly cityMapFocus = computed(() => resolveCityMapFocus(this.filters().city));
   protected readonly selectedPlaceId = this.selectedPlaceIdState.asReadonly();
   protected readonly selectedPlace = computed(() => {
     const selectedPlaceId = this.selectedPlaceId();
