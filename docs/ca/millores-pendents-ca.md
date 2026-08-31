@@ -7,6 +7,49 @@ No substitueix `docs/project-phases.md` ni el joc de proves Excel: aquí només 
 
 ---
 
+## 2026-08-31 23:57 CEST
+
+**Àmbit:** detall de lloc (`/places/:id`) · Què hi trobaràs · ZUP-058 **KO**
+
+**Què es veu:** la secció surt **buida** (caixa blanca). No hi ha característiques a la BD (sovint llocs Google/caché).
+
+**Millora (producte):** si no tenim dades, **consultar la web / detall del local** i omplir aquí el que cal per decidir si hi vas amb mascota, p. ex.:
+
+- gos **dins** del local
+- **només terrassa**
+- **no es permet**
+- altres dades útils del mateix tipus
+
+No deixar la targeta buida. No implementar ara (cal font: Places Details, web del lloc, o alta manual).
+
+**Estat:** pendent; ZUP-058 KO fins retest.
+
+---
+
+## 2026-08-31 23:54 CEST
+
+**Àmbit:** detall de lloc (`/places/:id`) · Abans d’anar-hi · Política pet · ZUP-057
+
+**Què es veu:** a **Política pet** surt text tècnic (`Google Places (cache)`), no una política de mascotes. L’usuari no ho ha de veure.
+
+**Millora:** no mostrar procedència/caché Google com a política pet. Només política real (gossos/gats, notes). Si no n’hi ha, no mostrar la línia (o un text neutre), mai «Google Places (cache)».
+
+**Estat:** pendent; no implementar ara.
+
+---
+
+## 2026-08-31 23:51 CEST
+
+**Àmbit:** Llocs (`/places`) · mapa · selecció · ZUP-054
+
+**Què es veu:** al mapa només es pot tenir **un** lloc seleccionat. Amb un sol pin, «Treure selecció» aporta poc.
+
+**Millora:** poder seleccionar **n** pins alhora (comparar uns quants llocs). «Treure selecció» treu tot el grup (o un a un). El pin no s’esborra del mapa, només el focus.
+
+**Estat:** pendent; no implementar ara.
+
+---
+
 ## 2026-08-31 17:53 CEST
 
 **Àmbit:** Contacte (`/contacte`) · login · ZUP-013
