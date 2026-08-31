@@ -12,11 +12,21 @@ export interface ErrorNotification {
   readAt: string | null;
 }
 
+const STORAGE_KEY = 'zuppeto-notifications';
+const SESSION_CLOSED_TITLE = 'Sessió tancada';
+const MAX_STORED_NOTIFICATIONS = 50;
+
+interface StoredNotificationInbox {
+  nextId: number;
+  items: ErrorNotification[];
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class ErrorNotificationsService {
   private nextId = 1;
+  private ownerUserId: string | null = null;
   private readonly notificationState = signal<ErrorNotification[]>([]);
 
   readonly notifications = this.notificationState.asReadonly();
@@ -40,6 +50,7 @@ export class ErrorNotificationsService {
 
   dismiss(id: number): void {
     this.notificationState.update((items) => items.filter((item) => item.id !== id));
+    this.persist();
   }
 
   markAsRead(id: number): void {
@@ -53,6 +64,7 @@ export class ErrorNotificationsService {
           : item
       )
     );
+    this.persist();
   }
 
   markAsUnread(id: number): void {
@@ -66,6 +78,7 @@ export class ErrorNotificationsService {
           : item
       )
     );
+    this.persist();
   }
 
   markAllAsRead(): void {
@@ -81,26 +94,90 @@ export class ErrorNotificationsService {
           : item
       )
     );
+    this.persist();
   }
 
-  clear(): void {
+  loadForUser(userId: string): void {
+    this.ownerUserId = userId;
+    const stored = this.readStore()[userId];
+    const items = this.withoutSessionClosed(stored?.items ?? []);
+    this.nextId = Math.max(stored?.nextId ?? 1, ...items.map((item) => item.id + 1), 1);
+    this.notificationState.set(items);
+  }
+
+  unload(): void {
+    this.persist();
+    this.ownerUserId = null;
+    this.nextId = 1;
     this.notificationState.set([]);
   }
 
   private push(title: string, message: string, tone: NotificationTone = 'error'): void {
+    if (title === SESSION_CLOSED_TITLE) {
+      return;
+    }
+
     const id = this.nextId++;
 
-    this.notificationState.update((items) => [
-      {
-        id,
-        title,
-        message,
-        tone,
-        createdAt: new Date().toISOString(),
-        readAt: null
-      },
-      ...items
-    ]);
+    this.notificationState.update((items) =>
+      [
+        {
+          id,
+          title,
+          message,
+          tone,
+          createdAt: new Date().toISOString(),
+          readAt: null
+        },
+        ...items
+      ].slice(0, MAX_STORED_NOTIFICATIONS)
+    );
+    this.persist();
+  }
+
+  private persist(): void {
+    if (!this.ownerUserId || typeof localStorage === 'undefined') {
+      return;
+    }
+
+    const store = this.readStore();
+    store[this.ownerUserId] = {
+      nextId: this.nextId,
+      items: this.withoutSessionClosed(this.notificationState())
+    };
+
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+    } catch {
+      // Ignore quota / private-mode failures; in-memory list still works.
+    }
+  }
+
+  private readStore(): Record<string, StoredNotificationInbox> {
+    if (typeof localStorage === 'undefined') {
+      return {};
+    }
+
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      return {};
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as unknown;
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        return {};
+      }
+
+      return parsed as Record<string, StoredNotificationInbox>;
+    } catch {
+      localStorage.removeItem(STORAGE_KEY);
+      return {};
+    }
+  }
+
+  private withoutSessionClosed(items: ErrorNotification[]): ErrorNotification[] {
+    return items.filter((item) => item.title !== SESSION_CLOSED_TITLE);
   }
 
   private pushWithTone(

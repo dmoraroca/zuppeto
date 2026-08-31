@@ -5,6 +5,7 @@ import { Observable, firstValueFrom } from 'rxjs';
 
 import { API_BASE_URL } from '../../../core/config/api.config';
 import { NavigationMenuItem } from '../../../core/models/navigation-menu.model';
+import { ErrorNotificationsService } from '../../../core/services/error-notifications.service';
 import { AuthAccountUpdate, AuthCredentials, AuthProfileUpdate, AuthProvider, AuthRole, AuthSession, AuthUser } from '../models/auth-user.model';
 import { AUTH_STORE, AuthStore } from './auth-store.token';
 
@@ -13,6 +14,7 @@ import { AUTH_STORE, AuthStore } from './auth-store.token';
 })
 export class AuthService {
   private readonly http = inject(HttpClient);
+  private readonly notifications = inject(ErrorNotificationsService);
   private readonly sessionState: ReturnType<typeof signal<AuthSession | null>>;
   private readonly navigationMenuState = signal<NavigationMenuItem[]>([]);
   readonly currentUser$: Observable<AuthUser | null>;
@@ -28,7 +30,12 @@ export class AuthService {
       this.sessionState.set(null);
       this.navigationMenuState.set([]);
       this.authStore.saveSession(null);
+      this.notifications.unload();
       return;
+    }
+
+    if (existingSession) {
+      this.notifications.loadForUser(existingSession.user.id);
     }
 
     if (existingSession && !this.isLoginRoute()) {
@@ -61,6 +68,7 @@ export class AuthService {
       const mappedSession = this.toSession(this.normalizeSession(session));
       this.sessionState.set(mappedSession);
       this.authStore.saveSession(mappedSession);
+      this.notifications.loadForUser(mappedSession.user.id);
       await this.loadNavigationMenu();
 
       return { ok: true, user: mappedSession.user };
@@ -80,6 +88,7 @@ export class AuthService {
       const mappedSession = this.toSession(this.normalizeSession(session));
       this.sessionState.set(mappedSession);
       this.authStore.saveSession(mappedSession);
+      this.notifications.loadForUser(mappedSession.user.id);
       await this.loadNavigationMenu();
 
       return { ok: true, user: mappedSession.user };
@@ -92,11 +101,13 @@ export class AuthService {
     const mappedSession = this.toSession(this.normalizeSession(session));
     this.sessionState.set(mappedSession);
     this.authStore.saveSession(mappedSession);
+    this.notifications.loadForUser(mappedSession.user.id);
     void this.loadNavigationMenu();
     return mappedSession.user;
   }
 
   logout(): void {
+    this.notifications.unload();
     this.sessionState.set(null);
     this.navigationMenuState.set([]);
     this.authStore.saveSession(null);
@@ -226,6 +237,7 @@ export class AuthService {
         this.sessionState.set(null);
         this.navigationMenuState.set([]);
         this.authStore.saveSession(null);
+        this.notifications.unload();
         return;
       }
 

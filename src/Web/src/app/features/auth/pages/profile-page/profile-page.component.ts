@@ -260,7 +260,6 @@ export class ProfilePageComponent implements AfterViewInit {
 
   protected logout(): void {
     this.authService.logout();
-    this.notifications.notify('Sessió tancada', 'Has sortit del perfil de proves.', 'info');
     void this.router.navigate(['/login'], {
       replaceUrl: true
     });

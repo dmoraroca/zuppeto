@@ -1902,7 +1902,9 @@ Ubicacio:
 
 ### 9.3 Servei central de notificacions
 
-`ErrorNotificationsService` manté una llista reactiva de notificacions mitjançant `signal`.
+`ErrorNotificationsService` manté una llista reactiva de notificacions mitjançant `signal` i la persisteix a `localStorage` (`zuppeto-notifications`) per `userId`.
+
+`AuthService.login` / `loginWithGoogle` / `hydrateFederatedSession` criden `loadForUser`; `logout` crida `unload` (desa i buida la memòria de la pàgina de login). El títol «Sessió tancada» no s’emmagatzema. Màxim 50 avisos per compte. No és persistència de servidor.
 
 Responsabilitats:
 
@@ -1928,9 +1930,11 @@ Ubicacio:
 La UI global es munta a nivell d'`app` i no depen de cap pagina concreta:
 
 ```html
-<app-error-notifications />
+<app-toast-stack />
 <router-outlet />
 ```
+
+`app-toast-stack` mostra el missatge flotant; **no** crida `markAsRead` (tancar o auto-dismiss només amaga el toast). L’estat **No llegida / Llegida** es canvia a `/notificacions`.
 
 Aixo permet:
 
@@ -1945,9 +1949,9 @@ Fitxers implicats:
 - `src/Web/src/app/app.html`
 - `src/Web/src/app/core/interceptors/error.interceptor.ts`
 - `src/Web/src/app/core/services/error-notifications.service.ts`
-- `src/Web/src/app/core/layout/components/error-notifications/error-notifications.component.ts`
-- `src/Web/src/app/core/layout/components/error-notifications/error-notifications.component.html`
-- `src/Web/src/app/core/layout/components/error-notifications/error-notifications.component.scss`
+- `src/Web/src/app/core/layout/components/app-toast-stack/app-toast-stack.component.ts`
+- `src/Web/src/app/core/layout/components/app-toast-stack/app-toast-stack.component.html`
+- `src/Web/src/app/core/layout/components/app-toast-stack/app-toast-stack.component.scss`
 
 ## 10. Patrons de disseny i SOLID
 

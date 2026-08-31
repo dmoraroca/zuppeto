@@ -794,6 +794,7 @@ Funcions actuals d'aquesta pantalla:
 - marcar una notificacio com a llegida
 - tornar una notificacio a no llegida
 - marcar-les totes com a llegides
+- el **toast** (missatge flotant en desar o en un error) **no** marca l’avís com a llegit; només es marca des de `/notificacions`
 
 Origen funcional de les notificacions:
 
@@ -803,7 +804,8 @@ Origen funcional de les notificacions:
 
 Abast actual:
 
-- notificacions en memoria dins la sessio actual
+- notificacions de la sessió d’usuari, desades al navegador (per compte): un **F5** o tornar a entrar **no** buida la llista
+- **«Sessió tancada»** no es desa ni es mostra un cop tornes a estar autenticat
 - lectura simple de data, titol i missatge
 - suport a seguiment basic de l'activitat recent de l'usuari
 
