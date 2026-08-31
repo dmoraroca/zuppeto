@@ -42,7 +42,7 @@
     </aside>
 
     <section class="profile-form-shell">
-      <form class="profile-form" [formGroup]="form" (ngSubmit)="save()">
+      <form class="profile-form" [formGroup]="form" (submit)="$event.preventDefault()">
         <div class="form-field-required-hint profile-form__required-hint">
           <p>
             <strong class="form-field-required" aria-hidden="true">*</strong>
@@ -177,7 +177,7 @@
         }
 
         <div class="profile-form__actions">
-          <button type="submit" [disabled]="!canSave()">Guardar canvis</button>
+          <button type="button" [disabled]="!canSave()" (click)="save()">Guardar canvis</button>
         </div>
       </form>
     </section>

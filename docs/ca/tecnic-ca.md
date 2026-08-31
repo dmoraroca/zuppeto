@@ -1329,6 +1329,7 @@ Decisions tecniques rellevants:
 - **Specification / catàleg (O):** cada camp obligatori del perfil és una `ProfileRequiredFieldRule`; `canSave` i «Falten: …» surten de la mateixa llista (nom ≥ 3, email no buit i no `invalid`, ciutat, país; si `wantsPasswordChange`: nova ≥ 6 i confirmació igual)
 - **SRP:** `PasswordFieldComponent` encapsula mostrar/amagar, bloqueig (`disabled` / `readonly`) i la línia de força; no viu a `shared` per no dependre d’auth des de compartit
 - **Strategy (canvi de contrasenya):** `resolveSave` — actual buida → `save-without-password-check` (`writeAccount` només si l’email ha canviat); actual plena → `verify-current` i, si coincideix, escriure contrasenya i/o email; `canUnlockNewFields`; `shouldVerifyTypedCurrent` (només si l’usuari ha editat l’actual i té text); `shouldWipeAutofill` (esborra autofill si l’usuari no ha editat)
+- el formulari de perfil **no** fa `ngSubmit`: `submit` es cancel·la; **Guardar canvis** és `type="button"` i només crida `save()` al clic (Enter no desa)
 - camps de contrasenya: `currentPassword` buit a l’entrada; `newPassword` / `confirmNewPassword` `disabled` fins `matches === true`; autofill ignorat amb retards `50/300/800/1600` ms; al `save` es revalida i, si falla, notificació «Contrasenya incorrecta» i no es crida `updateAccount` amb nova
 - `AuthService.updateAccount` / `updateProfile` / `verifyCurrentPassword` contra l’API; el hash nou el calcula el backend (`Pbkdf2PasswordHasher`)
 - `error-notifications.service` mapeja labels de validació de compte (email, actual, nova, confirmació)

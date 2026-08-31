@@ -755,6 +755,7 @@ Criteri funcional de camps:
 
 **Guardar** (decisió de producte):
 
+- només desa si es prem el botó **Guardar canvis**; **Enter** dins el formulari **no** actualitza
 - entra **desactivat** (formulari sense canvis / pristine)
 - s’activa si l’usuari ha editat, els obligatoris són plens i, per a `USER`, el consentiment està marcat
 - obligatoris de la fitxa: nom visible, email vàlid, ciutat, país
