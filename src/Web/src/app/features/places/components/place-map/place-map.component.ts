@@ -12,6 +12,7 @@ import {
 } from '@angular/core';
 
 import { Place } from '../../models/place.model';
+import { SPAIN_MAP_CENTER, SPAIN_MAP_ZOOM } from '../../utils/city-map-focus';
 
 type LeafletModule = typeof import('leaflet');
 type LeafletMap = import('leaflet').Map;
@@ -42,12 +43,19 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   private markersLayer?: LeafletLayerGroup;
   private readonly markers = new Map<string, import('leaflet').CircleMarker>();
   private mapInitialization?: Promise<void>;
+  private lastPlaceIdsKey = '';
 
-  /** Europe-wide default (aligned with the login map preview) when there are no markers. */
-  private static readonly defaultMapCenter: [number, number] = [40.25, -3.7];
-  private static readonly defaultMapZoom = 5;
+  /** Spain-first listing view (do not fitBounds when a pin is in Australia, etc.). */
+  private static readonly defaultMapCenter: [number, number] = SPAIN_MAP_CENTER;
+  private static readonly defaultMapZoom = SPAIN_MAP_ZOOM;
   /** City-level zoom when a city is selected but there are no place pins. */
   private static readonly cityFocusZoom = 13;
+  private static readonly selectedPinFill = '#22c55e';
+  private static readonly selectedPinStroke = '#15803d';
+  private static readonly idlePinFill = '#99f6e4';
+  private static readonly idlePinStroke = '#0f766e';
+  /** If visible pins span more than this, keep the camera on Spain instead of the world. */
+  private static readonly maxFitSpanMeters = 1_200_000;
 
   async ngAfterViewInit(): Promise<void> {
     await this.ensureMap();
@@ -140,59 +148,90 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
         return;
       }
 
-      this.markersLayer.clearLayers();
-      this.markers.clear();
-
       if (!this.hasPlaces) {
+        this.markersLayer.clearLayers();
+        this.markers.clear();
+        this.lastPlaceIdsKey = '';
         this.setEmptyMapView();
         return;
       }
 
-      const bounds = this.leaflet.latLngBounds([]);
-      const selectedPlaceId = this.selectedPlaceId();
-
-      for (const place of this.places()) {
-        const isSelected = place.id === selectedPlaceId;
-        const marker = this.leaflet.circleMarker([place.coordinates.lat, place.coordinates.lng], {
-          radius: isSelected ? 11 : 8,
-          weight: isSelected ? 3 : 2,
-          color: isSelected ? '#065f46' : '#0f766e',
-          fillColor: isSelected ? '#2dd4bf' : '#99f6e4',
-          fillOpacity: isSelected ? 0.95 : 0.85
-        });
-
-        marker.bindPopup(
-          `
-            <div class="place-map__popup">
-              <p class="place-map__popup-type">${place.type}</p>
-              <strong>${place.name}</strong>
-              <span>${place.city}, ${place.country}</span>
-              <span>${place.address}</span>
-              <span>Valoració ${place.rating}</span>
-            </div>
-          `,
-          {
-            className: 'place-map__popup-shell'
-          }
-        );
-        marker.on('click', () => this.placeSelected.emit(place.id));
-        marker.addTo(this.markersLayer);
-        this.markers.set(place.id, marker);
-        bounds.extend([place.coordinates.lat, place.coordinates.lng]);
+      const placeIdsKey = this.places()
+        .map((place) => place.id)
+        .join(',');
+      const placesChanged = placeIdsKey !== this.lastPlaceIdsKey;
+      if (placesChanged) {
+        this.redrawMarkers();
+        this.lastPlaceIdsKey = placeIdsKey;
       }
+
+      const selectedPlaceId = this.selectedPlaceId();
+      this.applyMarkerSelection(selectedPlaceId);
 
       if (selectedPlaceId) {
         const selectedPlace = this.places().find((place) => place.id === selectedPlaceId);
-
         if (selectedPlace) {
-          this.map.setView([selectedPlace.coordinates.lat, selectedPlace.coordinates.lng], 15);
+          this.map.setView([selectedPlace.coordinates.lat, selectedPlace.coordinates.lng], 14);
           this.markers.get(selectedPlace.id)?.openPopup();
           return;
         }
       }
 
-      this.fitMapToPlaces(bounds);
+      if (placesChanged) {
+        this.fitMapToPlaces();
+      }
     });
+  }
+
+  private redrawMarkers(): void {
+    if (!this.leaflet || !this.markersLayer) {
+      return;
+    }
+
+    this.markersLayer.clearLayers();
+    this.markers.clear();
+
+    for (const place of this.places()) {
+      const marker = this.leaflet.circleMarker([place.coordinates.lat, place.coordinates.lng], {
+        radius: 8,
+        weight: 2,
+        color: PlaceMapComponent.idlePinStroke,
+        fillColor: PlaceMapComponent.idlePinFill,
+        fillOpacity: 0.85
+      });
+
+      marker.bindPopup(
+        `
+            <div class="place-map__popup">
+              <strong>${place.name}</strong>
+              <span>${place.city}</span>
+            </div>
+          `,
+        {
+          className: 'place-map__popup-shell'
+        }
+      );
+      marker.on('click', () => this.placeSelected.emit(place.id));
+      marker.addTo(this.markersLayer);
+      this.markers.set(place.id, marker);
+    }
+  }
+
+  private applyMarkerSelection(selectedPlaceId: string | null): void {
+    for (const [placeId, marker] of this.markers) {
+      const isSelected = placeId === selectedPlaceId;
+      marker.setStyle({
+        radius: isSelected ? 12 : 8,
+        weight: isSelected ? 3 : 2,
+        color: isSelected ? PlaceMapComponent.selectedPinStroke : PlaceMapComponent.idlePinStroke,
+        fillColor: isSelected ? PlaceMapComponent.selectedPinFill : PlaceMapComponent.idlePinFill,
+        fillOpacity: isSelected ? 1 : 0.85
+      });
+      marker.setRadius(isSelected ? 12 : 8);
+      if (isSelected) {
+        marker.bringToFront();
+      }
+    }
   }
 
   private setEmptyMapView(): void {
@@ -221,6 +260,12 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
 
         return accumulator;
       }, this.leaflet.latLngBounds([]));
+
+    const spanMeters = this.map.distance(bounds.getSouthWest(), bounds.getNorthEast());
+    if (spanMeters > PlaceMapComponent.maxFitSpanMeters) {
+      this.map.setView(PlaceMapComponent.defaultMapCenter, PlaceMapComponent.defaultMapZoom);
+      return;
+    }
 
     this.map.fitBounds(bounds, {
       padding: [28, 28],

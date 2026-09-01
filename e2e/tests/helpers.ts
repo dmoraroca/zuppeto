@@ -37,8 +37,9 @@ export async function fetchFirstPlaceId(request: APIRequestContext): Promise<str
   if (!response.ok()) {
     return null;
   }
-  const places = (await response.json()) as Array<{ id: string }>;
-  return places[0]?.id ?? null;
+  const places = (await response.json()) as { items?: Array<{ id: string }> } | Array<{ id: string }>;
+  const items = Array.isArray(places) ? places : places.items ?? [];
+  return items[0]?.id ?? null;
 }
 
 export async function ensureUser(

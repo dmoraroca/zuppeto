@@ -11,6 +11,7 @@ using Zuppeto.Infrastructure.GeoNames;
 using Zuppeto.Infrastructure.GooglePlaces;
 using Zuppeto.Infrastructure.Persistence;
 using Zuppeto.Infrastructure.Persistence.Repositories;
+using Zuppeto.Infrastructure.Places;
 using Zuppeto.Infrastructure.RabbitMq;
 
 namespace Zuppeto.Infrastructure;
@@ -83,6 +84,9 @@ public static class DependencyInjection
         services.Configure<GooglePlacesComplianceOptions>(
             configuration.GetSection(GooglePlacesComplianceOptions.SectionName));
         services.AddHostedService<GooglePlacesComplianceRetentionHostedService>();
+        services.AddSingleton<PlaceCoverEnrichmentQueue>();
+        services.AddSingleton<IPlaceCoverEnrichmentQueue>(sp => sp.GetRequiredService<PlaceCoverEnrichmentQueue>());
+        services.AddHostedService<PlaceCoverEnrichmentHostedService>();
         services.AddDbContext<ZuppetoDbContext>((sp, options) =>
         {
             options.UseNpgsql(connectionString);
@@ -100,12 +104,27 @@ public static class DependencyInjection
             client.BaseAddress = new Uri(geoOptions.BaseUrl);
             client.Timeout = TimeSpan.FromSeconds(Math.Max(2, geoOptions.TimeoutSeconds));
         });
-        services.AddHttpClient<IExternalPlaceSuggestionProvider, GooglePlacesSuggestionProvider>((sp, client) =>
+        services.AddHttpClient<GooglePlacesSuggestionProvider>((sp, client) =>
         {
             var placesOptions = sp.GetRequiredService<IOptions<GooglePlacesOptions>>().Value;
             client.BaseAddress = new Uri(placesOptions.BaseUrl);
-            client.Timeout = TimeSpan.FromSeconds(Math.Max(2, placesOptions.TimeoutSeconds));
+            client.Timeout = TimeSpan.FromSeconds(Math.Max(20, placesOptions.TimeoutSeconds));
+        })
+        .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+        {
+            AllowAutoRedirect = true,
+            MaxAutomaticRedirections = 5
         });
+        services.AddScoped<IExternalPlaceSuggestionProvider>(
+            sp => sp.GetRequiredService<GooglePlacesSuggestionProvider>());
+        services.AddScoped<IExternalPlaceDetailsProvider>(
+            sp => sp.GetRequiredService<GooglePlacesSuggestionProvider>());
+        services.AddHttpClient<IPlaceWebsitePageReader, HttpPlaceWebsitePageReader>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(8);
+            client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "ZuppetoPlaceEnrichment/1.0");
+        });
+        services.AddSingleton<IPlaceCoverStorage, FilePlaceCoverStorage>();
         services.AddScoped<IPasswordHasher, Pbkdf2PasswordHasher>();
         services.AddScoped<IAccessTokenIssuer, JwtAccessTokenIssuer>();
         services.AddScoped<IGoogleIdTokenVerifier, GoogleIdTokenVerifier>();

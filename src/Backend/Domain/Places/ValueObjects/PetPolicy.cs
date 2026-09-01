@@ -6,11 +6,6 @@ public sealed class PetPolicy : ValueObject
 {
     public PetPolicy(bool acceptsDogs, bool acceptsCats, string label, string notes)
     {
-        if (!acceptsDogs && !acceptsCats)
-        {
-            throw new DomainRuleException("At least one supported pet type is required.");
-        }
-
         if (string.IsNullOrWhiteSpace(label))
         {
             throw new DomainRuleException("Pet policy label is required.");

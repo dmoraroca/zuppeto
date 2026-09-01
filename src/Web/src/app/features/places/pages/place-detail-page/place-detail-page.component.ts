@@ -1,4 +1,4 @@
-import { Component, computed, inject, ChangeDetectionStrategy } from '@angular/core';
+import { Component, computed, effect, inject, ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 
@@ -10,9 +10,9 @@ import { PlaceCoverImageComponent } from '../../components/place-cover-image/pla
 import { PlaceMapComponent } from '../../components/place-map/place-map.component';
 import { PlaceService } from '../../services/place.service';
 import {
-  petAccessLabelForPlace,
-  petMatchSummaryForPlace,
-  visitContextForPlaceType
+  hasPublicPetPolicy,
+  hasPublicPrice,
+  hasPublicRating
 } from '../../utils/place-detail-copy';
 
 @Component({
@@ -40,6 +40,15 @@ export class PlaceDetailPageComponent {
     initialValue: this.route.snapshot.queryParamMap
   });
 
+  constructor() {
+    effect(() => {
+      const id = this.params().get('id') ?? '';
+      if (id) {
+        void this.placeService.loadById(id);
+      }
+    });
+  }
+
   protected readonly place = computed(() =>
     this.placeService.getPlaceById(this.params().get('id') ?? '')
   );
@@ -56,20 +65,28 @@ export class PlaceDetailPageComponent {
       .filter((place) => place.id !== currentPlace.id)
       .slice(0, 3);
   });
-  protected readonly petAccessLabel = computed(() => {
-    const currentPlace = this.place();
-    return currentPlace ? petAccessLabelForPlace(currentPlace) : '';
-  });
-  protected readonly visitContext = computed(() => {
-    const currentPlace = this.place();
-    return currentPlace ? visitContextForPlaceType(currentPlace.type) : '';
-  });
   protected readonly backToPlacesQueryParams = computed(() => {
     const currentPlace = this.place();
 
     return currentPlace ? { city: currentPlace.city } : {};
   });
   protected readonly cameFromMap = computed(() => this.queryParams().get('fromMap') === 'true');
+  protected readonly hasPetPolicy = computed(() => {
+    const currentPlace = this.place();
+    return currentPlace ? hasPublicPetPolicy(currentPlace) : false;
+  });
+  protected readonly hasRating = computed(() => {
+    const currentPlace = this.place();
+    return currentPlace ? hasPublicRating(currentPlace) : false;
+  });
+  protected readonly hasPrice = computed(() => {
+    const currentPlace = this.place();
+    return currentPlace ? hasPublicPrice(currentPlace) : false;
+  });
+  protected readonly showsGoogleMapsAttribution = computed(() => {
+    const provenance = this.place()?.dataProvenance?.trim() ?? '';
+    return provenance === 'GooglePlaces' || provenance === 'Mixed';
+  });
 
   protected toggleFavorite(placeId: string): void {
     this.favoritesService.toggle(placeId);
@@ -81,11 +98,6 @@ export class PlaceDetailPageComponent {
 
   protected getTypeLabel(type: string): string {
     return this.placeService.resolveTypeLabel(type);
-  }
-
-  protected getPetMatchSummary(): string {
-    const currentPlace = this.place();
-    return currentPlace ? petMatchSummaryForPlace(currentPlace) : '';
   }
 
   protected get placeAsArray() {

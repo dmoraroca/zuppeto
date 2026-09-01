@@ -253,6 +253,14 @@ app.UseExceptionHandler();
 app.UseCors("web");
 app.UseAuthentication();
 app.UseAuthorization();
+
+var mediaRoot = Path.Combine(app.Environment.ContentRootPath, "storage");
+Directory.CreateDirectory(Path.Combine(mediaRoot, "place-covers"));
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(mediaRoot),
+    RequestPath = "/media"
+});
 app.UseSwagger();
 app.UseSwaggerUI(options =>
 {

@@ -1,5 +1,12 @@
-<article class="place-card" [class.place-card--selected]="selected()">
-  <a class="place-card__image-wrap" [routerLink]="['/places', place().id]">
+<article
+  class="place-card"
+  [class.place-card--selected]="selected()"
+  (click)="onCardSelect($event)"
+>
+  <div class="place-card__image-wrap">
+    @if (selected()) {
+      <span class="place-card__selected-badge">Seleccionat</span>
+    }
     @if (showCoverImage()) {
       <img
         [src]="place().imageUrl"
@@ -25,30 +32,45 @@
         </svg>
       </div>
     }
-  </a>
+  </div>
 
   <div class="place-card__content">
-    @if (selected()) {
-      <span class="place-card__selected-badge">Seleccionat al mapa</span>
-    }
-
     <div class="place-card__meta">
       <span class="place-card__type">{{ typeLabel() }}</span>
-      <span class="place-card__rating">{{ place().rating }} · {{ place().reviewCount }} ressenyes</span>
-    </div>
-
-    <a class="place-card__title" [routerLink]="['/places', place().id]">{{ place().name }}</a>
-    <p class="place-card__location">
-      {{ place().city }}, {{ place().country }} · {{ place().neighborhood }}
-    </p>
-    <p class="place-card__copy">{{ place().shortDescription }}</p>
-    <p class="place-card__location">{{ place().priceLabel }} · {{ place().petPolicyLabel }}</p>
-
-    <div class="place-card__tags">
-      @for (tag of place().tags; track tag) {
-        <span>{{ tag }}</span>
+      @if (hasRating()) {
+        <span class="place-card__rating">{{ place().rating }} · {{ place().reviewCount }} ressenyes</span>
       }
     </div>
+
+    <span class="place-card__title">{{ place().name }}</span>
+    <p class="place-card__location">
+      {{ place().city }}, {{ place().country }}
+      @if (place().neighborhood?.trim()) {
+        · {{ place().neighborhood }}
+      }
+    </p>
+    <p class="place-card__copy">{{ place().shortDescription }}</p>
+    @if (hasPrice() || hasPetPolicy()) {
+      <p class="place-card__location">
+        @if (hasPrice()) {
+          {{ place().priceLabel }}
+        }
+        @if (hasPrice() && hasPetPolicy()) {
+          ·
+        }
+        @if (hasPetPolicy()) {
+          {{ place().petPolicyLabel }}
+        }
+      </p>
+    }
+
+    @if (place().tags.length) {
+      <div class="place-card__tags">
+        @for (tag of place().tags; track tag) {
+          <span>{{ tag }}</span>
+        }
+      </div>
+    }
 
     <div class="place-card__actions">
       <a class="place-card__link" [routerLink]="['/places', place().id]">Veure detall</a>

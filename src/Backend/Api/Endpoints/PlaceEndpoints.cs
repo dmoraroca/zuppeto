@@ -40,13 +40,19 @@ internal static class PlaceEndpoints
         return app;
     }
 
-    private static async Task<Ok<IReadOnlyCollection<PlaceSummaryDto>>> SearchAsync(
+    private static async Task<Ok<PlaceSearchPageDto>> SearchAsync(
         [AsParameters] PlaceSearchQuery query,
         IPlaceApplicationService service,
         CancellationToken cancellationToken)
     {
         var result = await service.SearchAsync(
-            new PlaceSearchRequest(query.SearchText, query.City, query.Type, query.PetCategory ?? "All"),
+            new PlaceSearchRequest(
+                query.SearchText,
+                query.City,
+                query.Type,
+                query.PetCategory ?? "All",
+                query.Skip ?? 0,
+                query.Take),
             cancellationToken);
 
         return TypedResults.Ok(result);
@@ -167,9 +173,15 @@ internal static class PlaceEndpoints
         }
 
         var result = await service.SearchAsync(
-            new PlaceSearchRequest(query.SearchText, query.City, query.Type, query.PetCategory ?? "All"),
+            new PlaceSearchRequest(
+                query.SearchText,
+                query.City,
+                query.Type,
+                query.PetCategory ?? "All",
+                query.Skip ?? 0,
+                query.Take),
             cancellationToken);
-        return TypedResults.Ok(result);
+        return TypedResults.Ok(result.Items);
     }
 
     [Authorize]
@@ -260,7 +272,9 @@ internal static class PlaceEndpoints
         string? SearchText,
         string? City,
         string? Type,
-        string? PetCategory);
+        string? PetCategory,
+        int? Skip,
+        int? Take);
 
     internal sealed record PlaceExternalSearchQuery(
         string? Query,

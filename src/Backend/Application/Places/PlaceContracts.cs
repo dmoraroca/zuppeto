@@ -4,7 +4,16 @@ public sealed record PlaceSearchRequest(
     string? SearchText,
     string? City,
     string? Type,
-    string PetCategory);
+    string PetCategory,
+    int Skip = 0,
+    int? Take = null);
+
+public sealed record PlaceSearchPageDto(
+    IReadOnlyCollection<PlaceSummaryDto> Items,
+    int Total,
+    int Skip,
+    int Take,
+    bool HasMore);
 
 public sealed record PlaceSearchHistoryDto(
     string SearchText,
@@ -30,7 +39,8 @@ public sealed record PlaceExternalCandidateDto(
     decimal Longitude,
     string ExternalId,
     string Source,
-    bool? PetFriendlyAuto);
+    bool? PetFriendlyAuto,
+    string? PhotoReference = null);
 
 /// <summary>
 /// Query for <c>GET /api/places/cities/search</c>: typeahead over distinct cities that have at least one place.
@@ -99,7 +109,10 @@ public sealed record PlaceSummaryDto(
     decimal RatingAverage,
     int ReviewCount,
     IReadOnlyCollection<string> Tags,
-    IReadOnlyCollection<string> Features);
+    IReadOnlyCollection<string> Features,
+    string? OpeningHours = null,
+    string? Phone = null,
+    string? Website = null);
 
 public sealed record PlaceDetailDto(
     Guid Id,
@@ -129,4 +142,9 @@ public sealed record PlaceDetailDto(
     decimal RatingAverage,
     int ReviewCount,
     IReadOnlyCollection<string> Tags,
-    IReadOnlyCollection<string> Features);
+    IReadOnlyCollection<string> Features,
+    string? CoverAttribution = null,
+    string? CoverSourceUri = null,
+    string? OpeningHours = null,
+    string? Phone = null,
+    string? Website = null);

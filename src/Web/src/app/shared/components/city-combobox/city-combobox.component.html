@@ -6,6 +6,7 @@
       [id]="inputId()"
       [attr.aria-autocomplete]="'list'"
       [attr.aria-expanded]="isOpenForDisplay()"
+      [attr.placeholder]="includeAllOption() ? allOptionLabel() : ''"
       [value]="text()"
       (input)="onInput($event)"
       (focus)="onInputFocus()"
@@ -23,6 +24,18 @@
   </div>
   @if (isOpenForDisplay()) {
     <ul class="city-combobox__list" [attr.id]="inputId() + '-listbox'" role="listbox">
+      @if (includeAllOption()) {
+        <li>
+          <button
+            type="button"
+            class="city-combobox__option city-combobox__option--all"
+            (mousedown)="preventLoseTextFocus($event)"
+            (click)="selectAllOption()"
+          >
+            {{ allOptionLabel() }}
+          </button>
+        </li>
+      }
       @if (remoteLoading() && text().trim().length >= minCharsForRemote()) {
         <li class="city-combobox__hint">Carregant…</li>
       }

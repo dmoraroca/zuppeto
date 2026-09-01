@@ -9,8 +9,8 @@ import { FavoritesService } from '../../../favorites/services/favorites.service'
 import { PlaceCardComponent } from '../../components/place-card/place-card.component';
 import { PlaceFiltersComponent } from '../../components/place-filters/place-filters.component';
 import { PlaceMapComponent } from '../../components/place-map/place-map.component';
-import { PlaceFilters } from '../../models/place.model';
-import { PlaceService } from '../../services/place.service';
+import { Place, PlaceFilters } from '../../models/place.model';
+import { PLACE_LIST_PAGE_SIZE, PlaceService } from '../../services/place.service';
 import { resolveCityMapFocus } from '../../utils/city-map-focus';
 
 @Component({
@@ -50,19 +50,41 @@ export class PlacesPageComponent {
     };
   });
 
+  protected readonly listingPlaces = signal<Place[]>([]);
+  protected readonly listingTotal = signal(0);
+  protected readonly listingHasMore = signal(false);
+  protected readonly listingLoading = signal(false);
+  private readonly catalogCities = signal<string[]>([]);
+  /** Form values; listing/map only change after Cercar (or Netejar). */
+  protected readonly draftFilters = signal<PlaceFilters>({
+    search: '',
+    city: '',
+    type: '',
+    pet: 'all'
+  });
+  private listingRequest = 0;
+
   constructor() {
     effect(() => {
-      if (!this.placeService.hasLoaded()) {
-        return;
-      }
-
-      this.placeService.refreshListingFilters(this.filters());
+      this.draftFilters.set({ ...this.filters() });
     });
+    effect(() => {
+      const filters = this.filters();
+      void this.reloadListing(filters);
+    });
+    void this.loadCatalogCities();
   }
 
-  protected readonly cities = computed(() => this.placeService.getAvailableCities());
+  protected readonly cities = computed(() => {
+    const merged = new Set(
+      [...this.catalogCities(), ...this.placeService.getAvailableCities()]
+        .map((city) => city.trim())
+        .filter((city) => city.length > 0)
+    );
+    return [...merged].sort((a, b) => a.localeCompare(b, 'ca'));
+  });
   protected readonly types = this.placeService.getAvailableTypes();
-  protected readonly places = computed(() => this.placeService.getPlaces(this.filters()));
+  protected readonly places = computed(() => this.listingPlaces());
   /**
    * Same filtered set as the list. Plot when coordinates are usable:
    * either not excluded, or Google cache still valid (requiresGoogleMapForGoogleCoordinates).
@@ -169,8 +191,11 @@ export class PlacesPageComponent {
     return `Mode mixt actiu sobre dades reals: ${details.join(' · ')}. El mapa dona context i la llista facilita comparar i obrir el detall.`;
   });
 
-  protected updateFilters(partial: Partial<PlaceFilters>): void {
-    const next = { ...this.filters(), ...partial };
+  protected onDraftFiltersChanged(partial: Partial<PlaceFilters>): void {
+    this.draftFilters.update((current) => ({ ...current, ...partial }));
+  }
+
+  protected applyFilters(next: PlaceFilters): void {
     this.selectedPlaceIdState.set(null);
     const search = next.search?.trim() ?? '';
     const city = next.city?.trim() ?? '';
@@ -198,24 +223,124 @@ export class PlacesPageComponent {
   }
 
   protected clearAllFilters(): void {
-    this.selectedPlaceIdState.set(null);
-    this.updateFilters({
-      search: '',
-      city: '',
-      type: '',
-      pet: 'all'
-    });
+    const empty: PlaceFilters = { search: '', city: '', type: '', pet: 'all' };
+    this.draftFilters.set(empty);
+    this.applyFilters(empty);
   }
 
   protected openPlaceFromMap(placeId: string): void {
+    const visible = this.listingPlaces();
+    if (!visible.some((place) => place.id === placeId)) {
+      const extra = this.placeService.getPlaceById(placeId);
+      if (extra) {
+        this.listingPlaces.set([...visible, extra]);
+      }
+    }
+
     this.selectedPlaceIdState.set(placeId);
+    queueMicrotask(() => this.scrollToListedPlace(placeId));
+  }
+
+  protected async showNextPlaces(): Promise<void> {
+    if (!this.listingHasMore() || this.listingLoading()) {
+      return;
+    }
+
+    await this.appendListing(this.filters());
+  }
+
+  private async loadCatalogCities(): Promise<void> {
+    const cities = await this.placeService.fetchPublicCities();
+    this.catalogCities.set(cities);
+  }
+
+  private async refreshMissingCovers(filters: PlaceFilters, requestId: number): Promise<void> {
+    for (let attempt = 0; attempt < 8; attempt++) {
+      if (!this.listingPlaces().some((place) => !place.imageUrl?.trim())) {
+        return;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      if (requestId !== this.listingRequest) {
+        return;
+      }
+
+      const take = Math.max(PLACE_LIST_PAGE_SIZE, this.listingPlaces().length);
+      const page = await this.placeService.searchPage(filters, 0, take);
+      if (requestId !== this.listingRequest) {
+        return;
+      }
+
+      const byId = new Map(page.items.map((place) => [place.id, place]));
+      this.listingPlaces.update((current) => current.map((place) => byId.get(place.id) ?? place));
+    }
+  }
+
+  private async reloadListing(filters: PlaceFilters): Promise<void> {
+    const requestId = ++this.listingRequest;
+    this.listingLoading.set(true);
+    this.selectedPlaceIdState.set(null);
+
+    try {
+      const page = await this.placeService.searchPage(filters, 0, PLACE_LIST_PAGE_SIZE);
+      if (requestId !== this.listingRequest) {
+        return;
+      }
+
+      this.listingPlaces.set(page.items);
+      this.listingTotal.set(page.total);
+      this.listingHasMore.set(page.hasMore);
+      void this.refreshMissingCovers(filters, requestId);
+    } finally {
+      if (requestId === this.listingRequest) {
+        this.listingLoading.set(false);
+      }
+    }
+  }
+
+  private async appendListing(filters: PlaceFilters): Promise<void> {
+    const requestId = ++this.listingRequest;
+    const skip = this.listingPlaces().length;
+    this.listingLoading.set(true);
+
+    try {
+      const page = await this.placeService.searchPage(filters, skip, PLACE_LIST_PAGE_SIZE);
+      if (requestId !== this.listingRequest) {
+        return;
+      }
+
+      this.listingPlaces.update((current) => {
+        const seen = new Set(current.map((place) => place.id));
+        return [...current, ...page.items.filter((place) => !seen.has(place.id))];
+      });
+      this.listingTotal.set(page.total);
+      this.listingHasMore.set(page.hasMore);
+      void this.refreshMissingCovers(filters, requestId);
+    } finally {
+      if (requestId === this.listingRequest) {
+        this.listingLoading.set(false);
+      }
+    }
+  }
+
+  private scrollToListedPlace(placeId: string): void {
+    const card = this.resultsSection?.nativeElement.querySelector(
+      `[data-place-id="${placeId}"]`
+    );
+    card?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
   protected clearMapSelection(): void {
     this.selectedPlaceIdState.set(null);
   }
 
+  protected onSearchSubmit(event: Event): void {
+    event.preventDefault();
+    this.openSearchResults();
+  }
+
   protected openSearchResults(): void {
+    this.applyFilters(this.draftFilters());
     this.resultsSection?.nativeElement.scrollIntoView({
       behavior: 'smooth',
       block: 'start'

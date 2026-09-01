@@ -6,22 +6,24 @@
     <p>{{ pageCopy() }}</p>
   </section>
 
-  <app-place-filters
-    [filters]="filters()"
-    [cities]="cities()"
-    [types]="types"
-    [showClearButton]="false"
-    (filtersChanged)="updateFilters($event)"
-  />
+  <form class="places-page__search" (submit)="onSearchSubmit($event)">
+    <app-place-filters
+      [filters]="draftFilters()"
+      [cities]="cities()"
+      [types]="types"
+      [showClearButton]="false"
+      (filtersChanged)="onDraftFiltersChanged($event)"
+    />
 
-  <section class="places-page__search-actions" aria-label="Accions de cerca">
-    <button type="button" class="places-page__search-primary" (click)="openSearchResults()">
-      Cercar
-    </button>
-    <button type="button" class="places-page__search-secondary" (click)="clearAllFilters()">
-      Netejar
-    </button>
-  </section>
+    <section class="places-page__search-actions" aria-label="Accions de cerca">
+      <button type="submit" class="places-page__search-primary">
+        Cercar
+      </button>
+      <button type="button" class="places-page__search-secondary" (click)="clearAllFilters()">
+        Netejar
+      </button>
+    </section>
+  </form>
 
   <section class="places-page__map-block">
     <div class="places-page__map-copy">
@@ -90,26 +92,50 @@
 
   <section class="places-page__results" #resultsSection>
     <div class="places-page__summary">
-      <strong>{{ places().length }} llocs</strong>
+      <strong>
+        {{ places().length }} de {{ listingTotal() }} llocs
+        @if (listingLoading()) {
+          <span class="places-page__loading"> · carregant</span>
+        }
+      </strong>
       <a routerLink="/favorites">Veure favorits</a>
     </div>
 
     <div class="places-page__grid">
       @for (place of places(); track place.id) {
         <app-place-card
+          [attr.data-place-id]="place.id"
           [place]="place"
           [typeLabel]="getTypeLabel(place.type)"
           [favorite]="isFavorite(place.id)"
           [selected]="selectedPlaceId() === place.id"
           (favoriteToggled)="toggleFavorite($event)"
+          (placeClicked)="openPlaceFromMap($event)"
         />
       } @empty {
         <article class="places-page__empty">
-          <h3>No hi ha resultats amb aquest filtre.</h3>
-          <p>Prova una altra ciutat o neteja els filtres per tornar a començar.</p>
+          @if (listingLoading()) {
+            <h3>S'estan carregant els llocs…</h3>
+          } @else {
+            <h3>No hi ha resultats amb aquest filtre.</h3>
+            <p>Prova una altra ciutat o neteja els filtres per tornar a començar.</p>
+          }
         </article>
       }
     </div>
+
+    @if (listingHasMore()) {
+      <div class="places-page__more">
+        <button
+          type="button"
+          class="places-page__more-button"
+          [disabled]="listingLoading()"
+          (click)="showNextPlaces()"
+        >
+          Mostrar els 20 següents
+        </button>
+      </div>
+    }
   </section>
 </main>
 

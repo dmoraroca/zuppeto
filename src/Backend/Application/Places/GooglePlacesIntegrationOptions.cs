@@ -8,7 +8,8 @@ public sealed class GooglePlacesIntegrationOptions
     public const string SectionName = "GooglePlaces";
 
     /// <summary>
-    /// When false, place search never calls Google Places (catalog and search snapshots only).
+    /// When false, place search never calls Google Places Text Search (catalog and search snapshots only).
+    /// Missing covers still use Place Details / Place Photos when an API key is configured.
     /// </summary>
     public bool Enabled { get; set; } = true;
 

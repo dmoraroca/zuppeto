@@ -33,6 +33,11 @@ export interface Place {
   address: string;
   petNotes: string;
   features: string[];
+  openingHours?: string;
+  phone?: string;
+  website?: string;
+  coverAttribution?: string;
+  coverSourceUri?: string;
   coordinates: PlaceCoordinates;
 }
 

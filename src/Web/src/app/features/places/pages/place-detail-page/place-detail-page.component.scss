@@ -63,10 +63,21 @@
   color: var(--yp-color-text-muted);
 }
 
+.place-detail-page__hours span {
+  display: block;
+  white-space: pre-line;
+  margin-top: 0.35rem;
+}
+
+.place-detail-page__card a {
+  color: var(--yp-color-primary-dark);
+  font-weight: 700;
+}
+
 .place-detail-page__hero-metrics {
   margin-top: 1.35rem;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
   gap: 0.85rem;
 }
 
@@ -135,10 +146,34 @@
   font-weight: 700;
 }
 
-.place-detail-page__grid {
+.place-detail-page__grid,
+.place-detail-page__stack {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
   gap: 1rem;
+}
+
+.place-detail-page__stack > .place-detail-page__card {
+  min-width: 0;
+  height: 100%;
+}
+
+.place-detail-page__hero-media {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.place-detail-page__photo-credit,
+.place-detail-page__gmp-attr {
+  margin: 0;
+  color: var(--yp-color-text-muted);
+  font-size: 0.82rem;
+}
+
+.place-detail-page__photo-credit a,
+.place-detail-page__gmp-attr {
+  color: var(--yp-color-text-muted);
 }
 
 .place-detail-page__map-block {
@@ -227,9 +262,10 @@
 
 @media (max-width: 960px) {
   .place-detail-page__hero,
-  .place-detail-page__grid,
   .place-detail-page__related-grid,
-  .place-detail-page__hero-metrics {
+  .place-detail-page__hero-metrics,
+  .place-detail-page__grid,
+  .place-detail-page__stack {
     grid-template-columns: 1fr;
   }
 }

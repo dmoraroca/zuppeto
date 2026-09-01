@@ -133,8 +133,8 @@ La plataforma ja diferencia entre usuaris públics, usuaris autenticats i àrees
 ### Què s'ha fet en aquest tram de la Fase IV
 
 - `pàgines internes` queda **FET** (accés intern i manteniments principals operatius)
-- `gestió de contingut o dades` continua **EN CURS**: focus actual en `llocs` (cerca lazy + base de proveïdor extern), després `favorits`
-- detall funcional i tècnic del tram actual: `docs/ca/funcional-ca.md` (§3.17, §3.12, §12.5 segons tema) i `docs/ca/tecnic-ca.md` (§2.11.3, §2.11.4 procedència `places`, §2.11.5 menús admin, §2.10.3 permisos de build local)
+- `gestió de contingut o dades` continua **EN CURS**: focus actual en `llocs` (cerca lazy + base de proveïdor extern), després `favorits`. Tram llistat/fitxa 2026-09-01: **OK** (foto, paginació, Cercar, tres apartats). Pendent (no ara): recordar take per filtre (20/40/60) si es torna a aplicar; vegeu `docs/ca/millores-pendents-ca.md`.
+- detall funcional i tècnic del tram actual: `docs/ca/funcional-ca.md` (§3.17, §3.12, §12.5, §12.7) i `docs/ca/tecnic-ca.md` (§2.11.3, §2.11.3.1, §2.11.4 procedència `places`, §2.11.5 menús admin, §2.10.3 permisos de build local)
 
 ## Fase V · Internacionalització (**PENDENT**)
 

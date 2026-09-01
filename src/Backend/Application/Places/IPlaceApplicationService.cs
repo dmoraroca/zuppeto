@@ -4,7 +4,7 @@ public interface IPlaceApplicationService
 {
     Task<PlaceDetailDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyCollection<PlaceSummaryDto>> SearchAsync(
+    Task<PlaceSearchPageDto> SearchAsync(
         PlaceSearchRequest request,
         CancellationToken cancellationToken = default);
 

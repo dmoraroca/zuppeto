@@ -11,40 +11,34 @@
     </nav>
 
     <section class="place-detail-page__hero">
-      <app-place-cover-image
-        class="place-detail-page__hero-cover"
-        [imageUrl]="selectedPlace.imageUrl"
-        [alt]="selectedPlace.name"
-        variant="hero"
-      />
+      <div class="place-detail-page__hero-media">
+        <app-place-cover-image
+          class="place-detail-page__hero-cover"
+          [imageUrl]="selectedPlace.imageUrl"
+          [alt]="selectedPlace.name"
+          variant="hero"
+        />
+        @if (selectedPlace.coverAttribution?.trim()) {
+          <p class="place-detail-page__photo-credit">
+            Foto: {{ selectedPlace.coverAttribution }}
+            @if (selectedPlace.coverSourceUri?.trim()) {
+              ·
+              <a [href]="selectedPlace.coverSourceUri" target="_blank" rel="noopener noreferrer">
+                Veure a Google Maps
+              </a>
+            }
+          </p>
+        }
+      </div>
 
       <div class="place-detail-page__hero-content">
         <p class="place-detail-page__eyebrow">
-          {{ getTypeLabel(selectedPlace.type) }} · {{ selectedPlace.city }}, {{ selectedPlace.country }} ·
-          {{ selectedPlace.neighborhood }}
+          {{ getTypeLabel(selectedPlace.type) }} · {{ selectedPlace.city }}, {{ selectedPlace.country }}
+          @if (selectedPlace.neighborhood?.trim()) {
+            · {{ selectedPlace.neighborhood }}
+          }
         </p>
         <h1>{{ selectedPlace.name }}</h1>
-        <p class="place-detail-page__copy">{{ selectedPlace.description }}</p>
-
-        <div class="place-detail-page__hero-metrics">
-          <article>
-            <span>Valoració</span>
-            <strong>{{ selectedPlace.rating }} · {{ selectedPlace.reviewCount }}</strong>
-          </article>
-          <article>
-            <span>Compatibilitat</span>
-            <strong>{{ petAccessLabel() }}</strong>
-          </article>
-          <article>
-            <span>Preu orientatiu</span>
-            <strong>{{ selectedPlace.priceLabel }}</strong>
-          </article>
-        </div>
-
-        <div class="place-detail-page__trust-copy">
-          <p class="place-detail-page__lead">{{ getPetMatchSummary() }}</p>
-          <p>{{ visitContext() }}</p>
-        </div>
 
         <div class="place-detail-page__actions">
           <app-favorite-toggle-button
@@ -59,43 +53,86 @@
       </div>
     </section>
 
-    <section class="place-detail-page__grid">
+    <section class="place-detail-page__stack">
       <article class="place-detail-page__card">
         <h2>Abans d'anar-hi</h2>
         <p><strong>Adreça:</strong> {{ selectedPlace.address }}</p>
-        <p><strong>Barri:</strong> {{ selectedPlace.neighborhood }}</p>
-        <p><strong>Valoració:</strong> {{ selectedPlace.rating }} ({{ selectedPlace.reviewCount }} ressenyes)</p>
-        <p><strong>Preu orientatiu:</strong> {{ selectedPlace.priceLabel }}</p>
-        <p><strong>Política pet:</strong> {{ selectedPlace.petPolicyLabel }}</p>
-        <p><strong>Notes per mascotes:</strong> {{ selectedPlace.petNotes }}</p>
+        @if (selectedPlace.neighborhood?.trim()) {
+          <p><strong>Barri:</strong> {{ selectedPlace.neighborhood }}</p>
+        }
+        @if (selectedPlace.openingHours?.trim()) {
+          <p class="place-detail-page__hours">
+            <strong>Horari:</strong>
+            <span>{{ selectedPlace.openingHours }}</span>
+          </p>
+        }
+        @if (selectedPlace.phone?.trim()) {
+          <p>
+            <strong>Telèfon:</strong>
+            <a [href]="'tel:' + selectedPlace.phone">{{ selectedPlace.phone }}</a>
+          </p>
+        }
+        @if (selectedPlace.website?.trim()) {
+          <p>
+            <strong>Web:</strong>
+            <a [href]="selectedPlace.website" target="_blank" rel="noopener noreferrer">{{ selectedPlace.website }}</a>
+          </p>
+        }
+        @if (hasRating()) {
+          <p>
+            <strong>Valoració:</strong> {{ selectedPlace.rating }} ({{ selectedPlace.reviewCount }} ressenyes)
+          </p>
+        }
+        @if (hasPrice()) {
+          <p><strong>Preu orientatiu:</strong> {{ selectedPlace.priceLabel }}</p>
+        }
+        @if (hasPetPolicy()) {
+          <p><strong>Política pet:</strong> {{ selectedPlace.petPolicyLabel }}</p>
+        }
+        @if (selectedPlace.petNotes?.trim()) {
+          <p><strong>Notes per mascotes:</strong> {{ selectedPlace.petNotes }}</p>
+        }
       </article>
 
       <article class="place-detail-page__card">
         <h2>Què hi trobaràs</h2>
-        <div class="place-detail-page__tags">
-          @for (feature of selectedPlace.features; track feature) {
-            <span>{{ feature }}</span>
-          }
-        </div>
+        @if (selectedPlace.features.length) {
+          <div class="place-detail-page__tags">
+            @for (feature of selectedPlace.features; track feature) {
+              <span>{{ feature }}</span>
+            }
+          </div>
+        } @else {
+          <p>Encara no n'hem confirmat les característiques d'aquest local.</p>
+        }
       </article>
 
       <article class="place-detail-page__card">
         <h2>Context ràpid</h2>
-        <div class="place-detail-page__tags">
-          @for (tag of selectedPlace.tags; track tag) {
-            <span>{{ tag }}</span>
-          }
-        </div>
+        @if (selectedPlace.description?.trim()) {
+          <p class="place-detail-page__copy">{{ selectedPlace.description }}</p>
+        }
+        @if (selectedPlace.tags.length) {
+          <div class="place-detail-page__tags">
+            @for (tag of selectedPlace.tags; track tag) {
+              <span>{{ tag }}</span>
+            }
+          </div>
+        }
+        @if (!selectedPlace.description?.trim() && !selectedPlace.tags.length) {
+          <p>{{ getTypeLabel(selectedPlace.type) }} a {{ selectedPlace.city }}.</p>
+        }
       </article>
     </section>
+
+    @if (showsGoogleMapsAttribution()) {
+      <p class="place-detail-page__gmp-attr" translate="no">Google Maps</p>
+    }
 
     <section class="place-detail-page__map-block">
       <div class="place-detail-page__map-copy">
         <h2>Ubicació aproximada</h2>
-        <p>
-          El mateix component de mapa utilitzat al llistat es reutilitza aquí per centrar el lloc
-          seleccionat amb coordenades persistides al backend.
-        </p>
+        <p>El mapa mostra la posició del local per orientar-te abans d’anar-hi.</p>
       </div>
 
       <app-place-map
@@ -127,7 +164,10 @@
               />
               <div>
                 <p class="place-detail-page__related-eyebrow">
-                  {{ getTypeLabel(relatedPlace.type) }} · {{ relatedPlace.rating }}
+                  {{ getTypeLabel(relatedPlace.type) }}
+                  @if (relatedPlace.reviewCount > 0) {
+                    · {{ relatedPlace.rating }}
+                  }
                 </p>
                 <h3>{{ relatedPlace.name }}</h3>
                 <p>{{ relatedPlace.shortDescription }}</p>

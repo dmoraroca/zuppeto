@@ -6,6 +6,7 @@ public sealed class GooglePlacesOptions
 
     /// <summary>
     /// When false, Text Search / external place discovery is skipped (catalog/snapshots only).
+    /// Place Details and Place Photos still run when <see cref="ApiKey"/> is set and a cover is missing.
     /// </summary>
     public bool Enabled { get; set; } = true;
 

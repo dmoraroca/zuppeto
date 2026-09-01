@@ -91,6 +91,11 @@
   cursor: default;
 }
 
+.city-combobox__option--all {
+  font-weight: 800;
+  color: var(--yp-color-primary-dark);
+}
+
 .city-combobox__option:hover,
 .city-combobox__option:focus-visible {
   background: color-mix(in srgb, var(--yp-color-primary) 12%, white);

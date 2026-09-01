@@ -36,6 +36,9 @@ export class CityComboboxComponent {
    * list when the user has not typed enough characters for the GeoNames / catalog remote search yet.
    */
   readonly staticOptions = input<string[]>([]);
+  /** First list option that clears the city filter (same idea as Tipus → Tots). */
+  readonly includeAllOption = input(true);
+  readonly allOptionLabel = input('Totes');
   /** Minimum characters before calling GET /api/places/cities/search (catalog + GeoNames). */
   readonly minCharsForRemote = input(2);
   readonly inputId = input(`app-city-cb-${++CityComboboxComponent.nextId}`);
@@ -58,6 +61,10 @@ export class CityComboboxComponent {
   protected readonly isOpenForDisplay = computed(() => {
     if (!this.open()) {
       return false;
+    }
+
+    if (this.includeAllOption()) {
+      return true;
     }
 
     const min = this.minCharsForRemote();
@@ -138,6 +145,13 @@ export class CityComboboxComponent {
   protected preventLoseTextFocus(e: Event): void {
     (e as MouseEvent).preventDefault();
     this.cancelCloseAfterBlur();
+  }
+
+  protected selectAllOption(): void {
+    this.text.set('');
+    this.valueChange.emit('');
+    this.apiSuggestions.set([]);
+    this.closePanel();
   }
 
   protected selectStaticOption(city: string): void {

@@ -7,6 +7,18 @@ No substitueix `docs/project-phases.md` ni el joc de proves Excel: aquí només 
 
 ---
 
+## 2026-09-01 23:47 CEST
+
+**Àmbit:** Llocs · llistat (`/places`) i detall (`/places/:id`)
+
+**Què queda OK ara:** portada JPEG (placeholder si falta), paginació 20, mapa = visibles, selecció pin/targeta, filtres que s’apliquen amb **Cercar**, tres apartats a la fitxa, Details/Photos i web oficial només per confirmar xips (p. ex. terrassa). Tasca d’aquest tram: **OK**, es tanca.
+
+**Millora (interessant, no ara):** per cada combinació de filtre, **recordar quants resultats s’han arribat a mostrar**. Exemple: un filtre arrenca amb 20; l’usuari amplia a 40 i després a 60. Si **torna a fer el mateix filtre**, ha de veure **els mateixos 60**, no tornar a 20. Un filtre nou (o Netejar) torna a 20. Acotada: també una volta lleugera de llistat/detall (polir, no redissenyar).
+
+**Estat:** pendent; no implementar ara.
+
+---
+
 ## 2026-08-31 23:57 CEST
 
 **Àmbit:** detall de lloc (`/places/:id`) · Què hi trobaràs · ZUP-058 **KO**
@@ -22,7 +34,7 @@ No substitueix `docs/project-phases.md` ni el joc de proves Excel: aquí només 
 
 No deixar la targeta buida. No implementar ara (cal font: Places Details, web del lloc, o alta manual).
 
-**Estat:** pendent; ZUP-058 KO fins retest.
+**Estat:** **FET** (2026-09-01): llistat paginat 20, fitxes verticals, requadres buits amagats, Details/fotos amb caché 30 dies quan Google està actiu. ZUP-058: retest USER quan n’hi hagi característiques (Development sense Google pot continuar sense xips).
 
 ---
 
@@ -34,7 +46,7 @@ No deixar la targeta buida. No implementar ara (cal font: Places Details, web de
 
 **Millora:** no mostrar procedència/caché Google com a política pet. Només política real (gossos/gats, notes). Si no n’hi ha, no mostrar la línia (o un text neutre), mai «Google Places (cache)».
 
-**Estat:** pendent; no implementar ara.
+**Estat:** **FET** (2026-09-01): el DTO ja no envia procedència/caché com a política pet; la línia s’amaga si no hi ha política real.
 
 ---
 
@@ -181,7 +193,7 @@ No deixar la targeta buida. No implementar ara (cal font: Places Details, web de
 3. Quan Google torni a ser actiu (no-dev o flag): BD primer; si falta cobertura → Text Search; descartar `place_id` ja existents; upsert només nous. Refresh caducat → Places Details per `place_id`.
 4. Traça/control de crides Google vs hits de caché: millora futura (ara només `place_search_queries`).
 
-**Estat:** acordat; **Development aplicat** (`GooglePlaces:Enabled=false`, `PreferExternalSearchFirst=false` a `appsettings.Development.json` + guard al servei/provider). Híbrid BD+Google i Places Details: pendent després de proves USER.
+**Estat:** acordat; **Development aplicat** (`GooglePlaces:Enabled=false`, `PreferExternalSearchFirst=false` a `appsettings.Development.json` + guard al Text Search). Place Details / Photos per portada (pàgina visible + fitxa) **implementat** (2026-09-01), sense activar Text Search. Híbrid BD+nous via Text Search: pendent després de proves USER.
 
 ---
 

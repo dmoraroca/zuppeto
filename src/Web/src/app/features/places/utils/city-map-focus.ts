@@ -1,3 +1,6 @@
+export const SPAIN_MAP_CENTER: [number, number] = [40.2, -3.7];
+export const SPAIN_MAP_ZOOM = 6;
+
 /**
  * Map focus for a selected city when there are no place markers.
  * Keeps the viewport inside the city (same idea as Madrid with one pin)
@@ -27,5 +30,16 @@ export function resolveCityMapFocus(city: string | null | undefined): CityMapFoc
     return null;
   }
 
-  return CITY_MAP_FOCUS[key] ?? null;
+  const exact = CITY_MAP_FOCUS[key];
+  if (exact) {
+    return exact;
+  }
+
+  for (const [name, focus] of Object.entries(CITY_MAP_FOCUS)) {
+    if (key.includes(name) || name.includes(key)) {
+      return focus;
+    }
+  }
+
+  return null;
 }

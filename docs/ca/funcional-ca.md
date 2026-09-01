@@ -1375,16 +1375,17 @@ Resum del diagrama:
 
 <pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">flowchart TD</span>
   <span style="color:#93c5fd;">A[Definir ciutat, tipus, mascota o cerca]</span>
-  <span style="color:#93c5fd;">A</span> --&gt; <span style="color:#c4b5fd;">B[Actualitzar query params]</span>
-  <span style="color:#c4b5fd;">B</span> --&gt; <span style="color:#86efac;">C[Filtrar llocs simulats]</span>
-  <span style="color:#86efac;">C</span> --&gt; <span style="color:#67e8f9;">D[Actualitzar mapa]</span>
-  <span style="color:#86efac;">C</span> --&gt; <span style="color:#fcd34d;">E[Actualitzar llistat]</span>
-  <span style="color:#fcd34d;">E</span> --&gt; <span style="color:#f9a8d4;">F[Mostrar filtres escollits]</span></code></pre>
+  <span style="color:#93c5fd;">A</span> --&gt; <span style="color:#c4b5fd;">B[Clicar Cercar]</span>
+  <span style="color:#c4b5fd;">B</span> --&gt; <span style="color:#c4b5fd;">C[Actualitzar query params]</span>
+  <span style="color:#c4b5fd;">C</span> --&gt; <span style="color:#86efac;">D[Filtrar llocs]</span>
+  <span style="color:#86efac;">D</span> --&gt; <span style="color:#67e8f9;">E[Actualitzar mapa]</span>
+  <span style="color:#86efac;">D</span> --&gt; <span style="color:#fcd34d;">F[Actualitzar llistat]</span>
+  <span style="color:#fcd34d;">F</span> --&gt; <span style="color:#f9a8d4;">G[Mostrar filtres escollits]</span></code></pre>
 
 Resum del diagrama:
 
-- mostra com un canvi de filtre impacta tota la pantalla `places`
-- els query params son la font funcional de l'estat actual de la cerca
+- els combos només preparen la cerca; **Cercar** aplica els query params
+- els query params son la font funcional de l'estat aplicat (mapa, llistat i xips)
 - el mapa i el llistat no van separats: responen al mateix conjunt de filtres dins un mode mixt
 
 ### 5.7 Flux funcional de favorits
@@ -1460,9 +1461,9 @@ Actor:
 Flux principal:
 
 1. l'usuari entra a `places`
-2. aplica filtres o arriba des d'una ciutat o un chip
+2. omple filtres (ciutat, tipus, mascota, cerca) i clica **Cercar**, o arriba des d'una ciutat o un chip
 3. el sistema mostra resultats al mapa i al llistat
-4. l'usuari pot ajustar filtres o netejar-los
+4. l'usuari pot ajustar els combos i tornar a cercar, o **Netejar**
 
 ### UC-03 Veure detall d'un lloc
 
@@ -1845,6 +1846,44 @@ Aquest model es planifica com a diferenciador de producte:
 - versio Free: consulta i visualitzacio de dades **base** del local al cataleg `Zuppeto` (amb descobriment/integracio Google on calgui, sense convertir l'app en un substitut de Google Maps).
 - versio PRO: enriquiment amb IA (`Gemini`) per facilitar decisio (context ampliat, resum intel-ligent i millor prioritzacio de resultats), sempre amb traça de procedencia i `manual > auto` on toqui.
 - el valor PRO no es "tenir un local", sino obtenir millor qualitat de decisio i estalvi de temps.
+
+### 12.7 Fitxa, llistat paginat i caché de fotos (acord 2026-09-01)
+
+Objectiu: al llistat i a la fitxa, dades **útils** (adreça, foto, gos sí/no, característiques), sense textos tècnics. Google només si falta dada o ha caducat la finestra de **30 dies**.
+
+**Persistència**
+
+- El catàleg (`places`) és la mateixa fila per al llistat i la fitxa.
+- La portada és **un JPEG** al storage del servidor; a la BD hi va la URL nostra. No es desa el `photo_reference` com a imatge, ni cookies / `localStorage` com a caché de producte.
+- El `place_id` es guarda sempre. La resta de dades d’origen Google es tracten com a caché de 30 dies.
+
+**Llistat (`/places`)**
+
+- Primer catàleg / snapshot. Text Search només si cal cobertura; el botó de paginar **no** torna a cridar Text Search.
+- Paginació: **20** locals, botó **«Mostrar els 20 següents»**, el botó desapareix si no n’hi ha més. El mapa mostra **els mateixos** locals visibles.
+- Fitxes en **una columna**, estil fila ampla (foto a l’esquerra, dades a la dreta), **mateixa alçada**.
+- Mapa: per defecte **centrat a Espanya** (no s’allunya al món si hi ha un pin llunyà). Ciutat filtrada → s’ajusta a aquella zona.
+- Clic al **pin**: el pin queda **verd**, popup simple (nom i ciutat), es destaca la targeta i es fa scroll fins a ella.
+- Clic a la **targeta**: selecciona el mateix pin verd al mapa. «Veure detall» obre la fitxa.
+- El filtre de ciutat té **Totes** a dalt del desplegable (com Tipus → Tots i Mascota → Totes). El combo mostra ciutats del catàleg, no només les de la pàgina filtrada.
+- Canviar **Cerca / Ciutat / Tipus / Mascota** no filtra sol: el mapa i el llistat només es recarreguen amb **Cercar** (o **Netejar**, que buida i aplica). Els xips «Filtres escollits» reflecteixen el que ja s’ha cercat.
+- Si a un local **visible** li falta la portada: el llistat es pinta **de seguida** (placeholder si cal); Place Details + Place Photos corren **en segon pla**. Si l’API New no porta foto, es fa fallback a Place Photos legacy. Recàrregues posteriors usen la URL nostra (finestra 30 dies).
+
+**Fitxa (`/places/:id`)**
+
+- Es llegeix de BD. Place Details si hi ha `place_id` i falta gos/features/foto o han passat 30 dies (amb `ApiKey`; no cal `Enabled` de Text Search).
+- Si Google porta **web oficial**, es llegeix aquella pàgina (o un enllaç del mateix host que anomena el local) i només s’afegeixen xips **confirmats al text** (p. ex. Terrassa si diuen «terrassa» / «terraza»). No s’inventa. El resum del web omple Context ràpid si no hi ha editorial de Google.
+- **Adreça** a «Abans d’anar-hi» (sense repetir-la a la capçalera). La resta de línies només si hi ha dada real (horari, telèfon, web, barri, valoració, preu, política pet).
+- Els **tres apartats sempre visibles**: Abans d’anar-hi, Què hi trobaràs, Context ràpid. Què hi trobaràs omple xips des de tipus/amenitats de Place Details; Context ràpid mostra el resum editorial i tags (barri, tipus).
+- **Abans d’anar-hi:** adreça; barri / valoració / preu / política pet / notes només si són reals. Política pet: «Gossos permesos» o «No es permeten gossos». Mai `Google Places (cache)`.
+- **Què hi trobaràs:** xips confirmats (Google i/o web oficial: terrassa, jardí, cocteleria, gos sí/no…). Requadre amagat si no n’hi ha.
+- **Context ràpid:** tags nostres; requadre amagat si és buit.
+- Els tres apartats van **en fila** (tres columnes al costat). L’apilat en una columna és només del **llistat**, no de la fitxa. En pantalles estretes (<960px) tornen a anar un sota l’altre.
+- Atribució Google Maps i crèdit d’autor de la foto **fora** de Política pet. Al mapa OSM no s’hi posa foto ni valoració de Places.
+
+**Entorn Development:** `GooglePlaces:Enabled=false` → **sense Text Search** (només catàleg BD). Si falta foto (o dades de fitxa) i hi ha `place_id` + `ApiKey`, sí que es crida **Place Details / Photos** als 20 visibles i a la fitxa.
+
+**Estat d’aquest tram (2026-09-01):** **OK**, tancat. Pendent (no ara): recordar, per filtre, quants resultats s’han carregat (20 → 40 → 60) i mostrar el mateix si es torna a aplicar; més una volta lleugera de llistat/detall. Vegeu `millores-pendents-ca.md`.
 
 ## 13. Referencia documental
 

@@ -17,6 +17,9 @@ const DEFAULT_FILTERS: PlaceFilters = {
   pet: 'all'
 };
 
+export const PLACE_LIST_PAGE_SIZE = 20;
+const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '');
+
 @Injectable({ providedIn: 'root' })
 export class PlaceService {
   private readonly http = inject(HttpClient);
@@ -121,12 +124,63 @@ export class PlaceService {
   /** Full catalog (no query). Used after login so favorites/detail can resolve IDs. */
   reload(): void {
     this.http
-      .get<PlaceApiSummaryDto[]>(`${API_BASE_URL}/places`)
-      .pipe(catchError(() => of([])))
-      .subscribe((places) => {
-        this.placesState.set(places.map((place) => this.toPlace(place)));
+      .get<PlaceSearchPageDto | PlaceApiSummaryDto[]>(`${API_BASE_URL}/places`)
+      .pipe(catchError(() => of({ items: [], total: 0, skip: 0, take: 0, hasMore: false })))
+      .subscribe((payload) => {
+        const places = unwrapPlacesPayload(payload).map((place) => this.toPlace(place));
+        this.placesState.set(places);
         this.loadedState.set(true);
       });
+  }
+
+  async loadById(placeId: string): Promise<Place | undefined> {
+    const normalized = placeId.trim();
+    if (!normalized) {
+      return undefined;
+    }
+
+    const dto = await firstValueFrom(
+      this.http
+        .get<PlaceApiSummaryDto>(`${API_BASE_URL}/places/${normalized}`)
+        .pipe(catchError(() => of(null)))
+    );
+
+    if (!dto) {
+      return this.getPlaceById(normalized);
+    }
+
+    const place = this.toPlace(dto);
+    this.placesState.update((existing) => this.mergePlacesById(existing, [place]));
+    this.loadedState.set(true);
+    return place;
+  }
+
+  async searchPage(
+    filters: PlaceFilters,
+    skip: number,
+    take = PLACE_LIST_PAGE_SIZE
+  ): Promise<PlaceSearchPage> {
+    let params = this.buildPlacesQueryParams(filters);
+    params = params.set('skip', String(Math.max(0, skip))).set('take', String(take));
+
+    const payload = await firstValueFrom(
+      this.http
+        .get<PlaceSearchPageDto | PlaceApiSummaryDto[]>(`${API_BASE_URL}/places`, { params })
+        .pipe(catchError(() => of({ items: [], total: 0, skip, take, hasMore: false })))
+    );
+
+    const page = normalizePlacesPage(payload, skip, take);
+    const mapped = page.items.map((place) => this.toPlace(place));
+    this.placesState.update((existing) => this.mergePlacesById(existing, mapped));
+    this.loadedState.set(true);
+
+    return {
+      items: mapped,
+      total: page.total,
+      skip: page.skip,
+      take: page.take,
+      hasMore: page.hasMore
+    };
   }
 
   /** Public login explorer: places from API without requiring a session. */
@@ -136,13 +190,16 @@ export class PlaceService {
       ? this.buildPlacesQueryParams(safeFilters)
       : undefined;
 
-    const places = await firstValueFrom(
+    const payload = await firstValueFrom(
       this.http
-        .get<PlaceApiSummaryDto[]>(`${API_BASE_URL}/places`, params ? { params } : {})
-        .pipe(catchError(() => of([])))
+        .get<PlaceSearchPageDto | PlaceApiSummaryDto[]>(
+          `${API_BASE_URL}/places`,
+          params ? { params } : {}
+        )
+        .pipe(catchError(() => of({ items: [], total: 0, skip: 0, take: 0, hasMore: false })))
     );
 
-    return places.map((place) => this.toPlace(place));
+    return unwrapPlacesPayload(payload).map((place) => this.toPlace(place));
   }
 
   /** Public login explorer: cities that already have places in the catalog. */
@@ -163,10 +220,10 @@ export class PlaceService {
 
     const params = this.buildPlacesQueryParams(filters);
     this.http
-      .get<PlaceApiSummaryDto[]>(`${API_BASE_URL}/places`, { params })
-      .pipe(catchError(() => of([])))
-      .subscribe((places) => {
-        const mapped = places.map((place) => this.toPlace(place));
+      .get<PlaceSearchPageDto | PlaceApiSummaryDto[]>(`${API_BASE_URL}/places`, { params })
+      .pipe(catchError(() => of({ items: [], total: 0, skip: 0, take: 0, hasMore: false })))
+      .subscribe((payload) => {
+        const mapped = unwrapPlacesPayload(payload).map((place) => this.toPlace(place));
         this.placesState.update((existing) => this.mergePlacesById(existing, mapped));
         this.loadedState.set(true);
       });
@@ -245,7 +302,7 @@ export class PlaceService {
       type: place.type.toLowerCase() as Place['type'],
       shortDescription: place.shortDescription,
       description: place.description,
-      imageUrl: place.coverImageUrl,
+      imageUrl: resolveMediaUrl(place.coverImageUrl),
       dataProvenance: place.dataProvenance,
       googlePlaceId: place.googlePlaceId,
       googleCoordinatesCachedUntil: place.googleCoordinatesCachedUntil,
@@ -260,9 +317,14 @@ export class PlaceService {
       priceLabel: place.pricingLabel,
       petPolicyLabel: place.petPolicyLabel,
       tags: [...place.tags],
-      address: `${place.addressLine1}, ${place.city}`,
-      petNotes: place.petPolicyNotes,
+      address: formatPlaceAddress(place.addressLine1, place.city),
+      petNotes: place.petPolicyNotes ?? '',
       features: [...place.features],
+      openingHours: place.openingHours ?? '',
+      phone: place.phone ?? '',
+      website: place.website ?? '',
+      coverAttribution: place.coverAttribution ?? '',
+      coverSourceUri: place.coverSourceUri ?? '',
       coordinates: {
         lat: place.latitude,
         lng: place.longitude
@@ -329,6 +391,97 @@ interface PlaceApiSummaryDto {
   reviewCount: number;
   tags: string[];
   features: string[];
+  openingHours?: string | null;
+  phone?: string | null;
+  website?: string | null;
+  coverAttribution?: string | null;
+  coverSourceUri?: string | null;
+}
+
+interface PlaceSearchPageDto {
+  items: PlaceApiSummaryDto[];
+  total: number;
+  skip: number;
+  take: number;
+  hasMore: boolean;
+}
+
+export interface PlaceSearchPage {
+  items: Place[];
+  total: number;
+  skip: number;
+  take: number;
+  hasMore: boolean;
+}
+
+function unwrapPlacesPayload(
+  payload: PlaceSearchPageDto | PlaceApiSummaryDto[]
+): PlaceApiSummaryDto[] {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  return payload.items ?? [];
+}
+
+function normalizePlacesPage(
+  payload: PlaceSearchPageDto | PlaceApiSummaryDto[],
+  skip: number,
+  take: number
+): PlaceSearchPageDto {
+  if (Array.isArray(payload)) {
+    const items = payload.slice(skip, skip + take);
+    return {
+      items,
+      total: payload.length,
+      skip,
+      take,
+      hasMore: skip + items.length < payload.length
+    };
+  }
+
+  return {
+    items: payload.items ?? [],
+    total: payload.total ?? 0,
+    skip: payload.skip ?? skip,
+    take: payload.take ?? take,
+    hasMore: !!payload.hasMore
+  };
+}
+
+function resolveMediaUrl(url: string | null | undefined): string {
+  const value = url?.trim() ?? '';
+  if (!value) {
+    return '';
+  }
+
+  if (value.startsWith('http://') || value.startsWith('https://')) {
+    return value;
+  }
+
+  if (value.startsWith('/')) {
+    return `${API_ORIGIN}${value}`;
+  }
+
+  return value;
+}
+
+function formatPlaceAddress(line1: string, city: string): string {
+  const line = line1?.trim() ?? '';
+  const cityLabel = city?.trim() ?? '';
+  if (!cityLabel) {
+    return line;
+  }
+
+  if (!line) {
+    return cityLabel;
+  }
+
+  if (line.toLowerCase().includes(cityLabel.toLowerCase())) {
+    return line;
+  }
+
+  return `${line}, ${cityLabel}`;
 }
 
 interface CitySuggestionApiDto {

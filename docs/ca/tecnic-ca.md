@@ -621,6 +621,54 @@ Exemple de configuració (appsettings):
 - `CoordinateCacheRetentionDays`: **clampa aplicació** entre **1** i **366** (`PlaceApplicationService`). S’usa per a la data `googleCoordinatesCachedUntil` dels resums sintètics de Google i, per defecte, per als upserts amb metadades Google si no s’indiquen dates explícites.
 - `GooglePlacesCompliance`: només la part **Enabled** activa l’`UPDATE` de redacció de coordenades caducades; `RunIntervalMinutes` és el període mínim entre execucions del hosted service (mínim efectiu **5** minuts al codi).
 
+### 2.11.3.1 Paginació, Place Details, copy públic i portades JPEG
+
+Remissió funcional: `docs/ca/funcional-ca.md` **§12.7**.
+
+#### Contracte de cerca (`GET /api/places`)
+
+- Query: `searchText`, `city`, `type`, `petCategory` (com abans) **+** `skip` **+** `take`.
+- Cos: `PlaceSearchPageDto` (`items`, `total`, `skip`, `take`, `hasMore`). **Trencament** respecte a l’array pla anterior.
+- Sense `take`: es tornen **tots** els `items` (`hasMore=false`) — login anònim, `PlaceService.reload()`, favorits.
+- Amb `take` (llistat: **20**, màxim efectiu **100**): pàgina sobre el resultat ja resolt (snapshot / BD / upsert Google). El botó «Mostrar els 20 següents» només incrementa `skip` (**no** Text Search); si als nous visibles els falta portada, sí Details/Photos (un cop, caché 30 dies).
+- `GET /api/admin/places` continua retornant **array** (`result.Items`) per no trencar la consola admin.
+- `PlaceSearchRequest` porta `Skip` / `Take`; `IPlaceApplicationService.SearchAsync` retorna `PlaceSearchPageDto`.
+
+#### Copy públic (cap text tècnic als DTO)
+
+- `PlacePublicCopy` (Application): si l’etiqueta de política conté `Google`, `cache`, `place_id` o és `Unspecified`, el DTO envia `petPolicyLabel` **buit**. Descripcions tipus «Resultat Google Places» / «Candidat extern» es substitueixen per nom o adreça. Preu `—` surt buit.
+- Upsert de cerca Google: ja **no** escriu `Google Places (cache)`; usa `Unspecified` i no assumeix gats. Si el local ja tenia política pública, es **conserva**.
+- `PetPolicy` de domini **permet** `acceptsDogs` i `acceptsCats` tots dos `false` (p. ex. «No es permeten gossos»). L’admin (`PlaceUpsertRequestValidator`) segueix exigint almenys un tipus de mascota a l’alta manual.
+
+#### Portades JPEG (storage, no blob a `places`)
+
+- Port: `IPlaceCoverStorage` / `FilePlaceCoverStorage`.
+- Fitxers: `{ContentRoot}/storage/place-covers/{placeId:N}.jpg` + `{placeId:N}.json` (autor / URI d’atribució).
+- URL persistida a `places.cover_image_url`: `/media/place-covers/{placeId:N}.jpg`.
+- `Program.cs`: `UseStaticFiles` amb `RequestPath=/media` sobre `storage/`.
+- El client prefixa `/media/...` amb l’origen de l’API (`http://localhost:5211` en local). URLs `https://` (seed Unsplash) es deixen tal qual.
+- Text Search: el JSON porta `photos[].photo_reference` (`PlaceExternalCandidateDto.PhotoReference`); **una** crida Place Photos a l’alta si no hi ha portada; després només la URL nostra.
+- Git: `src/Backend/Api/storage/place-covers/*.jpg` i `*.json` ignorats; es versiona `.gitkeep`.
+
+#### Place Details (enriquiment de fitxa i portada)
+
+- Port: `IExternalPlaceDetailsProvider` (mateixa classe que Text Search: `GooglePlacesSuggestionProvider`).
+- **`Enabled` només tanca Text Search (descobriment).** Place Details i Place Photos s’executen si hi ha `ApiKey`, encara que `Enabled=false` (Development amb catàleg local).
+- Quan: hi ha `google_place_id` i procedència Google/Mixed, i **falta** portada / política pública / features **o** han passat `CoordinateCacheRetentionDays` / caché de coords caducada. Si Details o Photos fallen, es marca un intent al JSON de storage i **no es reintenta** dins la finestra de 30 dies.
+- On: `GET /api/places/{id}` (un local, síncron). `GET /api/places?take=…` **no espera** Details: torna el catàleg de seguida i encola els IDs **sense portada** de la pàgina (`IPlaceCoverEnrichmentQueue` + `PlaceCoverEnrichmentHostedService`). El client refresca les targetes quan el JPEG ja és a BD. Sense `take` (login/`reload`) **no** s’enriqueix el catàleg sencer.
+- API **nova** (`places.googleapis.com/v1/places/{id}`, field mask amb `allowsDogs`, `outdoorSeating`, etc.); si retorna 403/401 (p. ex. Places API New no activada al projecte GCP), es desactiva per al procés i s’usa **legacy** `details/json` + Place Photos. Si la New torna dades **sense foto** (o amb `photos.name` que no es pot baixar), es fa **fallback a Place Photos legacy** i es prova més d’una `photo_reference` fins que el JPEG es desa. Un `.json` d’intent **sense** `.jpg` no compta com a portada feta: es torna a provar.
+- `IPlaceWebsitePageReader` (`HttpPlaceWebsitePageReader`): fins a 2 GET al web oficial (mateix host); xips només si el text els confirma (`PlaceWebsiteAmenityCatalog`).
+- Features persistides (si vénen): `Gossos permesos` / `No es permeten gossos`, `Terrassa`, `Reserva`, `Per emportar`, `Lavabo`, `Apta per nens`, i xips confirmats al web (`Terrassa`, `Jardí`, `Cocteleria`).
+- `PlaceDetailDto` afegeix `coverAttribution` / `coverSourceUri` (del JSON de storage).
+
+#### Web
+
+- `PlaceService.searchPage` / `loadById`; pàgina de llocs: `listingPlaces` + `hasMore`; mapa = visibles.
+- `place-card`: fila Booking (`grid` foto | contingut); amaga nota 0, preu buit i política buida.
+- `place-detail-page`: tres columnes (`.place-detail-page__stack`); una columna sota `960px`. Adreça sempre; requadres 2 i 3 només si hi ha xips; `loadById` per enriquir.
+- `place-map`: popup només nom + ciutat. Pin seleccionat **verd** (`#22c55e`); si els pins s’estenen > ~1200 km, vista Espanya (zoom 6) en lloc de `fitBounds` mundial. Clic a la card del llistat emet `placeClicked` → mateix `selectedPlaceId`.
+- `place-detail-copy.ts`: `hasPublicPetPolicy` / `hasPublicRating` / `hasPublicPrice`.
+
 Diagrama tècnic del tram implementat:
 
 ```mermaid
@@ -630,8 +678,10 @@ flowchart LR
   APP --> Q[(place_search_queries)]
   APP --> QR[(place_search_query_results)]
   APP --> REP[(PlaceRepository)]
+  APP --> COVER[FilePlaceCoverStorage]
   APP --> EXT[GooglePlacesSuggestionProvider]
   EXT --> GP[(Google Places API)]
+  COVER --> DISK[(storage/place-covers JPEG)]
 ```
 
 Exemple de payload de resposta (preview extern):
@@ -710,8 +760,8 @@ Migracions de referència al repositori: `20260427120000_AddPlaceProvenance`; co
 
 #### Configuració
 
-- **`GooglePlaces`** (`GooglePlacesOptions` a Infrastructure, `GooglePlacesIntegrationOptions` a Application): mateixa secció JSON. Camps habituals: **`Enabled`** (si és `false`, no hi ha Text Search; només catàleg/snapshots), `BaseUrl`, `ApiKey`, `TimeoutSeconds`, **`CoordinateCacheRetentionDays`** (per defecte **30**), `PreferExternalSearchFirst`.  
-  - En **Development** (`appsettings.Development.json`): `Enabled=false` i `PreferExternalSearchFirst=false` mentre es fan proves manuals (catàleg local ~100+ locals ja persistits).  
+- **`GooglePlaces`** (`GooglePlacesOptions` a Infrastructure, `GooglePlacesIntegrationOptions` a Application): mateixa secció JSON. Camps habituals: **`Enabled`** (si és `false`, no hi ha Text Search; Details/Photos sí, si hi ha `ApiKey`), `BaseUrl`, `ApiKey`, `TimeoutSeconds`, **`CoordinateCacheRetentionDays`** (per defecte **30**), `PreferExternalSearchFirst`.  
+  - En **Development** (`appsettings.Development.json`): `Enabled=false` i `PreferExternalSearchFirst=false` mentre es fan proves manuals (catàleg local ~100+ locals ja persistits; portades via Details als 20 visibles).  
   - Registre: `Program.cs` fa `Configure<GooglePlacesIntegrationOptions>(configuration.GetSection(...))` abans de `AddApplication()`.
 - **`GooglePlacesCompliance`**: `GooglePlacesComplianceOptions` — `Enabled`, `RunIntervalMinutes`.
 
@@ -744,13 +794,13 @@ En cada cicle (interval configurable):
 
 #### DTOs i flags per al client
 
-- `PlaceSummaryDto` / `PlaceDetailDto` inclouen `GooglePlaceId`, dates de caché/sync, `GoogleCoordinatesCacheExpired`, `RequiresGoogleMapForGoogleCoordinates`, `ExcludeFromOsmMap` (càlcul a `PlaceApplicationService.ComputeGoogleCoordinateFlags`).
+- `PlaceSummaryDto` / `PlaceDetailDto` inclouen `GooglePlaceId`, dates de caché/sync, `GoogleCoordinatesCacheExpired`, `RequiresGoogleMapForGoogleCoordinates`, `ExcludeFromOsmMap` (càlcul a `PlaceApplicationService.ComputeGoogleCoordinateFlags`). `PlaceDetailDto` afegeix `coverAttribution` / `coverSourceUri` quan hi ha JPEG al storage.
 
 #### Resum d’ubicacions al codi
 
-- Domini: `PlaceDataProvenance`, `Place`, `SetDataProvenance`.
-- Infraestructura: `PlaceRecord`, `PlaceConfiguration`, `PlacePersistenceMapper`, `GooglePlacesSuggestionProvider`, `GooglePlacesComplianceRetentionHostedService`.
-- Aplicació / API: `PlaceContracts`, `PlaceUpsertRequestValidator`, `PlaceApplicationService`, `GooglePlacesIntegrationOptions`, `PlaceEndpoints`.
+- Domini: `PlaceDataProvenance`, `Place`, `SetDataProvenance`, `PetPolicy` (pot no acceptar cap mascota si l’etiqueta ho diu).
+- Infraestructura: `PlaceRecord`, `PlaceConfiguration`, `PlacePersistenceMapper`, `GooglePlacesSuggestionProvider` (Text Search + Details + Photos), `FilePlaceCoverStorage`, `GooglePlacesComplianceRetentionHostedService`.
+- Aplicació / API: `PlaceContracts` (`PlaceSearchPageDto`, `PlaceExternalDetailsDto`), `PlacePublicCopy`, `IExternalPlaceDetailsProvider`, `IPlaceCoverStorage`, `PlaceUpsertRequestValidator`, `PlaceApplicationService`, `GooglePlacesIntegrationOptions`, `PlaceEndpoints` (`skip`/`take`, static `/media`).
 
 ### 2.11.5 Menús d’administració: API, esborrat, seed `Negoci` / `Tècnic`, client
 
@@ -1289,10 +1339,11 @@ Peces principals:
 
 Decisions tecniques rellevants:
 
-- `places-page` centralitza query params, filtres actius i resultats
-- `place-map` es reutilitzable i parametritzable
-- `place-card` es reutilitza a llistat i favorits
+- `places-page` centralitza query params **aplicats** (Cercar/Netejar), draft als combos, resultats; el llistat pagina de 20 en 20 (`searchPage`) i el mapa usa el mateix conjunt visible; el combo de ciutat carrega `GET /api/places/cities` i ofereix **Totes** (`includeAllOption`)
+- `place-map` es reutilitzable i parametritzable; el popup del llistat és nom + ciutat
+- `place-card` es reutilitza a llistat i favorits; al llistat és una fila ampla (foto esquerra)
 - `place-cover-image` pinta la portada o un placeholder («Imatge no disponible») si no hi ha URL o si la càrrega falla; el fan servir el detall i els llocs relacionats
+- `place-detail-page` carrega `GET /api/places/{id}` (`loadById`) per enriquir; els tres apartats van en tres columnes (apilats només sota `960px`); copy tècnic Google no es pinta (vegeu §2.11.3.1)
 
 ### 5.3 Favorites
 
@@ -1790,7 +1841,7 @@ Si hi ha un lloc seleccionat:
 this.map.setView([selectedPlace.coordinates.lat, selectedPlace.coordinates.lng], 15);
 ```
 
-Si no, el mapa s'ajusta al conjunt de resultats:
+Si els pins visibles s’estenen més de ~1200 km (p. ex. un a Austràlia), el mapa **no** fa `fitBounds` mundial: queda centrat a Espanya (`[40.2, -3.7]`, zoom 6). Si no, s’ajusta al conjunt:
 
 ```ts
 this.map.fitBounds(bounds, {
@@ -1843,15 +1894,23 @@ Quan no hi ha llocs, el component no inicialitza el mapa i mostra un bloc buit c
 ### 7.12 Fitxers implicats
 
 ```text
-src/Web/package.json
-src/Web/src/styles.scss
-src/Web/src/app/features/places/models/place.model.ts
-src/Web/src/app/features/places/mock/places.fake.ts
-src/Web/src/app/features/places/components/place-map/place-map.component.ts
-src/Web/src/app/features/places/components/place-map/place-map.component.html
-src/Web/src/app/features/places/components/place-map/place-map.component.scss
+src/Backend/Application/Places/PlacePublicCopy.cs
+src/Backend/Application/Places/IExternalPlaceDetailsProvider.cs
+src/Backend/Application/Places/IPlaceCoverStorage.cs
+src/Backend/Application/Places/PlaceContracts.cs
+src/Backend/Application/Places/PlaceApplicationService.cs
+src/Backend/Infrastructure/GooglePlaces/GooglePlacesSuggestionProvider.cs
+src/Backend/Infrastructure/GooglePlaces/FilePlaceCoverStorage.cs
+src/Backend/Api/Endpoints/PlaceEndpoints.cs
+src/Backend/Api/Program.cs
+src/Web/src/app/features/places/services/place.service.ts
+src/Web/src/app/features/places/utils/place-detail-copy.ts
+src/Web/src/app/features/places/pages/places-page/places-page.component.ts
 src/Web/src/app/features/places/pages/places-page/places-page.component.html
+src/Web/src/app/features/places/pages/place-detail-page/place-detail-page.component.ts
 src/Web/src/app/features/places/pages/place-detail-page/place-detail-page.component.html
+src/Web/src/app/features/places/components/place-card/place-card.component.ts
+src/Web/src/app/features/places/components/place-map/place-map.component.ts
 ```
 
 ## 8. Decisions actuals

@@ -172,8 +172,12 @@
                 <h2>{{ place.name }}</h2>
                 <p>{{ place.shortDescription }}</p>
                 <div class="login-page__place-meta">
-                  <span>{{ place.petPolicyLabel }}</span>
-                  <span>{{ place.priceLabel }}</span>
+                  @if (place.petPolicyLabel.trim()) {
+                    <span>{{ place.petPolicyLabel }}</span>
+                  }
+                  @if (place.priceLabel.trim() && place.priceLabel.trim() !== '—') {
+                    <span>{{ place.priceLabel }}</span>
+                  }
                 </div>
               </article>
             }

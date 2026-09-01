@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 
 import { FavoriteToggleButtonComponent } from '../../../../shared/components/favorite-toggle-button/favorite-toggle-button.component';
 import { Place } from '../../models/place.model';
+import { hasPublicPetPolicy, hasPublicPrice, hasPublicRating } from '../../utils/place-detail-copy';
 
 @Component({
   selector: 'app-place-card',
@@ -17,6 +18,7 @@ export class PlaceCardComponent {
   readonly favorite = input(false);
   readonly selected = input(false);
   readonly favoriteToggled = output<string>();
+  readonly placeClicked = output<string>();
 
   private readonly coverLoadFailed = signal(false);
 
@@ -33,11 +35,24 @@ export class PlaceCardComponent {
     return Boolean(url) && !this.coverLoadFailed();
   });
 
+  protected readonly hasRating = computed(() => hasPublicRating(this.place()));
+  protected readonly hasPrice = computed(() => hasPublicPrice(this.place()));
+  protected readonly hasPetPolicy = computed(() => hasPublicPetPolicy(this.place()));
+
   protected onCoverImageError(): void {
     this.coverLoadFailed.set(true);
   }
 
   protected onFavoriteToggle(): void {
     this.favoriteToggled.emit(this.place().id);
+  }
+
+  protected onCardSelect(event: Event): void {
+    const target = event.target as HTMLElement | null;
+    if (target?.closest('a, button')) {
+      return;
+    }
+
+    this.placeClicked.emit(this.place().id);
   }
 }

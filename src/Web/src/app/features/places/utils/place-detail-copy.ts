@@ -1,5 +1,18 @@
 import { Place, PlaceType } from '../models/place.model';
 
+export function hasPublicPetPolicy(place: Pick<Place, 'petPolicyLabel'>): boolean {
+  return Boolean(place.petPolicyLabel?.trim());
+}
+
+export function hasPublicRating(place: Pick<Place, 'rating' | 'reviewCount'>): boolean {
+  return place.reviewCount > 0 && place.rating > 0;
+}
+
+export function hasPublicPrice(place: Pick<Place, 'priceLabel'>): boolean {
+  const value = place.priceLabel?.trim() ?? '';
+  return value.length > 0 && value !== '—';
+}
+
 /** Short label for pet policy on the place detail hero. */
 export function petAccessLabelForPlace(place: Pick<Place, 'acceptsDogs' | 'acceptsCats'>): string {
   if (place.acceptsDogs && place.acceptsCats) {
