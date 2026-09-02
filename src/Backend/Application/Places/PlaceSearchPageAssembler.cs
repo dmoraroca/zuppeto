@@ -1,14 +1,25 @@
 using Zuppeto.Domain.Places;
+using Zuppeto.Domain.Places.ProhibitedTerms;
 
 namespace Zuppeto.Application.Places;
 
 internal sealed class PlaceSearchPageAssembler(
     PlaceResponseMapper responseMapper,
-    IPlaceCoverEnrichmentQueue enrichmentQueue)
+    IPlaceCoverEnrichmentQueue enrichmentQueue,
+    ProhibitedPlaceNameFilter prohibitedPlaceNameFilter)
 {
     internal PlaceSearchPageDto FromPlaces(IReadOnlyCollection<Place> places, PlaceSearchRequest request)
     {
-        return FromSummaries(places.Select(responseMapper.ToSummary).ToArray(), request);
+        var category = PlaceCatalogEnums.ParsePetCategory(request.PetCategory);
+        var filtered = places
+            .Where(place => !prohibitedPlaceNameFilter.IsProhibited(place.Name))
+            .Where(place => PlacePetCategoryMatch.Fits(
+                place.Name,
+                place.PetPolicy.AcceptsDogs,
+                place.PetPolicy.AcceptsCats,
+                category))
+            .ToArray();
+        return FromSummaries(filtered.Select(responseMapper.ToSummary).ToArray(), request);
     }
 
     internal PlaceSearchPageDto Empty(PlaceSearchRequest request) => FromSummaries([], request);

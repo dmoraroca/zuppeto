@@ -16,6 +16,7 @@ using Zuppeto.Application.Admin.Commands;
 using Zuppeto.Application.Commands;
 using Zuppeto.Application.Users.Validators;
 using Zuppeto.Application.Places.Validators;
+using Zuppeto.Domain.Places.ProhibitedTerms;
 
 namespace Zuppeto.Application;
 
@@ -37,6 +38,9 @@ public static class DependencyInjection
         services.AddScoped<IUserApplicationService, UserApplicationService>();
         services.AddScoped<IPlaceReviewApplicationService, PlaceReviewApplicationService>();
 
+        services.AddSingleton<IProhibitedPlaceTermsCatalog, CatalanProhibitedPlaceTermsCatalog>();
+        services.AddSingleton<IProhibitedPlaceTermsCatalogFactory, ProhibitedPlaceTermsCatalogFactory>();
+        services.AddSingleton<ProhibitedPlaceNameFilter>();
         services.AddSingleton<IEventPublisher, InMemoryEventPublisher>();
         services.AddSingleton<IEventHandler<UserCreatedEvent>, AuditUserEventsHandler>();
         services.AddSingleton<IEventHandler<UserRoleChangedEvent>, AuditUserEventsHandler>();

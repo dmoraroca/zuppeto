@@ -1343,6 +1343,9 @@ Peces principals:
 Decisions tecniques rellevants:
 
 - `places-page` centralitza query params **aplicats** (Cercar/Netejar), draft als combos, resultats; el llistat pagina de 20 en 20 (`searchPage`) i el mapa usa el mateix conjunt visible; el combo de ciutat carrega `GET /api/places/cities` i ofereix **Totes** (`includeAllOption`); **no** hi ha títol/copy «Mode mixt: mapa + llistat» sobre el mapa (el mapa va directe sota els filtres)
+- xips d’Inici `Gossos benvinguts` / `Gats benvinguts` van a `/places?pet=dogs|cats`; `parsePetFilter` i `[selected]` al combo Mascota fan visible **Només gossos** / **Només gats** (no es queda a Totes)
+- filtre mascota: `PlacePetCategoryMatch` (nom + flags). Molts registres tenen `accepts_cats` i `accepts_dogs` tots dos; el llistat de gats exclou noms clarament de gos (Dog Care, platja de gossos) i al revés. Noms mixtos (Gos i Gat) es queden. També a `filterPlaces` del web.
+- filtre intern de noms prohibits (**Factory**): `IProhibitedPlaceTermsCatalog` per idioma (`CatalanProhibitedPlaceTermsCatalog` ara); `ProhibitedPlaceTermsCatalogFactory.Create` / `CreateAll`; `ProhibitedPlaceNameFilter` al llistat i a l’ingest Google. Un idioma nou = una classe nova registrada a DI. Web: el mateix a `prohibited-place-terms/`
 - `place-map` es reutilitzable i parametritzable; el popup del llistat és nom + ciutat
 - `place-card` es reutilitza a llistat i favorits; **a les dues pantalles** és una fila ampla (foto esquerra), no una graella de 3 columnes.
 - `place-cover-image` pinta la portada o un placeholder («Imatge no disponible») si no hi ha URL o si la càrrega falla; el fan servir el detall i els llocs relacionats
@@ -2043,6 +2046,7 @@ Patrons aplicats amb exemples reals:
   - Exemple: `UserCreatedEvent`, `UserRoleChangedEvent`, `AuditUserEventsHandler`.
 - Factory: construcció d'objectes de domini des de requests.
   - Exemple: `UserProfileFactory`, `MenuItemDefinitionFactory`.
+  - Exemple llocs: `ProhibitedPlaceTermsCatalogFactory` (catàleg de paraules prohibides per idioma; ara `ca`).
 - Result: evitar exceptions com a flux i retornar estat controlat.
   - Exemple: `Result<UserDto>` a `CreateUserAsync` i `UpdateUserRoleAsync`.
 - Command: encapsular operacions d'admin en handlers separats.

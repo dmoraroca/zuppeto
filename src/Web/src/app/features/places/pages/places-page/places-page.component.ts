@@ -12,6 +12,7 @@ import { PlaceMapComponent } from '../../components/place-map/place-map.componen
 import { Place, PlaceFilters } from '../../models/place.model';
 import { PLACE_LIST_PAGE_SIZE, PlaceService } from '../../services/place.service';
 import { resolveCityMapFocus } from '../../utils/city-map-focus';
+import { parsePetFilter } from '../../utils/place-list-filter';
 import { placesVisibleOnOsmMap } from '../../utils/places-osm-map';
 
 @Component({
@@ -47,7 +48,7 @@ export class PlacesPageComponent {
       search: (map.get('search') ?? '').trim(),
       city: (map.get('city') ?? '').trim(),
       type: (map.get('type') ?? '').trim(),
-      pet: (map.get('pet') as PlaceFilters['pet']) ?? 'all'
+      pet: parsePetFilter(map.get('pet'))
     };
   });
 
@@ -56,12 +57,12 @@ export class PlacesPageComponent {
   protected readonly listingHasMore = signal(false);
   protected readonly listingLoading = signal(false);
   private readonly catalogCities = signal<string[]>([]);
-  /** Form values; listing/map only change after Cercar (or Netejar). */
+  /** Form values; listing/map only change after Cercar (or Netejar). Seeded from the URL so Inici chips mark the combo on first paint. */
   protected readonly draftFilters = signal<PlaceFilters>({
-    search: '',
-    city: '',
-    type: '',
-    pet: 'all'
+    search: (this.route.snapshot.queryParamMap.get('search') ?? '').trim(),
+    city: (this.route.snapshot.queryParamMap.get('city') ?? '').trim(),
+    type: (this.route.snapshot.queryParamMap.get('type') ?? '').trim(),
+    pet: parsePetFilter(this.route.snapshot.queryParamMap.get('pet'))
   });
   private listingRequest = 0;
 

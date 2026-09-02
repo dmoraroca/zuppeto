@@ -148,11 +148,12 @@ export class PlaceService {
 
     const page = normalizePlacesPage(payload, skip, take);
     const mapped = page.items.map((place) => this.toPlace(place));
+    const items = filterPlaces(mapped, { pet: filters.pet });
     this.placesState.update((existing) => this.mergePlacesById(existing, mapped));
     this.loadedState.set(true);
 
     return {
-      items: mapped,
+      items,
       total: page.total,
       skip: page.skip,
       take: page.take,
@@ -176,7 +177,8 @@ export class PlaceService {
         .pipe(catchError(() => of({ items: [], total: 0, skip: 0, take: 0, hasMore: false })))
     );
 
-    return unwrapPlacesPayload(payload).map((place) => this.toPlace(place));
+    const places = unwrapPlacesPayload(payload).map((place) => this.toPlace(place));
+    return filterPlaces(places, { pet: safeFilters.pet });
   }
 
   /** Public login explorer: cities that already have places in the catalog. */

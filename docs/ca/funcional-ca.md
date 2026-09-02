@@ -1270,6 +1270,8 @@ Relacions funcionals:
 
 - una ciutat pot tenir molts llocs
 - un lloc pot acceptar gossos, gats o tots dos
+- el filtre **Només gats** no mostra llocs clarament de gos pel nom (p. ex. Dog Care, platja de gossos); **Només gossos** no mostra llocs clarament de gat. Si el nom barreja tots dos (Gos i Gat), pot sortir a tots dos filtres
+- el llistat aplica un **filtre intern de paraules prohibides** (ara catàleg **català**: cànnabis, marihuana, haixix, weed…). Un club de cànnabis no és un lloc Zuppeto. Més idiomes: nou catàleg al Factory, sense canviar el filtre
 - un usuari podra tenir molts favorits
 - un filtre pot restringir llocs per ciutat, tipus, mascota i cerca
 
@@ -1573,6 +1575,7 @@ Flux principal:
 - la `home` no ha de carregar tota la cerca real
 - el mapa viu a `places`, no a la portada
 - els chips de la `home` han de ser navegables
+- **Gossos benvinguts** / **Gats benvinguts** a Inici obren Llocs amb el combo **Mascota** marcat (**Només gossos** / **Només gats**)
 - els filtres escollits han de quedar visibles
 - el mateix lloc pot aparèixer al llistat, al detall, a favorits i al mapa
 - `favorites` ha de permetre reprendre la revisio sense tornar a `places`

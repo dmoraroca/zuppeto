@@ -3,6 +3,7 @@ using System.Text;
 using Microsoft.Extensions.Options;
 using Zuppeto.Domain.Abstractions;
 using Zuppeto.Domain.Places;
+using Zuppeto.Domain.Places.ProhibitedTerms;
 using Zuppeto.Domain.Places.ValueObjects;
 
 namespace Zuppeto.Application.Places;
@@ -15,7 +16,8 @@ internal sealed class PlaceGoogleSearchIngest(
     IPlaceSearchQueryRepository placeSearchQueryRepository,
     IExternalPlaceSuggestionProvider externalPlaceSuggestionProvider,
     PlaceCoverPhotoStore coverPhotoStore,
-    IOptions<GooglePlacesIntegrationOptions> googlePlacesIntegrationOptions)
+    IOptions<GooglePlacesIntegrationOptions> googlePlacesIntegrationOptions,
+    ProhibitedPlaceNameFilter prohibitedPlaceNameFilter)
 {
     internal static readonly TimeSpan SnapshotTtl = TimeSpan.FromHours(12);
 
@@ -37,6 +39,7 @@ internal sealed class PlaceGoogleSearchIngest(
 
         var petCategory = PlaceCatalogEnums.ParsePetCategory(request.PetCategory);
         var matched = externalCandidates
+            .Where(candidate => !prohibitedPlaceNameFilter.IsProhibited(candidate.Name))
             .Where(candidate => MatchesExternalPetHint(candidate, petCategory))
             .Where(candidate => !string.IsNullOrWhiteSpace(candidate.ExternalId))
             .ToArray();
@@ -151,7 +154,12 @@ internal sealed class PlaceGoogleSearchIngest(
             return true;
         }
 
-        return candidate.PetFriendlyAuto != false;
+        if (candidate.PetFriendlyAuto == false)
+        {
+            return false;
+        }
+
+        return PlacePetCategoryMatch.Fits(candidate.Name, true, true, petCategory);
     }
 
     private static Guid StablePlaceIdFromGoogleExternalId(string externalId)
