@@ -33,7 +33,7 @@
 
       <div class="place-detail-page__hero-content">
         <p class="place-detail-page__eyebrow">
-          {{ getTypeLabel(selectedPlace.type) }} · {{ selectedPlace.city }}, {{ selectedPlace.country }}
+          {{ categoryEyebrow() || getTypeLabel(selectedPlace.type) }} · {{ selectedPlace.city }}, {{ selectedPlace.country }}
           @if (selectedPlace.neighborhood?.trim()) {
             · {{ selectedPlace.neighborhood }}
           }
@@ -79,8 +79,20 @@
           </p>
         }
         @if (hasRating()) {
-          <p>
-            <strong>Valoració:</strong> {{ selectedPlace.rating }} ({{ selectedPlace.reviewCount }} ressenyes)
+          <p class="place-detail-page__rating">
+            Valoració:
+            <span
+              class="place-detail-page__stars"
+              [attr.aria-label]="'Valoració ' + selectedPlace.rating + ' de 5'"
+            >
+              @for (fill of ratingStarFills(); track $index) {
+                <span class="place-detail-page__star" aria-hidden="true">
+                  <span class="place-detail-page__star-empty">★</span>
+                  <span class="place-detail-page__star-fill" [style.width.%]="fill">★</span>
+                </span>
+              }
+            </span>
+            ({{ selectedPlace.reviewCount }} ressenyes)
           </p>
         }
         @if (hasPrice()) {
@@ -94,35 +106,32 @@
         }
       </article>
 
-      <article class="place-detail-page__card">
-        <h2>Què hi trobaràs</h2>
-        @if (selectedPlace.features.length) {
+      @if (featureChips().length) {
+        <article class="place-detail-page__card">
+          <h2>Què hi trobaràs</h2>
           <div class="place-detail-page__tags">
-            @for (feature of selectedPlace.features; track feature) {
+            @for (feature of featureChips(); track feature) {
               <span>{{ feature }}</span>
             }
           </div>
-        } @else {
-          <p>Encara no n'hem confirmat les característiques d'aquest local.</p>
-        }
-      </article>
+        </article>
+      }
 
-      <article class="place-detail-page__card">
-        <h2>Context ràpid</h2>
-        @if (selectedPlace.description?.trim()) {
-          <p class="place-detail-page__copy">{{ selectedPlace.description }}</p>
-        }
-        @if (selectedPlace.tags.length) {
-          <div class="place-detail-page__tags">
-            @for (tag of selectedPlace.tags; track tag) {
-              <span>{{ tag }}</span>
-            }
-          </div>
-        }
-        @if (!selectedPlace.description?.trim() && !selectedPlace.tags.length) {
-          <p>{{ getTypeLabel(selectedPlace.type) }} a {{ selectedPlace.city }}.</p>
-        }
-      </article>
+      @if (hasQuickContext()) {
+        <article class="place-detail-page__card">
+          <h2>Context ràpid</h2>
+          @if (contextDescription()) {
+            <p class="place-detail-page__copy">{{ contextDescription() }}</p>
+          }
+          @if (contextTags().length) {
+            <div class="place-detail-page__tags">
+              @for (tag of contextTags(); track tag) {
+                <span>{{ tag }}</span>
+              }
+            </div>
+          }
+        </article>
+      }
     </section>
 
     @if (showsGoogleMapsAttribution()) {

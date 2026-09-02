@@ -128,7 +128,7 @@
     @for (place of places(); track place.id) {
       <app-place-card
         [place]="place"
-        [typeLabel]="getTypeLabel(place.type)"
+        [typeLabel]="place.categoryLabel || getTypeLabel(place.type)"
         [favorite]="isFavorite(place.id)"
         (favoriteToggled)="toggleFavorite($event)"
       />

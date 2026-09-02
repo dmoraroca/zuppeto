@@ -462,6 +462,31 @@ function applyCellBorder(cell) {
   };
 }
 
+/** One cell per status so "EN CURS" is not split by Excel list commas. */
+function addStatusListSheet(workbook) {
+  const styles = {
+    OK: { fill: 'FFDCFCE7', font: 'FF166534' },
+    KO: { fill: 'FFFEE2E2', font: 'FF991B1B' },
+    PENDENT: { fill: 'FFF1F5F9', font: 'FF64748B' },
+    'N/A': { fill: 'FFFEF3C7', font: 'FF92400E' },
+    'EN CURS': { fill: 'FFDBEAFE', font: 'FF1D4ED8' },
+  };
+  const lists = workbook.addWorksheet('Llistes', {
+    state: 'hidden',
+    properties: { tabColor: { argb: 'FF64748B' } },
+  });
+  lists.getColumn(1).width = 14;
+  ['OK', 'KO', 'PENDENT', 'N/A', 'EN CURS'].forEach((status, i) => {
+    const cell = lists.getCell(`A${i + 2}`);
+    const style = styles[status];
+    cell.value = status;
+    cell.alignment = { horizontal: 'center', vertical: 'middle' };
+    cell.font = { bold: true, name: 'Calibri', size: 11, color: { argb: style.font } };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: style.fill } };
+  });
+  workbook.definedNames.add('EstatsProva', 'Llistes!$A$2:$A$6');
+}
+
 function styleExecutionCells(row, browser, roleName) {
   const browserCell = row.getCell('browser');
   browserCell.value = browser.name;
@@ -538,7 +563,7 @@ async function main() {
   intro.getCell('B13').value = 'Navegadors';
   intro.getCell('C13').value = BROWSERS.map((b) => b.name).join(' · ');
   intro.getCell('B14').value = 'Columna Resultat';
-  intro.getCell('C14').value = 'Omplir amb: OK · KO · PENDENT · N/A (per cada rol i navegador)';
+  intro.getCell('C14').value = 'Combo: OK · KO · PENDENT · N/A · EN CURS. Cicle: PENDENT → EN CURS → OK / KO.';
   intro.getCell('B15').value = 'Columna Data';
   intro.getCell('C15').value = 'Data d\'execució de la prova en aquell rol i navegador (dd/mm/aaaa)';
   intro.getCell('B17').value = 'Pantalles cobertes';
@@ -641,14 +666,16 @@ async function main() {
     testGroupIndex += 1;
   });
 
+  addStatusListSheet(workbook);
+
   // Data validation: Resultat (per role × browser row)
   sheet.dataValidations.add(`J2:J${totalRows + 1}`, {
     type: 'list',
     allowBlank: true,
-    formulae: ['"OK,KO,PENDENT,N/A"'],
+    formulae: ['EstatsProva'],
     showErrorMessage: true,
     errorTitle: 'Valor no vàlid',
-    error: 'Escull OK, KO, PENDENT o N/A',
+    error: 'Escull OK, KO, PENDENT, N/A o EN CURS',
   });
 
   sheet.autoFilter = { from: 'A1', to: 'K1' };

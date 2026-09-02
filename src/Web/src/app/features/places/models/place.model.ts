@@ -38,6 +38,7 @@ export interface Place {
   website?: string;
   coverAttribution?: string;
   coverSourceUri?: string;
+  categoryLabel?: string;
   coordinates: PlaceCoordinates;
 }
 

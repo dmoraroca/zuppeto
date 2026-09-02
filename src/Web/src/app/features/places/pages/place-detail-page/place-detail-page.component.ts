@@ -10,9 +10,14 @@ import { PlaceCoverImageComponent } from '../../components/place-cover-image/pla
 import { PlaceMapComponent } from '../../components/place-map/place-map.component';
 import { PlaceService } from '../../services/place.service';
 import {
+  contextTagsExcludingCity,
   hasPublicPetPolicy,
   hasPublicPrice,
-  hasPublicRating
+  hasPublicRating,
+  isLocationStubCopy,
+  publicCategoryLabel,
+  publicFeatureChips,
+  publicQuickContext
 } from '../../utils/place-detail-copy';
 
 @Component({
@@ -79,6 +84,12 @@ export class PlaceDetailPageComponent {
     const currentPlace = this.place();
     return currentPlace ? hasPublicRating(currentPlace) : false;
   });
+  protected readonly ratingStarFills = computed(() => {
+    const rating = this.place()?.rating ?? 0;
+    return [0, 1, 2, 3, 4].map((offset) =>
+      Math.round(Math.min(1, Math.max(0, rating - offset)) * 100)
+    );
+  });
   protected readonly hasPrice = computed(() => {
     const currentPlace = this.place();
     return currentPlace ? hasPublicPrice(currentPlace) : false;
@@ -87,6 +98,34 @@ export class PlaceDetailPageComponent {
     const provenance = this.place()?.dataProvenance?.trim() ?? '';
     return provenance === 'GooglePlaces' || provenance === 'Mixed';
   });
+  protected readonly contextDescription = computed(() => {
+    const currentPlace = this.place();
+    if (!currentPlace || isLocationStubCopy(
+      currentPlace.description,
+      currentPlace.city,
+      currentPlace.address,
+      currentPlace.name
+    )) {
+      return '';
+    }
+
+    return publicQuickContext(currentPlace.description.trim(), currentPlace.name);
+  });
+  protected readonly contextTags = computed(() => {
+    const currentPlace = this.place();
+    return currentPlace ? contextTagsExcludingCity(currentPlace.tags, currentPlace.city) : [];
+  });
+  protected readonly featureChips = computed(() => {
+    const currentPlace = this.place();
+    return currentPlace ? publicFeatureChips(currentPlace) : [];
+  });
+  protected readonly categoryEyebrow = computed(() => {
+    const currentPlace = this.place();
+    return currentPlace ? publicCategoryLabel(currentPlace) : '';
+  });
+  protected readonly hasQuickContext = computed(
+    () => this.contextDescription().length > 0 || this.contextTags().length > 0
+  );
 
   protected toggleFavorite(placeId: string): void {
     this.favoritesService.toggle(placeId);

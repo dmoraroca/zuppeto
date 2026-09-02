@@ -112,7 +112,8 @@ public sealed record PlaceSummaryDto(
     IReadOnlyCollection<string> Features,
     string? OpeningHours = null,
     string? Phone = null,
-    string? Website = null);
+    string? Website = null,
+    string? CategoryLabel = null);
 
 public sealed record PlaceDetailDto(
     Guid Id,
@@ -147,4 +148,5 @@ public sealed record PlaceDetailDto(
     string? CoverSourceUri = null,
     string? OpeningHours = null,
     string? Phone = null,
-    string? Website = null);
+    string? Website = null,
+    string? CategoryLabel = null);

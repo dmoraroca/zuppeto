@@ -7,6 +7,18 @@ No substitueix `docs/project-phases.md` ni el joc de proves Excel: aquí només 
 
 ---
 
+## 2026-09-02 11:51 CEST
+
+**Àmbit:** Llocs · llistat (`/places`) · **important**
+
+**Referència visual:** scroll tipus Sport.es («qui és qui»): en baixar, cada local és un **bloc ample** foto gran + text (sovint foto i text intercanviats), sense requadre tipus targeta petita.
+
+**Millora:** el llistat de locals amb aquest ritme editorial (fitxes que van sortint en fer scroll). El **seleccionat** (pin verd / targeta activa) s’ha d’acabar d’encaixar en el mateix llenguatge visual (destacat similar, no una caixa a part). Mapa i paginació 20: es decideix en implementar (el mapa no s’ha de perdre de vista).
+
+**Estat:** pendent; **important**; no implementar ara.
+
+---
+
 ## 2026-09-01 23:47 CEST
 
 **Àmbit:** Llocs · llistat (`/places`) i detall (`/places/:id`)

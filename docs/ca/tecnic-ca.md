@@ -636,8 +636,9 @@ Remissió funcional: `docs/ca/funcional-ca.md` **§12.7**.
 
 #### Copy públic (cap text tècnic als DTO)
 
-- `PlacePublicCopy` (Application): si l’etiqueta de política conté `Google`, `cache`, `place_id` o és `Unspecified`, el DTO envia `petPolicyLabel` **buit**. Descripcions tipus «Resultat Google Places» / «Candidat extern» es substitueixen per nom o adreça. Preu `—` surt buit.
-- Upsert de cerca Google: ja **no** escriu `Google Places (cache)`; usa `Unspecified` i no assumeix gats. Si el local ja tenia política pública, es **conserva**.
+- `PlacePublicCopy` (Application): si l’etiqueta de política conté `Google`, `cache`, `place_id` o és `Unspecified`, el DTO envia `petPolicyLabel` **buit**. Descripcions tipus «Resultat Google Places» / «Candidat extern» es substitueixen per nom o adreça. Copy tipus «Servei a {ciutat}» (o equivalent que només restata tipus+ciutat) **no** es pinta: l’adreça ja és a «Abans d’anar-hi». Preu `—` surt buit.
+- `PlaceGoogleHighlights.ToContextTags`: barri i tipus; **no** s’hi posa la ciutat (ja va a l’adreça).
+- `PlaceGoogleHighlights.ToFeatureChips`: evidència = nom desat + nom Google + editorial + text web. `pet_store` / nom de botiga d’animals **abans** que `bakery`. `pet_store` → «Botiga d'animals» + «Pinso» + «Accessoris» + «Productes per a mascotes». Re-enriquiment si el nom/descripció és de botiga i els xips encara són «Fleca». La fitxa (`publicFeatureChips`) no pinta Fleca si el títol diu botiga d’animals.
 - `PetPolicy` de domini **permet** `acceptsDogs` i `acceptsCats` tots dos `false` (p. ex. «No es permeten gossos»). L’admin (`PlaceUpsertRequestValidator`) segueix exigint almenys un tipus de mascota a l’alta manual.
 
 #### Portades JPEG (storage, no blob a `places`)
@@ -657,15 +658,15 @@ Remissió funcional: `docs/ca/funcional-ca.md` **§12.7**.
 - Quan: hi ha `google_place_id` i procedència Google/Mixed, i **falta** portada / política pública / features **o** han passat `CoordinateCacheRetentionDays` / caché de coords caducada. Si Details o Photos fallen, es marca un intent al JSON de storage i **no es reintenta** dins la finestra de 30 dies.
 - On: `GET /api/places/{id}` (un local, síncron). `GET /api/places?take=…` **no espera** Details: torna el catàleg de seguida i encola els IDs **sense portada** de la pàgina (`IPlaceCoverEnrichmentQueue` + `PlaceCoverEnrichmentHostedService`). El client refresca les targetes quan el JPEG ja és a BD. Sense `take` (login/`reload`) **no** s’enriqueix el catàleg sencer.
 - API **nova** (`places.googleapis.com/v1/places/{id}`, field mask amb `allowsDogs`, `outdoorSeating`, etc.); si retorna 403/401 (p. ex. Places API New no activada al projecte GCP), es desactiva per al procés i s’usa **legacy** `details/json` + Place Photos. Si la New torna dades **sense foto** (o amb `photos.name` que no es pot baixar), es fa **fallback a Place Photos legacy** i es prova més d’una `photo_reference` fins que el JPEG es desa. Un `.json` d’intent **sense** `.jpg` no compta com a portada feta: es torna a provar.
-- `IPlaceWebsitePageReader` (`HttpPlaceWebsitePageReader`): fins a 2 GET al web oficial (mateix host); xips només si el text els confirma (`PlaceWebsiteAmenityCatalog`).
-- Features persistides (si vénen): `Gossos permesos` / `No es permeten gossos`, `Terrassa`, `Reserva`, `Per emportar`, `Lavabo`, `Apta per nens`, i xips confirmats al web (`Terrassa`, `Jardí`, `Cocteleria`).
+- `IPlaceWebsitePageReader` (`HttpPlaceWebsitePageReader`): fins a 2 GET al web oficial (mateix host); si la pàgina d’inici no cita el nom del local, igualment s’usa (cadenes). Meta `description` / `og:description` al capdavant del text. `PlacePublicCopy.ComposeQuickContext` munta Context ràpid: frase de categoria + editorial + resum del web (sense boilerplate de cookies).
+- Features persistides (si vénen): `Gossos permesos` / `No es permeten gossos`, `Terrassa`, `Reserva`, `Per emportar`, `Lavabo`, `Apta per nens`, xips del tipus principal (`Botiga d'animals` + `Pinso` + `Accessoris` + `Productes per a mascotes` per a `pet_store`) i xips confirmats al web (`Terrassa`, `Jardí`, `Cocteleria`, `Pinso`, …). A `PlaceRepository`, un xip/tag nou es fa amb `Features.Add` / `Tags.Add` (INSERT). Assignar només un Guid sobre l’entitat del graf feia `UPDATE` d’id inexistent i `place_features` trencava l’FK (`23503` → HTTP 500).
 - `PlaceDetailDto` afegeix `coverAttribution` / `coverSourceUri` (del JSON de storage).
 
 #### Web
 
 - `PlaceService.searchPage` / `loadById`; pàgina de llocs: `listingPlaces` + `hasMore`; mapa = visibles.
 - `place-card`: fila Booking (`grid` foto | contingut); amaga nota 0, preu buit i política buida.
-- `place-detail-page`: tres columnes (`.place-detail-page__stack`); una columna sota `960px`. Adreça sempre; requadres 2 i 3 només si hi ha xips; `loadById` per enriquir.
+- `place-detail-page`: tres columnes (`.place-detail-page__stack`), **sense caixa** (títol negreta, text normal); una columna sota `960px`. Adreça sempre; apartats 2 i 3 només si hi ha contingut; `loadById` per enriquir.
 - `place-map`: popup només nom + ciutat. Pin seleccionat **verd** (`#22c55e`); si els pins s’estenen > ~1200 km, vista Espanya (zoom 6) en lloc de `fitBounds` mundial. Clic a la card del llistat emet `placeClicked` → mateix `selectedPlaceId`.
 - `place-detail-copy.ts`: `hasPublicPetPolicy` / `hasPublicRating` / `hasPublicPrice`.
 
@@ -1343,7 +1344,7 @@ Decisions tecniques rellevants:
 - `place-map` es reutilitzable i parametritzable; el popup del llistat és nom + ciutat
 - `place-card` es reutilitza a llistat i favorits; al llistat és una fila ampla (foto esquerra)
 - `place-cover-image` pinta la portada o un placeholder («Imatge no disponible») si no hi ha URL o si la càrrega falla; el fan servir el detall i els llocs relacionats
-- `place-detail-page` carrega `GET /api/places/{id}` (`loadById`) per enriquir; els tres apartats van en tres columnes (apilats només sota `960px`); copy tècnic Google no es pinta (vegeu §2.11.3.1)
+- `place-detail-page` carrega `GET /api/places/{id}` (`loadById`) per enriquir; els apartats van en fila (`auto-fit`); **Context ràpid** s’amaga si no hi ha editorial ni tags útils (no es pinta «tipus a ciutat»); copy tècnic Google no es pinta (vegeu §2.11.3.1)
 
 ### 5.3 Favorites
 

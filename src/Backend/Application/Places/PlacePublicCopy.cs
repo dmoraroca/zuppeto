@@ -46,7 +46,7 @@ internal static class PlacePublicCopy
         return value;
     }
 
-    internal static string PublicNarrative(string? description, string name, string? address)
+    internal static string PublicNarrative(string? description, string name, string? address, string? city = null)
     {
         var value = SanitizeDescription(description, string.Empty);
         if (value.Length == 0)
@@ -65,7 +65,52 @@ internal static class PlacePublicCopy
             return string.Empty;
         }
 
+        if (IsLocationStub(value, city))
+        {
+            return string.Empty;
+        }
+
         return value;
+    }
+
+    /// <summary>
+    /// What the venue is (from Google types) plus editorial and official-website lead copy. Never city/address stubs.
+    /// </summary>
+    internal static string ComposeQuickContext(
+        string? categoryLabel,
+        string? editorial,
+        string? websiteLead,
+        string name,
+        string? address,
+        string? city)
+    {
+        var parts = new List<string>();
+        var categorySentence = CategorySentence(categoryLabel);
+        if (categorySentence.Length > 0)
+        {
+            parts.Add(categorySentence);
+        }
+
+        AddDistinctNarrative(parts, editorial, name, address, city);
+        AddDistinctNarrative(parts, websiteLead, name, address, city);
+        return string.Join(" ", parts);
+    }
+
+    /// <summary>
+    /// True when copy only restates type + city (e.g. "Servei a 08002 Barcelona."), already on the address block.
+    /// </summary>
+    internal static bool IsLocationStub(string value, string? city)
+    {
+        var cityPart = city?.Trim() ?? string.Empty;
+        if (cityPart.Length == 0)
+        {
+            return false;
+        }
+
+        var folded = value.Trim().TrimEnd('.').Trim();
+        var suffix = " a " + cityPart;
+        return folded.EndsWith(suffix, StringComparison.OrdinalIgnoreCase)
+            && folded.Length <= suffix.Length + 24;
     }
 
     internal static bool IsPlaceholderPricing(string? pricingLabel)
@@ -77,6 +122,55 @@ internal static class PlacePublicCopy
     internal static string PublicPricingLabel(string? pricingLabel)
     {
         return IsPlaceholderPricing(pricingLabel) ? string.Empty : pricingLabel!.Trim();
+    }
+
+    private static void AddDistinctNarrative(
+        List<string> parts,
+        string? raw,
+        string name,
+        string? address,
+        string? city)
+    {
+        var value = PublicNarrative(raw, name, address, city);
+        if (value.Length == 0)
+        {
+            return;
+        }
+
+        foreach (var part in parts)
+        {
+            if (value.Contains(part.TrimEnd('.'), StringComparison.OrdinalIgnoreCase)
+                || part.Contains(value.TrimEnd('.'), StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+        }
+
+        parts.Add(value);
+    }
+
+    private static string CategorySentence(string? categoryLabel)
+    {
+        var category = categoryLabel?.Trim() ?? string.Empty;
+        if (category.Length == 0 || category.Equals("Servei", StringComparison.OrdinalIgnoreCase))
+        {
+            return string.Empty;
+        }
+
+        var article = CatalanIndefiniteArticle(category);
+        var noun = char.ToLowerInvariant(category[0]) + category[1..];
+        return $"És {article} {noun}.";
+    }
+
+    private static string CatalanIndefiniteArticle(string nounPhrase)
+    {
+        var first = nounPhrase.Trim().Split(' ', 2)[0].ToLowerInvariant();
+        return first switch
+        {
+            "botiga" or "veterinària" or "veterinaria" or "cafeteria" or "fleca"
+                or "perruqueria" or "cura" => "una",
+            _ => "un"
+        };
     }
 
     private static bool IsInternalGoogleCopy(string value)

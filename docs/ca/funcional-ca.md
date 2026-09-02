@@ -1861,7 +1861,7 @@ Objectiu: al llistat i a la fitxa, dades **útils** (adreça, foto, gos sí/no, 
 
 - Primer catàleg / snapshot. Text Search només si cal cobertura; el botó de paginar **no** torna a cridar Text Search.
 - Paginació: **20** locals, botó **«Mostrar els 20 següents»**, el botó desapareix si no n’hi ha més. El mapa mostra **els mateixos** locals visibles.
-- Fitxes en **una columna**, estil fila ampla (foto a l’esquerra, dades a la dreta), **mateixa alçada**.
+- Fitxes en **una columna**, estil fila ampla (foto a l’esquerra, dades a la dreta), **mateixa alçada**. **Millora important (no ara):** llistat en scroll editorial (blocs foto+text en baixar, estil «qui és qui»); el seleccionat s’hi ha d’encaixar. Vegeu `millores-pendents-ca.md` (2026-09-02).
 - Mapa: per defecte **centrat a Espanya** (no s’allunya al món si hi ha un pin llunyà). Ciutat filtrada → s’ajusta a aquella zona.
 - Clic al **pin**: el pin queda **verd**, popup simple (nom i ciutat), es destaca la targeta i es fa scroll fins a ella.
 - Clic a la **targeta**: selecciona el mateix pin verd al mapa. «Veure detall» obre la fitxa.
@@ -1872,12 +1872,12 @@ Objectiu: al llistat i a la fitxa, dades **útils** (adreça, foto, gos sí/no, 
 **Fitxa (`/places/:id`)**
 
 - Es llegeix de BD. Place Details si hi ha `place_id` i falta gos/features/foto o han passat 30 dies (amb `ApiKey`; no cal `Enabled` de Text Search).
-- Si Google porta **web oficial**, es llegeix aquella pàgina (o un enllaç del mateix host que anomena el local) i només s’afegeixen xips **confirmats al text** (p. ex. Terrassa si diuen «terrassa» / «terraza»). No s’inventa. El resum del web omple Context ràpid si no hi ha editorial de Google.
+- Si Google porta **web oficial**, es llegeix aquella pàgina (o un enllaç del mateix host que anomena el local) i només s’afegeixen xips **confirmats al text**. La pàgina d’inici de la web oficial també val (cadenes que no citen el nom del local). No s’inventa.
 - **Adreça** a «Abans d’anar-hi» (sense repetir-la a la capçalera). La resta de línies només si hi ha dada real (horari, telèfon, web, barri, valoració, preu, política pet).
-- Els **tres apartats sempre visibles**: Abans d’anar-hi, Què hi trobaràs, Context ràpid. Què hi trobaràs omple xips des de tipus/amenitats de Place Details; Context ràpid mostra el resum editorial i tags (barri, tipus).
-- **Abans d’anar-hi:** adreça; barri / valoració / preu / política pet / notes només si són reals. Política pet: «Gossos permesos» o «No es permeten gossos». Mai `Google Places (cache)`.
-- **Què hi trobaràs:** xips confirmats (Google i/o web oficial: terrassa, jardí, cocteleria, gos sí/no…). Requadre amagat si no n’hi ha.
-- **Context ràpid:** tags nostres; requadre amagat si és buit.
+- Els **tres apartats** (Abans d’anar-hi, Què hi trobaràs, Context ràpid) van **en fila**, **sense requadre**: títol en negreta i la informació a sota en pes normal. L’apilat en una columna és només del **llistat**, no de la fitxa. En pantalles estretes (<960px) tornen a anar un sota l’altre. Si un apartat no té contingut útil, **s’amaga**.
+- **Abans d’anar-hi:** adreça; barri / valoració **en estrelles** (i nombre de ressenyes) / preu / política pet / notes només si són reals. Política pet: «Gossos permesos» o «No es permeten gossos». Mai `Google Places (cache)`.
+- **Què hi trobaràs:** el nom, la web i `types` **pet** manen sobre un `primaryType` de fleca/restaurant. A la fitxa, si el títol diu botiga d’animals, **no es pinta Fleca**. Xips: **Botiga d’animals**, **Pinso**, **Accessoris**, **Productes per a mascotes**. Terrassa / reserva només si Google o la web ho confirmen.
+- **Context ràpid:** primer **de què és el local** (p. ex. «És una botiga d’animals.»), després el resum editorial de Google si n’hi ha, i si hi ha web oficial un extracte (meta descripció / frases útils, sense cookies). **No** hi va «Servei a {ciutat}» ni copy que només repeteixi l’adreça. Requadre amagat si és buit.
 - Els tres apartats van **en fila** (tres columnes al costat). L’apilat en una columna és només del **llistat**, no de la fitxa. En pantalles estretes (<960px) tornen a anar un sota l’altre.
 - Atribució Google Maps i crèdit d’autor de la foto **fora** de Política pet. Al mapa OSM no s’hi posa foto ni valoració de Places.
 

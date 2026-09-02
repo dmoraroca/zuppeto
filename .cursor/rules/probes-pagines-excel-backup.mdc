@@ -35,7 +35,7 @@ YYYYMMDD-NNN-PROBES E2E ZUPETTO.xlsx
 
 ## Quan NO cal backup
 
-Durant les proves manuals normals: marcar `Resultat` (OK/KO/N/A/PENDENT), `Data`, `Observacions`, correccions, etc. **Sense** copiar a `BACKUPS/` tret que l’usuari ho demani.
+Durant les proves manuals normals: marcar `Resultat` (PENDENT → EN CURS → OK/KO, o N/A), `Data`, `Observacions`, correccions, etc. **Sense** copiar a `BACKUPS/` tret que l’usuari ho demani.
 
 ## Quan hi ha KO i es corregeix codi
 
@@ -45,14 +45,17 @@ Omplir **sempre** a la fila afectada (filtre en curs, p. ex. Chrome + USER):
 - `Data`: data de la prova
 - `Observacions`: què ha fallat (visible per a qui prova), text **llegible** (línies / pics)
 - `Data Correcció`: data del fix (mateix format de data que `Data`)
-- `Resultat Correcció`: `PENDENT` fins retest; després `OK` / `KO`
+- `Resultat Correcció`: `PENDENT` (o `EN CURS` mentre es retesta) fins retest; després `OK` / `KO`
 - `Tasques Fetes`: què s’ha canviat **complet** i fitxers (`Què s'ha fet: …`), text llegible
 
 ### Format de les dues columnes d’estat (obligatori)
 
-`Resultat` i `Resultat Correcció` han de tenir **el mateix format visual** i el **mateix combo** (`OK,KO,PENDENT,N/A`):
+`Resultat` i `Resultat Correcció` han de tenir **el mateix format visual** i el **mateix combo** (`OK`, `KO`, `PENDENT`, `N/A`, `EN CURS`):
 
-- centrat, negreta, color segons valor (OK verd / KO vermell / PENDENT gris / N/A ambre)
+- la llista del combo viu a la fulla oculta `Llistes` (rang amb nom `EstatsProva`); **no** un text `"OK,KO,…,EN CURS"` perquè Excel parteix `EN CURS` per l’espai/coma
+- centrat, negreta, color segons valor (OK verd / KO vermell / PENDENT gris / N/A ambre / **EN CURS** blau)
+- cicle de vida de la prova: **PENDENT → EN CURS → OK o KO**
+- quan es **passa el test a l’usuari**, marcar de seguida `Resultat` = `EN CURS` (filtre en curs)
 - quan després d’un KO es posa `OK` a `Resultat Correcció`, ha de quedar **igual de maco** que un `OK` a `Resultat`
 
 No deixar un fix de codi sense aquesta traça a l’Excel.
@@ -60,14 +63,18 @@ No deixar un fix de codi sense aquesta traça a l’Excel.
 ## Com passar proves a l'usuari (xat)
 
 Filtre en curs (si l'usuari el defineix): p. ex. **Chrome** + **USER**.  
-Prioritat: `Alta` → `Mitjana`/`Mitja` → `Baixa`. Dins la mateixa prioritat, el següent PENDENT per ordre natural.
+Prioritat: `Alta` → `Mitjana`/`Mitja` → `Baixa`. Dins la mateixa prioritat, el següent **PENDENT** per ordre natural (no un que ja sigui `EN CURS`).
+
+En presentar un test: marcar-lo **EN CURS** a l’Excel (filtre en curs) **abans** o al mateix moment de passar el pas a pas.
 
 ### Després d’un OK (sempre així)
 
-Marcar l’Excel i **de seguida** presentar el següent test així:
+Marcar l’Excel (`OK`) i **de seguida** presentar el següent test així:
 
 - una línia amb el **codi** (`ZUP-NNN`)
 - a sota, el **pas a pas** numerat per executar-lo (i criteri OK/KO breu)
+
+I marcar aquest següent com a **EN CURS**.
 
 No presentis el bloc de columnes Excel en aquest moment.
 

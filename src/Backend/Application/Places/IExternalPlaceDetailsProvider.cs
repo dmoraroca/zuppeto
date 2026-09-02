@@ -37,7 +37,9 @@ public sealed record PlaceExternalDetailsDto(
     string? Website = null,
     string? OpeningHours = null,
     IReadOnlyList<string>? Types = null,
-    IReadOnlyList<string>? ExtraPhotoReferences = null)
+    IReadOnlyList<string>? ExtraPhotoReferences = null,
+    string? PrimaryType = null,
+    string? PrimaryTypeDisplayName = null)
 {
     public IEnumerable<string> PhotoReferenceCandidates()
     {

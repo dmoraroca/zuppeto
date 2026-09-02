@@ -319,12 +319,13 @@ export class PlaceService {
       tags: [...place.tags],
       address: formatPlaceAddress(place.addressLine1, place.city),
       petNotes: place.petPolicyNotes ?? '',
-      features: [...place.features],
+        features: [...(place.features ?? [])],
       openingHours: place.openingHours ?? '',
       phone: place.phone ?? '',
       website: place.website ?? '',
       coverAttribution: place.coverAttribution ?? '',
       coverSourceUri: place.coverSourceUri ?? '',
+      categoryLabel: place.categoryLabel?.trim() ?? '',
       coordinates: {
         lat: place.latitude,
         lng: place.longitude
@@ -390,12 +391,13 @@ interface PlaceApiSummaryDto {
   ratingAverage: number;
   reviewCount: number;
   tags: string[];
-  features: string[];
+  features?: string[];
   openingHours?: string | null;
   phone?: string | null;
   website?: string | null;
   coverAttribution?: string | null;
   coverSourceUri?: string | null;
+  categoryLabel?: string | null;
 }
 
 interface PlaceSearchPageDto {

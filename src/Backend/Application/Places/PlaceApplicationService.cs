@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Zuppeto.Domain.Abstractions;
 using Zuppeto.Domain.Places;
@@ -18,6 +19,7 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
     private readonly IPlaceCoverEnrichmentQueue placeCoverEnrichmentQueue;
     private readonly IPlaceWebsitePageReader placeWebsitePageReader;
     private readonly IOptions<GooglePlacesIntegrationOptions> googlePlacesIntegrationOptions;
+    private readonly ILogger<PlaceApplicationService> logger;
     private static readonly TimeSpan SearchSnapshotTtl = TimeSpan.FromHours(12);
 
     public PlaceApplicationService(
@@ -29,7 +31,8 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
         IPlaceCoverStorage placeCoverStorage,
         IPlaceCoverEnrichmentQueue placeCoverEnrichmentQueue,
         IPlaceWebsitePageReader placeWebsitePageReader,
-        IOptions<GooglePlacesIntegrationOptions> googlePlacesIntegrationOptions)
+        IOptions<GooglePlacesIntegrationOptions> googlePlacesIntegrationOptions,
+        ILogger<PlaceApplicationService> logger)
     {
         this.placeRepository = placeRepository;
         this.placeSearchQueryRepository = placeSearchQueryRepository;
@@ -40,6 +43,7 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
         this.placeCoverEnrichmentQueue = placeCoverEnrichmentQueue;
         this.placeWebsitePageReader = placeWebsitePageReader;
         this.googlePlacesIntegrationOptions = googlePlacesIntegrationOptions;
+        this.logger = logger;
     }
 
     private int CoordinateCacheRetentionDays =>
@@ -425,7 +429,7 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
             place.Name,
             place.Type.ToString(),
             PlacePublicCopy.SanitizeDescription(place.ShortDescription, place.Name),
-            PlacePublicCopy.PublicNarrative(place.Description, place.Name, place.Address.Line1),
+            PlacePublicCopy.PublicNarrative(place.Description, place.Name, place.Address.Line1, place.Address.City),
             place.CoverImageUrl,
             place.Address.Line1,
             place.Address.City,
@@ -451,7 +455,8 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
             place.Features.ToArray(),
             visit.Hours,
             visit.Phone,
-            visit.Website);
+            visit.Website,
+            PlaceGoogleHighlights.CategoryLabel(place.Features, PlaceTypeLabel(place.Type)));
     }
 
     private PlaceDetailDto ToDetailDto(Place place)
@@ -491,7 +496,8 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
             attribution?.SourceUri,
             summary.OpeningHours,
             summary.Phone,
-            summary.Website);
+            summary.Website,
+            summary.CategoryLabel);
     }
 
     private static (bool CacheExpired, bool RequiresGoogleMap) ComputeGoogleCoordinateFlags(Place place)
@@ -626,7 +632,16 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
         var syncStale = place.LastGoogleSyncAt is null
             || nowUtc - place.LastGoogleSyncAt.Value > TimeSpan.FromDays(CoordinateCacheRetentionDays);
         var missingCover = string.IsNullOrWhiteSpace(place.CoverImageUrl);
-        var missingHighlights = place.Features.Count == 0;
+        var missingHighlights = PlaceGoogleHighlights.NeedsChipRefresh(
+                place.Features,
+                place.Name,
+                place.Description)
+            || string.IsNullOrWhiteSpace(
+                PlacePublicCopy.PublicNarrative(
+                    place.Description,
+                    place.Name,
+                    place.Address.Line1,
+                    place.Address.City));
         var recentCoverAttempt = placeCoverStorage.HasRecentEnrichmentAttempt(
             place.Id,
             nowUtc,
@@ -676,14 +691,6 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
 
         var latitude = details.Latitude ?? place.Location.Latitude;
         var longitude = details.Longitude ?? place.Location.Longitude;
-        var description = PlacePublicCopy.PublicNarrative(
-            string.IsNullOrWhiteSpace(details.EditorialSummary) ? place.Description : details.EditorialSummary,
-            string.IsNullOrWhiteSpace(details.Name) ? place.Name : details.Name.Trim(),
-            details.Address ?? place.Address.Line1);
-        if (string.IsNullOrWhiteSpace(description))
-        {
-            description = PlacePublicCopy.SanitizeDescription(place.Description, place.Name);
-        }
 
         var pricing = !string.IsNullOrWhiteSpace(details.PriceLabel)
             ? new Pricing(details.PriceLabel)
@@ -704,20 +711,16 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
             visitNotes);
 
         var typeLabel = PlaceTypeLabel(place.Type);
-        var features = PlaceGoogleHighlights.ToFeatureChips(details.Types, details, typeLabel);
         var websiteText = await placeWebsitePageReader.TryReadVenueTextAsync(
             details.Website ?? string.Empty,
             string.IsNullOrWhiteSpace(details.Name) ? place.Name : details.Name.Trim(),
             cancellationToken);
+        var features = PlaceGoogleHighlights.ToFeatureChips(details, place.Name, websiteText);
         if (!string.IsNullOrWhiteSpace(websiteText))
         {
             features = PlaceGoogleHighlights.MergeConfirmedChips(
                 features,
                 PlaceWebsiteAmenityCatalog.ConfirmedChips(websiteText));
-            if (string.IsNullOrWhiteSpace(description))
-            {
-                description = PlaceWebsiteAmenityCatalog.Summary(websiteText) ?? description;
-            }
         }
 
         if (features.Count == 0)
@@ -725,10 +728,22 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
             features = place.Features.ToArray();
         }
 
+        var category = PlaceGoogleHighlights.CategoryLabel(features, typeLabel);
+        var websiteLead = string.IsNullOrWhiteSpace(websiteText)
+            ? null
+            : PlaceWebsiteAmenityCatalog.Summary(websiteText);
+        var description = PlacePublicCopy.ComposeQuickContext(
+            category,
+            details.EditorialSummary,
+            websiteLead,
+            string.IsNullOrWhiteSpace(details.Name) ? place.Name : details.Name.Trim(),
+            details.Address ?? place.Address.Line1,
+            place.Address.City);
+
         var neighborhood = PlaceGoogleHighlights.NeighborhoodFromAddress(
             details.Address,
             place.Address.Neighborhood);
-        var tags = PlaceGoogleHighlights.ToContextTags(neighborhood, place.Address.City, typeLabel);
+        var tags = PlaceGoogleHighlights.ToContextTags(neighborhood, typeLabel);
         if (tags.Count == 0)
         {
             tags = place.Tags.ToArray();
@@ -758,7 +773,18 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
 
         enriched.ReplaceTags(tags);
         enriched.ReplaceFeatures(features);
-        await placeRepository.UpdateAsync(enriched, cancellationToken);
+        try
+        {
+            await placeRepository.UpdateAsync(enriched, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(
+                ex,
+                "Could not persist Google enrichment for place {PlaceId}; returning in-memory chips.",
+                place.Id);
+        }
+
         return enriched;
     }
 

@@ -13,7 +13,11 @@ public static class PlaceWebsiteAmenityCatalog
     [
         ("terrass|terraza|terrace", "Terrassa"),
         (@"\bjardi\b|jardin\b", "Jardí"),
-        ("coctel|cocktail|cocteleria", "Cocteleria")
+        ("coctel|cocktail|cocteleria", "Cocteleria"),
+        ("pinso|pienso", "Pinso"),
+        ("accessoris|accesorios", "Accessoris"),
+        ("perruqueria canina|peluqueria canina|grooming", "Perruqueria canina"),
+        (@"\bveterinar", "Veterinària")
     ];
 
     public static IReadOnlyCollection<string> ConfirmedChips(string plainText)
@@ -45,15 +49,44 @@ public static class PlaceWebsiteAmenityCatalog
             return null;
         }
 
-        var limit = Math.Min(maxLength, collapsed.Length);
-        var slice = collapsed[..limit];
-        var lastStop = slice.LastIndexOfAny(['.', '!', '?']);
-        if (lastStop >= 80)
+        var sentences = Regex.Split(collapsed, @"(?<=[.!?])\s+")
+            .Select(sentence => sentence.Trim())
+            .Where(sentence => sentence.Length >= 40 && !IsBoilerplate(sentence))
+            .ToArray();
+        if (sentences.Length == 0)
         {
-            slice = slice[..(lastStop + 1)];
+            return null;
         }
 
-        return slice.Trim();
+        var builder = new StringBuilder();
+        foreach (var sentence in sentences)
+        {
+            if (builder.Length + sentence.Length + 1 > maxLength)
+            {
+                break;
+            }
+
+            if (builder.Length > 0)
+            {
+                builder.Append(' ');
+            }
+
+            builder.Append(sentence);
+        }
+
+        return builder.Length >= 40 ? builder.ToString().Trim() : null;
+    }
+
+    public static bool IsBoilerplate(string value)
+    {
+        var haystack = Normalize(value);
+        return haystack.Contains("cookie", StringComparison.Ordinal)
+            || haystack.Contains("privacitat", StringComparison.Ordinal)
+            || haystack.Contains("privacy", StringComparison.Ordinal)
+            || haystack.Contains("newsletter", StringComparison.Ordinal)
+            || haystack.Contains("copyright", StringComparison.Ordinal)
+            || haystack.Contains("tots els drets", StringComparison.Ordinal)
+            || haystack.Contains("inici de sessio", StringComparison.Ordinal);
     }
 
     public static bool MentionsPlace(string plainText, string placeName)

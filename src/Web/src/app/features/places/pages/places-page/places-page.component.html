@@ -106,7 +106,7 @@
         <app-place-card
           [attr.data-place-id]="place.id"
           [place]="place"
-          [typeLabel]="getTypeLabel(place.type)"
+          [typeLabel]="place.categoryLabel || getTypeLabel(place.type)"
           [favorite]="isFavorite(place.id)"
           [selected]="selectedPlaceId() === place.id"
           (favoriteToggled)="toggleFavorite($event)"

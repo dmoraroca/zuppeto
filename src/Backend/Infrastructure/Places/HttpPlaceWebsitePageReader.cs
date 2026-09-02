@@ -59,7 +59,8 @@ internal sealed class HttpPlaceWebsitePageReader(
                 return home.PlainText;
             }
 
-            return null;
+            // Official website from Google: chain homepages often omit the shop name.
+            return home.PlainText;
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
         {
@@ -89,7 +90,14 @@ internal sealed class HttpPlaceWebsitePageReader(
             html = html[..MaxBytes];
         }
 
-        return new PageText(html, ToPlainText(html));
+        var plain = ToPlainText(html);
+        var meta = ExtractMetaDescription(html);
+        if (!string.IsNullOrWhiteSpace(meta))
+        {
+            plain = meta.Trim() + " " + plain;
+        }
+
+        return new PageText(html, plain);
     }
 
     private static Uri? FindSameHostPlaceLink(string html, Uri start, string placeName)
@@ -114,6 +122,34 @@ internal sealed class HttpPlaceWebsitePageReader(
             if (tokens.Any(token => haystack.Contains(token, StringComparison.Ordinal)))
             {
                 return candidate;
+            }
+        }
+
+        return null;
+    }
+
+    private static string? ExtractMetaDescription(string html)
+    {
+        var patterns = new[]
+        {
+            @"<meta\s+[^>]*property\s*=\s*[""']og:description[""'][^>]*content\s*=\s*[""'](?<c>[^""']+)[""']",
+            @"<meta\s+[^>]*content\s*=\s*[""'](?<c>[^""']+)[""'][^>]*property\s*=\s*[""']og:description[""']",
+            @"<meta\s+[^>]*name\s*=\s*[""']description[""'][^>]*content\s*=\s*[""'](?<c>[^""']+)[""']",
+            @"<meta\s+[^>]*content\s*=\s*[""'](?<c>[^""']+)[""'][^>]*name\s*=\s*[""']description[""']"
+        };
+
+        foreach (var pattern in patterns)
+        {
+            var match = Regex.Match(html, pattern, RegexOptions.IgnoreCase);
+            if (!match.Success)
+            {
+                continue;
+            }
+
+            var value = WebUtility.HtmlDecode(match.Groups["c"].Value).Trim();
+            if (value.Length >= 40 && !PlaceWebsiteAmenityCatalog.IsBoilerplate(value))
+            {
+                return value;
             }
         }
 

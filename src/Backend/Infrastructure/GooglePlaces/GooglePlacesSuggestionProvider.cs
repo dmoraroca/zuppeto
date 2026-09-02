@@ -13,7 +13,7 @@ internal sealed class GooglePlacesSuggestionProvider(
     : IExternalPlaceSuggestionProvider, IExternalPlaceDetailsProvider
 {
     private const string NewPlacesFieldMask =
-        "id,displayName,formattedAddress,location,photos.name,photos.authorAttributions,rating,userRatingCount,priceLevel,allowsDogs,outdoorSeating,restroom,reservable,goodForChildren,takeout,editorialSummary,nationalPhoneNumber,websiteUri,regularOpeningHours.weekdayDescriptions,types";
+        "id,displayName,formattedAddress,location,photos.name,photos.authorAttributions,rating,userRatingCount,priceLevel,allowsDogs,outdoorSeating,restroom,reservable,goodForChildren,takeout,editorialSummary,nationalPhoneNumber,websiteUri,regularOpeningHours.weekdayDescriptions,types,primaryType,primaryTypeDisplayName";
 
     private static volatile bool newPlacesApiDisabled;
 
@@ -112,7 +112,10 @@ internal sealed class GooglePlacesSuggestionProvider(
                 PhotoReference = fromLegacy.PhotoReference,
                 PhotoAttribution = fromLegacy.PhotoAttribution ?? fromNew.PhotoAttribution,
                 PhotoSourceUri = fromLegacy.PhotoSourceUri ?? fromNew.PhotoSourceUri,
-                ExtraPhotoReferences = fromLegacy.ExtraPhotoReferences
+                ExtraPhotoReferences = fromLegacy.ExtraPhotoReferences,
+                Types = fromNew.Types is { Count: > 0 } ? fromNew.Types : fromLegacy.Types,
+                PrimaryType = fromNew.PrimaryType ?? fromLegacy.PrimaryType,
+                PrimaryTypeDisplayName = fromNew.PrimaryTypeDisplayName ?? fromLegacy.PrimaryTypeDisplayName
             };
         }
 
@@ -253,7 +256,9 @@ internal sealed class GooglePlacesSuggestionProvider(
                 payload.WebsiteUri?.Trim(),
                 JoinHours(payload.RegularOpeningHours?.WeekdayDescriptions),
                 payload.Types,
-                extraPhotos);
+                extraPhotos,
+                payload.PrimaryType?.Trim(),
+                payload.PrimaryTypeDisplayName?.Text?.Trim());
         }
         catch (Exception ex)
         {
@@ -312,7 +317,9 @@ internal sealed class GooglePlacesSuggestionProvider(
                 result.Website?.Trim(),
                 JoinHours(result.OpeningHours?.WeekdayText),
                 result.Types,
-                extraPhotos);
+                extraPhotos,
+                PrimaryType: FirstConcreteType(result.Types),
+                PrimaryTypeDisplayName: null);
         }
         catch (Exception ex)
         {
@@ -394,6 +401,31 @@ internal sealed class GooglePlacesSuggestionProvider(
             .Where(line => line.Length > 0)
             .ToArray();
         return parts.Length == 0 ? null : string.Join("\n", parts);
+    }
+
+    private static string? FirstConcreteType(IEnumerable<string>? types)
+    {
+        foreach (var raw in types ?? [])
+        {
+            var value = raw.Trim();
+            if (value.Length == 0)
+            {
+                continue;
+            }
+
+            if (value.Equals("establishment", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("point_of_interest", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("food", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("geocode", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("premise", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            return value;
+        }
+
+        return null;
     }
 
     private static IReadOnlyList<string>? ExtraPhotoNames(List<GooglePlaceNewPhoto>? photos, string? first)
@@ -619,6 +651,12 @@ internal sealed class GooglePlacesSuggestionProvider(
 
         [JsonPropertyName("types")]
         public List<string>? Types { get; init; }
+
+        [JsonPropertyName("primaryType")]
+        public string? PrimaryType { get; init; }
+
+        [JsonPropertyName("primaryTypeDisplayName")]
+        public GooglePlaceLocalizedText? PrimaryTypeDisplayName { get; init; }
     }
 
     private sealed class GooglePlaceRegularOpeningHours

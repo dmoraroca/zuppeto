@@ -34,7 +34,6 @@
 }
 
 .place-detail-page__hero-content,
-.place-detail-page__card,
 .place-detail-page__missing {
   padding: 1.5rem;
   border-radius: 1.5rem;
@@ -71,7 +70,7 @@
 
 .place-detail-page__card a {
   color: var(--yp-color-primary-dark);
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .place-detail-page__hero-metrics {
@@ -157,6 +156,66 @@
 .place-detail-page__stack > .place-detail-page__card {
   min-width: 0;
   height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.place-detail-page__card h2 {
+  margin: 0;
+  font-size: 15pt;
+  font-weight: 700;
+  color: var(--yp-color-text);
+}
+
+.place-detail-page__card p,
+.place-detail-page__card .place-detail-page__copy {
+  margin: 0.45rem 0 0;
+  font-size: 15pt;
+  font-weight: 400;
+  color: var(--yp-color-text-muted);
+  line-height: 1.7;
+}
+
+.place-detail-page__card strong {
+  font-weight: 400;
+}
+
+.place-detail-page__rating {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+}
+
+.place-detail-page__stars {
+  display: inline-flex;
+  gap: 0.08rem;
+  color: #f5b301;
+  line-height: 1;
+}
+
+.place-detail-page__star {
+  position: relative;
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  font-size: 1.15em;
+  line-height: 1;
+}
+
+.place-detail-page__star-empty {
+  color: #d1d5db;
+}
+
+.place-detail-page__star-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  color: #f5b301;
 }
 
 .place-detail-page__hero-media {
@@ -192,19 +251,11 @@
   line-height: 1.7;
 }
 
-.place-detail-page__card h2 {
-  margin-top: 0;
-}
-
-.place-detail-page__card p {
-  color: var(--yp-color-text-muted);
-  line-height: 1.7;
-}
-
 .place-detail-page__tags {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+  margin-top: 0.45rem;
 }
 
 .place-detail-page__tags span {
@@ -212,7 +263,8 @@
   border-radius: 999px;
   background: rgba(45, 212, 191, 0.16);
   color: var(--yp-color-primary-dark);
-  font-weight: 700;
+  font-size: 15pt;
+  font-weight: 400;
 }
 
 .place-detail-page__related {
@@ -282,7 +334,6 @@
 
 @media (max-width: 540px) {
   .place-detail-page__hero-content,
-  .place-detail-page__card,
   .place-detail-page__missing,
   .place-detail-page__related-card {
     padding: 1rem;
