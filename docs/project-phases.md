@@ -133,6 +133,7 @@ La plataforma ja diferencia entre usuaris públics, usuaris autenticats i àrees
 ### Què s'ha fet en aquest tram de la Fase IV
 
 - `pàgines internes` queda **FET** (accés intern i manteniments principals operatius)
+- login: destí per defecte **Inici** per a tots els rols (ZUP-004); ADMIN obre permisos des del menú, no a la primera pantalla
 - `gestió de contingut o dades` continua **EN CURS**: focus actual en `llocs` (cerca lazy + base de proveïdor extern) i `favorits` (Cercar/Netejar sobre BD + caducitat Google 30 dies via Details). Tram llistat/fitxa 2026-09-01: **OK** (foto, paginació, Cercar, tres apartats). Pendent (no ara): recordar take per filtre (20/40/60) si es torna a aplicar; llistat scroll editorial (foto+text, seleccionat a encaixar); Ajuda «Dubtes habituals» amb textos i format diferents. Vegeu `docs/ca/millores-pendents-ca.md`.
 - detall funcional i tècnic del tram actual: `docs/ca/funcional-ca.md` (§3.17, §3.12, §12.5, §12.7) i `docs/ca/tecnic-ca.md` (§2.11.3, §2.11.3.1, §2.11.4 procedència `places`, §2.11.5 menús admin, §2.10.3 permisos de build local)
 

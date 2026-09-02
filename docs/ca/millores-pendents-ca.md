@@ -178,7 +178,7 @@ No deixar la targeta buida. No implementar ara (cal font: Places Details, web de
 
 **Millora:** en aquesta pantalla hauria de dir **Treure** (o equivalent), perquè l’acció és treure el lloc de favorits, no “guardar-lo” de nou.
 
-**Estat:** pendent; no implementar ara.
+**Estat:** **FET** (2026-09-02): el botó actiu diu **Treure** (mateix text a Llocs, Favorits i detall).
 
 ---
 

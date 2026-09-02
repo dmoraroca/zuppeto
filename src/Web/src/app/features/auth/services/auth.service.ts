@@ -252,14 +252,8 @@ export class AuthService {
       return '/login';
     }
 
-    if (this.hasPermission('page.admin.permissions')) {
-      return '/admin/permisos';
-    }
-
-    if (this.hasPermission('page.admin.documentation')) {
-      return '/admin/documentacio';
-    }
-
+    // Home is the default landing for every role. Admin consoles are opened
+    // from the header, not as the first screen after login.
     return this.requiresProfileCompletion(user) ? '/perfil' : '/';
   }
 

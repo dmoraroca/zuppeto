@@ -1353,7 +1353,7 @@ Decisions tecniques rellevants:
 Peces principals:
 
 - `favorites-page`
-- `favorite-toggle-button`
+- `favorite-toggle-button` (text visible: **Favorit** / **Treure**; `aria-label` Afegir / Treure de favorits)
 - `favorites.service`
 
 Decisions tecniques rellevants:
@@ -1589,7 +1589,7 @@ Despres del login:
 - si existeix `redirectTo`, s'usa aquesta ruta
 - si no existeix:
   - comptes amb perfil incomplet (sense nom, ciutat o país, tipic d'alta federada nova) van a `/perfil`
-  - la resta van a `/` (inici); admin amb permisos pot anar a les pantalles internes corresponents
+  - la resta van a `/` (inici), **també ADMIN i DEVELOPER**. Les pantalles internes (`/admin/permisos`, documentació, etc.) s'obren des del menú, no són el destí del login
   - el consentiment es demana en desar el perfil, no es força a cada login; la bio és opcional
 
 ### 9.5 Perfil, compte i consentiment

@@ -1405,6 +1405,7 @@ Resum del diagrama:
 - si un favorit té `place_id` Google i la caché de **30 dies** ha caducat (o falta portada/xips), es torna a demanar **Place Details** pel `place_id` (no es redescobreix amb Text Search)
 - el llistat de favorits es veu **igual que el de Llocs**: una targeta per fila (foto + text), no esclafada en columnes estretes
 - cada favorit surt **una sola vegada** al llistat (no hi ha cap bloc «Guardat més recent» a part); «Més llocs a {ciutat}» va al costat de **Veure detall**
+- el botó de la targeta (i del detall), si el lloc ja és favorit, diu **Treure** (no «Guardat»); si no ho és, **Favorit**
 - el **mapa** a Favorits és el mateix component que a Llocs, però **només amb els favorits visibles** (pin = llistat; filtres aplicats també el redueixen)
 - el mateix patró es pot reutilitzar mes endavant amb backend autenticat
 
@@ -1565,7 +1566,7 @@ Flux principal:
 3. introdueix email i password
 4. el sistema valida les credencials fake
 5. s'obre sessio i es carrega el rol
-6. el sistema redirigeix a la ruta demanada o a la ruta per defecte del rol
+6. el sistema redirigeix a la ruta demanada (`redirectTo`) o a **Inici** (`/`); si el perfil està incomplet, a `/perfil`. Les pantalles d'administració no són el destí per defecte del login (ZUP-004)
 
 ## 7. Regles funcionals actuals
 
@@ -1584,6 +1585,7 @@ Flux principal:
 - els CTA principals han de separar clarament quatre intencions: descobrir, entendre, reprendre i contactar
 - si no hi ha sessio, les rutes protegides redirigeixen a `Login`
 - si hi ha `redirectTo`, el login hi ha de tornar despres d'autenticar
+- sense `redirectTo`, el login acaba a **Inici** per a tots els rols (també ADMIN); Permisos i la resta d'admin s'obren des de **Del administrador**
 - si el rol es `ADMIN`, `Del desenvolupador` nomes ha de ser visible i accessible per aquest rol
 - el consentiment de manteniment de dades es obligatori per a `USER` per poder **Guardar** el perfil
 - al perfil, **Guardar** entra desactivat fins que l’usuari ha editat i els obligatoris són vàlids
