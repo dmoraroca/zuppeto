@@ -63,7 +63,7 @@ Inclou:
 - `Ajuda`
 - `Contacta'ns`
 - `permissions` com a vista separada i fora del flux public principal
-- mapa funcional a `places` i `place detail`
+- mapa funcional a `places`, `place detail` i `favorits` (en favorits, només els llocs guardats)
 
 Fora d'abast a data d'aquest document:
 
@@ -1400,7 +1400,12 @@ Resum del diagrama:
 
 - el flux de favorits ja es pot provar de punta a punta
 - l'estat encara no es persisteix, pero la UX ja simula el comportament real
-- `favorites` permet revisar millor el que s'ha guardat amb cerca local, filtre per ciutat, filtre per tipologia i ordenacio
+- `favorites` permet revisar els guardats amb el **mateix format de filtres que Llocs**: Cerca, Ciutat, Tipus, Mascota, **Cercar** i **Netejar** (els combos no filtren sols; **Cercar** aplica; **Netejar** buida i aplica). L’ordre (recents / valoració / nom) també espera **Cercar**
+- el filtre s’aplica **només sobre els favorits ja persistits a BD**, sense Text Search ni API de cerca de llocs
+- si un favorit té `place_id` Google i la caché de **30 dies** ha caducat (o falta portada/xips), es torna a demanar **Place Details** pel `place_id` (no es redescobreix amb Text Search)
+- el llistat de favorits es veu **igual que el de Llocs**: una targeta per fila (foto + text), no esclafada en columnes estretes
+- cada favorit surt **una sola vegada** al llistat (no hi ha cap bloc «Guardat més recent» a part); «Més llocs a {ciutat}» va al costat de **Veure detall**
+- el **mapa** a Favorits és el mateix component que a Llocs, però **només amb els favorits visibles** (pin = llistat; filtres aplicats també el redueixen)
 - el mateix patró es pot reutilitzar mes endavant amb backend autenticat
 
 ### 5.8 Flux funcional d'ajuda
@@ -1489,7 +1494,7 @@ Flux principal:
 
 1. l'usuari guarda un lloc des del llistat o des del detall
 2. el lloc apareix a `favorites`
-3. l'usuari pot revisar els guardats amb cerca, ciutat, tipologia i ordre
+3. l'usuari pot revisar els guardats amb Cerca, Ciutat, Tipus, Mascota i ordre, i clica **Cercar** (o **Netejar**)
 4. l'usuari el pot treure posteriorment
 
 Nota:
@@ -1862,12 +1867,17 @@ Objectiu: al llistat i a la fitxa, dades **útils** (adreça, foto, gos sí/no, 
 - Primer catàleg / snapshot. Text Search només si cal cobertura; el botó de paginar **no** torna a cridar Text Search.
 - Paginació: **20** locals, botó **«Mostrar els 20 següents»**, el botó desapareix si no n’hi ha més. El mapa mostra **els mateixos** locals visibles.
 - Fitxes en **una columna**, estil fila ampla (foto a l’esquerra, dades a la dreta), **mateixa alçada**. **Millora important (no ara):** llistat en scroll editorial (blocs foto+text en baixar, estil «qui és qui»); el seleccionat s’hi ha d’encaixar. Vegeu `millores-pendents-ca.md` (2026-09-02).
-- Mapa: per defecte **centrat a Espanya** (no s’allunya al món si hi ha un pin llunyà). Ciutat filtrada → s’ajusta a aquella zona.
+- Mapa: per defecte **centrat a Espanya** (no s’allunya al món si hi ha un pin llunyà). Ciutat filtrada → s’ajusta a aquella zona. **No** es pinta el títol «Mode mixt: mapa + llistat» ni el paràgraf explicatiu a sobre (el mapa va directe sota Cercar/Netejar).
 - Clic al **pin**: el pin queda **verd**, popup simple (nom i ciutat), es destaca la targeta i es fa scroll fins a ella.
 - Clic a la **targeta**: selecciona el mateix pin verd al mapa. «Veure detall» obre la fitxa.
 - El filtre de ciutat té **Totes** a dalt del desplegable (com Tipus → Tots i Mascota → Totes). El combo mostra ciutats del catàleg, no només les de la pàgina filtrada.
 - Canviar **Cerca / Ciutat / Tipus / Mascota** no filtra sol: el mapa i el llistat només es recarreguen amb **Cercar** (o **Netejar**, que buida i aplica). Els xips «Filtres escollits» reflecteixen el que ja s’ha cercat.
 - Si a un local **visible** li falta la portada: el llistat es pinta **de seguida** (placeholder si cal); Place Details + Place Photos corren **en segon pla**. Si l’API New no porta foto, es fa fallback a Place Photos legacy. Recàrregues posteriors usen la URL nostra (finestra 30 dies).
+
+**Favorits (`/favorites`)**
+
+- El llistat i el mapa es construeixen amb els IDs guardats a BD. **Cercar** / **Netejar** filtren aquest conjunt en local, **sense** `GET /api/places` de cerca ni Text Search.
+- La caducitat de **30 dies** també s’aplica aquí: `GET /api/places/{id}` (Place Details + Photos si cal). No es redescobreix el local amb Text Search.
 
 **Fitxa (`/places/:id`)**
 

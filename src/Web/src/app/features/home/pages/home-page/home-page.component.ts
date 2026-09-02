@@ -45,7 +45,7 @@ export class HomePageComponent {
         id: place.id,
         name: place.name,
         city: place.city,
-        badge: index < 3 ? 'Top favorit' : 'Favorit'
+        badge: 'Favorit'
       }))
     };
   });

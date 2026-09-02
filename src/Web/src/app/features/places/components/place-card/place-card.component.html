@@ -73,7 +73,18 @@
     }
 
     <div class="place-card__actions">
-      <a class="place-card__link" [routerLink]="['/places', place().id]">Veure detall</a>
+      <div class="place-card__links">
+        <a class="place-card__link" [routerLink]="['/places', place().id]">Veure detall</a>
+        @if (showCityExploreLink() && place().city.trim()) {
+          <a
+            class="place-card__link place-card__link--city"
+            routerLink="/places"
+            [queryParams]="{ city: place().city }"
+          >
+            Més llocs a {{ place().city }}
+          </a>
+        }
+      </div>
       <app-favorite-toggle-button
         [compact]="true"
         [active]="favorite()"

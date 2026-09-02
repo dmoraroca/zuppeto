@@ -45,8 +45,7 @@
   line-height: 1.6;
 }
 
-.favorites-page__summary-label,
-.favorites-page__spotlight-eyebrow {
+.favorites-page__summary-label {
   text-transform: uppercase;
   letter-spacing: 0.12em;
   font-size: 0.78rem;
@@ -133,73 +132,173 @@
   color: var(--yp-color-text-muted);
 }
 
-.favorites-page__review-controls {
+.favorites-page__search {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 0.8fr));
   gap: 1rem;
 }
 
-.favorites-page__review-field {
+.favorites-page__sort {
   display: grid;
-  gap: 0.45rem;
+  gap: 0.4rem;
+  max-width: 16rem;
 }
 
-.favorites-page__review-field span {
+.favorites-page__sort span {
   font-size: 0.85rem;
   font-weight: 700;
   color: var(--yp-color-text-muted);
 }
 
-.favorites-page__review-field input,
-.favorites-page__review-field select {
+.favorites-page__sort select {
   width: 100%;
-  min-height: 3rem;
-  padding: 0.8rem 0.95rem;
-  border-radius: 1rem;
-  border: 1px solid rgba(148, 163, 184, 0.38);
-  background: rgba(248, 250, 252, 0.92);
-  color: var(--yp-color-text);
+  min-height: 2.9rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 0.95rem;
+  border: 1px solid rgba(209, 213, 219, 0.8);
+  background: rgba(255, 255, 255, 0.98);
 }
 
-.favorites-page__spotlight {
-  display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(16rem, 0.8fr);
-  gap: 1.5rem;
-  align-items: center;
-  padding: 1.5rem;
-  border-radius: 1.4rem;
-  background: rgba(255, 255, 255, 0.9);
+.favorites-page__search-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+.favorites-page__search-actions button {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.7rem 1rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.favorites-page__search-primary {
+  background: var(--yp-color-primary-dark);
+  color: #fff;
+}
+
+.favorites-page__search-secondary {
+  background: rgba(15, 118, 110, 0.08);
+  color: var(--yp-color-primary-dark);
+  border: 1px solid rgba(15, 118, 110, 0.2);
+}
+
+.favorites-page__active-filters {
+  padding: 1rem 1.1rem;
+  border-radius: 1.35rem;
+  background: rgba(255, 255, 255, 0.88);
   border: 1px solid rgba(209, 213, 219, 0.75);
-  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.06);
 }
 
-.favorites-page__spotlight-copy {
-  display: grid;
-  gap: 0.8rem;
+.favorites-page__active-filters-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
 }
 
-.favorites-page__spotlight-copy h2,
-.favorites-page__spotlight-copy p {
-  margin: 0;
+.favorites-page__active-filters-header button {
+  border: 0;
+  background: transparent;
+  color: var(--yp-color-primary-dark);
+  font-weight: 800;
+  cursor: pointer;
 }
 
-.favorites-page__spotlight-copy p {
+.favorites-page__active-filters-list {
+  margin-top: 0.85rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.favorites-page__active-filters-list span {
+  padding: 0.55rem 0.8rem;
+  border-radius: 999px;
+  background: rgba(45, 212, 191, 0.14);
+  color: var(--yp-color-primary-dark);
+  font-weight: 700;
+}
+
+.favorites-page__active-filters-list .favorites-page__active-filters-empty {
+  background: rgba(148, 163, 184, 0.12);
   color: var(--yp-color-text-muted);
-  line-height: 1.7;
-}
-
-.favorites-page__spotlight img {
-  width: 100%;
-  height: 100%;
-  min-height: 16rem;
-  object-fit: cover;
-  border-radius: 1rem;
+  font-weight: 600;
 }
 
 .favorites-page__grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 1rem;
+}
+
+.favorites-page__map-block {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.favorites-page__map-selection-card,
+.favorites-page__map-selection-empty {
+  padding: 1rem 1.1rem;
+  border-radius: 1.35rem;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(209, 213, 219, 0.75);
+}
+
+.favorites-page__map-selection-card {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.favorites-page__map-selection-eyebrow {
+  margin: 0 0 0.35rem;
+  color: var(--yp-color-primary-dark);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.favorites-page__map-selection-card h3,
+.favorites-page__map-selection-card p,
+.favorites-page__map-selection-empty strong,
+.favorites-page__map-selection-empty p {
+  margin: 0;
+}
+
+.favorites-page__map-selection-card p,
+.favorites-page__map-selection-empty p {
+  color: var(--yp-color-text-muted);
+  line-height: 1.6;
+}
+
+.favorites-page__map-selection-card p + p,
+.favorites-page__map-selection-empty p {
+  margin-top: 0.45rem;
+}
+
+.favorites-page__map-selection-actions {
+  display: flex;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.favorites-page__map-selection-actions button {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.78rem 1rem;
+  background: var(--yp-color-primary-dark);
+  color: #fff;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.favorites-page__map-selection-actions .favorites-page__ghost-button {
+  background: rgba(15, 118, 110, 0.08);
+  color: var(--yp-color-primary-dark);
+  border: 1px solid rgba(15, 118, 110, 0.18);
 }
 
 .favorites-page__empty {
@@ -236,17 +335,8 @@
 }
 
 @media (max-width: 1100px) {
-  .favorites-page__summary,
-  .favorites-page__grid {
+  .favorites-page__summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .favorites-page__review-controls {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .favorites-page__spotlight {
-    grid-template-columns: 1fr;
   }
 }
 
@@ -255,10 +345,19 @@
     padding: 1.5rem 1rem 3rem;
   }
 
-  .favorites-page__summary,
-  .favorites-page__grid,
-  .favorites-page__review-controls {
+  .favorites-page__summary {
     grid-template-columns: 1fr;
+  }
+
+  .favorites-page__search-actions {
+    justify-content: stretch;
+    flex-direction: column;
+  }
+
+  .favorites-page__search-actions button,
+  .favorites-page__sort {
+    width: 100%;
+    max-width: none;
   }
 
   .favorites-page__actions {
@@ -272,22 +371,28 @@
   .favorites-page__review-meta {
     text-align: left;
   }
+
+  .favorites-page__map-selection-card {
+    flex-direction: column;
+  }
 }
 
 @media (max-width: 540px) {
   .favorites-page__summary-card,
   .favorites-page__review,
-  .favorites-page__spotlight,
-  .favorites-page__empty {
+  .favorites-page__empty,
+  .favorites-page__map-selection-card,
+  .favorites-page__map-selection-empty {
     padding: 1rem;
     border-radius: 1.1rem;
   }
 
-  .favorites-page__spotlight img {
-    min-height: 12rem;
-  }
-
   .favorites-page__actions > * {
     width: 100%;
+  }
+
+  .favorites-page__active-filters-header {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }

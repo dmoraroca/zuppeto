@@ -668,6 +668,7 @@ Remissió funcional: `docs/ca/funcional-ca.md` **§12.7**.
 - `PlaceService.searchPage` / `loadById`; pàgina de llocs: `listingPlaces` + `hasMore`; mapa = visibles.
 - `place-card`: fila Booking (`grid` foto | contingut); amaga nota 0, preu buit i política buida.
 - `place-detail-page`: tres columnes (`.place-detail-page__stack`), **sense caixa** (títol negreta, text normal); una columna sota `960px`. Adreça sempre; apartats 2 i 3 només si hi ha contingut; `loadById` per enriquir.
+- `favorites-page`: mateix patró Cercar/Netejar que Llocs; `filterPlaces` sobre favorits; `PlaceGoogleDetailsRefresh` → `loadById` si la caché Google ha caducat.
 - `place-map`: popup només nom + ciutat. Pin seleccionat **verd** (`#22c55e`); si els pins s’estenen > ~1200 km, vista Espanya (zoom 6) en lloc de `fitBounds` mundial. Clic a la card del llistat emet `placeClicked` → mateix `selectedPlaceId`.
 - `place-detail-copy.ts`: `hasPublicPetPolicy` / `hasPublicRating` / `hasPublicPrice`.
 
@@ -1341,9 +1342,9 @@ Peces principals:
 
 Decisions tecniques rellevants:
 
-- `places-page` centralitza query params **aplicats** (Cercar/Netejar), draft als combos, resultats; el llistat pagina de 20 en 20 (`searchPage`) i el mapa usa el mateix conjunt visible; el combo de ciutat carrega `GET /api/places/cities` i ofereix **Totes** (`includeAllOption`)
+- `places-page` centralitza query params **aplicats** (Cercar/Netejar), draft als combos, resultats; el llistat pagina de 20 en 20 (`searchPage`) i el mapa usa el mateix conjunt visible; el combo de ciutat carrega `GET /api/places/cities` i ofereix **Totes** (`includeAllOption`); **no** hi ha títol/copy «Mode mixt: mapa + llistat» sobre el mapa (el mapa va directe sota els filtres)
 - `place-map` es reutilitzable i parametritzable; el popup del llistat és nom + ciutat
-- `place-card` es reutilitza a llistat i favorits; al llistat és una fila ampla (foto esquerra)
+- `place-card` es reutilitza a llistat i favorits; **a les dues pantalles** és una fila ampla (foto esquerra), no una graella de 3 columnes.
 - `place-cover-image` pinta la portada o un placeholder («Imatge no disponible») si no hi ha URL o si la càrrega falla; el fan servir el detall i els llocs relacionats
 - `place-detail-page` carrega `GET /api/places/{id}` (`loadById`) per enriquir; els apartats van en fila (`auto-fit`); **Context ràpid** s’amaga si no hi ha editorial ni tags útils (no es pinta «tipus a ciutat»); copy tècnic Google no es pinta (vegeu §2.11.3.1)
 
@@ -1358,8 +1359,13 @@ Peces principals:
 Decisions tecniques rellevants:
 
 - l'estat es manté local i simulat
-- `favorites-page` afegeix una capa local de revisio amb cerca, filtres i ordenacio sense tocar el model base
-- el guardat mes recent queda al davant i actua com a punt de reentrada rapida
+- `favorites-page` reutilitza `PlaceFiltersComponent` + **Cercar** / **Netejar** (draft vs aplicat, com `/places`); filtra amb `filterPlaces` sobre `getFavoritePlaces()` (catàleg BD), **sense** `searchPage`
+- el combo de ciutat a Favorits només llista ciutats dels favorits (`enableRemoteCitySearch=false`); no crida `GET /api/places/cities/search`
+- caducitat Google: `PlaceGoogleDetailsRefresh` fa `loadById` (`GET /api/places/{id}` → `PlaceGoogleDetailsEnricher`) si el snapshot té més de `CoordinateCacheRetentionDays` (~30) o falta al catàleg carregat; **no** Text Search
+- la llista de favorits usa la mateixa graella d’una columna que `/places` (`place-card` fila ampla); el resum (comptador/ciutats/tipologies) continua en targetes a part
+- `place-map` també a Favorits: pins = `placesVisibleOnOsmMap` dels favorits filtrats; selecció sincronitzada amb la targeta; **Veure detall** porta `fromMap=true`
+- `place-card` a Favorits pot mostrar **Més llocs a {ciutat}** al costat de Veure detall (`showCityExploreLink`)
+- no hi ha bloc «Guardat més recent»: un favorit surt una sola vegada, al llistat
 - el flux es pot substituir despres per persistencia real
 
 ### 5.4 Auth
@@ -1437,7 +1443,7 @@ Notes tecniques:
 
 - els `id` es persisteixen a `localStorage`
 - en afegir un favorit, aquest puja al primer lloc de la llista
-- `favorites-page` construeix la revisio local a partir del conjunt de favorits recuperat per `PlaceService`
+- `favorites-page` filtra el catàleg de favorits (`filterPlaces` + Cercar/Netejar) i refresca Details caducats via `PlaceGoogleDetailsRefresh`
 - `FavoritesService` treballa contra un port injectable (`FAVORITES_STORE`)
 - el mock actual entra per `MockFavoritesStoreService`
 

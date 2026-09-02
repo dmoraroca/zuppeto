@@ -26,15 +26,6 @@
   </form>
 
   <section class="places-page__map-block">
-    <div class="places-page__map-copy">
-      <strong>Mode mixt: mapa + llistat</strong>
-      <p>
-        Places queda definit com una vista mixta: el mapa dona context espacial, la selecció
-        ressalta el lloc, i el llistat continua sent la capa principal per comparar i entrar al
-        detall.
-      </p>
-    </div>
-
     <app-place-map
       [places]="mapPlaces()"
       [selectedPlaceId]="selectedPlaceId()"

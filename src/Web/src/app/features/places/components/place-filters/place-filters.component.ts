@@ -1,4 +1,4 @@
-import { Component, input, output, ChangeDetectionStrategy } from '@angular/core';
+import { Component, computed, input, output, ChangeDetectionStrategy } from '@angular/core';
 
 import { CityComboboxComponent } from '../../../../shared/components/city-combobox/city-combobox.component';
 import { PlaceFilters } from '../../models/place.model';
@@ -21,7 +21,11 @@ export class PlaceFiltersComponent {
   readonly showPet = input(true);
   readonly showClearButton = input(true);
   readonly typeLabel = input('Tipus');
+  /** When false, the city combo only lists `cities` (no GeoNames / catalog remote search). */
+  readonly enableRemoteCitySearch = input(true);
   readonly filtersChanged = output<Partial<PlaceFilters>>();
+
+  protected readonly remoteCityMinChars = computed(() => (this.enableRemoteCitySearch() ? 2 : 999));
 
   protected onSearch(event: Event): void {
     const value = (event.target as HTMLInputElement).value;

@@ -6,16 +6,9 @@ import { firstValueFrom } from 'rxjs';
 import { API_BASE_URL } from '../../../core/config/api.config';
 import { AuthService } from '../../auth/services/auth.service';
 import { FavoritesService } from '../../favorites/services/favorites.service';
-import { PetFilter, Place, PlaceFilters, PlaceType } from '../models/place.model';
+import { Place, PlaceFilters, PlaceType } from '../models/place.model';
 import { PLACE_TYPE_LABELS } from '../mock/places.fake';
-import { normalizeSearchQuery, placeMatchesFreeTextSearch } from '../utils/place-text-search';
-
-const DEFAULT_FILTERS: PlaceFilters = {
-  search: '',
-  city: '',
-  type: '',
-  pet: 'all'
-};
+import { DEFAULT_PLACE_FILTERS, filterPlaces } from '../utils/place-list-filter';
 
 export const PLACE_LIST_PAGE_SIZE = 20;
 const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '');
@@ -43,23 +36,7 @@ export class PlaceService {
   readonly hasLoaded = computed(() => this.loadedState());
 
   getPlaces(filters: Partial<PlaceFilters> = {}): Place[] {
-    const safeFilters = { ...DEFAULT_FILTERS, ...filters };
-    const normalizedSearch = normalizeSearchQuery(safeFilters.search);
-    const cityFilter = (safeFilters.city ?? '').trim();
-    const typeFilter = (safeFilters.type ?? '').trim().toLowerCase();
-
-    return this.placesState().filter((place) => {
-      const matchesSearch = placeMatchesFreeTextSearch(place, normalizedSearch);
-
-      const placeCity = (place.city ?? '').trim();
-      const matchesCity =
-        !cityFilter || placeCity.localeCompare(cityFilter, 'und', { sensitivity: 'base' }) === 0;
-      const matchesType =
-        !typeFilter || place.type.toString().toLowerCase() === typeFilter;
-      const matchesPet = this.matchesPet(place, safeFilters.pet);
-
-      return matchesSearch && matchesCity && matchesType && matchesPet;
-    });
+    return filterPlaces(this.placesState(), filters);
   }
 
   getPlaceById(placeId: string): Place | undefined {
@@ -185,7 +162,7 @@ export class PlaceService {
 
   /** Public login explorer: places from API without requiring a session. */
   async fetchPublicPlaces(filters: Partial<PlaceFilters> = {}): Promise<Place[]> {
-    const safeFilters = { ...DEFAULT_FILTERS, ...filters };
+    const safeFilters = { ...DEFAULT_PLACE_FILTERS, ...filters };
     const params = this.shouldSendFilteredPlacesRequest(safeFilters)
       ? this.buildPlacesQueryParams(safeFilters)
       : undefined;
@@ -278,18 +255,6 @@ export class PlaceService {
     }
 
     return [...map.values()];
-  }
-
-  private matchesPet(place: Place, pet: PetFilter): boolean {
-    if (pet === 'dogs') {
-      return place.acceptsDogs;
-    }
-
-    if (pet === 'cats') {
-      return place.acceptsCats;
-    }
-
-    return true;
   }
 
   private toPlace(place: PlaceApiSummaryDto): Place {

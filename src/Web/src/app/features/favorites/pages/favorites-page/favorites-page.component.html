@@ -7,7 +7,7 @@
       Guarda llocs mentre explores, torna-hi des d'aquí i revisa ràpidament què tens més a mà.
     </p>
 
-    @if (places().length) {
+    @if (allPlaces().length) {
       <div class="favorites-page__summary">
         <article class="favorites-page__summary-card">
           <span class="favorites-page__summary-label">Guardats ara mateix</span>
@@ -51,97 +51,117 @@
         </div>
       </div>
 
-      <div class="favorites-page__review-controls">
-        <label class="favorites-page__review-field">
-          <span>Cerca dins favorits</span>
-          <input
-            type="search"
-            [ngModel]="reviewFilters().search"
-            (ngModelChange)="updateReviewSearch($event)"
-            placeholder="Nom, ciutat o etiqueta"
-          />
-        </label>
+      <form class="favorites-page__search" (submit)="onSearchSubmit($event)">
+        <app-place-filters
+          [filters]="draftPlaceFilters()"
+          [cities]="favoriteCities()"
+          [types]="types"
+          [showClearButton]="false"
+          [enableRemoteCitySearch]="false"
+          (filtersChanged)="onDraftFiltersChanged($event)"
+        />
 
-        <label class="favorites-page__review-field">
-          <span>Ciutat</span>
-          <app-city-combobox
-            [value]="reviewFilters().city"
-            (valueChange)="updateReviewCity($event)"
-            [staticOptions]="favoriteCities()"
-            [minCharsForRemote]="2"
-          />
-        </label>
-
-        <label class="favorites-page__review-field">
-          <span>Tipologia</span>
-          <select [ngModel]="reviewFilters().type" (ngModelChange)="updateReviewType($event)">
-            <option value="">Totes</option>
-            @for (type of reviewTypeOptions(); track type.value) {
-              <option [value]="type.value">{{ type.label }}</option>
-            }
-          </select>
-        </label>
-
-        <label class="favorites-page__review-field">
+        <label class="favorites-page__sort">
           <span>Ordre</span>
-          <select [ngModel]="reviewFilters().sort" (ngModelChange)="updateReviewSort($event)">
+          <select [value]="draftFilters().sort" (change)="onDraftSortChanged($event)">
             <option value="recent">Més recents primer</option>
             <option value="rating">Millor valorats primer</option>
             <option value="name">Nom A-Z</option>
           </select>
         </label>
-      </div>
 
-      @if (hasReviewFilters()) {
-        <div class="favorites-page__actions">
-          <button type="button" class="favorites-page__ghost-button" (click)="resetReviewFilters()">
-            Restablir revisió
+        <section class="favorites-page__search-actions" aria-label="Accions de cerca">
+          <button type="submit" class="favorites-page__search-primary">Cercar</button>
+          <button type="button" class="favorites-page__search-secondary" (click)="clearAllFilters()">
+            Netejar
           </button>
-        </div>
-      }
+        </section>
+      </form>
     </section>
   }
 
-  @if (latestFavorite(); as latestPlace) {
-    <section class="favorites-page__spotlight">
-      <div class="favorites-page__spotlight-copy">
-        <p class="favorites-page__spotlight-eyebrow">Guardat més recent</p>
-        <h2>{{ latestPlace.name }}</h2>
-        <p>
-          {{ latestPlace.city }}, {{ latestPlace.country }} · {{ getTypeLabel(latestPlace.type) }}
-        </p>
-        <p>{{ latestPlace.shortDescription }}</p>
+  @if (allPlaces().length) {
+    <section class="favorites-page__map-block">
+      <app-place-map
+        [places]="mapPlaces()"
+        [selectedPlaceId]="selectedPlaceId()"
+        [focusCenter]="cityMapFocus()"
+        height="25rem"
+        emptyTitle="Cap favorit al mapa"
+        emptyCopy="Quan els favorits visibles tinguin coordenades, també els veuràs aquí."
+        (placeSelected)="openPlaceFromMap($event)"
+        (selectionCleared)="clearMapSelection()"
+      />
 
-        <div class="favorites-page__actions">
-          <a [routerLink]="['/places', latestPlace.id]">Veure detall</a>
-          <a class="favorites-page__ghost-link" routerLink="/places" [queryParams]="{ city: latestPlace.city }">
-            Més llocs a {{ latestPlace.city }}
-          </a>
-        </div>
+      <div class="favorites-page__map-selection">
+        @if (selectedPlace(); as place) {
+          <article class="favorites-page__map-selection-card">
+            <div>
+              <p class="favorites-page__map-selection-eyebrow">Seleccionat al mapa</p>
+              <h3>{{ place.name }}</h3>
+              <p>{{ place.city }}, {{ place.country }} · Valoració {{ place.rating }}</p>
+              <p>{{ place.petNotes }}</p>
+            </div>
+
+            <div class="favorites-page__map-selection-actions">
+              <button type="button" (click)="openSelectedPlaceDetail()">Veure detall</button>
+              <button type="button" class="favorites-page__ghost-button" (click)="clearMapSelection()">
+                Treure selecció
+              </button>
+            </div>
+          </article>
+        } @else {
+          <article class="favorites-page__map-selection-empty">
+            <strong>Sense selecció activa</strong>
+            <p>Clica un marcador del mapa per veure context ràpid i obrir després el detall.</p>
+          </article>
+        }
+      </div>
+    </section>
+  }
+
+  @if (allPlaces().length) {
+    <section class="favorites-page__active-filters" aria-label="Filtres actius">
+      <div class="favorites-page__active-filters-header">
+        <strong>Filtres escollits</strong>
+        <button type="button" (click)="clearAllFilters()">Netejar tots els filtres</button>
       </div>
 
-      <img [src]="latestPlace.imageUrl" [alt]="latestPlace.name" />
+      <div class="favorites-page__active-filters-list">
+        @let filterChips = activeFilterChips();
+        @if (filterChips.length) {
+          @for (chip of filterChips; track chip.id) {
+            <span>{{ chip.label }}</span>
+          }
+        } @else {
+          <span class="favorites-page__active-filters-empty">Cap filtre actiu</span>
+        }
+      </div>
     </section>
   }
 
-  <section class="favorites-page__grid">
+  <section #resultsSection class="favorites-page__grid">
     @for (place of places(); track place.id) {
       <app-place-card
+        [attr.data-place-id]="place.id"
         [place]="place"
         [typeLabel]="place.categoryLabel || getTypeLabel(place.type)"
         [favorite]="isFavorite(place.id)"
+        [selected]="selectedPlaceId() === place.id"
+        [showCityExploreLink]="true"
         (favoriteToggled)="toggleFavorite($event)"
+        (placeClicked)="openPlaceFromMap($event)"
       />
     } @empty {
       @if (allPlaces().length) {
         <article class="favorites-page__empty">
           <h3>No tens cap favorit que encaixi amb aquesta revisió.</h3>
           <p>
-            Ajusta la cerca, canvia ciutat o tipologia, o restableix els filtres per recuperar els
+            Ajusta la cerca, canvia ciutat o tipologia, o neteja els filtres per recuperar els
             llocs que ja havies guardat.
           </p>
-          <button type="button" class="favorites-page__empty-button" (click)="resetReviewFilters()">
-            Restablir revisió
+          <button type="button" class="favorites-page__empty-button" (click)="clearAllFilters()">
+            Netejar
           </button>
         </article>
       } @else {

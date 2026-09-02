@@ -64,7 +64,6 @@
         <div class="hero__featured-list">
           @for (place of content().featuredPlaces; track place.id) {
             <a class="hero__featured-item" [routerLink]="['/places', place.id]">
-              <span class="hero__featured-badge">{{ place.badge }}</span>
               <strong>{{ place.name }}</strong>
               <span>{{ place.city }}</span>
             </a>

@@ -12,6 +12,7 @@ import { PlaceMapComponent } from '../../components/place-map/place-map.componen
 import { Place, PlaceFilters } from '../../models/place.model';
 import { PLACE_LIST_PAGE_SIZE, PlaceService } from '../../services/place.service';
 import { resolveCityMapFocus } from '../../utils/city-map-focus';
+import { placesVisibleOnOsmMap } from '../../utils/places-osm-map';
 
 @Component({
   selector: 'app-places-page',
@@ -85,15 +86,7 @@ export class PlacesPageComponent {
   });
   protected readonly types = this.placeService.getAvailableTypes();
   protected readonly places = computed(() => this.listingPlaces());
-  /**
-   * Same filtered set as the list. Plot when coordinates are usable:
-   * either not excluded, or Google cache still valid (requiresGoogleMapForGoogleCoordinates).
-   */
-  protected readonly mapPlaces = computed(() =>
-    this.places().filter(
-      (place) => !place.excludeFromOsmMap || !!place.requiresGoogleMapForGoogleCoordinates
-    )
-  );
+  protected readonly mapPlaces = computed(() => placesVisibleOnOsmMap(this.places()));
   /** City centre when the filter has a known city but no pins (e.g. Berlin / Lisboa). */
   protected readonly cityMapFocus = computed(() => resolveCityMapFocus(this.filters().city));
   protected readonly selectedPlaceId = this.selectedPlaceIdState.asReadonly();
