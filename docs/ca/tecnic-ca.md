@@ -1507,6 +1507,7 @@ Criteri tecnic aplicat:
 - mantenir `Ajuda` i `Contacta'ns` com a pagines lleugeres, sense lògica de negoci
 - reutilitzar compartits ja consolidats com `app-section-heading` i `app-generic-info-card`
 - donar forma de producte a la navegacio informativa sense afegir dependències noves ni backend
+- el copy de **Dubtes habituals** (Accés / Favorits / Mapa) reflecteix sessió JWT real i favorits persistits, no l’estat fake de fase II
 
 ## 8.1 Afinat de CTA i navegacio base
 

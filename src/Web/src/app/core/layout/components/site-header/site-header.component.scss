@@ -110,7 +110,7 @@
 }
 
 .site-header__nav-link,
-.site-header__dropdown summary {
+.site-header__dropdown > summary {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
@@ -126,7 +126,7 @@
 }
 
 .site-header__nav-link:hover,
-.site-header__dropdown summary:hover {
+.site-header__dropdown > summary:hover {
   color: var(--yp-color-primary-dark);
   background: rgba(45, 212, 191, 0.11);
 }
@@ -141,7 +141,7 @@
   position: relative;
 }
 
-.site-header__dropdown summary {
+.site-header__dropdown > summary {
   list-style: none;
   cursor: pointer;
 }
@@ -155,11 +155,12 @@
   transition: transform 180ms ease;
 }
 
-.site-header__dropdown[open] .site-header__caret {
+.site-header__dropdown[open] > summary .site-header__caret,
+.site-header__nested-dropdown[open] > summary .site-header__caret {
   transform: rotate(225deg) translateY(-1px);
 }
 
-.site-header__dropdown summary::-webkit-details-marker {
+.site-header__dropdown > summary::-webkit-details-marker {
   display: none;
 }
 
@@ -313,20 +314,14 @@
 }
 
 .site-header__account-link {
-  margin: 0 0.55rem;
+  margin: 0;
   border-bottom: 1px solid rgba(209, 213, 219, 0.8);
   border-radius: 0;
-  padding-left: 0.35rem;
-  padding-right: 0.35rem;
-  padding-bottom: 0.95rem;
-}
-
-.site-header__account-link:last-of-type {
-  margin-bottom: 0.35rem;
+  padding: 0.75rem 0.9rem;
 }
 
 .site-header__nested-dropdown {
-  margin: 0 0.55rem;
+  margin: 0;
   border-bottom: 1px solid rgba(209, 213, 219, 0.8);
 }
 
@@ -335,14 +330,22 @@
 }
 
 .site-header__nested-dropdown > summary {
+  display: flex;
   width: 100%;
+  box-sizing: border-box;
+  margin: 0;
   justify-content: space-between;
+  align-items: center;
+  text-align: left;
+  list-style: none;
+  cursor: pointer;
   border-radius: 0;
-  /* Avoid double divider with .site-header__nested-dropdown border-bottom. */
   border-bottom: none;
-  padding-left: 0.35rem;
-  padding-right: 0.35rem;
-  padding-bottom: 0.95rem;
+  padding: 0.75rem 0.9rem;
+}
+
+.site-header__nested-dropdown > summary::-webkit-details-marker {
+  display: none;
 }
 
 .site-header__nested-dropdown > summary:hover {
@@ -432,7 +435,7 @@
   }
 
   .site-header__nav-link,
-  .site-header__dropdown summary {
+  .site-header__dropdown > summary {
     justify-content: center;
     background: rgba(255, 255, 255, 0.7);
     border: 1px solid rgba(209, 213, 219, 0.7);
@@ -460,7 +463,7 @@
   }
 
   .site-header__nav-link,
-  .site-header__dropdown summary,
+  .site-header__dropdown > summary,
   .site-header__session-logout {
     width: 100%;
   }

@@ -1423,6 +1423,7 @@ Resum del diagrama:
 - el desplegable no competeix amb el CTA principal de la portada
 - funcionalment ja es comporta com s'espera: navegar i tancar-se
 - `Com funciona` entra a una pagina propia i `Contacta'ns` ja diferencia millor suport de producte i col·laboracions
+- a **Dubtes habituals**, Accés i Favorits ja no parlen de login fake ni de favorits no persistits; **millora (no ara):** canviar textos i fer l’apartat diferent (dubtes reals d’usuari). Vegeu `millores-pendents-ca.md` (2026-09-02).
 
 ### 5.9 Domini funcional actual
 

@@ -27,7 +27,7 @@ export class HelpPageComponent {
     },
     {
       badge: '02',
-      body: 'Valida ràpidament el context de cada lloc des del mapa, el detall i les dades fake enriquides.'
+      body: 'Valida ràpidament el context de cada lloc des del mapa, el detall i les dades del catàleg.'
     },
     {
       badge: '03',
@@ -38,11 +38,11 @@ export class HelpPageComponent {
   protected readonly faqs = [
     {
       badge: 'Accés',
-      body: 'Zuppeto treballa ara mateix amb login fake per validar navegació, perfil i accessos per rol.'
+      body: 'L’accés és amb sessió real: login, perfil i permisos segons el rol (USER, ADMIN, VIEWER).'
     },
     {
       badge: 'Favorits',
-      body: 'Els favorits encara no són persistits a backend, però ja simulen el flux real de guardar i revisar.'
+      body: 'Els favorits es desen al backend: els pots guardar mentre explores i revisar-los després amb filtres i mapa.'
     },
     {
       badge: 'Mapa',

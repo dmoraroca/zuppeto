@@ -7,6 +7,30 @@ No substitueix `docs/project-phases.md` ni el joc de proves Excel: aquí només 
 
 ---
 
+## 2026-09-02 18:50 CEST
+
+**Àmbit:** Contacte (`/contacte`) · copy · ZUP-097
+
+**Què es veu:** textos de fase / intern: «peça provisional», «aquesta fase», «resposta simulada», correus `.fake`. No són copy de producte per a l’usuari.
+
+**Millora:** reescriure els textos (hero, canal recomanat i targetes) perquè expliquin de forma clara com contactar (suport, col·laboracions, noves ciutats), sense llenguatge de prototip. Relacionat amb el redisseny de Contacte (entrada 2026-08-31, ZUP-013). **No implementar ara.**
+
+**Estat:** pendent; no implementar ara.
+
+---
+
+## 2026-09-02 18:27 CEST
+
+**Àmbit:** Ajuda (`/ajuda`) · Dubtes habituals · ZUP-092 **KO**
+
+**Què es veu:** tres targetes (Accés, Favorits, Mapa) que expliquen **estat intern de fase** (abans: login fake, favorits no persistits). No són dubtes d’usuari; el copy caduca i no ajuda a usar el producte.
+
+**Millora:** canviar els textos i **fer l’apartat diferent**: dubtes reals (com guardar un lloc, per què no surt un pin, com filtrar…) o un altre format. El recorregut en tres passos i els enllaços a Llocs / Favorits / Contacte es queden. **No implementar ara.**
+
+**Estat:** pendent; no implementar ara.
+
+---
+
 ## 2026-09-02 11:51 CEST
 
 **Àmbit:** Llocs · llistat (`/places`) · **important**
