@@ -26,6 +26,11 @@ public sealed class CreateAdminUserRequestValidator : IValidator<CreateAdminUser
             result.Add(nameof(request.Password), "Password must be at least 6 characters.");
         }
 
+        if (!string.Equals(request.Password?.Trim() ?? string.Empty, request.ConfirmPassword?.Trim() ?? string.Empty, StringComparison.Ordinal))
+        {
+            result.Add(nameof(request.ConfirmPassword), "La confirmació no coincideix amb la contrasenya.");
+        }
+
         if (string.IsNullOrWhiteSpace(request.DisplayName))
         {
             result.Add(nameof(request.DisplayName), "Display name is required.");

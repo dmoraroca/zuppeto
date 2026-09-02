@@ -43,6 +43,7 @@ public sealed class CreateAdminUserCommandHandler(
         var user = new User(
             Guid.NewGuid(),
             email,
+            // Login password: hash of Password after ConfirmPassword matched (same column as profile).
             passwordHasher.Hash(request.Password.Trim()),
             catalogEntry.Key,
             userProfileFactory.Create(displayName, city, country, string.Empty, avatarUrl),

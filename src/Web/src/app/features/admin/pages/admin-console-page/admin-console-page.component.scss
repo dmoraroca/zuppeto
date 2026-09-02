@@ -501,6 +501,26 @@
   grid-column: 1 / -1;
 }
 
+.admin-console-form__password-pair {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: inherit;
+  align-items: start;
+}
+
+.admin-console-password-hint {
+  grid-column: 1 / -1;
+  margin: 0.35rem 0 0;
+  font-size: 0.86rem;
+  line-height: 1.4;
+  color: var(--yp-color-text-muted);
+}
+
+#admin-detail-user-form .admin-console-form__password-pair {
+  margin-top: 1rem;
+}
+
 .admin-console-form--create .admin-console-primary {
   align-self: end;
 }
@@ -895,6 +915,7 @@
   }
 
   .admin-console-form--create,
+  .admin-console-form__password-pair,
   .admin-console-user-detail__meta,
   .admin-console-role-strip {
     grid-template-columns: 1fr;

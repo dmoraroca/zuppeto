@@ -282,6 +282,8 @@ export class ErrorNotificationsService {
       CurrentPassword: 'Contrasenya actual',
       NewPassword: 'Contrasenya nova',
       ConfirmNewPassword: 'Confirmació',
+      Password: 'Contrasenya',
+      ConfirmPassword: 'Confirmació',
       Email: 'Email',
       Id: 'Usuari'
     };

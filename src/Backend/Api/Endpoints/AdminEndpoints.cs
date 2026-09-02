@@ -17,6 +17,7 @@ internal static class AdminEndpoints
         group.MapGet("/users", GetUsersAsync);
         group.MapPost("/users", CreateUserAsync);
         group.MapPut("/users/{id:guid}/role", UpdateUserRoleAsync);
+        group.MapPut("/users/{id:guid}/password", SetUserPasswordAsync);
         group.MapDelete("/users/{id:guid}", DeleteUserAsync);
         group.MapGet("/permissions", GetPermissionsAsync);
         group.MapPost("/permissions/definitions", CreatePermissionDefinitionAsync);
@@ -107,6 +108,41 @@ internal static class AdminEndpoints
         }
 
         var result = await service.UpdateUserRoleAsync(id, request, cancellationToken);
+
+        if (!result.IsSuccess && result.Failure?.Kind == Application.Results.FailureKind.NotFound)
+        {
+            return TypedResults.NotFound();
+        }
+
+        if (!result.IsSuccess)
+        {
+            return TypedResults.NotFound();
+        }
+
+        return TypedResults.Ok(result.Value!);
+    }
+
+    [Authorize]
+    private static async Task<Results<Ok<Application.Users.UserDto>, NotFound, ForbidHttpResult, ValidationProblem>> SetUserPasswordAsync(
+        ClaimsPrincipal principal,
+        Guid id,
+        SetAdminUserPasswordRequest request,
+        IValidator<SetAdminUserPasswordRequest> validator,
+        IAdminApplicationService service,
+        CancellationToken cancellationToken)
+    {
+        if (!await principal.HasPermissionAsync(service, "action.users.manage", cancellationToken))
+        {
+            return TypedResults.Forbid();
+        }
+
+        var validation = validator.Validate(request);
+        if (!validation.IsValid)
+        {
+            return validation.ToValidationProblem();
+        }
+
+        var result = await service.SetUserPasswordAsync(id, request, cancellationToken);
 
         if (!result.IsSuccess && result.Failure?.Kind == Application.Results.FailureKind.NotFound)
         {

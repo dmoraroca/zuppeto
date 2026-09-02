@@ -477,13 +477,14 @@ Pel que fa a la zona interna, la fase ja ha obert aquestes peces funcionals:
 Implementacio visible actual d'aquest tram:
 
 - `admin/usuaris` ja no es limita a consulta i canvi de rol; ara incorpora alta completa, detall, edicio i baixa
-- la creacio d'usuaris demana `email`, `contrasenya inicial`, `nom visible`, `ciutat`, `pais`, `rol` i pot incorporar `avatar`
+- la creacio d'usuaris demana `email`, `contrasenya inicial` amb confirmació, `nom visible`, `ciutat`, `pais`, `rol` i pot incorporar `avatar`
 - el detall d'usuari mostra `bio`, consentiment, data de consentiment, data d'alta i `ultim acces`
 - `ADMIN` ja pot editar dades basiques d'un altre usuari: `nom visible`, `ciutat`, `pais`, `bio`, `rol` i `avatar`
 - la baixa d'usuari ja existeix com a operacio del manteniment intern
 - el backend ja registra `ultim acces` quan un usuari entra per login propi o federat
 - existeix una pagina de `notificacions` per consultar avisos i errors recents de la sessio
 - les notificacions es poden marcar com a llegides, tornar a no llegides o marcar totes com a llegides
+- l'alta de rol al catàleg (`admin/rols`) exigeix acceptació expressa de privacitat abans de desar, com països, ciutats i llocs
 
 Aixo significa que la capa interna ja no és una idea teòrica. Ja existeix una frontera funcional entre:
 
@@ -571,6 +572,7 @@ Dades de creacio d'usuari:
 
 - `email`
 - `contrasenya inicial`
+- `confirmació de contrasenya`
 - `nom visible`
 - `ciutat`
 - `pais`
@@ -580,6 +582,7 @@ Camps obligatoris en creacio d'usuari:
 
 - `email`
 - `contrasenya inicial`
+- `confirmació de contrasenya`
 - `nom visible`
 - `ciutat`
 - `pais`
@@ -588,16 +591,19 @@ Criteri funcional d'obligatorietat:
 
 - no s'ha de poder crear un usuari sense `email`
 - no s'ha de poder crear un usuari sense `contrasenya inicial`
+- no s'ha de poder crear un usuari sense `confirmació de contrasenya`
 - no s'ha de poder crear un usuari sense `nom visible`
 - no s'ha de poder crear un usuari sense `ciutat`
 - no s'ha de poder crear un usuari sense `pais`
 - `rol` ha de tenir valor, pero pot venir informat per defecte pel sistema
+- la contrasenya inicial segueix el mateix criteri que al perfil (§3.11): mínim **6** caràcters, **confirmació igual**, línia de força (**dèbil** / **mitjana** / **forta**) i **ull** per mostrar o amagar; **Crear** resta desactivat si no coincideixen o no arriben al mínim. Si coincideixen, el valor es desa com a **contrasenya del compte** (hash a BD); la confirmació no es persisteix
 
 Criteri funcional d'edicio:
 
 - `rol` es una dada de govern i si es editable des d'aquest manteniment
 - `nom visible`, `ciutat`, `pais` i `bio` si es poden editar des d'aquest manteniment
 - `avatarUrl` si es pot gestionar des d'aquest manteniment
+- `ADMIN` pot **canviar la contrasenya** d'un altre compte des de **Modificar**: contrasenya nova + confirmació, mateix criteri que al perfil (§3.11) (mínim 6, iguals, línia de força, ull); **no** cal la contrasenya actual (l'administrador pot comprovar sempre). Si coincideixen, el valor substitueix la **contrasenya del compte** a BD (mateix camp que el perfil). Si els camps resten buits, no es toca la contrasenya
 - les dades que siguin metadades de seguiment o context no s'han d'editar manualment des d'aquesta pantalla
 - aquesta pantalla no es defineix com a editor complet i lliure de qualsevol dada del compte
 

@@ -17,6 +17,7 @@ public sealed record AdminUserListItemDto(
 public sealed record CreateAdminUserRequest(
     string Email,
     string Password,
+    string ConfirmPassword,
     string Role,
     string DisplayName,
     string City,
@@ -24,6 +25,11 @@ public sealed record CreateAdminUserRequest(
     string? AvatarUrl);
 
 public sealed record UpdateUserRoleRequest(string Role);
+
+/// <summary>
+/// Admin sets the account login password. Confirm is validation-only; the new value is stored as <c>password_hash</c>.
+/// </summary>
+public sealed record SetAdminUserPasswordRequest(string NewPassword, string ConfirmNewPassword);
 
 public sealed record PermissionDefinitionDto(
     string Key,

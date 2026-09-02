@@ -144,20 +144,8 @@
               <input type="email" placeholder="usuari@domini.com" formControlName="email" required />
             </label>
             <label>
-              <span>Contrasenya <strong class="form-field-required" aria-hidden="true">*</strong></span>
-              <input type="password" placeholder="Contrasenya inicial" formControlName="password" required />
-            </label>
-            <label>
               <span>Nom visible <strong class="form-field-required" aria-hidden="true">*</strong></span>
               <input placeholder="Nom que veurà l'usuari" formControlName="displayName" required />
-            </label>
-            <label>
-              <span>Ciutat <strong class="form-field-required" aria-hidden="true">*</strong></span>
-              <input placeholder="Ciutat" formControlName="city" required />
-            </label>
-            <label>
-              <span>País <strong class="form-field-required" aria-hidden="true">*</strong></span>
-              <input placeholder="País" formControlName="country" required />
             </label>
             <label>
               <span>Rol <strong class="form-field-required" aria-hidden="true">*</strong></span>
@@ -167,6 +155,30 @@
                 }
               </select>
             </label>
+            <label>
+              <span>Ciutat <strong class="form-field-required" aria-hidden="true">*</strong></span>
+              <input placeholder="Ciutat" formControlName="city" required />
+            </label>
+            <label>
+              <span>País <strong class="form-field-required" aria-hidden="true">*</strong></span>
+              <input placeholder="País" formControlName="country" required />
+            </label>
+            <div class="admin-console-form__password-pair">
+              <app-password-field
+                label="Contrasenya"
+                [control]="userForm.controls.password"
+                [required]="true"
+                autocomplete="new-password"
+                [showStrength]="true"
+              />
+              <app-password-field
+                label="Confirmar contrasenya"
+                [control]="userForm.controls.confirmPassword"
+                [required]="true"
+                autocomplete="new-password"
+                [matchControl]="userForm.controls.password"
+              />
+            </div>
 
             <section class="admin-console-avatar-field">
               <span>Imatge de perfil</span>
@@ -344,6 +356,26 @@
                 }
               </label>
             </div>
+
+            @if (detailEditMode()) {
+              <div class="admin-console-form__password-pair">
+                <app-password-field
+                  label="Contrasenya nova"
+                  [control]="detailForm.controls.newPassword"
+                  autocomplete="new-password"
+                  [showStrength]="true"
+                />
+                <app-password-field
+                  label="Confirmar contrasenya"
+                  [control]="detailForm.controls.confirmNewPassword"
+                  autocomplete="new-password"
+                  [matchControl]="detailForm.controls.newPassword"
+                />
+              </div>
+              <p class="admin-console-password-hint">
+                Deixa-ho buit si no vols canviar-la. L’administrador no ha d’introduir l’actual.
+              </p>
+            }
           </form>
 
           <div class="admin-console-modal__footer">
@@ -364,7 +396,7 @@
                   <button
                     type="button"
                     class="admin-console-primary admin-console-role-strip__button"
-                    [disabled]="!detailPrivacyAccepted()"
+                    [disabled]="!detailPrivacyAccepted() || !canSaveUserDetail()"
                     (click)="saveSelectedUserRole()"
                   >
                     Desar
@@ -1462,6 +1494,16 @@
           </div>
           <div class="admin-console-modal__footer">
             <div class="admin-console-modal__footer-band">
+              @if (roleIsNew()) {
+                <label class="admin-console-privacy-check">
+                  <input
+                    type="checkbox"
+                    [checked]="createMaintenancePrivacyAccepted()"
+                    (change)="createMaintenancePrivacyAccepted.set($any($event.target).checked)"
+                  />
+                  <span>Accepto les condicions de privacitat d'aquest entorn intern. <strong class="form-field-required" aria-hidden="true">*</strong></span>
+                </label>
+              }
               <div class="admin-console-modal__footer-actions">
                 @if (roleIsNew() || roleDetailEditMode()) {
                   <button

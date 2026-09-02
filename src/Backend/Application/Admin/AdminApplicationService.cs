@@ -15,6 +15,7 @@ internal sealed class AdminApplicationService(
     IMenuRepository menuRepository,
     ICommandHandler<CreateAdminUserCommand, Result<Users.UserDto>> createUserHandler,
     ICommandHandler<UpdateUserRoleCommand, Result<Users.UserDto>> updateRoleHandler,
+    ICommandHandler<SetAdminUserPasswordCommand, Result<Users.UserDto>> setPasswordHandler,
     IMenuItemDefinitionFactory menuItemDefinitionFactory) : IAdminApplicationService
 {
     private static readonly InternalDocumentSummaryDto[] InternalDocuments =
@@ -58,6 +59,14 @@ internal sealed class AdminApplicationService(
         CancellationToken cancellationToken = default)
     {
         return await updateRoleHandler.HandleAsync(new UpdateUserRoleCommand(userId, request), cancellationToken);
+    }
+
+    public async Task<Result<Users.UserDto>> SetUserPasswordAsync(
+        Guid userId,
+        SetAdminUserPasswordRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        return await setPasswordHandler.HandleAsync(new SetAdminUserPasswordCommand(userId, request), cancellationToken);
     }
 
     public async Task DeleteUserAsync(Guid userId, CancellationToken cancellationToken = default)

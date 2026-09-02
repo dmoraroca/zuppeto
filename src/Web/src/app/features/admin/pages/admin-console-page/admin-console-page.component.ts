@@ -1,13 +1,26 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  FormBuilder,
+  FormsModule,
+  ReactiveFormsModule,
+  ValidationErrors,
+  Validators
+} from '@angular/forms';
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { filter, merge, of } from 'rxjs';
 
 import { SiteFooterComponent } from '../../../../core/layout/components/site-footer/site-footer.component';
 import { SiteHeaderComponent } from '../../../../core/layout/components/site-header/site-header.component';
 import { ErrorNotificationsService } from '../../../../core/services/error-notifications.service';
+import { PasswordFieldComponent } from '../../../auth/components/password-field/password-field.component';
+import {
+  PASSWORD_MIN_LENGTH,
+  PASSWORD_STRENGTH_POLICY,
+  PasswordStrengthPolicy
+} from '../../../auth/policies/password-strength.policy';
 import { AuthService } from '../../../auth/services/auth.service';
 import { SectionHeadingComponent } from '../../../../shared/components/section-heading/section-heading.component';
 import { fileToAvatarDataUrl } from '../../../../shared/utils/avatar-image.util';
@@ -43,7 +56,14 @@ type AvatarSuccessOperation = 'crear' | 'modificar' | 'esborrar';
 
 @Component({
   selector: 'app-admin-console-page',
-  imports: [FormsModule, ReactiveFormsModule, SiteHeaderComponent, SiteFooterComponent, SectionHeadingComponent],
+  imports: [
+    FormsModule,
+    ReactiveFormsModule,
+    SiteHeaderComponent,
+    SiteFooterComponent,
+    SectionHeadingComponent,
+    PasswordFieldComponent
+  ],
   templateUrl: './admin-console-page.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './admin-console-page.component.scss'
@@ -55,6 +75,7 @@ export class AdminConsolePageComponent {
   private readonly adminService = inject(AdminService);
   private readonly authService = inject(AuthService);
   private readonly notifications = inject(ErrorNotificationsService);
+  private readonly passwordStrength = inject<PasswordStrengthPolicy>(PASSWORD_STRENGTH_POLICY);
   private avatarSuccessTimer: ReturnType<typeof setTimeout> | null = null;
   private cityNameSearchDebounce: ReturnType<typeof setTimeout> | null = null;
 
@@ -139,22 +160,31 @@ export class AdminConsolePageComponent {
   protected readonly selectedDocument = signal<InternalDocument | null>(null);
   protected readonly loading = signal(false);
 
-  protected readonly userForm = this.formBuilder.nonNullable.group({
-    email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(6)]],
-    displayName: ['', [Validators.required, Validators.minLength(3)]],
-    city: ['', [Validators.required, Validators.minLength(2)]],
-    country: ['', [Validators.required, Validators.minLength(2)]],
-    role: this.formBuilder.nonNullable.control<string>('User'),
-    avatarUrl: ['']
-  });
-  protected readonly detailForm = this.formBuilder.nonNullable.group({
-    displayName: ['', [Validators.required, Validators.minLength(3)]],
-    city: ['', [Validators.required, Validators.minLength(2)]],
-    country: ['', [Validators.required, Validators.minLength(2)]],
-    bio: ['', [Validators.required, Validators.minLength(12)]],
-    role: this.formBuilder.nonNullable.control<string>('User')
-  });
+  protected readonly userForm = this.formBuilder.nonNullable.group(
+    {
+      email: ['', [Validators.required, Validators.email]],
+      password: ['', [Validators.required, Validators.minLength(PASSWORD_MIN_LENGTH)]],
+      confirmPassword: ['', [Validators.required, Validators.minLength(PASSWORD_MIN_LENGTH)]],
+      displayName: ['', [Validators.required, Validators.minLength(3)]],
+      city: ['', [Validators.required, Validators.minLength(2)]],
+      country: ['', [Validators.required, Validators.minLength(2)]],
+      role: this.formBuilder.nonNullable.control<string>('User'),
+      avatarUrl: ['']
+    },
+    { validators: createUserPasswordsMatch }
+  );
+  protected readonly detailForm = this.formBuilder.nonNullable.group(
+    {
+      displayName: ['', [Validators.required, Validators.minLength(3)]],
+      city: ['', [Validators.required, Validators.minLength(2)]],
+      country: ['', [Validators.required, Validators.minLength(2)]],
+      bio: ['', [Validators.required, Validators.minLength(12)]],
+      role: this.formBuilder.nonNullable.control<string>('User'),
+      newPassword: [''],
+      confirmNewPassword: ['']
+    },
+    { validators: optionalNewPasswordsMatch }
+  );
   protected readonly editableMenu = signal<AdminMenuDefinition>({
     key: '',
     label: '',
@@ -738,13 +768,7 @@ export class AdminConsolePageComponent {
   protected selectUser(user: AdminUserListItem): void {
     this.selectedUser.set(user);
     this.selectedUserRole.set(user.role);
-    this.detailForm.reset({
-      displayName: user.displayName,
-      city: user.city || '',
-      country: user.country || '',
-      bio: user.bio || '',
-      role: user.role
-    });
+    this.fillDetailForm(user);
     this.detailAvatarPreview.set(user.avatarUrl);
     this.detailEditMode.set(false);
     this.detailPrivacyAccepted.set(false);
@@ -752,15 +776,7 @@ export class AdminConsolePageComponent {
   }
 
   protected openCreateUserModal(): void {
-    this.userForm.reset({
-      email: '',
-      password: '',
-      displayName: '',
-      city: '',
-      country: '',
-      role: 'User',
-      avatarUrl: ''
-    });
+    this.resetCreateUserForm();
     this.createPrivacyAccepted.set(false);
     this.createAvatarPreview.set(null);
     this.createUserModalOpen.set(true);
@@ -794,13 +810,7 @@ export class AdminConsolePageComponent {
       return;
     }
 
-    this.detailForm.reset({
-      displayName: user.displayName,
-      city: user.city || '',
-      country: user.country || '',
-      bio: user.bio || '',
-      role: user.role
-    });
+    this.fillDetailForm(user);
     this.detailAvatarPreview.set(user.avatarUrl);
     this.detailPrivacyAccepted.set(false);
     this.detailEditMode.set(true);
@@ -814,13 +824,7 @@ export class AdminConsolePageComponent {
       return;
     }
 
-    this.detailForm.reset({
-      displayName: user.displayName,
-      city: user.city || '',
-      country: user.country || '',
-      bio: user.bio || '',
-      role: user.role
-    });
+    this.fillDetailForm(user);
     this.detailAvatarPreview.set(user.avatarUrl);
     this.selectedUserRole.set(user.role);
     this.detailPrivacyAccepted.set(false);
@@ -843,9 +847,13 @@ export class AdminConsolePageComponent {
       return;
     }
 
-    if (this.detailForm.invalid) {
+    if (this.detailForm.invalid || !this.canSaveUserDetail()) {
       this.detailForm.markAllAsTouched();
-      this.notifications.notify('Dades incompletes', 'Revisa nom visible, ciutat, país i bio abans de desar.', 'error');
+      this.notifications.notify(
+        'Dades incompletes',
+        'Revisa nom visible, ciutat, país, bio i, si canvies la contrasenya, que nova i confirmació coincideixin (mínim 6).',
+        'error'
+      );
       return;
     }
 
@@ -857,6 +865,11 @@ export class AdminConsolePageComponent {
     const payload = this.detailForm.getRawValue();
     const nextRole = payload.role;
     const avatarOperation = this.getAvatarOperation(user.avatarUrl, this.detailAvatarPreview());
+    const nextPassword = payload.newPassword.trim();
+
+    if (nextPassword) {
+      await this.adminService.setUserPassword(user.id, nextPassword, payload.confirmNewPassword.trim());
+    }
 
     await this.adminService.updateUserDetails(user.id, {
       displayName: payload.displayName.trim(),
@@ -872,7 +885,13 @@ export class AdminConsolePageComponent {
       await this.adminService.updateUserRole(user.id, nextRole);
     }
 
-    this.notifications.notify('Usuari actualitzat', 'Els canvis s’han desat correctament.', 'success');
+    this.notifications.notify(
+      nextPassword ? 'Usuari i contrasenya actualitzats' : 'Usuari actualitzat',
+      nextPassword
+        ? 'Els canvis s’han desat. La nova contrasenya ja és la del compte.'
+        : 'Els canvis s’han desat correctament.',
+      'success'
+    );
     this.detailPrivacyAccepted.set(false);
     this.detailEditMode.set(false);
     if (avatarOperation) {
@@ -958,9 +977,13 @@ export class AdminConsolePageComponent {
   }
 
   protected async createUser(): Promise<void> {
-    if (this.userForm.invalid) {
+    if (!this.canCreateUser()) {
       this.userForm.markAllAsTouched();
-      this.notifications.notify('Dades incompletes', 'Cal informar email, contrasenya, nom visible, ciutat i país.', 'error');
+      this.notifications.notify(
+        'Dades incompletes',
+        'Cal informar email, contrasenya i confirmació (mínim 6, iguals), nom visible, ciutat i país.',
+        'error'
+      );
       return;
     }
 
@@ -975,6 +998,7 @@ export class AdminConsolePageComponent {
     await this.adminService.createUser({
       email: payload.email.trim(),
       password: payload.password.trim(),
+      confirmPassword: payload.confirmPassword.trim(),
       role: payload.role,
       displayName: payload.displayName.trim(),
       city: payload.city.trim(),
@@ -982,19 +1006,11 @@ export class AdminConsolePageComponent {
       avatarUrl: this.createAvatarPreview()
     });
 
-    this.userForm.reset({
-      email: '',
-      password: '',
-      displayName: '',
-      city: '',
-      country: '',
-      role: 'User',
-      avatarUrl: ''
-    });
+    this.resetCreateUserForm();
     this.createUserModalOpen.set(false);
     this.createPrivacyAccepted.set(false);
     this.createAvatarPreview.set(null);
-    this.notifications.notify('Usuari creat', 'El nou usuari s’ha creat correctament.', 'success');
+    this.notifications.notify('Usuari creat', 'El compte s’ha creat amb la contrasenya indicada.', 'success');
     if (createdWithAvatar) {
       this.showAvatarSuccessPopup('crear');
     }
@@ -1021,7 +1037,52 @@ export class AdminConsolePageComponent {
   }
 
   protected canCreateUser(): boolean {
-    return this.userForm.valid;
+    const password = this.userForm.controls.password.value.trim();
+    const confirm = this.userForm.controls.confirmPassword.value.trim();
+    return (
+      this.userForm.valid &&
+      this.passwordStrength.meetsMinimum(password) &&
+      confirm === password
+    );
+  }
+
+  protected canSaveUserDetail(): boolean {
+    const password = this.detailForm.controls.newPassword.value.trim();
+    const confirm = this.detailForm.controls.confirmNewPassword.value.trim();
+    if (this.detailForm.invalid) {
+      return false;
+    }
+
+    if (!password && !confirm) {
+      return true;
+    }
+
+    return this.passwordStrength.meetsMinimum(password) && confirm === password;
+  }
+
+  private fillDetailForm(user: AdminUserListItem): void {
+    this.detailForm.reset({
+      displayName: user.displayName,
+      city: user.city || '',
+      country: user.country || '',
+      bio: user.bio || '',
+      role: user.role,
+      newPassword: '',
+      confirmNewPassword: ''
+    });
+  }
+
+  private resetCreateUserForm(): void {
+    this.userForm.reset({
+      email: '',
+      password: '',
+      confirmPassword: '',
+      displayName: '',
+      city: '',
+      country: '',
+      role: 'User',
+      avatarUrl: ''
+    });
   }
 
   protected openCreatePermissionModal(): void {
@@ -2466,4 +2527,24 @@ export class AdminConsolePageComponent {
         };
     }
   }
+}
+
+function createUserPasswordsMatch(group: AbstractControl): ValidationErrors | null {
+  const password = String(group.get('password')?.value ?? '').trim();
+  const confirm = String(group.get('confirmPassword')?.value ?? '').trim();
+  if (!password && !confirm) {
+    return null;
+  }
+
+  return password === confirm ? null : { passwordMismatch: true };
+}
+
+function optionalNewPasswordsMatch(group: AbstractControl): ValidationErrors | null {
+  const password = String(group.get('newPassword')?.value ?? '').trim();
+  const confirm = String(group.get('confirmNewPassword')?.value ?? '').trim();
+  if (!password && !confirm) {
+    return null;
+  }
+
+  return password === confirm ? null : { passwordMismatch: true };
 }

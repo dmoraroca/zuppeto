@@ -48,11 +48,13 @@ public static class DependencyInjection
         services.AddSingleton<IMenuItemDefinitionFactory, MenuItemDefinitionFactory>();
         services.AddScoped<ICommandHandler<CreateAdminUserCommand, Results.Result<Users.UserDto>>, CreateAdminUserCommandHandler>();
         services.AddScoped<ICommandHandler<UpdateUserRoleCommand, Results.Result<Users.UserDto>>, UpdateUserRoleCommandHandler>();
+        services.AddScoped<ICommandHandler<SetAdminUserPasswordCommand, Results.Result<Users.UserDto>>, SetAdminUserPasswordCommandHandler>();
 
         services.AddSingleton<IValidator<LoginRequest>, LoginRequestValidator>();
         services.AddSingleton<IValidator<GoogleLoginRequest>, GoogleLoginRequestValidator>();
         services.AddSingleton<IValidator<CreateAdminUserRequest>, CreateAdminUserRequestValidator>();
         services.AddSingleton<IValidator<UpdateUserRoleRequest>, UpdateUserRoleRequestValidator>();
+        services.AddSingleton<IValidator<SetAdminUserPasswordRequest>, SetAdminUserPasswordRequestValidator>();
         services.AddSingleton<IValidator<UpdateRolePermissionsRequest>, UpdateRolePermissionsRequestValidator>();
         services.AddSingleton<IValidator<SaveMenuRequest>, SaveMenuRequestValidator>();
         services.AddSingleton<IValidator<CreateCountryRequest>, CreateCountryRequestValidator>();

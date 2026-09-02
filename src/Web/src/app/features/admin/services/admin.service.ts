@@ -29,6 +29,7 @@ export interface AdminUserListItem {
 export interface CreateAdminUserRequest {
   email: string;
   password: string;
+  confirmPassword: string;
   role: string;
   displayName: string;
   city: string;
@@ -322,6 +323,15 @@ export class AdminService {
   async updateUserRole(userId: string, role: string): Promise<void> {
     await firstValueFrom(
       this.http.put(`${API_BASE_URL}/admin/users/${userId}/role`, { role })
+    );
+  }
+
+  async setUserPassword(userId: string, newPassword: string, confirmNewPassword: string): Promise<void> {
+    await firstValueFrom(
+      this.http.put(`${API_BASE_URL}/admin/users/${userId}/password`, {
+        newPassword,
+        confirmNewPassword
+      })
     );
   }
 

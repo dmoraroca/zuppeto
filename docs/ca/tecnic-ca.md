@@ -299,6 +299,7 @@ Rutes reals validades:
 - `POST /api/users`
 - `PUT /api/users/{id}/profile`
 - `PUT /api/users/{id}/account` — canvi d'email i/o contrasenya (JWT del mateix `id`; reemet sessió); email sense nova no exigeix actual; si hi ha contrasenya nova, exigeix actual i la comprova contra el hash PBKDF2; email duplicat → validació
+- `PUT /api/admin/users/{id}/password` — `ADMIN` (`action.users.manage`) assigna contrasenya nova **sense** l’actual; cos `{ newPassword, confirmNewPassword }` (≥ 6 i iguals); si coincideixen, el hasher PBKDF2 escriu `users.password_hash` (mateix camp que `PUT /api/users/{id}/account`); la confirmació no es persisteix; no reemet la sessió de l’usuari editat
 - `POST /api/users/{id}/password/verify` — cos `{ password }` → `{ matches }`; només l’usuari autenticat sobre el seu `id`; serveix per desbloquejar nova/confirmació al perfil i per revalidar al **Guardar**
 - `GET /api/favorites/{ownerUserId}`
 - `POST /api/favorites/{ownerUserId}/places/{placeId}`
@@ -1389,7 +1390,7 @@ Decisions tecniques rellevants:
 - `USER` i `ADMIN` comparteixen base de sessio però divergeixen en permisos i rutes
 - **Strategy + DIP:** `PASSWORD_STRENGTH_POLICY` (`RecommendedPasswordStrengthPolicy`), `PROFILE_SAVE_POLICY` (`CatalogProfileSavePolicy`) i `PROFILE_PASSWORD_CHANGE_POLICY` (`DefaultProfilePasswordChangePolicy`) registrats a `app.config.ts`; `ProfilePage` orquestra, no posseeix les regles
 - **Specification / catàleg (O):** cada camp obligatori del perfil és una `ProfileRequiredFieldRule`; `canSave` i «Falten: …» surten de la mateixa llista (nom ≥ 3, email no buit i no `invalid`, ciutat, país; si `wantsPasswordChange`: nova ≥ 6 i confirmació igual)
-- **SRP:** `PasswordFieldComponent` encapsula mostrar/amagar, bloqueig (`disabled` / `readonly`) i la línia de força; no viu a `shared` per no dependre d’auth des de compartit
+- **SRP:** `PasswordFieldComponent` encapsula mostrar/amagar, bloqueig (`disabled` / `readonly`) i la línia de força; no viu a `shared` per no dependre d’auth des de compartit. L’alta d’usuari a `admin-console-page` reutilitza el mateix component (contrasenya + confirmació)
 - **Strategy (canvi de contrasenya):** `resolveSave` — actual buida → `save-without-password-check` (`writeAccount` només si l’email ha canviat); actual plena → `verify-current` i, si coincideix, escriure contrasenya i/o email; `canUnlockNewFields`; `shouldVerifyTypedCurrent` (només si l’usuari ha editat l’actual i té text); `shouldWipeAutofill` (esborra autofill si l’usuari no ha editat)
 - el formulari de perfil **no** fa `ngSubmit`: `submit` es cancel·la; **Guardar canvis** és `type="button"` i només crida `save()` al clic (Enter no desa)
 - camps de contrasenya: `currentPassword` buit a l’entrada; `newPassword` / `confirmNewPassword` `disabled` fins `matches === true`; autofill ignorat amb retards `50/300/800/1600` ms; al `save` es revalida i, si falla, notificació «Contrasenya incorrecta» i no es crida `updateAccount` amb nova
@@ -2105,10 +2106,10 @@ Historic d'execucions:
 Rutes internes governades per permisos:
 
 - `/admin/documentacio` (DEVELOPER + ADMIN; `page.admin.documentation`)
-- `/admin/usuaris` (ADMIN; `page.admin.users`)
+- `/admin/usuaris` (ADMIN; `page.admin.users`). Alta i edició: `PasswordFieldComponent` + `PASSWORD_STRENGTH_POLICY`. Si nova i confirmació coincideixen, el hasher escriu `users.password_hash` (contrasenya de login, com al perfil); la confirmació no es persisteix. Alta: `Crear` desactivat si no hi ha ≥ 6 o no coincideixen (`POST /api/admin/users` amb `password` + `confirmPassword`). Edició: camps opcionals; si s’omplen, `PUT /api/admin/users/{id}/password` (`newPassword` + `confirmNewPassword`, sense l’actual)
 - `/admin/permisos` (ADMIN; `page.admin.permissions`)
 - `/admin/menus` (manteniment de menús; `action.permissions.manage`)
-- `/admin/rols` (catàleg de rols; `page.admin.roles`)
+- `/admin/rols` (catàleg de rols; `page.admin.roles`). Alta (`Nou rol`): el peu del modal mostra el check de privacitat d’entorn intern; `Desar` resta desactivat fins que es marca (mateix patró que països, ciutats i llocs a `admin-console-page`)
 - `/admin/llocs` (manteniment de llocs; `page.admin.places`)
 - `/admin/paisos` (catàleg de països; `page.admin.countries`)
 - `/admin/ciutats` (catàleg de ciutats; `page.admin.cities`)
