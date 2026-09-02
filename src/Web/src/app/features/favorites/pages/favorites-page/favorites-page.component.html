@@ -58,17 +58,11 @@
           [types]="types"
           [showClearButton]="false"
           [enableRemoteCitySearch]="false"
+          [showSort]="true"
+          [sort]="draftFilters().sort"
           (filtersChanged)="onDraftFiltersChanged($event)"
+          (sortChanged)="onDraftSortChanged($event)"
         />
-
-        <label class="favorites-page__sort">
-          <span>Ordre</span>
-          <select [value]="draftFilters().sort" (change)="onDraftSortChanged($event)">
-            <option value="recent">Més recents primer</option>
-            <option value="rating">Millor valorats primer</option>
-            <option value="name">Nom A-Z</option>
-          </select>
-        </label>
 
         <section class="favorites-page__search-actions" aria-label="Accions de cerca">
           <button type="submit" class="favorites-page__search-primary">Cercar</button>

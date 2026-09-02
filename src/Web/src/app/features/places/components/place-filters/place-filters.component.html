@@ -46,6 +46,17 @@
     </label>
   }
 
+  @if (showSort()) {
+    <label>
+      <span>Ordre</span>
+      <select [value]="sort()" (change)="onSort($event)">
+        <option value="recent" [selected]="sort() === 'recent'">Més recents primer</option>
+        <option value="rating" [selected]="sort() === 'rating'">Millor valorats primer</option>
+        <option value="name" [selected]="sort() === 'name'">Nom A-Z</option>
+      </select>
+    </label>
+  }
+
   @if (showClearButton()) {
     <button type="button" (click)="clear()">Netejar</button>
   }

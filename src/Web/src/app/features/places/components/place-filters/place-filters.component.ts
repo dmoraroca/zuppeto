@@ -3,6 +3,8 @@ import { Component, computed, input, output, ChangeDetectionStrategy } from '@an
 import { CityComboboxComponent } from '../../../../shared/components/city-combobox/city-combobox.component';
 import { PlaceFilters } from '../../models/place.model';
 
+export type PlaceFilterSort = 'recent' | 'rating' | 'name';
+
 @Component({
   selector: 'app-place-filters',
   standalone: true,
@@ -19,11 +21,14 @@ export class PlaceFiltersComponent {
   readonly showCity = input(true);
   readonly showType = input(true);
   readonly showPet = input(true);
+  readonly showSort = input(false);
+  readonly sort = input<PlaceFilterSort>('recent');
   readonly showClearButton = input(true);
   readonly typeLabel = input('Tipus');
   /** When false, the city combo only lists `cities` (no GeoNames / catalog remote search). */
   readonly enableRemoteCitySearch = input(true);
   readonly filtersChanged = output<Partial<PlaceFilters>>();
+  readonly sortChanged = output<PlaceFilterSort>();
 
   protected readonly remoteCityMinChars = computed(() => (this.enableRemoteCitySearch() ? 2 : 999));
 
@@ -46,6 +51,10 @@ export class PlaceFiltersComponent {
     this.filtersChanged.emit({ pet: value });
   }
 
+  protected onSort(event: Event): void {
+    this.sortChanged.emit((event.target as HTMLSelectElement).value as PlaceFilterSort);
+  }
+
   protected clear(): void {
     this.filtersChanged.emit({
       search: '',
@@ -53,5 +62,8 @@ export class PlaceFiltersComponent {
       type: '',
       pet: 'all'
     });
+    if (this.showSort()) {
+      this.sortChanged.emit('recent');
+    }
   }
 }

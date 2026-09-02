@@ -5,7 +5,7 @@ import { SiteFooterComponent } from '../../../../core/layout/components/site-foo
 import { SiteHeaderComponent } from '../../../../core/layout/components/site-header/site-header.component';
 import { SectionHeadingComponent } from '../../../../shared/components/section-heading/section-heading.component';
 import { PlaceCardComponent } from '../../../places/components/place-card/place-card.component';
-import { PlaceFiltersComponent } from '../../../places/components/place-filters/place-filters.component';
+import { PlaceFiltersComponent, PlaceFilterSort } from '../../../places/components/place-filters/place-filters.component';
 import { PlaceMapComponent } from '../../../places/components/place-map/place-map.component';
 import { PlaceFilters } from '../../../places/models/place.model';
 import { PlaceGoogleDetailsRefresh } from '../../../places/services/place-google-details-refresh.service';
@@ -14,7 +14,7 @@ import { resolveCityMapFocus } from '../../../places/utils/city-map-focus';
 import { filterPlaces } from '../../../places/utils/place-list-filter';
 import { placesVisibleOnOsmMap } from '../../../places/utils/places-osm-map';
 import { FavoritesService } from '../../services/favorites.service';
-import { FavoriteReviewSort, sortPlacesForFavoriteReview } from '../../utils/favorite-places-sort';
+import { sortPlacesForFavoriteReview } from '../../utils/favorite-places-sort';
 import {
   EMPTY_FAVORITE_REVIEW_FILTERS,
   FavoriteReviewFilters,
@@ -166,8 +166,7 @@ export class FavoritesPageComponent {
     this.draftFilters.update((current) => ({ ...current, ...partial }));
   }
 
-  protected onDraftSortChanged(event: Event): void {
-    const sort = (event.target as HTMLSelectElement).value as FavoriteReviewSort;
+  protected onDraftSortChanged(sort: PlaceFilterSort): void {
     this.draftFilters.update((current) => ({ ...current, sort }));
   }
 
