@@ -276,7 +276,7 @@ app.MapNavigationEndpoints();
 app.MapAdminEndpoints();
 app.MapGeographicAdminEndpoints();
 app.MapPlaceEndpoints();
-app.MapFavoriteEndpoints();
+app.MapFavoriteEndpoi2nts();
 app.MapUserEndpoints();
 app.MapReviewEndpoints();
 

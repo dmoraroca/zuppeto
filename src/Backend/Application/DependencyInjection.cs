@@ -27,6 +27,11 @@ public static class DependencyInjection
         services.AddScoped<IAdminApplicationService, AdminApplicationService>();
         services.AddScoped<IGeographicAdminAppService, GeographicAdminAppService>();
         services.AddScoped<INavigationApplicationService, NavigationApplicationService>();
+        services.AddScoped<PlaceCoverPhotoStore>();
+        services.AddScoped<PlaceResponseMapper>();
+        services.AddScoped<PlaceSearchPageAssembler>();
+        services.AddScoped<PlaceGoogleSearchIngest>();
+        services.AddScoped<PlaceGoogleDetailsEnricher>();
         services.AddScoped<IPlaceApplicationService, PlaceApplicationService>();
         services.AddScoped<IFavoriteListApplicationService, FavoriteListApplicationService>();
         services.AddScoped<IUserApplicationService, UserApplicationService>();
