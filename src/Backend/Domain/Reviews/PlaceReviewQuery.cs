@@ -8,7 +8,7 @@ public sealed class PlaceReviewQuery : ValueObject
     {
         if (take <= 0)
         {
-            throw new DomainRuleException("Query take must be greater than zero.");
+            throw new DomainRuleException("El nombre de resultats ha de ser més gran que zero.");
         }
 
         OnlyVisible = onlyVisible;

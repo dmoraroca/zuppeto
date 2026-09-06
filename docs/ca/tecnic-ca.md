@@ -2117,7 +2117,7 @@ Rutes internes governades per permisos:
 - `/admin/paisos` (catàleg de països; `page.admin.countries`). `countries.code` és `varchar(20)`; `CountryCodeRules` (2–20). El input de Codi té `maxlength` 20. Migració `20260906200000_WidenCountryCodeTo20`.
 - `/admin/ciutats` (catàleg de ciutats; `page.admin.cities`)
 - Inputs de text amb `HasMaxLength` a EF: `maxlength` al front (`DB_FIELD_MAX` a `db-field-max-length.ts`). En gravar, `ClampStringMaxLengthInterceptor` talla al límit de columna (evita error 22001 de PostgreSQL). Els validadors no retornen «massa llarg». No s’aplica a `text` sense límit (comentaris, descripcions de lloc).
-- Missatges d’API i validació visibles a l’usuari: català (toasts, 400/409). El multiidioma queda per a la fase V.
+- Missatges d’API i validació visibles a l’usuari: català (toasts, 400/409). El 409 de nom de ciutat duplicat no reenvia `ex.Message`: text fix en català. El front (`toCatalanApiMessage`) tradueix cossos anglesos residuals. El multiidioma queda per a la fase V.
 - Latitud/longitud (ciutat i lloc): `sanitizeDecimalCoordinate` (`decimal-coordinate.policy.ts`); el camp només accepta signe, dígits i un punt.
 
 Estructura de navegació per defecte (desplegable `admin`, veure **§2.11.5**): contenidors **Negoci** i **Tècnic** amb els manteniments agrupats segons criteri de producte.

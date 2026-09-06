@@ -65,7 +65,7 @@ internal sealed class UserRepository(ZuppetoDbContext dbContext) : IUserReposito
 
         if (record is null)
         {
-            throw new InvalidOperationException($"User '{user.Id}' was not found.");
+            throw new InvalidOperationException("No s’ha trobat l’usuari.");
         }
 
         var previousAccepted = record.PrivacyAccepted;

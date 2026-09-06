@@ -10,7 +10,7 @@ public sealed class FavoriteList : AggregateRoot<Guid>
     {
         if (ownerUserId == Guid.Empty)
         {
-            throw new DomainRuleException("Owner user id is required.");
+            throw new DomainRuleException("El propietari és obligatori.");
         }
 
         OwnerUserId = ownerUserId;
@@ -38,7 +38,7 @@ public sealed class FavoriteList : AggregateRoot<Guid>
     {
         if (entryId == Guid.Empty)
         {
-            throw new DomainRuleException("Entry id is required.");
+            throw new DomainRuleException("L’entrada és obligatòria.");
         }
 
         if (_entries.Any(entry => entry.Id == entryId || entry.PlaceId == placeId))

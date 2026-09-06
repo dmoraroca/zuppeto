@@ -14,12 +14,12 @@ public sealed class PlaceReview : AggregateRoot<Guid>
     {
         if (placeId == Guid.Empty)
         {
-            throw new DomainRuleException("Place id is required.");
+            throw new DomainRuleException("El lloc és obligatori.");
         }
 
         if (authorUserId == Guid.Empty)
         {
-            throw new DomainRuleException("Author user id is required.");
+            throw new DomainRuleException("L’autor és obligatori.");
         }
 
         PlaceId = placeId;
@@ -46,7 +46,7 @@ public sealed class PlaceReview : AggregateRoot<Guid>
     {
         if (score is < 1 or > 5)
         {
-            throw new DomainRuleException("Review score must be between 1 and 5.");
+            throw new DomainRuleException("La puntuació ha de ser entre 1 i 5.");
         }
 
         Score = score;
@@ -56,7 +56,7 @@ public sealed class PlaceReview : AggregateRoot<Guid>
     {
         if (string.IsNullOrWhiteSpace(comment))
         {
-            throw new DomainRuleException("Review comment is required.");
+            throw new DomainRuleException("El comentari de la ressenya és obligatori.");
         }
 
         Comment = comment.Trim();

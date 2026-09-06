@@ -6,6 +6,8 @@ namespace Zuppeto.Application.Admin;
 
 public sealed class GeographicAdminAppService(IGeographicCatalogRepository repository) : IGeographicAdminAppService
 {
+    private const string CityNameAlreadyExists = "Ja existeix una ciutat amb aquest nom en aquest país.";
+
     public async Task<IReadOnlyList<CountryAdminDto>> ListCountriesAsync(CancellationToken cancellationToken = default)
     {
         var rows = await repository.ListCountriesAsync(cancellationToken);
@@ -116,9 +118,9 @@ public sealed class GeographicAdminAppService(IGeographicCatalogRepository repos
 
             return Result<CityAdminDto>.Success(ToDto(row));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException)
         {
-            return Result<CityAdminDto>.Fail(FailureKind.Conflict, ex.Message);
+            return Result<CityAdminDto>.Fail(FailureKind.Conflict, CityNameAlreadyExists);
         }
     }
 
@@ -147,9 +149,9 @@ public sealed class GeographicAdminAppService(IGeographicCatalogRepository repos
 
             return Result<CityAdminDto>.Success(ToDto(row));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException)
         {
-            return Result<CityAdminDto>.Fail(FailureKind.Conflict, ex.Message);
+            return Result<CityAdminDto>.Fail(FailureKind.Conflict, CityNameAlreadyExists);
         }
     }
 

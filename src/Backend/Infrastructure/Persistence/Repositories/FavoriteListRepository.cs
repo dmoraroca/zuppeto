@@ -39,7 +39,7 @@ internal sealed class FavoriteListRepository(ZuppetoDbContext dbContext) : IFavo
 
         if (record is null)
         {
-            throw new InvalidOperationException($"Favorite list '{favoriteList.Id}' was not found.");
+            throw new InvalidOperationException("No s’ha trobat la llista de preferits.");
         }
 
         FavoriteListPersistenceMapper.Apply(favoriteList, record);

@@ -86,7 +86,7 @@ public sealed class Place : AggregateRoot<Guid>
     {
         if (string.IsNullOrWhiteSpace(name))
         {
-            throw new DomainRuleException("Place name is required.");
+            throw new DomainRuleException("El nom del lloc és obligatori.");
         }
 
         Name = name.Trim();
@@ -96,12 +96,12 @@ public sealed class Place : AggregateRoot<Guid>
     {
         if (string.IsNullOrWhiteSpace(shortDescription))
         {
-            throw new DomainRuleException("Short description is required.");
+            throw new DomainRuleException("La descripció curta és obligatòria.");
         }
 
         if (string.IsNullOrWhiteSpace(description))
         {
-            throw new DomainRuleException("Description is required.");
+            throw new DomainRuleException("La descripció és obligatòria.");
         }
 
         ShortDescription = shortDescription.Trim();
@@ -160,7 +160,7 @@ public sealed class Place : AggregateRoot<Guid>
 
         if (DataProvenance is PlaceDataProvenance.GooglePlaces or PlaceDataProvenance.Mixed && string.IsNullOrWhiteSpace(GooglePlaceId))
         {
-            throw new DomainRuleException("Google Place ID is required when data provenance references Google Places.");
+            throw new DomainRuleException("El Google Place ID és obligatori quan la procedència és Google Places.");
         }
     }
 

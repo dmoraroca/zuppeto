@@ -86,7 +86,7 @@ internal static class GeographicAdminEndpoints
         var result = await geographicService.CreateCountryAsync(request, cancellationToken);
         if (!result.IsSuccess)
         {
-            return TypedResults.Conflict(result.Failure?.Message ?? "Unable to create country.");
+            return TypedResults.Conflict(result.Failure?.Message ?? "No s’ha pogut crear el país.");
         }
 
         var created = result.Value!;
@@ -122,7 +122,7 @@ internal static class GeographicAdminEndpoints
 
         if (!result.IsSuccess)
         {
-            return TypedResults.Conflict(result.Failure?.Message ?? "Unable to update country.");
+            return TypedResults.Conflict(result.Failure?.Message ?? "No s’ha pogut actualitzar el país.");
         }
 
         return TypedResults.Ok(result.Value!);
@@ -149,7 +149,7 @@ internal static class GeographicAdminEndpoints
 
         if (!result.IsSuccess)
         {
-            return TypedResults.Conflict(result.Failure?.Message ?? "Unable to delete country.");
+            return TypedResults.Conflict(result.Failure?.Message ?? "No s’ha pogut esborrar el país.");
         }
 
         return TypedResults.NoContent();
@@ -216,7 +216,7 @@ internal static class GeographicAdminEndpoints
 
         if (!result.IsSuccess)
         {
-            return TypedResults.Conflict(result.Failure?.Message ?? "Unable to create city.");
+            return TypedResults.Conflict(result.Failure?.Message ?? "No s’ha pogut crear la ciutat.");
         }
 
         var created = result.Value!;
@@ -252,7 +252,7 @@ internal static class GeographicAdminEndpoints
 
         if (!result.IsSuccess)
         {
-            return TypedResults.Conflict(result.Failure?.Message ?? "Unable to update city.");
+            return TypedResults.Conflict(result.Failure?.Message ?? "No s’ha pogut actualitzar la ciutat.");
         }
 
         return TypedResults.Ok(result.Value!);

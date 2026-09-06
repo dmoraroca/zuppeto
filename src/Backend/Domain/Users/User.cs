@@ -43,7 +43,7 @@ public sealed class User : AggregateRoot<Guid>
     {
         if (IsStandardUserRole() && !PrivacyConsent.Accepted)
         {
-            throw new DomainRuleException("User profile cannot be updated without privacy consent.");
+            throw new DomainRuleException("No es pot actualitzar el perfil sense consentiment de privacitat.");
         }
 
         ReplaceProfile(profile);
@@ -64,7 +64,7 @@ public sealed class User : AggregateRoot<Guid>
     {
         if (IsStandardUserRole())
         {
-            throw new DomainRuleException("User privacy consent cannot be revoked while profile remains active.");
+            throw new DomainRuleException("No es pot revocar el consentiment mentre el perfil estigui actiu.");
         }
 
         PrivacyConsent = new PrivacyConsent(false, null);
@@ -100,7 +100,7 @@ public sealed class User : AggregateRoot<Guid>
     {
         if (string.IsNullOrWhiteSpace(role))
         {
-            throw new DomainRuleException("Role is required.");
+            throw new DomainRuleException("El rol és obligatori.");
         }
 
         return role.Trim();
@@ -110,7 +110,7 @@ public sealed class User : AggregateRoot<Guid>
     {
         if (string.IsNullOrWhiteSpace(email) || !email.Contains('@'))
         {
-            throw new DomainRuleException("A valid email is required.");
+            throw new DomainRuleException("Cal un email vàlid.");
         }
 
         Email = email.Trim().ToLowerInvariant();
@@ -120,7 +120,7 @@ public sealed class User : AggregateRoot<Guid>
     {
         if (string.IsNullOrWhiteSpace(passwordHash))
         {
-            throw new DomainRuleException("Password hash is required.");
+            throw new DomainRuleException("El hash de la contrasenya és obligatori.");
         }
 
         PasswordHash = passwordHash.Trim();

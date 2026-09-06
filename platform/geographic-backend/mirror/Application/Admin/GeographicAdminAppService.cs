@@ -23,7 +23,7 @@ public sealed class GeographicAdminAppService(IGeographicCatalogRepository repos
         var code = request.Code.Trim().ToUpperInvariant();
         if (await repository.IsCountryCodeInUseAsync(code, null, cancellationToken))
         {
-            return Result<CountryAdminDto>.Fail(FailureKind.Conflict, $"Country code '{code}' is already in use.");
+            return Result<CountryAdminDto>.Fail(FailureKind.Conflict, $"El codi «{code}» ja existeix.");
         }
 
         var row = await repository.CreateCountryAsync(
@@ -41,13 +41,13 @@ public sealed class GeographicAdminAppService(IGeographicCatalogRepository repos
         var existing = await repository.GetCountryByIdAsync(id, cancellationToken);
         if (existing is null)
         {
-            return Result<CountryAdminDto>.Fail(FailureKind.NotFound, "Country not found.");
+            return Result<CountryAdminDto>.Fail(FailureKind.NotFound, "No s’ha trobat el país.");
         }
 
         var code = request.Code.Trim().ToUpperInvariant();
         if (await repository.IsCountryCodeInUseAsync(code, id, cancellationToken))
         {
-            return Result<CountryAdminDto>.Fail(FailureKind.Conflict, $"Country code '{code}' is already in use.");
+            return Result<CountryAdminDto>.Fail(FailureKind.Conflict, $"El codi «{code}» ja existeix.");
         }
 
         var row = await repository.UpdateCountryAsync(
@@ -60,7 +60,7 @@ public sealed class GeographicAdminAppService(IGeographicCatalogRepository repos
 
         if (row is null)
         {
-            return Result<CountryAdminDto>.Fail(FailureKind.NotFound, "Country not found.");
+            return Result<CountryAdminDto>.Fail(FailureKind.NotFound, "No s’ha trobat el país.");
         }
 
         return Result<CountryAdminDto>.Success(ToDto(row));
@@ -70,18 +70,18 @@ public sealed class GeographicAdminAppService(IGeographicCatalogRepository repos
     {
         if (await repository.GetCountryByIdAsync(id, cancellationToken) is null)
         {
-            return Result<bool>.Fail(FailureKind.NotFound, "Country not found.");
+            return Result<bool>.Fail(FailureKind.NotFound, "No s’ha trobat el país.");
         }
 
         if (await repository.CountryHasCitiesAsync(id, cancellationToken))
         {
-            return Result<bool>.Fail(FailureKind.Conflict, "Cannot delete a country that still has cities.");
+            return Result<bool>.Fail(FailureKind.Conflict, "No es pot esborrar un país que encara té ciutats.");
         }
 
         var deleted = await repository.DeleteCountryAsync(id, cancellationToken);
         return deleted
             ? Result<bool>.Success(true)
-            : Result<bool>.Fail(FailureKind.NotFound, "Country not found.");
+            : Result<bool>.Fail(FailureKind.NotFound, "No s’ha trobat el país.");
     }
 
     public async Task<IReadOnlyList<CityAdminDto>> ListCitiesAsync(Guid? countryId, CancellationToken cancellationToken = default)
@@ -100,7 +100,7 @@ public sealed class GeographicAdminAppService(IGeographicCatalogRepository repos
     {
         if (await repository.GetCountryByIdAsync(request.CountryId, cancellationToken) is null)
         {
-            return Result<CityAdminDto>.Fail(FailureKind.NotFound, "Country not found.");
+            return Result<CityAdminDto>.Fail(FailureKind.NotFound, "No s’ha trobat el país.");
         }
 
         try
@@ -118,7 +118,7 @@ public sealed class GeographicAdminAppService(IGeographicCatalogRepository repos
         }
         catch (InvalidOperationException ex)
         {
-            return Result<CityAdminDto>.Fail(FailureKind.Conflict, ex.Message);
+            return Result<CityAdminDto>.Fail(FailureKind.Conflict, "Ja existeix una ciutat amb aquest nom en aquest país.");
         }
     }
 
@@ -126,7 +126,7 @@ public sealed class GeographicAdminAppService(IGeographicCatalogRepository repos
     {
         if (await repository.GetCityByIdAsync(id, cancellationToken) is null)
         {
-            return Result<CityAdminDto>.Fail(FailureKind.NotFound, "City not found.");
+            return Result<CityAdminDto>.Fail(FailureKind.NotFound, "No s’ha trobat la ciutat.");
         }
 
         try
@@ -142,14 +142,14 @@ public sealed class GeographicAdminAppService(IGeographicCatalogRepository repos
 
             if (row is null)
             {
-                return Result<CityAdminDto>.Fail(FailureKind.NotFound, "City not found.");
+                return Result<CityAdminDto>.Fail(FailureKind.NotFound, "No s’ha trobat la ciutat.");
             }
 
             return Result<CityAdminDto>.Success(ToDto(row));
         }
         catch (InvalidOperationException ex)
         {
-            return Result<CityAdminDto>.Fail(FailureKind.Conflict, ex.Message);
+            return Result<CityAdminDto>.Fail(FailureKind.Conflict, "Ja existeix una ciutat amb aquest nom en aquest país.");
         }
     }
 
@@ -158,7 +158,7 @@ public sealed class GeographicAdminAppService(IGeographicCatalogRepository repos
         var deleted = await repository.DeleteCityAsync(id, cancellationToken);
         return deleted
             ? Result<bool>.Success(true)
-            : Result<bool>.Fail(FailureKind.NotFound, "City not found.");
+            : Result<bool>.Fail(FailureKind.NotFound, "No s’ha trobat la ciutat.");
     }
 
     private static CountryAdminDto ToDto(CountryRow row) =>

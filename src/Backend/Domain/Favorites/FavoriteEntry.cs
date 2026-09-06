@@ -8,7 +8,7 @@ public sealed class FavoriteEntry : Entity<Guid>
     {
         if (placeId == Guid.Empty)
         {
-            throw new DomainRuleException("Place id is required.");
+            throw new DomainRuleException("El lloc és obligatori.");
         }
 
         PlaceId = placeId;

@@ -143,7 +143,7 @@ internal sealed class PlaceRepository(ZuppetoDbContext dbContext) : IPlaceReposi
 
         if (record is null)
         {
-            throw new InvalidOperationException($"Place '{place.Id}' was not found.");
+            throw new InvalidOperationException("No s’ha trobat el lloc.");
         }
 
         PlacePersistenceMapper.Apply(place, record);

@@ -1018,7 +1018,7 @@ Funcions del manteniment:
 Regles funcionals:
 
 - tota ciutat guardada ha d'estar vinculada a un pais existent i actiu segons regles de negoci
-- es recomana definir **unicitat** dins del mateix país (p. ex. parell país + nom normalitzat) per evitar duplicats («Barcelona» repetida)
+- es recomana definir **unicitat** dins del mateix país (p. ex. parell país + nom normalitzat) per evitar duplicats («Barcelona» repetida). El conflicte es mostra en català («Ja existeix una ciutat amb aquest nom en aquest país.»)
 - una ciutat no s'ha de tractar com a valida si no esta dins el cataleg propi
 - eines externes (`GeoNames`, suggeriments per **IA** com Gemini, geocodificadors, etc.) poden ajudar a **donar d'alta o suggerir** dades, però la **font de veritat** del producte és el cataleg Zuppeto
 - quan una ciutat ja existeix al cataleg, **no cal** tornar a consultar el proveidor extern per operar-hi (filtres, perfils, llocs vinculats per identificador)

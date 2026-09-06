@@ -8,7 +8,7 @@ public sealed class PetPolicy : ValueObject
     {
         if (string.IsNullOrWhiteSpace(label))
         {
-            throw new DomainRuleException("Pet policy label is required.");
+            throw new DomainRuleException("L’etiqueta de política de mascotes és obligatòria.");
         }
 
         AcceptsDogs = acceptsDogs;

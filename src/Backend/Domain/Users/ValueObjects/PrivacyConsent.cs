@@ -8,7 +8,7 @@ public sealed class PrivacyConsent : ValueObject
     {
         if (accepted && acceptedAtUtc is null)
         {
-            throw new DomainRuleException("Accepted consent must include acceptance timestamp.");
+            throw new DomainRuleException("El consentiment ha d’incloure la data d’acceptació.");
         }
 
         if (!accepted)

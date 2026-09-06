@@ -1,6 +1,8 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Injectable, computed, signal } from '@angular/core';
 
+import { toCatalanApiMessage } from '../../shared/policies/api-message-ca.policy';
+
 export type NotificationTone = 'error' | 'info' | 'success';
 
 export interface ErrorNotification {
@@ -255,12 +257,12 @@ export class ErrorNotificationsService {
   private tryExtractConflictMessage(error: HttpErrorResponse): string {
     const raw = error.error;
     if (typeof raw === 'string' && raw.trim()) {
-      return raw.trim();
+      return toCatalanApiMessage(raw);
     }
     if (raw && typeof raw === 'object') {
       const message = (raw as { message?: unknown }).message;
       if (typeof message === 'string' && message.trim()) {
-        return message.trim();
+        return toCatalanApiMessage(message);
       }
     }
     return 'Aquest element ja existeix o hi ha un conflicte amb l’estat actual.';
@@ -310,7 +312,7 @@ export class ErrorNotificationsService {
         const label = fieldLabels[field] ?? field;
         for (const m of messages) {
           if (typeof m === 'string' && m.trim()) {
-            lines.push(`${label}: ${m.trim()}`);
+            lines.push(`${label}: ${toCatalanApiMessage(m)}`);
           }
         }
       }

@@ -8,12 +8,12 @@ public sealed class RatingSnapshot : ValueObject
     {
         if (average is < 0 or > 5)
         {
-            throw new DomainRuleException("Average rating must be between 0 and 5.");
+            throw new DomainRuleException("La mitjana ha de ser entre 0 i 5.");
         }
 
         if (reviewCount < 0)
         {
-            throw new DomainRuleException("Review count cannot be negative.");
+            throw new DomainRuleException("El nombre de ressenyes no pot ser negatiu.");
         }
 
         Average = average;

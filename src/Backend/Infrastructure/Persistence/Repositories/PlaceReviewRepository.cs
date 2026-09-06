@@ -69,7 +69,7 @@ internal sealed class PlaceReviewRepository(ZuppetoDbContext dbContext) : IPlace
 
         if (record is null)
         {
-            throw new InvalidOperationException($"Place review '{review.Id}' was not found.");
+            throw new InvalidOperationException("No s’ha trobat la ressenya.");
         }
 
         PlaceReviewPersistenceMapper.Apply(review, record);

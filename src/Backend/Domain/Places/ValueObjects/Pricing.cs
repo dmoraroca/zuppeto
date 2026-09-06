@@ -8,7 +8,7 @@ public sealed class Pricing : ValueObject
     {
         if (string.IsNullOrWhiteSpace(displayLabel))
         {
-            throw new DomainRuleException("Pricing label is required.");
+            throw new DomainRuleException("L’etiqueta de preu és obligatòria.");
         }
 
         DisplayLabel = displayLabel.Trim();

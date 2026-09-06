@@ -8,7 +8,7 @@ public sealed class UserProfile : ValueObject
     {
         if (string.IsNullOrWhiteSpace(displayName))
         {
-            throw new DomainRuleException("Display name is required.");
+            throw new DomainRuleException("El nom visible és obligatori.");
         }
 
         DisplayName = displayName.Trim();
