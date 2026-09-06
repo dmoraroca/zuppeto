@@ -276,7 +276,8 @@ internal sealed class GeographicCatalogRepository(ZuppetoDbContext dbContext) : 
             record.CreatedAtUtc,
             record.UpdatedAtUtc);
 
-    private static string NormalizeCountryCode(string code) => code.Trim().ToUpperInvariant();
+    private static string NormalizeCountryCode(string code) =>
+        CountryCodeRules.Normalize(code).ToUpperInvariant();
 
     private static string NormalizeCityName(string name) => name.Trim().ToUpperInvariant();
 }

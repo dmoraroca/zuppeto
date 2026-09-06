@@ -12,10 +12,6 @@ public sealed class UpdateUserRoleRequestValidator : IValidator<UpdateUserRoleRe
         {
             result.Add(nameof(request.Role), "Role is required.");
         }
-        else if (request.Role.Trim().Length > 32)
-        {
-            result.Add(nameof(request.Role), "Role is too long.");
-        }
 
         return result;
     }

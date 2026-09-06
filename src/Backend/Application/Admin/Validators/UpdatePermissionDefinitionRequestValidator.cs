@@ -12,15 +12,6 @@ public sealed class UpdatePermissionDefinitionRequestValidator : IValidator<Upda
         {
             result.Add(nameof(request.DisplayName), "El nom visible és obligatori.");
         }
-        else if (request.DisplayName.Trim().Length > 160)
-        {
-            result.Add(nameof(request.DisplayName), "El nom visible és massa llarg (màx. 160 caràcters).");
-        }
-
-        if (request.Description is not null && request.Description.Length > 512)
-        {
-            result.Add(nameof(request.Description), "La descripció és massa llarga (màx. 512 caràcters).");
-        }
 
         if (string.IsNullOrWhiteSpace(request.ScopeType))
         {

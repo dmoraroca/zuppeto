@@ -26,6 +26,7 @@ import {
   wantsPasswordChange
 } from '../../policies/profile-save.policy';
 import { AuthService } from '../../services/auth.service';
+import { DB_FIELD_MAX } from '../../../../shared/policies/db-field-max-length';
 
 @Component({
   selector: 'app-profile-page',
@@ -52,6 +53,7 @@ export class ProfilePageComponent implements AfterViewInit {
   private readonly strengthPolicy = inject<PasswordStrengthPolicy>(PASSWORD_STRENGTH_POLICY);
   private readonly currentUser = this.authService.currentUser();
 
+  protected readonly dbMax = DB_FIELD_MAX;
   protected readonly user = computed(() => this.authService.currentUser());
   protected readonly isAdmin = computed(() => this.authService.isAdmin());
   protected readonly avatarPreview = signal<string | null>(this.currentUser?.avatarUrl ?? null);

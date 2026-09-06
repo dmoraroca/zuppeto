@@ -70,8 +70,7 @@ public static class PermissionScopePayloadRules
 
             if (url.Length > 512)
             {
-                errorMessage = "La URL és massa llarga (màx. 512 caràcters).";
-                return false;
+                url = url[..512];
             }
 
             normalizedJson = JsonSerializer.Serialize(
@@ -113,8 +112,7 @@ public static class PermissionScopePayloadRules
 
                     if (trimmed.Length > 160)
                     {
-                        errorMessage = "Una clau de menú és massa llarga (màx. 160 caràcters).";
-                        return false;
+                        trimmed = trimmed[..160];
                     }
 
                     keys.Add(trimmed);

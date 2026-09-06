@@ -39,9 +39,13 @@ public sealed class SaveMenuRequestValidator : IValidator<SaveMenuRequest>
                 {
                     result.Add(nameof(request.Roles), "Each role must be a non-empty key.");
                 }
-                else if (trimmed.Length > 32 || !RoleKeyPattern.IsMatch(trimmed))
+                else
                 {
-                    result.Add(nameof(request.Roles), $"Role '{role}' is not a valid role key.");
+                    var roleKey = trimmed.Length > 32 ? trimmed[..32] : trimmed;
+                    if (!RoleKeyPattern.IsMatch(roleKey))
+                    {
+                        result.Add(nameof(request.Roles), $"Role '{role}' is not a valid role key.");
+                    }
                 }
             }
         }

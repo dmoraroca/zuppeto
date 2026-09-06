@@ -17,10 +17,6 @@ public sealed class CreateCityRequestValidator : IValidator<CreateCityRequest>
         {
             result.Add(nameof(request.Name), "Name is required.");
         }
-        else if (request.Name.Trim().Length > 200)
-        {
-            result.Add(nameof(request.Name), "Name is too long.");
-        }
 
         if (request.Latitude is not null && (request.Latitude < -90m || request.Latitude > 90m))
         {

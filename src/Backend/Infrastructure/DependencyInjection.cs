@@ -90,6 +90,7 @@ public static class DependencyInjection
         services.AddDbContext<ZuppetoDbContext>((sp, options) =>
         {
             options.UseNpgsql(connectionString);
+            options.AddInterceptors(new ClampStringMaxLengthInterceptor());
             if (hostEnvironment.IsDevelopment())
             {
                 options.EnableSensitiveDataLogging();

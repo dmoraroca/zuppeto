@@ -12,10 +12,6 @@ public sealed class UpdateRolePermissionsRequestValidator : IValidator<UpdateRol
         {
             result.Add(nameof(request.Role), "Role is required.");
         }
-        else if (request.Role.Trim().Length > 32)
-        {
-            result.Add(nameof(request.Role), "Role is too long.");
-        }
 
         if (request.PermissionKeys is null)
         {

@@ -18,7 +18,7 @@ public sealed class CountryConfiguration : IEntityTypeConfiguration<CountryRecor
 
         builder.Property(country => country.Code)
             .HasColumnName("code")
-            .HasMaxLength(8)
+            .HasMaxLength(20)
             .IsRequired();
 
         builder.Property(country => country.Name)

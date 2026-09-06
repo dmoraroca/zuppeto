@@ -18,21 +18,22 @@ public sealed class CreateRoleDefinitionRequestValidator : IValidator<CreateRole
         else
         {
             var key = request.Key.Trim();
-            if (key.Length > 32 || !KeyPattern.IsMatch(key))
+            if (key.Length > 32)
+            {
+                key = key[..32];
+            }
+
+            if (!KeyPattern.IsMatch(key))
             {
                 result.Add(
                     nameof(request.Key),
-                    "Key must start with a letter; only letters, digits and underscore; max 32 characters.");
+                    "Key must start with a letter; only letters, digits and underscore.");
             }
         }
 
         if (string.IsNullOrWhiteSpace(request.DisplayName))
         {
             result.Add(nameof(request.DisplayName), "Display name is required.");
-        }
-        else if (request.DisplayName.Trim().Length > 120)
-        {
-            result.Add(nameof(request.DisplayName), "Display name is too long.");
         }
 
         return result;

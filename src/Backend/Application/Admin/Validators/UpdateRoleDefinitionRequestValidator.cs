@@ -12,10 +12,6 @@ public sealed class UpdateRoleDefinitionRequestValidator : IValidator<UpdateRole
         {
             result.Add(nameof(request.DisplayName), "Display name is required.");
         }
-        else if (request.DisplayName.Trim().Length > 120)
-        {
-            result.Add(nameof(request.DisplayName), "Display name is too long.");
-        }
 
         return result;
     }

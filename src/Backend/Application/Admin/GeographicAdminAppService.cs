@@ -20,10 +20,10 @@ public sealed class GeographicAdminAppService(IGeographicCatalogRepository repos
 
     public async Task<Result<CountryAdminDto>> CreateCountryAsync(CreateCountryRequest request, CancellationToken cancellationToken = default)
     {
-        var code = request.Code.Trim().ToUpperInvariant();
+        var code = CountryCodeRules.Normalize(request.Code).ToUpperInvariant();
         if (await repository.IsCountryCodeInUseAsync(code, null, cancellationToken))
         {
-            return Result<CountryAdminDto>.Fail(FailureKind.Conflict, $"Country code '{code}' is already in use.");
+            return Result<CountryAdminDto>.Fail(FailureKind.Conflict, $"El codi «{code}» ja existeix.");
         }
 
         var row = await repository.CreateCountryAsync(
@@ -44,10 +44,10 @@ public sealed class GeographicAdminAppService(IGeographicCatalogRepository repos
             return Result<CountryAdminDto>.Fail(FailureKind.NotFound, "Country not found.");
         }
 
-        var code = request.Code.Trim().ToUpperInvariant();
+        var code = CountryCodeRules.Normalize(request.Code).ToUpperInvariant();
         if (await repository.IsCountryCodeInUseAsync(code, id, cancellationToken))
         {
-            return Result<CountryAdminDto>.Fail(FailureKind.Conflict, $"Country code '{code}' is already in use.");
+            return Result<CountryAdminDto>.Fail(FailureKind.Conflict, $"El codi «{code}» ja existeix.");
         }
 
         var row = await repository.UpdateCountryAsync(

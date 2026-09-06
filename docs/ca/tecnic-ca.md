@@ -2014,7 +2014,7 @@ La UI global es munta a nivell d'`app` i no depen de cap pagina concreta:
 <router-outlet />
 ```
 
-`app-toast-stack` mostra el missatge flotant; **no** crida `markAsRead` (tancar o auto-dismiss només amaga el toast). L’estat **No llegida / Llegida** es canvia a `/notificacions`.
+`app-toast-stack` mostra el missatge flotant (`z-index` 1400, per sobre del modal admin 1300); **no** crida `markAsRead` (tancar o auto-dismiss només amaga el toast). L’estat **No llegida / Llegida** es canvia a `/notificacions`. Els HTTP errors els notifica l’interceptor; el manteniment no en crea un segon toast.
 
 Aixo permet:
 
@@ -2114,8 +2114,9 @@ Rutes internes governades per permisos:
 - `/admin/menus` (manteniment de menús; `action.permissions.manage`)
 - `/admin/rols` (catàleg de rols; `page.admin.roles`). Alta (`Nou rol`): el peu del modal mostra el check de privacitat d’entorn intern (si qui opera no és Administrador); `Desar` resta desactivat fins que hi ha canvi i les regles (incloent privacitat si cal)
 - `/admin/llocs` (manteniment de llocs; `page.admin.places`)
-- `/admin/paisos` (catàleg de països; `page.admin.countries`)
+- `/admin/paisos` (catàleg de països; `page.admin.countries`). `countries.code` és `varchar(20)`; `CountryCodeRules` (2–20). El input de Codi té `maxlength` 20. Migració `20260906200000_WidenCountryCodeTo20`.
 - `/admin/ciutats` (catàleg de ciutats; `page.admin.cities`)
+- Inputs de text amb `HasMaxLength` a EF: `maxlength` al front (`DB_FIELD_MAX` a `db-field-max-length.ts`). En gravar, `ClampStringMaxLengthInterceptor` talla al límit de columna (evita error 22001 de PostgreSQL). Els validadors no retornen «massa llarg». No s’aplica a `text` sense límit (comentaris, descripcions de lloc).
 
 Estructura de navegació per defecte (desplegable `admin`, veure **§2.11.5**): contenidors **Negoci** i **Tècnic** amb els manteniments agrupats segons criteri de producte.
 

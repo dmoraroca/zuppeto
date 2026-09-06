@@ -25,6 +25,8 @@ import {
   ADMIN_PRIVACY_CONSENT_POLICY,
   AdminPrivacyConsentPolicy
 } from '../../policies/admin-privacy-consent.policy';
+import { COUNTRY_CODE_MAX_LENGTH } from '../../policies/country-code.policy';
+import { DB_FIELD_MAX } from '../../../../shared/policies/db-field-max-length';
 import {
   FORM_COMMIT_POLICY,
   FormCommitPolicy
@@ -231,6 +233,8 @@ export class AdminConsolePageComponent {
   protected readonly countryDetailEditMode = signal(false);
   protected readonly countryIsNew = signal(false);
   protected readonly countryDeleteCandidate = signal<CountryAdminDto | null>(null);
+  protected readonly countryCodeMaxLength = COUNTRY_CODE_MAX_LENGTH;
+  protected readonly dbMax = DB_FIELD_MAX;
   protected readonly editableCountry = signal<{
     id?: string;
     code: string;
@@ -2622,16 +2626,11 @@ export class AdminConsolePageComponent {
   }
 
   private notifyHttpError(err: unknown, fallback: string): void {
-    let message = fallback;
     if (err instanceof HttpErrorResponse) {
-      if (typeof err.error === 'string' && err.error.trim()) {
-        message = err.error;
-      } else if (err.error && typeof err.error === 'object') {
-        const body = err.error as { detail?: string; message?: string; title?: string };
-        message = body.detail ?? body.message ?? body.title ?? message;
-      }
+      return;
     }
-    this.notifications.notify('Error', message, 'error');
+
+    this.notifications.notify('Error', fallback, 'error');
   }
 
   private async loadUsers(): Promise<void> {

@@ -141,11 +141,11 @@
             </p>
             <label>
               <span>Email <strong class="form-field-required" aria-hidden="true">*</strong></span>
-              <input type="email" placeholder="usuari@domini.com" formControlName="email" required />
+              <input type="email" placeholder="usuari@domini.com" formControlName="email" [maxlength]="dbMax.userEmail" required />
             </label>
             <label>
               <span>Nom visible <strong class="form-field-required" aria-hidden="true">*</strong></span>
-              <input placeholder="Nom que veurà l'usuari" formControlName="displayName" required />
+              <input placeholder="Nom que veurà l'usuari" formControlName="displayName" [maxlength]="dbMax.userDisplayName" required />
             </label>
             <label>
               <span>Rol <strong class="form-field-required" aria-hidden="true">*</strong></span>
@@ -157,11 +157,11 @@
             </label>
             <label>
               <span>Ciutat <strong class="form-field-required" aria-hidden="true">*</strong></span>
-              <input placeholder="Ciutat" formControlName="city" required />
+              <input placeholder="Ciutat" formControlName="city" [maxlength]="dbMax.userCity" required />
             </label>
             <label>
               <span>País <strong class="form-field-required" aria-hidden="true">*</strong></span>
-              <input placeholder="País" formControlName="country" required />
+              <input placeholder="País" formControlName="country" [maxlength]="dbMax.userCountry" required />
             </label>
             <div class="admin-console-form__password-pair">
               <app-password-field
@@ -267,7 +267,7 @@
               <label>
                 <span>Nom visible <strong class="form-field-required" aria-hidden="true">*</strong></span>
                 @if (detailEditMode()) {
-                  <input formControlName="displayName" aria-required="true" />
+                  <input formControlName="displayName" [maxlength]="dbMax.userDisplayName" aria-required="true" />
                 } @else {
                   <input class="admin-console-static-field" [value]="user.displayName" readonly />
                 }
@@ -275,7 +275,7 @@
               <label>
                 <span>Ciutat <strong class="form-field-required" aria-hidden="true">*</strong></span>
                 @if (detailEditMode()) {
-                  <input formControlName="city" aria-required="true" />
+                  <input formControlName="city" [maxlength]="dbMax.userCity" aria-required="true" />
                 } @else {
                   <input class="admin-console-static-field" [value]="user.city || '-'" readonly />
                 }
@@ -283,7 +283,7 @@
               <label>
                 <span>País <strong class="form-field-required" aria-hidden="true">*</strong></span>
                 @if (detailEditMode()) {
-                  <input formControlName="country" aria-required="true" />
+                  <input formControlName="country" [maxlength]="dbMax.userCountry" aria-required="true" />
                 } @else {
                   <input class="admin-console-static-field" [value]="user.country || '-'" readonly />
                 }
@@ -648,6 +648,7 @@
                 [ngModel]="newPermissionDraft().key"
                 (ngModelChange)="updateCreatePermissionDraft({ key: $event })"
                 [ngModelOptions]="{ standalone: true }"
+                [maxlength]="dbMax.permissionKey"
                 placeholder="action.places.publish"
               />
             </label>
@@ -657,6 +658,7 @@
                 [ngModel]="newPermissionDraft().displayName"
                 (ngModelChange)="updateCreatePermissionDraft({ displayName: $event })"
                 [ngModelOptions]="{ standalone: true }"
+                [maxlength]="dbMax.permissionDisplayName"
                 placeholder="Nom que veuràs al catàleg"
               />
             </label>
@@ -725,6 +727,7 @@
                 [ngModel]="newPermissionDraft().description"
                 (ngModelChange)="updateCreatePermissionDraft({ description: $event })"
                 [ngModelOptions]="{ standalone: true }"
+                [maxlength]="dbMax.permissionDescription"
                 placeholder="Explica què habilita aquest permís dins del sistema"
               ></textarea>
             </label>
@@ -895,6 +898,7 @@
                 <input
                   [ngModel]="editablePermissionDetail().displayName"
                   (ngModelChange)="editablePermissionDetail.set({ ...editablePermissionDetail(), displayName: $event })"
+                  [maxlength]="dbMax.permissionDisplayName"
                   aria-required="true"
                 />
               } @else {
@@ -981,6 +985,7 @@
                   rows="3"
                   [ngModel]="editablePermissionDetail().description"
                   (ngModelChange)="editablePermissionDetail.set({ ...editablePermissionDetail(), description: $event })"
+                  [maxlength]="dbMax.permissionDescription"
                 ></textarea>
               } @else {
                 <textarea class="admin-console-static-field" rows="3" [value]="perm.description || '—'" readonly></textarea>
@@ -1169,20 +1174,21 @@
                 <input
                   [ngModel]="editableMenu().key"
                   (ngModelChange)="editableMenu.set({ ...editableMenu(), key: $event })"
+                  [maxlength]="dbMax.menuKey"
                   placeholder="p. ex. admin.exemple"
                 />
               </label>
               <label>
                 <span>Label <strong class="form-field-required" aria-hidden="true">*</strong></span>
-                <input [ngModel]="editableMenu().label" (ngModelChange)="editableMenu.set({ ...editableMenu(), label: $event })" />
+                <input [ngModel]="editableMenu().label" (ngModelChange)="editableMenu.set({ ...editableMenu(), label: $event })" [maxlength]="dbMax.menuLabel" />
               </label>
               <label>
                 <span>Route</span>
-                <input [ngModel]="editableMenu().route" (ngModelChange)="editableMenu.set({ ...editableMenu(), route: $event })" />
+                <input [ngModel]="editableMenu().route" (ngModelChange)="editableMenu.set({ ...editableMenu(), route: $event })" [maxlength]="dbMax.menuRoute" />
               </label>
               <label>
                 <span>Pare</span>
-                <input [ngModel]="editableMenu().parentKey" (ngModelChange)="editableMenu.set({ ...editableMenu(), parentKey: $event })" />
+                <input [ngModel]="editableMenu().parentKey" (ngModelChange)="editableMenu.set({ ...editableMenu(), parentKey: $event })" [maxlength]="dbMax.menuParentKey" />
               </label>
               <label>
                 <span>Ordre</span>
@@ -1292,15 +1298,15 @@
                 </label>
                 <label>
                   <span>Label <strong class="form-field-required" aria-hidden="true">*</strong></span>
-                  <input [ngModel]="editableMenu().label" (ngModelChange)="editableMenu.set({ ...editableMenu(), label: $event })" />
+                  <input [ngModel]="editableMenu().label" (ngModelChange)="editableMenu.set({ ...editableMenu(), label: $event })" [maxlength]="dbMax.menuLabel" />
                 </label>
                 <label>
                   <span>Route</span>
-                  <input [ngModel]="editableMenu().route" (ngModelChange)="editableMenu.set({ ...editableMenu(), route: $event })" />
+                  <input [ngModel]="editableMenu().route" (ngModelChange)="editableMenu.set({ ...editableMenu(), route: $event })" [maxlength]="dbMax.menuRoute" />
                 </label>
                 <label>
                   <span>Pare</span>
-                  <input [ngModel]="editableMenu().parentKey" (ngModelChange)="editableMenu.set({ ...editableMenu(), parentKey: $event })" />
+                  <input [ngModel]="editableMenu().parentKey" (ngModelChange)="editableMenu.set({ ...editableMenu(), parentKey: $event })" [maxlength]="dbMax.menuParentKey" />
                 </label>
                 <label>
                   <span>Ordre</span>
@@ -1487,6 +1493,7 @@
                 [readonly]="!roleIsNew()"
                 [ngModel]="editableRole().key"
                 (ngModelChange)="editableRole.set({ ...editableRole(), key: $event })"
+                [maxlength]="dbMax.roleKey"
                 placeholder="p. ex. SupportAgent"
               />
             </label>
@@ -1496,6 +1503,7 @@
                 [readonly]="!roleIsNew() && !roleDetailEditMode()"
                 [ngModel]="editableRole().displayName"
                 (ngModelChange)="editableRole.set({ ...editableRole(), displayName: $event })"
+                [maxlength]="dbMax.roleDisplayName"
               />
             </label>
             <label class="admin-console-inline">
@@ -1675,21 +1683,21 @@
               <strong class="form-field-required" aria-hidden="true">*</strong>
               Camps obligatoris del lloc.
             </p>
-            <label><span>Nom <strong class="form-field-required" aria-hidden="true">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().name" (ngModelChange)="editablePlace.set({ ...editablePlace(), name: $event })" /></label>
-            <label><span>Tipus <strong class="form-field-required" aria-hidden="true">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().type" (ngModelChange)="editablePlace.set({ ...editablePlace(), type: $event })" /></label>
-            <label><span>Ciutat <strong class="form-field-required" aria-hidden="true">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().city" (ngModelChange)="editablePlace.set({ ...editablePlace(), city: $event })" /></label>
-            <label><span>País <strong class="form-field-required" aria-hidden="true">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().country" (ngModelChange)="editablePlace.set({ ...editablePlace(), country: $event })" /></label>
-            <label><span>Adreça <strong class="form-field-required" aria-hidden="true">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().addressLine1" (ngModelChange)="editablePlace.set({ ...editablePlace(), addressLine1: $event })" /></label>
-            <label><span>Barri <strong class="form-field-required" aria-hidden="true">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().neighborhood" (ngModelChange)="editablePlace.set({ ...editablePlace(), neighborhood: $event })" /></label>
+            <label><span>Nom <strong class="form-field-required" aria-hidden="true">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().name" (ngModelChange)="editablePlace.set({ ...editablePlace(), name: $event })" [maxlength]="dbMax.placeName" /></label>
+            <label><span>Tipus <strong class="form-field-required" aria-hidden="true">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().type" (ngModelChange)="editablePlace.set({ ...editablePlace(), type: $event })" [maxlength]="dbMax.placeType" /></label>
+            <label><span>Ciutat <strong class="form-field-required" aria-hidden="true">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().city" (ngModelChange)="editablePlace.set({ ...editablePlace(), city: $event })" [maxlength]="dbMax.placeCity" /></label>
+            <label><span>País <strong class="form-field-required" aria-hidden="true">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().country" (ngModelChange)="editablePlace.set({ ...editablePlace(), country: $event })" [maxlength]="dbMax.placeCountry" /></label>
+            <label><span>Adreça <strong class="form-field-required" aria-hidden="true">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().addressLine1" (ngModelChange)="editablePlace.set({ ...editablePlace(), addressLine1: $event })" [maxlength]="dbMax.placeAddress" /></label>
+            <label><span>Barri <strong class="form-field-required" aria-hidden="true">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().neighborhood" (ngModelChange)="editablePlace.set({ ...editablePlace(), neighborhood: $event })" [maxlength]="dbMax.placeNeighborhood" /></label>
             <label><span>Latitud <strong class="form-field-required" aria-hidden="true">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().latitude" (ngModelChange)="editablePlace.set({ ...editablePlace(), latitude: $event })" /></label>
             <label><span>Longitud <strong class="form-field-required" aria-hidden="true">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().longitude" (ngModelChange)="editablePlace.set({ ...editablePlace(), longitude: $event })" /></label>
-            <label><span>Preu <strong class="form-field-required" aria-hidden="true">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().pricingLabel" (ngModelChange)="editablePlace.set({ ...editablePlace(), pricingLabel: $event })" /></label>
+            <label><span>Preu <strong class="form-field-required" aria-hidden="true">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().pricingLabel" (ngModelChange)="editablePlace.set({ ...editablePlace(), pricingLabel: $event })" [maxlength]="dbMax.placePricingLabel" /></label>
             <label><span>Rating</span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().ratingAverage" (ngModelChange)="editablePlace.set({ ...editablePlace(), ratingAverage: $event })" /></label>
             <label><span>Reviews</span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().reviewCount" (ngModelChange)="editablePlace.set({ ...editablePlace(), reviewCount: $event })" /></label>
             <label class="admin-console-inline"><input type="checkbox" [disabled]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().acceptsDogs" (ngModelChange)="editablePlace.set({ ...editablePlace(), acceptsDogs: !!$event })" /><span>Accepta gossos</span></label>
             <label class="admin-console-inline"><input type="checkbox" [disabled]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().acceptsCats" (ngModelChange)="editablePlace.set({ ...editablePlace(), acceptsCats: !!$event })" /><span>Accepta gats</span></label>
-            <label><span>Política mascotes <strong class="form-field-required" aria-hidden="true">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().petPolicyLabel" (ngModelChange)="editablePlace.set({ ...editablePlace(), petPolicyLabel: $event })" /></label>
-            <label><span>Cover URL <strong class="form-field-required" aria-hidden="true">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().coverImageUrl" (ngModelChange)="editablePlace.set({ ...editablePlace(), coverImageUrl: $event })" /></label>
+            <label><span>Política mascotes <strong class="form-field-required" aria-hidden="true">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().petPolicyLabel" (ngModelChange)="editablePlace.set({ ...editablePlace(), petPolicyLabel: $event })" [maxlength]="dbMax.placePetPolicyLabel" /></label>
+            <label><span>Cover URL <strong class="form-field-required" aria-hidden="true">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().coverImageUrl" (ngModelChange)="editablePlace.set({ ...editablePlace(), coverImageUrl: $event })" [maxlength]="dbMax.placeCoverUrl" /></label>
             <label><span>Tags (coma)</span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().tags" (ngModelChange)="editablePlace.set({ ...editablePlace(), tags: $event })" /></label>
             <label><span>Features (coma)</span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().features" (ngModelChange)="editablePlace.set({ ...editablePlace(), features: $event })" /></label>
             <label class="admin-console-form admin-console-form--readonly"><span>Descripció curta <strong class="form-field-required" aria-hidden="true">*</strong></span><textarea rows="2" [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().shortDescription" (ngModelChange)="editablePlace.set({ ...editablePlace(), shortDescription: $event })"></textarea></label>
@@ -1737,6 +1745,7 @@
                   [readonly]="!placeIsNew() && !placeDetailEditMode()"
                   [ngModel]="editablePlace().googlePlaceId"
                   (ngModelChange)="editablePlace.set({ ...editablePlace(), googlePlaceId: $event })"
+                  [maxlength]="dbMax.placeGooglePlaceId"
                   placeholder="p. ex. ChIJ…"
                   autocomplete="off"
                   spellcheck="false"
@@ -1892,6 +1901,7 @@
                 [readonly]="!countryIsNew() && !countryDetailEditMode()"
                 [ngModel]="editableCountry().code"
                 (ngModelChange)="editableCountry.set({ ...editableCountry(), code: $event })"
+                [maxlength]="countryCodeMaxLength"
                 placeholder="p. ex. ES"
               />
             </label>
@@ -1901,6 +1911,7 @@
                 [readonly]="!countryIsNew() && !countryDetailEditMode()"
                 [ngModel]="editableCountry().name"
                 (ngModelChange)="editableCountry.set({ ...editableCountry(), name: $event })"
+                [maxlength]="dbMax.countryName"
               />
             </label>
             <label>
@@ -2118,6 +2129,7 @@
                 list="admin-city-name-suggestions"
                 (ngModelChange)="onCityNameInput($event)"
                 (change)="onCityNameSelected($any($event.target).value)"
+                [maxlength]="dbMax.cityName"
               />
               <datalist id="admin-city-name-suggestions">
                 @for (suggestion of cityNameSuggestions(); track suggestion.name + suggestion.countryCode) {

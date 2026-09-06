@@ -483,6 +483,7 @@ Implementacio visible actual d'aquest tram:
 - en desar el rol, l’aspecte (menú de capçalera) segueix el rol desat: `Admin` → menú intern; `User` → menú d’usuari i anar a Inici; qualsevol altre rol (`TEST`, Developer, Viewer, …) → **Inici**, campana, perfil (foto), **Ajuda** i **els menús assignats a aquell rol** (principal si Pare és buit; sota Ajuda si Pare és `help`). Un menú només TEST no el veuen User ni Admin.
 - els `comentaris` són **sempre opcionals** (perfil i admin)
 - **Crear**, **Desar** i **Guardar** entren desactivats; s’activen només si hi ha un canvi real i es compleixen les regles (obligatoris, contrasenyes, privacitat si cal)
+- els textos amb límit de columna a la BD (codi de país, noms, emails, menús, rols, permisos, camps de lloc, etc.) es tallen al camp; si n’arriba de més llarg, es talla en gravar i no es mostra error de longitud
 - la baixa d'usuari ja existeix com a operacio del manteniment intern
 - el backend ja registra `ultim acces` quan un usuari entra per login propi o federat
 - existeix una pagina de `notificacions` per consultar avisos i errors recents de la sessio
@@ -807,6 +808,7 @@ Funcions actuals d'aquesta pantalla:
 - tornar una notificacio a no llegida
 - marcar-les totes com a llegides
 - el **toast** (missatge flotant en desar o en un error) **no** marca l’avís com a llegit; només es marca des de `/notificacions`
+- el toast es veu per sobre dels modals (no queda sota el fons fosc); un error HTTP només genera un avís, no dos
 
 Origen funcional de les notificacions:
 
@@ -967,8 +969,8 @@ Funcions del manteniment:
 | Camp | Rol funcional |
 |------|----------------|
 | identificador estable | clau primària interna |
-| `code` | codi **ISO 3166-1 alpha-2** (`ES`, `FR`…); únic; útil per filtres, integracions i coherència amb APIs |
-| `name` | nom visible per defecte a la UI (p. ex. «Espanya») |
+| `code` | codi únic de **2 a 20** caràcters (lletres o números; p. ex. `ES`, `CAT`). El camp no deixa escriure’n més de 20 |
+| `name` | nom visible per defecte a la UI (p. ex. «Espanya»). El camp no deixa escriure’n més de 200 |
 | `is_active` | si el país apareix en desplegables i filtres |
 | `sort_order` | ordre manual opcional a la UI |
 | `created_at` / `updated_at` | traçabilitat de canvis (recomanat en manteniment) |
@@ -1006,7 +1008,7 @@ Funcions del manteniment:
 |------|----------------|
 | identificador estable | clau primària interna |
 | país | referència al país del cataleg (sempre obligatoria) |
-| `name` | nom de la ciutat tal com el producte el mostra |
+| `name` | nom de la ciutat tal com el producte el mostra. El camp no deixa escriure’n més de 200 |
 | `normalized_name` | opcional: variant normalitzada (p. ex. sense accents, minúscules) per cerca i regles d'unicitat |
 | `latitude` / `longitude` | opcionals com a centre aproximat per mapa o distància; el punt exacte del local continua sent atribut del lloc si cal |
 | `is_active` | si la ciutat surt en llistes i cerques |

@@ -1,4 +1,5 @@
 using Zuppeto.Application.Validation;
+using Zuppeto.Domain.Geography;
 
 namespace Zuppeto.Application.Admin.Validators;
 
@@ -10,28 +11,22 @@ public sealed class CreateCountryRequestValidator : IValidator<CreateCountryRequ
 
         if (string.IsNullOrWhiteSpace(request.Code))
         {
-            result.Add(nameof(request.Code), "Code is required.");
+            result.Add(nameof(request.Code), "El codi és obligatori.");
         }
         else
         {
             var code = request.Code.Trim();
-            if (code.Length is < 2 or > 8)
+            if (!CountryCodeRules.IsValid(code))
             {
-                result.Add(nameof(request.Code), "Code must be between 2 and 8 characters.");
-            }
-            else if (!code.All(c => char.IsLetterOrDigit(c)))
-            {
-                result.Add(nameof(request.Code), "Code may only contain letters and digits.");
+                result.Add(
+                    nameof(request.Code),
+                    $"El codi ha de tenir entre {CountryCodeRules.MinLength} i {CountryCodeRules.MaxLength} caràcters (lletres o números).");
             }
         }
 
         if (string.IsNullOrWhiteSpace(request.Name))
         {
-            result.Add(nameof(request.Name), "Name is required.");
-        }
-        else if (request.Name.Trim().Length > 200)
-        {
-            result.Add(nameof(request.Name), "Name is too long.");
+            result.Add(nameof(request.Name), "El nom és obligatori.");
         }
 
         return result;

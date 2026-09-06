@@ -57,7 +57,7 @@
 
         <label class="profile-form__field">
           <span>Nom visible <strong class="form-field-required" aria-hidden="true">*</strong></span>
-          <input type="text" formControlName="name" aria-required="true" />
+          <input type="text" formControlName="name" [maxlength]="dbMax.userDisplayName" aria-required="true" />
         </label>
 
         <p class="profile-form__section-title">Compte</p>
@@ -68,6 +68,7 @@
             type="email"
             formControlName="email"
             autocomplete="email"
+            [maxlength]="dbMax.userEmail"
             aria-required="true"
             [class.profile-form__control--invalid]="emailFormatInvalid()"
           />
@@ -121,12 +122,12 @@
         <div class="profile-form__grid">
           <label class="profile-form__field">
             <span>Ciutat <strong class="form-field-required" aria-hidden="true">*</strong></span>
-            <input type="text" formControlName="city" aria-required="true" />
+            <input type="text" formControlName="city" [maxlength]="dbMax.userCity" aria-required="true" />
           </label>
 
           <label class="profile-form__field">
             <span>País <strong class="form-field-required" aria-hidden="true">*</strong></span>
-            <input type="text" formControlName="country" aria-required="true" />
+            <input type="text" formControlName="country" [maxlength]="dbMax.userCountry" aria-required="true" />
           </label>
         </div>
 

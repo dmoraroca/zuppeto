@@ -58,11 +58,6 @@ public sealed class CreateAdminUserRequestValidator : IValidator<CreateAdminUser
             result.Add(nameof(request.Country), "Country must be at least 2 characters long.");
         }
 
-        if (!string.IsNullOrWhiteSpace(request.Role) && request.Role.Trim().Length > 32)
-        {
-            result.Add(nameof(request.Role), "Role is too long.");
-        }
-
         return result;
     }
 }
