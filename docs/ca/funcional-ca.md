@@ -864,7 +864,7 @@ Regles funcionals del manteniment:
 
 - no s'ha de poder guardar un menú sense `key`
 - no s'ha de poder guardar un menú sense `label`
-- un menú contenidor pot existir sense `route` si el model navegacional ho justifica
+- un menú contenidor pot existir sense `route` si el model navegacional ho justifica; sota **Del administrador** es mostra com **Negoci** (apartat amb fletxa), també abans de tenir fills
 - l'ordre s'ha de governar de forma explícita i no quedar implícit
 - l'activació d'un menú no ha d'ignorar els permisos: una entrada activa pot continuar oculta per manca de rol
 - les assignacions de rol fetes aquí es conserven en reiniciar l’API (el seed de desenvolupament no les esborra)

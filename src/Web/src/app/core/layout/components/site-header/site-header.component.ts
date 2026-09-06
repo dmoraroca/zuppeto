@@ -48,6 +48,11 @@ export class SiteHeaderComponent {
     return item.children.length > 0;
   }
 
+  /** Container like Negoci: no route, shown as a section even before it has children. */
+  protected isSection(item: NavigationMenuItem): boolean {
+    return !item.route?.trim();
+  }
+
   protected hasAvatar(): boolean {
     return !!this.currentUser()?.avatarUrl;
   }

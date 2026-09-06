@@ -1,4 +1,5 @@
 import { Place, PlaceType } from '../models/place.model';
+import { looksLikePetShop, publicFeatureChips } from './place-pet-shop-chips';
 
 export {
   looksLikePetShop,

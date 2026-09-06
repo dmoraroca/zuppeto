@@ -15,15 +15,7 @@
               </summary>
               <div class="site-header__dropdown-menu">
                 @for (child of item.children; track child.key) {
-                  @if (child.route) {
-                    <a
-                      class="site-header__dropdown-item"
-                      [routerLink]="child.route"
-                      (click)="closeAllDropdowns()"
-                    >
-                      <span class="site-header__dropdown-title">{{ child.label }}</span>
-                    </a>
-                  } @else if (child.children.length > 0) {
+                  @if (isSection(child)) {
                     <details class="site-header__nav-submenu" (toggle)="onDropdownToggle($event)">
                       <summary class="site-header__nav-submenu-summary">
                         <span class="site-header__nav-submenu-label">{{ child.label }}</span>
@@ -39,10 +31,26 @@
                             >
                               <span class="site-header__dropdown-title">{{ sub.label }}</span>
                             </a>
+                          } @else {
+                            <span class="site-header__dropdown-item site-header__dropdown-item--in-section">
+                              <span class="site-header__dropdown-title">{{ sub.label }}</span>
+                            </span>
                           }
                         }
                       </div>
                     </details>
+                  } @else if (child.route) {
+                    <a
+                      class="site-header__dropdown-item"
+                      [routerLink]="child.route"
+                      (click)="closeAllDropdowns()"
+                    >
+                      <span class="site-header__dropdown-title">{{ child.label }}</span>
+                    </a>
+                  } @else {
+                    <span class="site-header__dropdown-item">
+                      <span class="site-header__dropdown-title">{{ child.label }}</span>
+                    </span>
                   }
                 }
               </div>
