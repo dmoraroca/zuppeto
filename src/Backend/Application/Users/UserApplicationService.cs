@@ -36,7 +36,7 @@ internal sealed class UserApplicationService(
             request.Email,
             passwordHasher.Hash(request.PasswordHash),
             request.Role.Trim(),
-            userProfileFactory.Create(request.DisplayName, request.City, request.Country, request.Bio, request.AvatarUrl),
+            userProfileFactory.Create(request.DisplayName, request.City, request.Country, request.Comments, request.AvatarUrl),
             new PrivacyConsent(request.PrivacyAccepted, request.PrivacyAcceptedAtUtc));
 
         await userRepository.AddAsync(user, cancellationToken);
@@ -58,7 +58,7 @@ internal sealed class UserApplicationService(
                 request.DisplayName,
                 request.City,
                 request.Country,
-                request.Bio,
+                request.Comments,
                 request.AvatarUrl));
 
         await userRepository.UpdateAsync(user, cancellationToken);
@@ -128,7 +128,7 @@ internal sealed class UserApplicationService(
             user.Profile.DisplayName,
             user.Profile.City,
             user.Profile.Country,
-            user.Profile.Bio,
+            user.Profile.Comments,
             user.Profile.AvatarUrl,
             user.PrivacyConsent.Accepted,
             user.PrivacyConsent.AcceptedAtUtc);

@@ -1,18 +1,18 @@
-using Zuppeto.Application.Auth;
 using Zuppeto.Application.Commands;
+using Zuppeto.Application.Factories;
 using Zuppeto.Application.Results;
 using Zuppeto.Application.Users;
 using Zuppeto.Domain.Abstractions;
 
 namespace Zuppeto.Application.Admin.Commands;
 
-public sealed class SetAdminUserPasswordCommandHandler(
+public sealed class UpdateAdminUserCommandHandler(
     IUserRepository userRepository,
-    IPasswordHasher passwordHasher)
-    : ICommandHandler<SetAdminUserPasswordCommand, Result<UserDto>>
+    IUserProfileFactory userProfileFactory)
+    : ICommandHandler<UpdateAdminUserCommand, Result<UserDto>>
 {
     public async Task<Result<UserDto>> HandleAsync(
-        SetAdminUserPasswordCommand command,
+        UpdateAdminUserCommand command,
         CancellationToken cancellationToken = default)
     {
         var user = await userRepository.GetByIdAsync(command.UserId, cancellationToken);
@@ -21,8 +21,17 @@ public sealed class SetAdminUserPasswordCommandHandler(
             return Result<UserDto>.Fail(FailureKind.NotFound, $"User '{command.UserId}' was not found.");
         }
 
-        // Same persistence as profile account update: matching new/confirm becomes users.password_hash (login password).
-        user.ChangePasswordHash(passwordHasher.Hash(command.Request.NewPassword.Trim()));
+        var request = command.Request;
+        var avatarUrl = string.IsNullOrWhiteSpace(request.AvatarUrl) ? null : request.AvatarUrl.Trim();
+
+        user.ReplaceProfile(
+            userProfileFactory.Create(
+                request.DisplayName.Trim(),
+                request.City.Trim(),
+                request.Country.Trim(),
+                request.Comments.Trim(),
+                avatarUrl));
+
         await userRepository.UpdateAsync(user, cancellationToken);
 
         return Result<UserDto>.Success(new UserDto(

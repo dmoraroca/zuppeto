@@ -857,9 +857,9 @@ namespace Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("avatar_url");
 
-                    b.Property<string>("Bio")
+                    b.Property<string>("Comments")
                         .HasColumnType("text")
-                        .HasColumnName("bio");
+                        .HasColumnName("comments");
 
                     b.Property<string>("City")
                         .HasMaxLength(120)

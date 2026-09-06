@@ -9,6 +9,15 @@ internal sealed class NavigationApplicationService(IMenuRepository menuRepositor
         CancellationToken cancellationToken = default)
     {
         var items = await menuRepository.GetMenuItemsByRoleAsync(roleKey, cancellationToken);
+        if (IsHomeOnlyRole(roleKey))
+        {
+            items = items
+                .Where(item =>
+                    item.Key.Equals("home", StringComparison.OrdinalIgnoreCase)
+                    || item.Key.Equals("help", StringComparison.OrdinalIgnoreCase)
+                    || item.Key.StartsWith("help.", StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+        }
         var itemsByParent = items
             .GroupBy(item => item.ParentKey ?? string.Empty)
             .ToDictionary(group => group.Key, group => group.OrderBy(item => item.SortOrder).ToArray(), StringComparer.Ordinal);
@@ -44,5 +53,12 @@ internal sealed class NavigationApplicationService(IMenuRepository menuRepositor
         }
 
         return Build(parentKey: null);
+    }
+
+    private static bool IsHomeOnlyRole(string roleKey)
+    {
+        var key = roleKey.Trim();
+        return !key.Equals("Admin", StringComparison.OrdinalIgnoreCase)
+            && !key.Equals("User", StringComparison.OrdinalIgnoreCase);
     }
 }

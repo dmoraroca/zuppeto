@@ -18,6 +18,14 @@ import {
   CatalogProfileSavePolicy,
   PROFILE_SAVE_POLICY
 } from './features/auth/policies/profile-save.policy';
+import {
+  ADMIN_PRIVACY_CONSENT_POLICY,
+  AdminExemptPrivacyConsentPolicy
+} from './features/admin/policies/admin-privacy-consent.policy';
+import {
+  CatalogRoleChromePolicy,
+  ROLE_CHROME_POLICY
+} from './features/auth/policies/role-chrome.policy';
 import { BrowserAuthStoreService } from './features/auth/services/browser-auth-store.service';
 import { AUTH_STORE } from './features/auth/services/auth-store.token';
 import { MockFavoritesStoreService } from './features/favorites/mock/mock-favorites-store.service';
@@ -48,6 +56,14 @@ export const appConfig: ApplicationConfig = {
     {
       provide: PROFILE_PASSWORD_CHANGE_POLICY,
       useClass: DefaultProfilePasswordChangePolicy
+    },
+    {
+      provide: ADMIN_PRIVACY_CONSENT_POLICY,
+      useClass: AdminExemptPrivacyConsentPolicy
+    },
+    {
+      provide: ROLE_CHROME_POLICY,
+      useClass: CatalogRoleChromePolicy
     },
     provideRouter(
       routes,

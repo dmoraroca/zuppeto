@@ -64,7 +64,7 @@ export class ProfilePageComponent implements AfterViewInit {
     confirmNewPassword: [{ value: '', disabled: true }],
     city: [this.currentUser?.city ?? '', Validators.required],
     country: [this.currentUser?.country ?? '', Validators.required],
-    bio: [this.currentUser?.bio ?? ''],
+    comments: [this.currentUser?.comments ?? ''],
     avatarUrl: [this.currentUser?.avatarUrl ?? ''],
     privacyAccepted: [this.currentUser?.privacyAccepted ?? false]
   });
@@ -100,7 +100,7 @@ export class ProfilePageComponent implements AfterViewInit {
           email: sessionUser.email ?? '',
           city: sessionUser.city ?? '',
           country: sessionUser.country ?? '',
-          bio: sessionUser.bio ?? '',
+          comments: sessionUser.comments ?? '',
           avatarUrl: sessionUser.avatarUrl ?? '',
           privacyAccepted: sessionUser.privacyAccepted ?? false
         },
@@ -243,7 +243,7 @@ export class ProfilePageComponent implements AfterViewInit {
         name: value.name.trim(),
         city: value.city.trim(),
         country: value.country.trim(),
-        bio: value.bio.trim(),
+        comments: value.comments.trim(),
         avatarUrl: this.avatarPreview(),
         privacyAccepted: this.isAdmin() ? true : value.privacyAccepted
       });

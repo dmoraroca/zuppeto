@@ -208,7 +208,7 @@ public sealed class DevelopmentIdentitySeeder(
             displayName: "Administrador Zuppeto",
             city: "Barcelona",
             country: "Espanya",
-            bio: "",
+            comments: "",
             privacyAccepted: true,
             cancellationToken);
 
@@ -219,7 +219,7 @@ public sealed class DevelopmentIdentitySeeder(
             displayName: "Usuari de prova",
             city: "Madrid",
             country: "Espanya",
-            bio: "",
+            comments: "",
             privacyAccepted: true,
             cancellationToken);
 
@@ -230,7 +230,7 @@ public sealed class DevelopmentIdentitySeeder(
             displayName: "David Moraroca",
             city: "Barcelona",
             country: "Espanya",
-            bio: "",
+            comments: "",
             privacyAccepted: true,
             cancellationToken);
 
@@ -241,7 +241,7 @@ public sealed class DevelopmentIdentitySeeder(
             displayName: "User E2E",
             city: "Barcelona",
             country: "Espanya",
-            bio: "",
+            comments: "",
             privacyAccepted: true,
             cancellationToken);
 
@@ -252,7 +252,7 @@ public sealed class DevelopmentIdentitySeeder(
             displayName: "Viewer E2E",
             city: "Barcelona",
             country: "Espanya",
-            bio: "",
+            comments: "",
             privacyAccepted: true,
             cancellationToken);
 
@@ -263,7 +263,7 @@ public sealed class DevelopmentIdentitySeeder(
             displayName: "Developer E2E",
             city: "Barcelona",
             country: "Espanya",
-            bio: "",
+            comments: "",
             privacyAccepted: true,
             cancellationToken);
 
@@ -362,7 +362,7 @@ public sealed class DevelopmentIdentitySeeder(
         string displayName,
         string city,
         string country,
-        string bio,
+        string comments,
         bool privacyAccepted,
         CancellationToken cancellationToken)
     {
@@ -384,9 +384,9 @@ public sealed class DevelopmentIdentitySeeder(
             existing.DisplayName = displayName;
             existing.City = city;
             existing.Country = country;
-            if (IsSyntheticSeedBio(existing.Bio))
+            if (IsSyntheticSeedComments(existing.Comments))
             {
-                existing.Bio = string.Empty;
+                existing.Comments = string.Empty;
             }
 
             if (privacyAccepted && !existing.PrivacyAccepted)
@@ -407,26 +407,26 @@ public sealed class DevelopmentIdentitySeeder(
             DisplayName = displayName,
             City = city,
             Country = country,
-            Bio = string.IsNullOrWhiteSpace(bio) ? string.Empty : bio,
+            Comments = string.IsNullOrWhiteSpace(comments) ? string.Empty : comments,
             AvatarUrl = null,
             PrivacyAccepted = privacyAccepted,
             PrivacyAcceptedAtUtc = privacyAccepted ? DateTimeOffset.UtcNow : null
         });
     }
 
-    private static bool IsSyntheticSeedBio(string? bio)
+    private static bool IsSyntheticSeedComments(string? comments)
     {
-        if (string.IsNullOrWhiteSpace(bio))
+        if (string.IsNullOrWhiteSpace(comments))
         {
             return false;
         }
 
-        return bio.StartsWith("Usuari de desenvolupament", StringComparison.Ordinal)
-            || bio.StartsWith("Usuari local de desenvolupament", StringComparison.Ordinal)
-            || bio.StartsWith("Usuari E2E", StringComparison.Ordinal)
-            || bio.StartsWith("Accés intern per revisar", StringComparison.Ordinal)
-            || bio.StartsWith("Perfil creat a través de", StringComparison.Ordinal)
-            || bio.StartsWith("Perfil sincronitzat a través de", StringComparison.Ordinal);
+        return comments.StartsWith("Usuari de desenvolupament", StringComparison.Ordinal)
+            || comments.StartsWith("Usuari local de desenvolupament", StringComparison.Ordinal)
+            || comments.StartsWith("Usuari E2E", StringComparison.Ordinal)
+            || comments.StartsWith("Accés intern per revisar", StringComparison.Ordinal)
+            || comments.StartsWith("Perfil creat a través de", StringComparison.Ordinal)
+            || comments.StartsWith("Perfil sincronitzat a través de", StringComparison.Ordinal);
     }
 
     private async Task EnsureRolePermissionsAsync(CancellationToken cancellationToken)

@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   AbstractControl,
@@ -21,6 +21,10 @@ import {
   PASSWORD_STRENGTH_POLICY,
   PasswordStrengthPolicy
 } from '../../../auth/policies/password-strength.policy';
+import {
+  ADMIN_PRIVACY_CONSENT_POLICY,
+  AdminPrivacyConsentPolicy
+} from '../../policies/admin-privacy-consent.policy';
 import { AuthService } from '../../../auth/services/auth.service';
 import { SectionHeadingComponent } from '../../../../shared/components/section-heading/section-heading.component';
 import { fileToAvatarDataUrl } from '../../../../shared/utils/avatar-image.util';
@@ -76,6 +80,10 @@ export class AdminConsolePageComponent {
   private readonly authService = inject(AuthService);
   private readonly notifications = inject(ErrorNotificationsService);
   private readonly passwordStrength = inject<PasswordStrengthPolicy>(PASSWORD_STRENGTH_POLICY);
+  private readonly privacyConsent = inject<AdminPrivacyConsentPolicy>(ADMIN_PRIVACY_CONSENT_POLICY);
+  protected readonly privacyRequired = computed(() =>
+    this.privacyConsent.isRequired(this.authService.isAdmin())
+  );
   private avatarSuccessTimer: ReturnType<typeof setTimeout> | null = null;
   private cityNameSearchDebounce: ReturnType<typeof setTimeout> | null = null;
 
@@ -178,7 +186,7 @@ export class AdminConsolePageComponent {
       displayName: ['', [Validators.required, Validators.minLength(3)]],
       city: ['', [Validators.required, Validators.minLength(2)]],
       country: ['', [Validators.required, Validators.minLength(2)]],
-      bio: ['', [Validators.required, Validators.minLength(12)]],
+      comments: ['', [Validators.required]],
       role: this.formBuilder.nonNullable.control<string>('User'),
       newPassword: [''],
       confirmNewPassword: ['']
@@ -851,13 +859,13 @@ export class AdminConsolePageComponent {
       this.detailForm.markAllAsTouched();
       this.notifications.notify(
         'Dades incompletes',
-        'Revisa nom visible, ciutat, país, bio i, si canvies la contrasenya, que nova i confirmació coincideixin (mínim 6).',
+        'Revisa nom visible, ciutat, país, comentaris i, si canvies la contrasenya, que nova i confirmació coincideixin (mínim 6).',
         'error'
       );
       return;
     }
 
-    if (!this.detailPrivacyAccepted()) {
+    if (!this.privacyAllowsSave(this.detailPrivacyAccepted())) {
       this.notifications.notify('Privacitat obligatòria', 'Cal acceptar les condicions de privacitat abans de desar.', 'error');
       return;
     }
@@ -867,22 +875,24 @@ export class AdminConsolePageComponent {
     const avatarOperation = this.getAvatarOperation(user.avatarUrl, this.detailAvatarPreview());
     const nextPassword = payload.newPassword.trim();
 
-    if (nextPassword) {
-      await this.adminService.setUserPassword(user.id, nextPassword, payload.confirmNewPassword.trim());
-    }
+    try {
+      if (nextPassword) {
+        await this.adminService.setUserPassword(user.id, nextPassword, payload.confirmNewPassword.trim());
+      }
 
-    await this.adminService.updateUserDetails(user.id, {
-      displayName: payload.displayName.trim(),
-      city: payload.city.trim(),
-      country: payload.country.trim(),
-      bio: payload.bio.trim(),
-      avatarUrl: this.detailAvatarPreview(),
-      privacyAccepted: user.privacyAccepted,
-      privacyAcceptedAtUtc: user.privacyAcceptedAtUtc
-    });
+      await this.adminService.updateUserDetails(user.id, {
+        displayName: payload.displayName.trim(),
+        city: payload.city.trim(),
+        country: payload.country.trim(),
+        comments: payload.comments.trim(),
+        avatarUrl: this.detailAvatarPreview()
+      });
 
-    if (nextRole !== user.role) {
-      await this.adminService.updateUserRole(user.id, nextRole);
+      if (nextRole !== user.role) {
+        await this.adminService.updateUserRole(user.id, nextRole);
+      }
+    } catch {
+      return;
     }
 
     this.notifications.notify(
@@ -898,6 +908,13 @@ export class AdminConsolePageComponent {
       this.showAvatarSuccessPopup(avatarOperation);
     }
     await this.loadUsers();
+
+    const chrome = await this.authService.applySavedUserChrome(user.id, nextRole);
+    if (chrome === 'user') {
+      this.detailModalOpen.set(false);
+      this.selectedUser.set(null);
+      await this.router.navigateByUrl('/');
+    }
   }
 
   protected formatDateTime(value: string | null | undefined): string {
@@ -987,7 +1004,7 @@ export class AdminConsolePageComponent {
       return;
     }
 
-    if (!this.createPrivacyAccepted()) {
+    if (!this.privacyAllowsSave(this.createPrivacyAccepted())) {
       this.notifications.notify('Privacitat obligatòria', 'Cal acceptar les condicions de privacitat abans de crear.', 'error');
       return;
     }
@@ -1046,10 +1063,14 @@ export class AdminConsolePageComponent {
     );
   }
 
+  protected privacyAllowsSave(accepted: boolean): boolean {
+    return this.privacyConsent.canProceed(this.authService.isAdmin(), accepted);
+  }
+
   protected canSaveUserDetail(): boolean {
     const password = this.detailForm.controls.newPassword.value.trim();
     const confirm = this.detailForm.controls.confirmNewPassword.value.trim();
-    if (this.detailForm.invalid) {
+    if (this.detailForm.invalid || !this.detailForm.controls.comments.value.trim()) {
       return false;
     }
 
@@ -1065,7 +1086,7 @@ export class AdminConsolePageComponent {
       displayName: user.displayName,
       city: user.city || '',
       country: user.country || '',
-      bio: user.bio || '',
+      comments: user.comments || '',
       role: user.role,
       newPassword: '',
       confirmNewPassword: ''
@@ -1124,7 +1145,7 @@ export class AdminConsolePageComponent {
   }
 
   protected async submitCreatePermission(): Promise<void> {
-    if (!this.createMaintenancePrivacyAccepted()) {
+    if (!this.privacyAllowsSave(this.createMaintenancePrivacyAccepted())) {
       this.notifications.notify('Privacitat obligatòria', 'Cal acceptar les condicions de privacitat abans de crear.', 'error');
       return;
     }
@@ -1376,7 +1397,7 @@ export class AdminConsolePageComponent {
   }
 
   protected async saveMenu(): Promise<void> {
-    if (this.menuIsNew() && !this.createMaintenancePrivacyAccepted()) {
+    if (this.menuIsNew() && !this.privacyAllowsSave(this.createMaintenancePrivacyAccepted())) {
       this.notifications.notify('Privacitat obligatòria', 'Cal acceptar les condicions de privacitat abans de desar.', 'error');
       return;
     }
@@ -1480,7 +1501,7 @@ export class AdminConsolePageComponent {
   }
 
   protected async saveRole(): Promise<void> {
-    if (this.roleIsNew() && !this.createMaintenancePrivacyAccepted()) {
+    if (this.roleIsNew() && !this.privacyAllowsSave(this.createMaintenancePrivacyAccepted())) {
       this.notifications.notify('Privacitat obligatòria', 'Cal acceptar les condicions de privacitat abans de desar.', 'error');
       return;
     }
@@ -1650,7 +1671,7 @@ export class AdminConsolePageComponent {
   }
 
   protected async saveCountry(): Promise<void> {
-    if (this.countryIsNew() && !this.createMaintenancePrivacyAccepted()) {
+    if (this.countryIsNew() && !this.privacyAllowsSave(this.createMaintenancePrivacyAccepted())) {
       this.notifications.notify('Privacitat obligatòria', 'Cal acceptar les condicions de privacitat abans de desar.', 'error');
       return;
     }
@@ -1810,7 +1831,7 @@ export class AdminConsolePageComponent {
   }
 
   protected async saveCity(): Promise<void> {
-    if (this.cityIsNew() && !this.createMaintenancePrivacyAccepted()) {
+    if (this.cityIsNew() && !this.privacyAllowsSave(this.createMaintenancePrivacyAccepted())) {
       this.notifications.notify('Privacitat obligatòria', 'Cal acceptar les condicions de privacitat abans de desar.', 'error');
       return;
     }
@@ -2046,7 +2067,7 @@ export class AdminConsolePageComponent {
   }
 
   protected async savePlace(): Promise<void> {
-    if (this.placeIsNew() && !this.createMaintenancePrivacyAccepted()) {
+    if (this.placeIsNew() && !this.privacyAllowsSave(this.createMaintenancePrivacyAccepted())) {
       this.notifications.notify('Privacitat obligatòria', 'Cal acceptar les condicions de privacitat abans de desar.', 'error');
       return;
     }

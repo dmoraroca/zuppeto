@@ -209,16 +209,18 @@
 
           <div class="admin-console-modal__footer">
             <div class="admin-console-modal__footer-band">
-              <label class="admin-console-privacy-check">
-                <input
-                  type="checkbox"
-                  [checked]="createPrivacyAccepted()"
-                  (change)="createPrivacyAccepted.set($any($event.target).checked)"
-                />
-                <span>Accepto les condicions de privacitat d'aquest entorn intern. <strong class="form-field-required" aria-hidden="true">*</strong></span>
-              </label>
+              @if (privacyRequired()) {
+                <label class="admin-console-privacy-check">
+                  <input
+                    type="checkbox"
+                    [checked]="createPrivacyAccepted()"
+                    (change)="createPrivacyAccepted.set($any($event.target).checked)"
+                  />
+                  <span>Accepto les condicions de privacitat d'aquest entorn intern. <strong class="form-field-required" aria-hidden="true">*</strong></span>
+                </label>
+              }
               <div class="admin-console-modal__footer-actions">
-                <button type="submit" form="admin-create-user-form" class="admin-console-primary" [disabled]="!canCreateUser() || !createPrivacyAccepted()">
+                <button type="submit" form="admin-create-user-form" class="admin-console-primary" [disabled]="!canCreateUser() || !privacyAllowsSave(createPrivacyAccepted())">
                   Crear
                 </button>
                 <button type="button" class="admin-console-primary admin-console-primary--secondary admin-console-role-strip__button" (click)="closeCreateUserModal()">
@@ -334,11 +336,11 @@
             </section>
 
             <label class="admin-console-form admin-console-form--readonly">
-              <span>Bio <strong class="form-field-required" aria-hidden="true">*</strong></span>
+              <span>Comentaris <strong class="form-field-required" aria-hidden="true">*</strong></span>
               @if (detailEditMode()) {
-                <textarea rows="4" formControlName="bio" aria-required="true"></textarea>
+                <textarea rows="4" formControlName="comments" aria-required="true"></textarea>
               } @else {
-                <textarea class="admin-console-static-field" rows="4" [value]="user.bio || '-'" readonly></textarea>
+                <textarea class="admin-console-static-field" rows="4" [value]="user.comments || '-'" readonly></textarea>
               }
             </label>
 
@@ -380,7 +382,7 @@
 
           <div class="admin-console-modal__footer">
             <div class="admin-console-modal__footer-band">
-              @if (detailEditMode()) {
+              @if (detailEditMode() && privacyRequired()) {
                 <label class="admin-console-privacy-check admin-console-privacy-check--inverse">
                   <input
                     type="checkbox"
@@ -396,7 +398,7 @@
                   <button
                     type="button"
                     class="admin-console-primary admin-console-role-strip__button"
-                    [disabled]="!detailPrivacyAccepted() || !canSaveUserDetail()"
+                    [disabled]="!privacyAllowsSave(detailPrivacyAccepted()) || !canSaveUserDetail()"
                     (click)="saveSelectedUserRole()"
                   >
                     Desar
@@ -719,20 +721,22 @@
           </form>
           <div class="admin-console-modal__footer">
             <div class="admin-console-modal__footer-band">
-              <label class="admin-console-privacy-check">
-                <input
-                  type="checkbox"
-                  [checked]="createMaintenancePrivacyAccepted()"
-                  (change)="createMaintenancePrivacyAccepted.set($any($event.target).checked)"
-                />
-                <span>Accepto les condicions de privacitat d'aquest entorn intern. <strong class="form-field-required" aria-hidden="true">*</strong></span>
-              </label>
+              @if (privacyRequired()) {
+                <label class="admin-console-privacy-check">
+                  <input
+                    type="checkbox"
+                    [checked]="createMaintenancePrivacyAccepted()"
+                    (change)="createMaintenancePrivacyAccepted.set($any($event.target).checked)"
+                  />
+                  <span>Accepto les condicions de privacitat d'aquest entorn intern. <strong class="form-field-required" aria-hidden="true">*</strong></span>
+                </label>
+              }
               <div class="admin-console-modal__footer-actions">
                 <button
                   type="submit"
                   form="admin-create-permission-form"
                   class="admin-console-primary admin-console-role-strip__button"
-                  [disabled]="!canSubmitCreatePermission() || !createMaintenancePrivacyAccepted()"
+                  [disabled]="!canSubmitCreatePermission() || !privacyAllowsSave(createMaintenancePrivacyAccepted())"
                 >
                   Crear
                 </button>
@@ -795,7 +799,7 @@
           </div>
           <div class="admin-console-modal__footer">
             <div class="admin-console-modal__footer-band">
-              @if (roleIsNew()) {
+              @if (roleIsNew() && privacyRequired()) {
                 <label class="admin-console-privacy-check">
                   <input
                     type="checkbox"
@@ -1204,19 +1208,21 @@
 
             <div class="admin-console-modal__footer">
               <div class="admin-console-modal__footer-band">
-                <label class="admin-console-privacy-check">
-                  <input
-                    type="checkbox"
-                    [checked]="createMaintenancePrivacyAccepted()"
-                    (change)="createMaintenancePrivacyAccepted.set($any($event.target).checked)"
-                  />
-                  <span>Accepto les condicions de privacitat d'aquest entorn intern. <strong class="form-field-required" aria-hidden="true">*</strong></span>
-                </label>
+                @if (privacyRequired()) {
+                  <label class="admin-console-privacy-check">
+                    <input
+                      type="checkbox"
+                      [checked]="createMaintenancePrivacyAccepted()"
+                      (change)="createMaintenancePrivacyAccepted.set($any($event.target).checked)"
+                    />
+                    <span>Accepto les condicions de privacitat d'aquest entorn intern. <strong class="form-field-required" aria-hidden="true">*</strong></span>
+                  </label>
+                }
                 <div class="admin-console-modal__footer-actions">
                   <button
                     type="button"
                     class="admin-console-primary admin-console-role-strip__button"
-                    [disabled]="!createMaintenancePrivacyAccepted()"
+                    [disabled]="!privacyAllowsSave(createMaintenancePrivacyAccepted())"
                     (click)="saveMenu()"
                   >
                     Desar menú
@@ -1494,7 +1500,7 @@
           </div>
           <div class="admin-console-modal__footer">
             <div class="admin-console-modal__footer-band">
-              @if (roleIsNew()) {
+              @if (roleIsNew() && privacyRequired()) {
                 <label class="admin-console-privacy-check">
                   <input
                     type="checkbox"
@@ -1509,7 +1515,7 @@
                   <button
                     type="button"
                     class="admin-console-primary admin-console-role-strip__button"
-                    [disabled]="roleIsNew() && !createMaintenancePrivacyAccepted()"
+                    [disabled]="roleIsNew() && !privacyAllowsSave(createMaintenancePrivacyAccepted())"
                     (click)="saveRole()"
                   >
                     Desar
@@ -1730,7 +1736,7 @@
           </div>
           <div class="admin-console-modal__footer">
             <div class="admin-console-modal__footer-band">
-              @if (placeIsNew()) {
+              @if (placeIsNew() && privacyRequired()) {
                 <label class="admin-console-privacy-check">
                   <input
                     type="checkbox"
@@ -1745,7 +1751,7 @@
                   <button
                     type="button"
                     class="admin-console-primary admin-console-role-strip__button"
-                    [disabled]="placeIsNew() && !createMaintenancePrivacyAccepted()"
+                    [disabled]="placeIsNew() && !privacyAllowsSave(createMaintenancePrivacyAccepted())"
                     (click)="savePlace()"
                   >
                     Desar
@@ -1908,7 +1914,7 @@
           </div>
           <div class="admin-console-modal__footer">
             <div class="admin-console-modal__footer-band">
-              @if (countryIsNew()) {
+              @if (countryIsNew() && privacyRequired()) {
                 <label class="admin-console-privacy-check">
                   <input
                     type="checkbox"
@@ -1923,7 +1929,7 @@
                   <button
                     type="button"
                     class="admin-console-primary admin-console-role-strip__button"
-                    [disabled]="countryIsNew() && !createMaintenancePrivacyAccepted()"
+                    [disabled]="countryIsNew() && !privacyAllowsSave(createMaintenancePrivacyAccepted())"
                     (click)="saveCountry()"
                   >
                     Desar
@@ -2148,7 +2154,7 @@
           </div>
           <div class="admin-console-modal__footer">
             <div class="admin-console-modal__footer-band">
-              @if (cityIsNew()) {
+              @if (cityIsNew() && privacyRequired()) {
                 <label class="admin-console-privacy-check">
                   <input
                     type="checkbox"
@@ -2163,7 +2169,7 @@
                   <button
                     type="button"
                     class="admin-console-primary admin-console-role-strip__button"
-                    [disabled]="cityIsNew() && !createMaintenancePrivacyAccepted()"
+                    [disabled]="cityIsNew() && !privacyAllowsSave(createMaintenancePrivacyAccepted())"
                     (click)="saveCity()"
                   >
                     Desar

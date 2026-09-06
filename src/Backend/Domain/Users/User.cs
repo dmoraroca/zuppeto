@@ -46,6 +46,12 @@ public sealed class User : AggregateRoot<Guid>
             throw new DomainRuleException("User profile cannot be updated without privacy consent.");
         }
 
+        ReplaceProfile(profile);
+    }
+
+    /// <summary>Admin maintenance: replace profile fields without the self-service privacy gate.</summary>
+    public void ReplaceProfile(UserProfile profile)
+    {
         Profile = profile;
     }
 

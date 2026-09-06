@@ -61,7 +61,7 @@ public sealed class CreateAdminUserCommandHandler(
             user.Profile.DisplayName,
             user.Profile.City,
             user.Profile.Country,
-            user.Profile.Bio,
+            user.Profile.Comments,
             user.Profile.AvatarUrl,
             user.PrivacyConsent.Accepted,
             user.PrivacyConsent.AcceptedAtUtc));

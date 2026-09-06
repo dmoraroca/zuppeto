@@ -16,6 +16,7 @@ internal static class AdminEndpoints
 
         group.MapGet("/users", GetUsersAsync);
         group.MapPost("/users", CreateUserAsync);
+        group.MapPut("/users/{id:guid}", UpdateUserAsync);
         group.MapPut("/users/{id:guid}/role", UpdateUserRoleAsync);
         group.MapPut("/users/{id:guid}/password", SetUserPasswordAsync);
         group.MapDelete("/users/{id:guid}", DeleteUserAsync);
@@ -85,6 +86,41 @@ internal static class AdminEndpoints
 
         var created = result.Value!;
         return TypedResults.Created($"/api/admin/users/{created.Id}", created);
+    }
+
+    [Authorize]
+    private static async Task<Results<Ok<Application.Users.UserDto>, NotFound, ForbidHttpResult, ValidationProblem>> UpdateUserAsync(
+        ClaimsPrincipal principal,
+        Guid id,
+        UpdateAdminUserRequest request,
+        IValidator<UpdateAdminUserRequest> validator,
+        IAdminApplicationService service,
+        CancellationToken cancellationToken)
+    {
+        if (!await principal.HasPermissionAsync(service, "action.users.manage", cancellationToken))
+        {
+            return TypedResults.Forbid();
+        }
+
+        var validation = validator.Validate(request);
+        if (!validation.IsValid)
+        {
+            return validation.ToValidationProblem();
+        }
+
+        var result = await service.UpdateUserAsync(id, request, cancellationToken);
+
+        if (!result.IsSuccess && result.Failure?.Kind == Application.Results.FailureKind.NotFound)
+        {
+            return TypedResults.NotFound();
+        }
+
+        if (!result.IsSuccess)
+        {
+            return TypedResults.NotFound();
+        }
+
+        return TypedResults.Ok(result.Value!);
     }
 
     [Authorize]

@@ -55,7 +55,7 @@ interface UserApiDto {
   displayName: string;
   city: string;
   country: string;
-  bio: string;
+  comments: string;
   avatarUrl: string | null;
   privacyAccepted: boolean;
   privacyAcceptedAtUtc: string | null;

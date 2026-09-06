@@ -7,7 +7,7 @@ public sealed record UserDto(
     string DisplayName,
     string City,
     string Country,
-    string Bio,
+    string Comments,
     string? AvatarUrl,
     bool PrivacyAccepted,
     DateTimeOffset? PrivacyAcceptedAtUtc);
@@ -19,7 +19,7 @@ public sealed record UserRegistrationRequest(
     string DisplayName,
     string City,
     string Country,
-    string Bio,
+    string Comments,
     string? AvatarUrl,
     bool PrivacyAccepted,
     DateTimeOffset? PrivacyAcceptedAtUtc);
@@ -29,7 +29,7 @@ public sealed record UserProfileUpdateRequest(
     string DisplayName,
     string City,
     string Country,
-    string Bio,
+    string Comments,
     string? AvatarUrl,
     bool PrivacyAccepted,
     DateTimeOffset? PrivacyAcceptedAtUtc);

@@ -14,6 +14,7 @@ internal sealed class AdminApplicationService(
     IRoleCatalogRepository roleCatalogRepository,
     IMenuRepository menuRepository,
     ICommandHandler<CreateAdminUserCommand, Result<Users.UserDto>> createUserHandler,
+    ICommandHandler<UpdateAdminUserCommand, Result<Users.UserDto>> updateUserHandler,
     ICommandHandler<UpdateUserRoleCommand, Result<Users.UserDto>> updateRoleHandler,
     ICommandHandler<SetAdminUserPasswordCommand, Result<Users.UserDto>> setPasswordHandler,
     IMenuItemDefinitionFactory menuItemDefinitionFactory) : IAdminApplicationService
@@ -37,7 +38,7 @@ internal sealed class AdminApplicationService(
                 user.Profile.DisplayName,
                 user.Profile.City,
                 user.Profile.Country,
-                user.Profile.Bio,
+                user.Profile.Comments,
                 user.Profile.AvatarUrl,
                 user.PrivacyConsent.Accepted,
                 user.PrivacyConsent.AcceptedAtUtc,
@@ -51,6 +52,14 @@ internal sealed class AdminApplicationService(
         CancellationToken cancellationToken = default)
     {
         return await createUserHandler.HandleAsync(new CreateAdminUserCommand(request), cancellationToken);
+    }
+
+    public async Task<Result<Users.UserDto>> UpdateUserAsync(
+        Guid userId,
+        UpdateAdminUserRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        return await updateUserHandler.HandleAsync(new UpdateAdminUserCommand(userId, request), cancellationToken);
     }
 
     public async Task<Result<Users.UserDto>> UpdateUserRoleAsync(

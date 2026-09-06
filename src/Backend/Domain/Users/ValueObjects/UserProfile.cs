@@ -4,7 +4,7 @@ namespace Zuppeto.Domain.Users.ValueObjects;
 
 public sealed class UserProfile : ValueObject
 {
-    public UserProfile(string displayName, string city, string country, string bio, string? avatarUrl)
+    public UserProfile(string displayName, string city, string country, string comments, string? avatarUrl)
     {
         if (string.IsNullOrWhiteSpace(displayName))
         {
@@ -14,7 +14,7 @@ public sealed class UserProfile : ValueObject
         DisplayName = displayName.Trim();
         City = city.Trim();
         Country = country.Trim();
-        Bio = bio.Trim();
+        Comments = comments.Trim();
         AvatarUrl = string.IsNullOrWhiteSpace(avatarUrl) ? null : avatarUrl.Trim();
     }
 
@@ -24,7 +24,7 @@ public sealed class UserProfile : ValueObject
 
     public string Country { get; }
 
-    public string Bio { get; }
+    public string Comments { get; }
 
     public string? AvatarUrl { get; }
 
@@ -33,7 +33,7 @@ public sealed class UserProfile : ValueObject
         yield return DisplayName;
         yield return City;
         yield return Country;
-        yield return Bio;
+        yield return Comments;
         yield return AvatarUrl;
     }
 }

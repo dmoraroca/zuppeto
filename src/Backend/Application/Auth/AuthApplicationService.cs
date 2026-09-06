@@ -135,7 +135,7 @@ internal sealed class AuthApplicationService(
                 user.Profile.DisplayName,
                 user.Profile.City,
                 user.Profile.Country,
-                user.Profile.Bio,
+                user.Profile.Comments,
                 user.Profile.AvatarUrl,
                 user.PrivacyConsent.Accepted,
                 user.PrivacyConsent.AcceptedAtUtc),
@@ -196,7 +196,7 @@ internal sealed class AuthApplicationService(
                         ResolveDisplayName(identity),
                         user.Profile.City,
                         user.Profile.Country,
-                        user.Profile.Bio,
+                        user.Profile.Comments,
                         string.IsNullOrWhiteSpace(identity.AvatarUrl) ? user.Profile.AvatarUrl : identity.AvatarUrl));
                 shouldPersist = true;
             }

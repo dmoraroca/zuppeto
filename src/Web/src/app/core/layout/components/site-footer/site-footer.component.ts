@@ -14,4 +14,5 @@ export class SiteFooterComponent {
   private readonly authService = inject(AuthService);
 
   protected readonly canAccessDocumentation = computed(() => this.authService.canAccessDocumentation());
+  protected readonly showsCatalogNav = computed(() => this.authService.showsCatalogNav());
 }

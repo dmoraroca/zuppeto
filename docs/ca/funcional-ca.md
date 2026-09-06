@@ -478,8 +478,10 @@ Implementacio visible actual d'aquest tram:
 
 - `admin/usuaris` ja no es limita a consulta i canvi de rol; ara incorpora alta completa, detall, edicio i baixa
 - la creacio d'usuaris demana `email`, `contrasenya inicial` amb confirmació, `nom visible`, `ciutat`, `pais`, `rol` i pot incorporar `avatar`
-- el detall d'usuari mostra `bio`, consentiment, data de consentiment, data d'alta i `ultim acces`
-- `ADMIN` ja pot editar dades basiques d'un altre usuari: `nom visible`, `ciutat`, `pais`, `bio`, `rol` i `avatar`
+- el detall d'usuari mostra `comentaris`, consentiment, data de consentiment, data d'alta i `ultim acces`
+- `ADMIN` ja pot editar dades basiques d'un altre usuari: `nom visible`, `ciutat`, `pais`, `comentaris`, `rol` i `avatar`
+- en desar el rol, l’aspecte (menú de capçalera) segueix el rol desat: `Admin` → menú intern; `User` → menú d’usuari i anar a Inici; qualsevol altre rol (`TEST`, Developer, Viewer, …) → **Inici** més campana de notificacions, menú de perfil (foto) i **Ajuda**
+- a l'edició admin, els `comentaris` són obligatoris (no poden ser buits) i **no** tenen mínim de caràcters
 - la baixa d'usuari ja existeix com a operacio del manteniment intern
 - el backend ja registra `ultim acces` quan un usuari entra per login propi o federat
 - existeix una pagina de `notificacions` per consultar avisos i errors recents de la sessio
@@ -601,7 +603,7 @@ Criteri funcional d'obligatorietat:
 Criteri funcional d'edicio:
 
 - `rol` es una dada de govern i si es editable des d'aquest manteniment
-- `nom visible`, `ciutat`, `pais` i `bio` si es poden editar des d'aquest manteniment
+- `nom visible`, `ciutat`, `pais` i `comentaris` si es poden editar des d'aquest manteniment
 - `avatarUrl` si es pot gestionar des d'aquest manteniment
 - `ADMIN` pot **canviar la contrasenya** d'un altre compte des de **Modificar**: contrasenya nova + confirmació, mateix criteri que al perfil (§3.11) (mínim 6, iguals, línia de força, ull); **no** cal la contrasenya actual (l'administrador pot comprovar sempre). Si coincideixen, el valor substitueix la **contrasenya del compte** a BD (mateix camp que el perfil). Si els camps resten buits, no es toca la contrasenya
 - les dades que siguin metadades de seguiment o context no s'han d'editar manualment des d'aquesta pantalla
@@ -622,7 +624,7 @@ Dades funcionals del detall d'usuari:
 - `nom visible`
 - `ciutat`
 - `pais`
-- `bio`
+- `comentaris`
 - `avatarUrl`
 - `consentiment`
 - `data de consentiment`
@@ -635,7 +637,7 @@ Regla funcional important sobre aquests camps:
 - `ultim acces` es nomes informatiu
 - `consentiment` es manté informatiu dins aquesta vista
 - `data de consentiment` es nomes informativa
-- `ciutat`, `pais`, `bio` i `avatarUrl` poden entrar en edicio administrativa controlada
+- `ciutat`, `pais`, `comentaris` i `avatarUrl` poden entrar en edicio administrativa controlada
 - qualsevol canvi d'aquest bloc ha de continuar subjecte a validacions de formulari i criteri de privacitat del flux intern
 
 Per tant, dins `admin/usuaris`, no s'han de poder modificar manualment les metadades de seguiment, pero si les dades basiques administrables que el manteniment ja governa.
@@ -694,8 +696,9 @@ Conseqüencia funcional:
 
 Flux administratiu actual ja visible:
 
-- la creacio d'usuari exigeix acceptacio expressa de privacitat dins el flux intern abans de desar
-- l'edicio d'un altre usuari tambe exigeix confirmacio de privacitat abans de persistir canvis
+- la creacio d'usuari exigeix acceptacio expressa de privacitat dins el flux intern abans de desar, tret que qui opera sigui Administrador
+- l'edicio d'un altre usuari: si qui opera és **Administrador**, no es mostra ni es valida el check de privacitat (mateix criteri que al perfil); la resta de rols interns sí l’han d’acceptar
+- a l'edició, els `comentaris` no poden ser buits i no tenen límit mínim de longitud
 - l'`avatar` es pot pujar, substituir o esborrar i el sistema informa visualment del resultat
 - la baixa d'usuari es confirma abans d'executar-se i forma part del mateix manteniment
 - despres de crear, editar o eliminar, el llistat es recarrega sobre dades reals del backend
@@ -731,7 +734,7 @@ Camps funcionals principals del perfil:
 - `ciutat`
 - `pais`
 - `url de foto`
-- `bio`
+- `comentaris`
 - `consentiment`
 - `rol` (només lectura)
 
@@ -739,7 +742,7 @@ Criteri funcional de camps:
 
 - `nom visible` és editable (mínim 3 caràcters)
 - `email` és editable; no pot coincidir amb un altre compte
-- `bio` és editable i **opcional**: el camp **entra buit** si a la BD no n’hi ha; si n’hi ha una de desada, es carrega d’allà. El seed de Development i l’alta per Google **no** fabriquen textos de bio
+- `comentaris` és editable i **opcional**: el camp **entra buit** si a la BD no n’hi ha; si n’hi ha uns de desats, es carreguen d’allà. El seed de Development i l’alta per Google **no** fabriquen textos de comentaris. A l’edició admin el mateix camp és **obligatori** (sense mínim de longitud). UI: «Comentaris». Columna BD: `users.comments`.
 - `url de foto` és opcional; sense foto es mostra el placeholder `NONE`
 - `consentiment` no porta `*`; per a `USER`, el check marcat és condició per activar **Guardar** (junt amb la resta)
 - `rol` només es veu; el canvia `ADMIN`
@@ -757,7 +760,7 @@ Criteri funcional de camps:
 - **Nova** i **confirmació** entren **desactivades**: no s’hi pot escriure ni porten `*` fins que l’actual **coincideix** amb la del compte.
 - Nova i confirmació **no** són camps a la BD: serveixen per **validar el format**. Si són correctes, al guardar **substitueixen** la contrasenya del compte.
 - Format: mínim **6** caràcters; les dues han de ser **iguals**. Si la nova té text i la confirmació és buida (o no coincideix), es mostra **«Les contrasenyes no coincideixen.»** Línia de força sota la nova: **dèbil** (text però &lt; 6), **mitjana** (≥6 incompleta), **forta** (≥6 + majúscula + minúscula + número + especial). Cada camp té **ull** per mostrar o amagar.
-- Si l’**actual és buida**, es pot **guardar** el perfil (nom, ciutat, bio, foto, email, etc.); nova i confirmació resten **desactivades** i **no** es toca la contrasenya del compte.
+- Si l’**actual és buida**, es pot **guardar** el perfil (nom, ciutat, comentaris, foto, email, etc.); nova i confirmació resten **desactivades** i **no** es toca la contrasenya del compte.
 - Al **Guardar**, si l’actual té text, es **comprova de nou** contra el compte. Si no coincideix: notificació **«Contrasenya incorrecta»**, no es desa el canvi de contrasenya ni es continua el guardat de compte.
 - Una sessió **Google** no té una contrasenya local coneguda (el hash inicial és aleatori): l’actual no coincidirà amb la de Gmail. El canvi de contrasenya del perfil es prova amb **login propi**.
 
@@ -771,7 +774,7 @@ Criteri funcional de camps:
 - si en falta algun, sota l’avís es llista **Falten: …** (els mateixos criteris que activen o desactiven el botó)
 - **actual buida:** desa fitxa; si l’email ha canviat, també desa el compte; **no** verifica ni canvia la contrasenya
 - **actual amb text:** revalida; si falla, notificació i no desa; si coincideix i la nova és vàlida, substitueix la contrasenya (i l’email si ha canviat) i després desa la fitxa
-- es pot desar nom, ciutat, bio, foto, consentiment, etc. **sense** tocar la contrasenya
+- es pot desar nom, ciutat, comentaris, foto, consentiment, etc. **sense** tocar la contrasenya
 
 Regles funcionals rellevants:
 
@@ -1544,9 +1547,9 @@ Actor:
 Flux principal:
 
 1. l'usuari entra a `Perfil` (sessió real; dades de BD / sessió)
-2. veu nom, email, ciutat, país, bio (buida si no n’hi ha a la BD), foto o placeholder `NONE`, rol (només lectura) i consentiment
+2. veu nom, email, ciutat, país, comentaris (buits si no n’hi ha a la BD), foto o placeholder `NONE`, rol (només lectura) i consentiment
 3. **Guardar** entra desactivat; la contrasenya actual entra buida; nova i confirmació desactivades
-4. edita la fitxa (nom, ciutat, país, bio opcional, foto) i/o l’email
+4. edita la fitxa (nom, ciutat, país, comentaris opcionals, foto) i/o l’email
 5. si l’email té format incorrecte, veu sempre el missatge sota el camp i no pot guardar
 6. si vol canviar la contrasenya: escriu l’actual; només quan coincideix amb el compte s’activen nova i confirmació (format, iguals, força, ull)
 7. si el rol es `USER`, ha d'acceptar el consentiment de manteniment de dades (sense `*` al check)
@@ -1603,7 +1606,7 @@ Flux principal:
 - canvi de contrasenya: actual buida a l’entrada; nova i confirmació desactivades fins que l’actual coincideix; al guardar es revalida
 - actual buida al guardar: desa la fitxa (i l’email si ha canviat) sense tocar la contrasenya
 - actual incorrecta al guardar: notificació «Contrasenya incorrecta» i no es canvia la contrasenya
-- bio opcional; si no n’hi ha a la BD, el camp entra buit
+- comentaris opcionals; si no n’hi ha a la BD, el camp entra buit
 
 ## 8. Login i perfil · Estat actual i futur immediat
 
@@ -1623,7 +1626,7 @@ Punts funcionals ja implementats:
 - sessio d'usuari
 - logout
 - pagina de perfil sobre backend real
-- manteniment de perfil (nom, email, ciutat, país, bio opcional, foto)
+- manteniment de perfil (nom, email, ciutat, país, comentaris opcionals, foto)
 - canvi d’email des del perfil (format sota el camp; unicitat; sessió reemesa)
 - canvi de contrasenya: actual buida, nova/confirmació bloquejades fins que l’actual coincideix; al guardar es revalida i es notifica si és incorrecta
 - **Guardar** desactivat en pristine; resum **Falten: …**; consentiment `USER` sense `*` però obligatori per activar el botó
@@ -1678,7 +1681,7 @@ Resum del diagrama:
 
 <pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">flowchart TD</span>
   <span style="color:#93c5fd;">A[Entrar al perfil]</span> --&gt; <span style="color:#c4b5fd;">B[Carregar dades de BD]</span>
-  <span style="color:#c4b5fd;">B</span> --&gt; <span style="color:#86efac;">C[Editar fitxa, email, foto, bio]</span>
+  <span style="color:#c4b5fd;">B</span> --&gt; <span style="color:#86efac;">C[Editar fitxa, email, foto, comentaris]</span>
   <span style="color:#86efac;">C</span> --&gt; <span style="color:#67e8f9;">D{Vol canviar contrasenya?}</span>
   <span style="color:#67e8f9;">D</span> --&gt;|Actual buida| <span style="color:#fcd34d;">E[Guardar]</span>
   <span style="color:#67e8f9;">D</span> --&gt;|Omple actual| <span style="color:#f9a8d4;">F{Coincideix amb el compte?}</span>
@@ -1694,7 +1697,7 @@ Resum del diagrama:
 
 Resum del diagrama:
 
-- el perfil carrega dades reals; bio buida si no n’hi ha; foto o placeholder `NONE`
+- el perfil carrega dades reals; comentaris buits si no n’hi ha; foto o placeholder `NONE`
 - nova i confirmació només s’activen quan l’actual coincideix amb el compte
 - **Guardar** amb actual buida desa fitxa (i email si ha canviat) sense tocar la contrasenya
 - **Guardar** amb actual plena revalida; si falla, notificació i no desa; si passa, substitueix la contrasenya

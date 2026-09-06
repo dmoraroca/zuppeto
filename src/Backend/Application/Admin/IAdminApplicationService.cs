@@ -10,6 +10,11 @@ public interface IAdminApplicationService
         CreateAdminUserRequest request,
         CancellationToken cancellationToken = default);
 
+    Task<Results.Result<Users.UserDto>> UpdateUserAsync(
+        Guid userId,
+        UpdateAdminUserRequest request,
+        CancellationToken cancellationToken = default);
+
     Task<Results.Result<Users.UserDto>> UpdateUserRoleAsync(
         Guid userId,
         UpdateUserRoleRequest request,

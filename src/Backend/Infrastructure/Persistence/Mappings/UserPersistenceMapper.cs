@@ -17,7 +17,7 @@ internal static class UserPersistenceMapper
                 record.DisplayName ?? record.Email,
                 record.City ?? string.Empty,
                 record.Country ?? string.Empty,
-                record.Bio ?? string.Empty,
+                record.Comments ?? string.Empty,
                 record.AvatarUrl),
             new PrivacyConsent(record.PrivacyAccepted, record.PrivacyAcceptedAtUtc),
             record.CreatedAtUtc,
@@ -40,7 +40,7 @@ internal static class UserPersistenceMapper
         record.DisplayName = user.Profile.DisplayName;
         record.City = user.Profile.City;
         record.Country = user.Profile.Country;
-        record.Bio = user.Profile.Bio;
+        record.Comments = user.Profile.Comments;
         record.AvatarUrl = user.Profile.AvatarUrl;
         record.PrivacyAccepted = user.PrivacyConsent.Accepted;
         record.PrivacyAcceptedAtUtc = user.PrivacyConsent.AcceptedAtUtc;

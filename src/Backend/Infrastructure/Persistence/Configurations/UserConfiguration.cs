@@ -49,8 +49,8 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<UserRecord>
             .HasColumnName("country")
             .HasMaxLength(120);
 
-        builder.Property(user => user.Bio)
-            .HasColumnName("bio");
+        builder.Property(user => user.Comments)
+            .HasColumnName("comments");
 
         builder.Property(user => user.AvatarUrl)
             .HasColumnName("avatar_url");

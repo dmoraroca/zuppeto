@@ -4,8 +4,8 @@ namespace Zuppeto.Application.Factories;
 
 public sealed class UserProfileFactory : IUserProfileFactory
 {
-    public UserProfile Create(string displayName, string city, string country, string bio, string? avatarUrl)
+    public UserProfile Create(string displayName, string city, string country, string comments, string? avatarUrl)
     {
-        return new UserProfile(displayName, city, country, bio, avatarUrl);
+        return new UserProfile(displayName, city, country, comments, avatarUrl);
     }
 }

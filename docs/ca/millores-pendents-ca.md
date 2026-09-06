@@ -7,6 +7,42 @@ No substitueix `docs/project-phases.md` ni el joc de proves Excel: aquí només 
 
 ---
 
+## 2026-09-04 21:06 CEST
+
+**Àmbit:** Consola admin · check «Accepto les condicions» · actor Administrador · ZUP-112 (en curs)
+
+**Què es veu:** a crear/modificar (usuaris, rols, etc.) l’administrador ha de marcar el check de privacitat i el Desar el comprova. Al **perfil**, l’admin ja n’està exempt (no es mostra el check i no es valida).
+
+**Millora:** si qui opera és **Administrador**, el check **no cal**: no mostrar-lo i **no comprovar-lo** (Desar no l’exigeix). Mateix criteri que al perfil. Policy `AdminExemptPrivacyConsentPolicy` (`isAdmin` → consentiment no requerit).
+
+**Estat:** FET (2026-09-04 23:52 CEST).
+
+---
+
+## 2026-09-04 21:05 CEST
+
+**Àmbit:** Admin · Usuaris · combo Rol · ZUP-112 (en curs)
+
+**Què es veu:** el desplegable de **Rol** (detall / modificar) no té el mateix estil que els altres combos del formulari.
+
+**Millora:** igualar l’aspecte del combo de rol amb la resta de llistes desplegables. **No implementar ara.**
+
+**Estat:** pendent; no implementar ara.
+
+---
+
+## 2026-09-04 20:54 CEST
+
+**Àmbit:** Login / alta d’usuari · activació de compte · ZUP-110 (en curs)
+
+**Què es veu:** un compte creat (p. ex. des d’admin) pot entrar de seguida amb email i contrasenya. No hi ha pas d’activar l’email.
+
+**Millora:** activació **via email**. Si el compte **no està actiu**, no pot iniciar sessió. En intentar-ho, una **notificació d’avís** ha d’explicar que cal activar el correu (enllaç o instrucció d’activar via email). Relacionat amb el punt previst de confirmació de compte per email (funcional §8). **No implementar ara.**
+
+**Estat:** pendent; no implementar ara.
+
+---
+
 ## 2026-09-02 18:50 CEST
 
 **Àmbit:** Contacte (`/contacte`) · copy · ZUP-097

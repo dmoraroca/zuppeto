@@ -52,7 +52,7 @@ No substitueix el domini: tradueix el domini actual a una estructura pensada per
     varchar display_name
     varchar city
     varchar country
-    text bio
+    text comments
     varchar avatar_url
     boolean privacy_accepted
     timestamptz privacy_accepted_at_utc
@@ -229,7 +229,7 @@ El bootstrap SQL queda reduit a suport auxiliar i ja no crea l'esquema principal
 - `PetPolicy` -> `accepts_dogs`, `accepts_cats`, `pet_policy_label`, `pet_policy_notes`
 - `Pricing` -> `pricing_label`
 - `RatingSnapshot` -> `rating_average`, `review_count`
-- `UserProfile` -> `display_name`, `city`, `country`, `bio`, `avatar_url`
+- `UserProfile` -> `display_name`, `city`, `country`, `comments`, `avatar_url`
 - `PrivacyConsent` -> `privacy_accepted`, `privacy_accepted_at_utc`
 
 ## Decisions de relacio

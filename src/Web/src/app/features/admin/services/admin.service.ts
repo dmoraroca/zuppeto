@@ -18,7 +18,7 @@ export interface AdminUserListItem {
   displayName: string;
   city: string;
   country: string;
-  bio: string;
+  comments: string;
   avatarUrl: string | null;
   privacyAccepted: boolean;
   privacyAcceptedAtUtc: string | null;
@@ -41,10 +41,8 @@ export interface AdminUserUpdateRequest {
   displayName: string;
   city: string;
   country: string;
-  bio: string;
+  comments: string;
   avatarUrl: string | null;
-  privacyAccepted: boolean;
-  privacyAcceptedAtUtc: string | null;
 }
 
 export interface PermissionDefinition {
@@ -337,10 +335,7 @@ export class AdminService {
 
   async updateUserDetails(userId: string, request: AdminUserUpdateRequest): Promise<void> {
     await firstValueFrom(
-      this.http.put(`${API_BASE_URL}/users/${userId}/profile`, {
-        id: userId,
-        ...request
-      })
+      this.http.put(`${API_BASE_URL}/admin/users/${userId}`, request)
     );
   }
 

@@ -7,7 +7,14 @@ import { API_BASE_URL } from '../../../core/config/api.config';
 import { NavigationMenuItem } from '../../../core/models/navigation-menu.model';
 import { ErrorNotificationsService } from '../../../core/services/error-notifications.service';
 import { AuthAccountUpdate, AuthCredentials, AuthProfileUpdate, AuthProvider, AuthRole, AuthSession, AuthUser } from '../models/auth-user.model';
+import {
+  ROLE_CHROME_POLICY,
+  RoleChromeKind,
+  RoleChromePolicy
+} from '../policies/role-chrome.policy';
 import { AUTH_STORE, AuthStore } from './auth-store.token';
+
+const ROLE_CHROME_STORAGE_KEY = 'zuppeto-role-chrome';
 
 @Injectable({
   providedIn: 'root'
@@ -15,8 +22,10 @@ import { AUTH_STORE, AuthStore } from './auth-store.token';
 export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly notifications = inject(ErrorNotificationsService);
+  private readonly roleChrome = inject<RoleChromePolicy>(ROLE_CHROME_POLICY);
   private readonly sessionState: ReturnType<typeof signal<AuthSession | null>>;
   private readonly navigationMenuState = signal<NavigationMenuItem[]>([]);
+  private readonly chromeRoleState = signal<string | null>(readStoredChromeRole());
   readonly currentUser$: Observable<AuthUser | null>;
   readonly isAuthenticated$: Observable<boolean>;
 
@@ -36,6 +45,7 @@ export class AuthService {
 
     if (existingSession) {
       this.notifications.loadForUser(existingSession.user.id);
+      void this.applyRoleChrome(this.chromeRoleState() ?? existingSession.user.role);
     }
 
     if (existingSession && !this.isLoginRoute()) {
@@ -55,6 +65,11 @@ export class AuthService {
   readonly provider = computed(() => this.sessionState()?.provider ?? null);
   readonly permissionKeys = computed(() => this.sessionState()?.permissionKeys ?? []);
   readonly navigationMenu = computed(() => this.navigationMenuState());
+  readonly chromeKind = computed(() => this.roleChrome.resolve(this.chromeRoleState() ?? this.role() ?? ''));
+  readonly showsCatalogNav = computed(() => {
+    const kind = this.chromeKind();
+    return kind === 'admin' || kind === 'user';
+  });
 
   async login(credentials: AuthCredentials): Promise<{ ok: boolean; user?: AuthUser }> {
     try {
@@ -69,7 +84,8 @@ export class AuthService {
       this.sessionState.set(mappedSession);
       this.authStore.saveSession(mappedSession);
       this.notifications.loadForUser(mappedSession.user.id);
-      await this.loadNavigationMenu();
+      this.clearStoredChromeRole();
+      await this.applyRoleChrome(mappedSession.user.role);
 
       return { ok: true, user: mappedSession.user };
     } catch {
@@ -89,7 +105,8 @@ export class AuthService {
       this.sessionState.set(mappedSession);
       this.authStore.saveSession(mappedSession);
       this.notifications.loadForUser(mappedSession.user.id);
-      await this.loadNavigationMenu();
+      this.clearStoredChromeRole();
+      await this.applyRoleChrome(mappedSession.user.role);
 
       return { ok: true, user: mappedSession.user };
     } catch {
@@ -102,11 +119,13 @@ export class AuthService {
     this.sessionState.set(mappedSession);
     this.authStore.saveSession(mappedSession);
     this.notifications.loadForUser(mappedSession.user.id);
-    void this.loadNavigationMenu();
+    this.clearStoredChromeRole();
+    void this.applyRoleChrome(mappedSession.user.role);
     return mappedSession.user;
   }
 
   logout(): void {
+    this.clearStoredChromeRole();
     this.notifications.unload();
     this.sessionState.set(null);
     this.navigationMenuState.set([]);
@@ -131,7 +150,7 @@ export class AuthService {
         displayName: update.name,
         city: update.city,
         country: update.country,
-        bio: update.bio,
+        comments: update.comments,
         avatarUrl: update.avatarUrl,
         privacyAccepted: update.privacyAccepted,
         privacyAcceptedAtUtc: update.privacyAccepted ? new Date().toISOString() : null
@@ -202,12 +221,48 @@ export class AuthService {
     }));
   }
 
+  /**
+   * After an admin save: refresh the session if that user is the current one,
+   * then apply header chrome for the saved role (admin / user / TEST no-op).
+   */
+  async applySavedUserChrome(userId: string, role: string): Promise<RoleChromeKind> {
+    if (this.currentUser()?.id === userId) {
+      await this.refreshSessionFromServer();
+    }
+
+    return this.applyRoleChrome(role);
+  }
+
+  async applyRoleChrome(role: string): Promise<RoleChromeKind> {
+    const nextRole = (role ?? '').trim();
+    this.chromeRoleState.set(nextRole || null);
+    writeStoredChromeRole(nextRole || null);
+
+    const kind = this.roleChrome.resolve(nextRole);
+    if (kind === 'admin') {
+      await this.loadAdminNavigationFromApi();
+      return kind;
+    }
+
+    if (kind === 'user') {
+      this.navigationMenuState.set(this.buildPublicNavigationMenu());
+      return kind;
+    }
+
+    this.navigationMenuState.set(this.buildHomeOnlyNavigationMenu());
+    return kind;
+  }
+
   async loadNavigationMenu(): Promise<void> {
     if (!this.isAuthenticated()) {
       this.navigationMenuState.set([]);
       return;
     }
 
+    await this.applyRoleChrome(this.chromeRoleState() ?? this.sessionState()?.user.role ?? '');
+  }
+
+  private async loadAdminNavigationFromApi(): Promise<void> {
     try {
       const menu = await firstValueFrom(
         this.http.get<NavigationMenuItem[]>(`${API_BASE_URL}/navigation/menu`)
@@ -222,16 +277,20 @@ export class AuthService {
     }
   }
 
+  async refreshSessionFromServer(): Promise<void> {
+    await this.restoreSessionAsync();
+  }
+
   private async restoreSessionAsync(): Promise<void> {
     try {
       const session = await firstValueFrom(
         this.http.get<AuthSessionApiDto>(`${API_BASE_URL}/auth/me`)
       );
 
-      const mappedSession = this.toSession(session);
+      const mappedSession = this.toSession(this.normalizeSession(session));
       this.sessionState.set(mappedSession);
       this.authStore.saveSession(mappedSession);
-      await this.loadNavigationMenu();
+      await this.applyRoleChrome(readStoredChromeRole() ?? mappedSession.user.role);
     } catch (error) {
       if (error instanceof HttpErrorResponse && (error.status === 401 || error.status === 404)) {
         this.sessionState.set(null);
@@ -241,7 +300,7 @@ export class AuthService {
         return;
       }
 
-      await this.loadNavigationMenu();
+      await this.applyRoleChrome(this.sessionState()?.user.role ?? '');
     }
   }
 
@@ -337,7 +396,10 @@ export class AuthService {
         displayName: this.readUserField(user, 'displayName', 'DisplayName') ?? '',
         city: this.readUserField(user, 'city', 'City') ?? '',
         country: this.readUserField(user, 'country', 'Country') ?? '',
-        bio: this.readUserField(user, 'bio', 'Bio') ?? '',
+        comments:
+          this.readUserField(user, 'comments', 'Comments')
+          ?? this.readUserField(user, 'bio', 'Bio')
+          ?? '',
         avatarUrl: this.readUserField(user, 'avatarUrl', 'AvatarUrl') ?? null,
         privacyAccepted: this.readUserField(user, 'privacyAccepted', 'PrivacyAccepted') ?? false,
         privacyAcceptedAtUtc: this.readUserField(user, 'privacyAcceptedAtUtc', 'PrivacyAcceptedAtUtc') ?? null
@@ -384,14 +446,44 @@ export class AuthService {
       role: user.role,
       city: user.city,
       country: user.country,
-      bio: user.bio,
+      comments: user.comments || user.bio || '',
       avatarUrl: user.avatarUrl,
       privacyAccepted: user.privacyAccepted
     };
   }
 
-  private buildFallbackNavigationMenu(): NavigationMenuItem[] {
-    const items: NavigationMenuItem[] = [
+  private buildHomeOnlyNavigationMenu(): NavigationMenuItem[] {
+    return [
+      {
+        key: 'home',
+        label: 'Inici',
+        route: '/',
+        children: []
+      },
+      {
+        key: 'help',
+        label: 'Ajuda',
+        route: null,
+        children: [
+          {
+            key: 'help.general',
+            label: 'Com funciona',
+            route: '/ajuda',
+            children: []
+          },
+          {
+            key: 'help.contact',
+            label: "Contacta'ns",
+            route: '/contacte',
+            children: []
+          }
+        ]
+      }
+    ];
+  }
+
+  private buildPublicNavigationMenu(): NavigationMenuItem[] {
+    return [
       {
         key: 'home',
         label: 'Inici',
@@ -430,6 +522,10 @@ export class AuthService {
         ]
       }
     ];
+  }
+
+  private buildFallbackNavigationMenu(): NavigationMenuItem[] {
+    const items: NavigationMenuItem[] = this.buildPublicNavigationMenu();
 
     const negoci: NavigationMenuItem[] = [];
     if (this.canAccessDocumentation()) {
@@ -690,11 +786,38 @@ export class AuthService {
 
   /**
    * Force /perfil only for incomplete accounts (e.g. new federated users with empty location).
-   * Privacy is required when saving the profile page, not on every login. Bio is optional.
+   * Privacy is required when saving the profile page, not on every login. Comments are optional.
    */
   private requiresProfileCompletion(user: AuthUser): boolean {
     return !(user.name ?? '').trim() || !(user.city ?? '').trim() || !(user.country ?? '').trim();
   }
+
+  private clearStoredChromeRole(): void {
+    this.chromeRoleState.set(null);
+    writeStoredChromeRole(null);
+  }
+}
+
+function readStoredChromeRole(): string | null {
+  if (typeof sessionStorage === 'undefined') {
+    return null;
+  }
+
+  const value = sessionStorage.getItem(ROLE_CHROME_STORAGE_KEY)?.trim();
+  return value ? value : null;
+}
+
+function writeStoredChromeRole(role: string | null): void {
+  if (typeof sessionStorage === 'undefined') {
+    return;
+  }
+
+  if (!role) {
+    sessionStorage.removeItem(ROLE_CHROME_STORAGE_KEY);
+    return;
+  }
+
+  sessionStorage.setItem(ROLE_CHROME_STORAGE_KEY, role);
 }
 
 interface UserApiDto {
@@ -704,7 +827,8 @@ interface UserApiDto {
   displayName: string;
   city: string;
   country: string;
-  bio: string;
+  comments: string;
+  bio?: string;
   avatarUrl: string | null;
   privacyAccepted: boolean;
   privacyAcceptedAtUtc: string | null;
@@ -725,6 +849,7 @@ interface PascalCaseUserApiDto {
   DisplayName?: string;
   City?: string;
   Country?: string;
+  Comments?: string;
   Bio?: string;
   AvatarUrl?: string | null;
   PrivacyAccepted?: boolean;

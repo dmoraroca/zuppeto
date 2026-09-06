@@ -7,7 +7,7 @@ public sealed record AdminUserListItemDto(
     string DisplayName,
     string City,
     string Country,
-    string Bio,
+    string Comments,
     string? AvatarUrl,
     bool PrivacyAccepted,
     DateTimeOffset? PrivacyAcceptedAtUtc,
@@ -25,6 +25,14 @@ public sealed record CreateAdminUserRequest(
     string? AvatarUrl);
 
 public sealed record UpdateUserRoleRequest(string Role);
+
+/// <summary>Admin edits another user's profile fields. Does not change privacy consent.</summary>
+public sealed record UpdateAdminUserRequest(
+    string DisplayName,
+    string City,
+    string Country,
+    string Comments,
+    string? AvatarUrl);
 
 /// <summary>
 /// Admin sets the account login password. Confirm is validation-only; the new value is stored as <c>password_hash</c>.

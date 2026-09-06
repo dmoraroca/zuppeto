@@ -299,6 +299,7 @@ Rutes reals validades:
 - `POST /api/users`
 - `PUT /api/users/{id}/profile`
 - `PUT /api/users/{id}/account` — canvi d'email i/o contrasenya (JWT del mateix `id`; reemet sessió); email sense nova no exigeix actual; si hi ha contrasenya nova, exigeix actual i la comprova contra el hash PBKDF2; email duplicat → validació
+- `PUT /api/admin/users/{id}` — `ADMIN` (`action.users.manage`) edita fitxa d’un altre usuari (`displayName`, `city`, `country`, `comments` obligatoris sense mínim de longitud, `avatarUrl`); `UpdateAdminUserCommand` + `User.ReplaceProfile` (sense el gate de consentiment del perfil propi); no canvia el consentiment de l’usuari editat. Columna BD `users.comments` (abans `bio`). UI: «Comentaris».
 - `PUT /api/admin/users/{id}/password` — `ADMIN` (`action.users.manage`) assigna contrasenya nova **sense** l’actual; cos `{ newPassword, confirmNewPassword }` (≥ 6 i iguals); si coincideixen, el hasher PBKDF2 escriu `users.password_hash` (mateix camp que `PUT /api/users/{id}/account`); la confirmació no es persisteix; no reemet la sessió de l’usuari editat
 - `POST /api/users/{id}/password/verify` — cos `{ password }` → `{ matches }`; només l’usuari autenticat sobre el seu `id`; serveix per desbloquejar nova/confirmació al perfil i per revalidar al **Guardar**
 - `GET /api/favorites/{ownerUserId}`
@@ -1187,7 +1188,7 @@ Regles ja codificades:
 - un `User` obliga a email valid i `passwordHash`
 - `User.ChangeEmail` normalitza i substitueix l’email; `User.ChangePasswordHash` substitueix el hash (mai text pla)
 - `ChangeAccountAsync`: email nou no pot coincidir amb un altre compte; si hi ha `NewPassword`, `IPasswordHasher.Verify` ha de passar abans de `Hash` + `ChangePasswordHash`
-- un `User` amb rol `User` no pot actualitzar perfil sense consentiment actiu
+- un `User` amb rol `User` no pot actualitzar el perfil propi (`UpdateProfile`) sense consentiment actiu; `ReplaceProfile` és el manteniment admin (sense aquest gate)
 - una `FavoriteList` no duplica el mateix lloc
 - una `PlaceReview` obliga a puntuacio entre 1 i 5
 - una `PlaceReview` obliga a comentari no buit
@@ -1594,20 +1595,20 @@ Despres del login:
 - si no existeix:
   - comptes amb perfil incomplet (sense nom, ciutat o país, tipic d'alta federada nova) van a `/perfil`
   - la resta van a `/` (inici), **també ADMIN i DEVELOPER**. Les pantalles internes (`/admin/permisos`, documentació, etc.) s'obren des del menú, no són el destí del login
-  - el consentiment es demana en desar el perfil, no es força a cada login; la bio és opcional
+  - el consentiment es demana en desar el perfil, no es força a cada login; els comentaris són opcionals al perfil d’usuari
 
 ### 9.5 Perfil, compte i consentiment
 
 La pagina `Perfil` desa sobre API real. Els tres endpoints d’usuari exigeixen JWT i que el `id` de ruta sigui el de l’usuari autenticat (`Forbid` si no):
 
-- `PUT /api/users/{id}/profile` — nom, ciutat, país, bio, avatar, consentiment
+- `PUT /api/users/{id}/profile` — nom, ciutat, país, comentaris (`comments`), avatar, consentiment
 - `PUT /api/users/{id}/account` — email i/o contrasenya nova; si hi ha nova, exigeix actual i la verifica; reemet `AuthSessionDto` (JWT nou)
 - `POST /api/users/{id}/password/verify` — `{ password }` → `{ matches }`
 
 #### Fitxa (`profile`)
 
 - nom, ciutat, país, avatar, consentiment
-- bio **opcional**: el formulari carrega el valor de sessió/`GET` (BD); si és buit, el camp es veu buit; `UserProfileUpdateRequestValidator` ja no obliga bio
+- comentaris **opcionals** al perfil: el formulari carrega el valor de sessió/`GET` (BD); si és buit, el camp es veu buit; `UserProfileUpdateRequestValidator` no obliga `comments`
 - foto opcional; placeholder `NONE`
 - consentiment: `USER` l’ha de tenir marcat per `canSave`; `ADMIN` exempt (`isAdmin` a l’snapshot)
 
@@ -1622,7 +1623,7 @@ La pagina `Perfil` desa sobre API real. Els tres endpoints d’usuari exigeixen 
 
 - no es persisteix en clar ni en SHA-256 pla: `Pbkdf2PasswordHasher` (`pbkdf2$iteracions$salt$hash`, SHA-256 només com a PRF, 100.000 iteracions)
 - `VerifyCurrentPasswordAsync` només retorna `matches`; el web el crida en escriure l’actual (debounce) i de nou al `save` si l’actual té text
-- `DevelopmentIdentitySeeder` no pisa bios reals ni omple frases de seed; `AuthApplicationService` (alta Google) deixa la bio buida
+- `DevelopmentIdentitySeeder` no pisa comentaris reals ni omple frases de seed; `AuthApplicationService` (alta Google) deixa els comentaris buits
 - el web no envia nova/confirmació com a columnes persistides: el valor validat es desa com a `PasswordHash`
 
 #### Decisió de guardat al web (`DefaultProfilePasswordChangePolicy.resolveSave`)
@@ -2106,7 +2107,7 @@ Historic d'execucions:
 Rutes internes governades per permisos:
 
 - `/admin/documentacio` (DEVELOPER + ADMIN; `page.admin.documentation`)
-- `/admin/usuaris` (ADMIN; `page.admin.users`). Alta i edició: `PasswordFieldComponent` + `PASSWORD_STRENGTH_POLICY`. Si nova i confirmació coincideixen, el hasher escriu `users.password_hash` (contrasenya de login, com al perfil); la confirmació no es persisteix. Alta: `Crear` desactivat si no hi ha ≥ 6 o no coincideixen (`POST /api/admin/users` amb `password` + `confirmPassword`). Edició: camps opcionals; si s’omplen, `PUT /api/admin/users/{id}/password` (`newPassword` + `confirmNewPassword`, sense l’actual)
+- `/admin/usuaris` (ADMIN; `page.admin.users`). Alta i edició: `PasswordFieldComponent` + `PASSWORD_STRENGTH_POLICY`. Si nova i confirmació coincideixen, el hasher escriu `users.password_hash` (contrasenya de login, com al perfil); la confirmació no es persisteix. Alta: `Crear` desactivat si no hi ha ≥ 6 o no coincideixen (`POST /api/admin/users` amb `password` + `confirmPassword`). Edició: camps de contrasenya opcionals; si s’omplen, `PUT /api/admin/users/{id}/password`; la fitxa va a `PUT /api/admin/users/{id}` (no al `PUT /api/users/{id}/profile` del perfil propi). Check de privacitat intern: `AdminExemptPrivacyConsentPolicy` — si l’actor és Administrador no es mostra ni es valida (com al perfil). En desar, `RoleChromePolicy`: només `Admin` recarrega el menú intern; `User` menú públic i Inici; qualsevol altre rol, Inici + Ajuda (la campana i el menú de perfil ja són de capçalera autenticada). El rol de capçalera es desa a `sessionStorage` (`zuppeto-role-chrome`) perquè un refresh no torni al menú d’Admin (Llocs/Favorits). El peu amaga Llocs/Favorits si `showsCatalogNav` és fals. Si l’usuari desat és el de la sessió, `GET /api/auth/me` reemet JWT i permisos des de la BD.
 - `/admin/permisos` (ADMIN; `page.admin.permissions`)
 - `/admin/menus` (manteniment de menús; `action.permissions.manage`)
 - `/admin/rols` (catàleg de rols; `page.admin.roles`). Alta (`Nou rol`): el peu del modal mostra el check de privacitat d’entorn intern; `Desar` resta desactivat fins que es marca (mateix patró que països, ciutats i llocs a `admin-console-page`)

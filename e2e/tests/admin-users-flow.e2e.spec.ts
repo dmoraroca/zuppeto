@@ -23,11 +23,6 @@ test.describe('Zuppeto - Administració - Manteniment d’usuaris', () => {
     await page.locator('#admin-create-user-form input[formcontrolname="city"]').fill('Barcelona');
     await page.locator('#admin-create-user-form input[formcontrolname="country"]').fill('Espanya');
 
-    await page
-      .locator('.admin-console-modal--create')
-      .getByRole('checkbox', { name: /Accepto les condicions de privacitat/i })
-      .check();
-
     await page.locator('.admin-console-modal--create').getByRole('button', { name: 'Crear' }).click();
 
     const userRow = page.locator(`tr:has-text("${tempEmail}")`);
@@ -36,8 +31,7 @@ test.describe('Zuppeto - Administració - Manteniment d’usuaris', () => {
     await expect(page.getByRole('heading', { name: "Detall d'usuari" })).toBeVisible();
 
     await page.getByRole('button', { name: 'Modificar' }).click();
-    await page.locator('textarea[formcontrolname="bio"]').fill('Bio editada rigurosament per a documentació.');
-    await page.locator('.admin-console-modal--detail .admin-console-privacy-check input[type="checkbox"]').check();
+    await page.locator('textarea[formcontrolname="comments"]').fill('Comentaris editats rigurosament per a documentació.');
 
     await page.getByRole('button', { name: 'Desar' }).click();
     await expect(page.locator(`tr:has-text("${tempEmail}")`)).toBeVisible();

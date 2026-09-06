@@ -18,7 +18,7 @@ public sealed class UserRecord
 
     public string? Country { get; set; }
 
-    public string? Bio { get; set; }
+    public string? Comments { get; set; }
 
     public string? AvatarUrl { get; set; }
 
