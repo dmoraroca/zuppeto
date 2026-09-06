@@ -65,11 +65,29 @@ export function publicFeatureChips(
     return raw;
   }
 
-  if (!raw.some((value) => PET_FAMILY_CHIPS.has(foldChipText(value)))) {
-    return [...PET_SHOP_CHIPS];
+  const withoutFood = raw.filter((value) => !FOOD_CATEGORY_CHIPS.has(foldChipText(value)));
+  const merged: string[] = [];
+  const seen = new Set<string>();
+
+  const push = (value: string): void => {
+    const key = foldChipText(value);
+    if (!key || seen.has(key)) {
+      return;
+    }
+
+    seen.add(key);
+    merged.push(value);
+  };
+
+  for (const chip of PET_SHOP_CHIPS) {
+    push(chip);
   }
 
-  return raw.filter((value) => !FOOD_CATEGORY_CHIPS.has(foldChipText(value)));
+  for (const chip of withoutFood) {
+    push(chip);
+  }
+
+  return merged;
 }
 
 export function publicCategoryLabel(
@@ -89,11 +107,6 @@ export function publicCategoryLabel(
   return label;
 }
 
-export function publicQuickContext(description: string, name: string): string {
-  const value = description.trim();
-  if (looksLikePetShop(name) && /^és una fleca\./iu.test(value)) {
-    return value.replace(/^és una fleca\./iu, "És una botiga d'animals.");
-  }
-
-  return value;
+export function publicQuickContext(description: string, _name: string): string {
+  return description.trim().replace(/^És (una|un) [^\.]{1,60}\.\s*/iu, '').trim();
 }

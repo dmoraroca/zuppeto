@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+
 namespace Zuppeto.Application.Places;
 
 /// <summary>
@@ -37,7 +39,7 @@ internal static class PlacePublicCopy
 
     internal static string SanitizeDescription(string? description, string fallback)
     {
-        var value = description?.Trim() ?? string.Empty;
+        var value = StripInventedCategoryLead(description?.Trim() ?? string.Empty);
         if (value.Length == 0 || IsInternalGoogleCopy(value))
         {
             return fallback.Trim();
@@ -74,7 +76,7 @@ internal static class PlacePublicCopy
     }
 
     /// <summary>
-    /// What the venue is (from Google types) plus editorial and official-website lead copy. Never city/address stubs.
+    /// Editorial and official-website lead copy only. Never invents a category sentence.
     /// </summary>
     internal static string ComposeQuickContext(
         string? categoryLabel,
@@ -85,12 +87,6 @@ internal static class PlacePublicCopy
         string? city)
     {
         var parts = new List<string>();
-        var categorySentence = CategorySentence(categoryLabel);
-        if (categorySentence.Length > 0)
-        {
-            parts.Add(categorySentence);
-        }
-
         AddDistinctNarrative(parts, editorial, name, address, city);
         AddDistinctNarrative(parts, websiteLead, name, address, city);
         return string.Join(" ", parts);
@@ -131,7 +127,7 @@ internal static class PlacePublicCopy
         string? address,
         string? city)
     {
-        var value = PublicNarrative(raw, name, address, city);
+        var value = PublicNarrative(StripInventedCategoryLead(raw), name, address, city);
         if (value.Length == 0)
         {
             return;
@@ -149,29 +145,23 @@ internal static class PlacePublicCopy
         parts.Add(value);
     }
 
-    private static string CategorySentence(string? categoryLabel)
+    /// <summary>
+    /// Drops the old generated lead ("És una veterinària.") so stored copy is only real text.
+    /// </summary>
+    internal static string StripInventedCategoryLead(string? value)
     {
-        var category = categoryLabel?.Trim() ?? string.Empty;
-        if (category.Length == 0 || category.Equals("Servei", StringComparison.OrdinalIgnoreCase))
+        var text = value?.Trim() ?? string.Empty;
+        if (text.Length == 0)
         {
             return string.Empty;
         }
 
-        var article = CatalanIndefiniteArticle(category);
-        var noun = char.ToLowerInvariant(category[0]) + category[1..];
-        return $"És {article} {noun}.";
+        return InventedCategoryLead.Replace(text, string.Empty).Trim();
     }
 
-    private static string CatalanIndefiniteArticle(string nounPhrase)
-    {
-        var first = nounPhrase.Trim().Split(' ', 2)[0].ToLowerInvariant();
-        return first switch
-        {
-            "botiga" or "veterinària" or "veterinaria" or "cafeteria" or "fleca"
-                or "perruqueria" or "cura" => "una",
-            _ => "un"
-        };
-    }
+    private static readonly Regex InventedCategoryLead = new(
+        @"^És (una|un) [^\.]{1,60}\.\s*",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
     private static bool IsInternalGoogleCopy(string value)
     {

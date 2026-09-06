@@ -100,6 +100,17 @@
         }
         @if (hasPetPolicy()) {
           <p><strong>Política pet:</strong> {{ selectedPlace.petPolicyLabel }}</p>
+        } @else if (confirmPetsByPhone()) {
+          <p>
+            <strong>Mascotes:</strong>
+            No tenim cap dada ni ressenya pet-friendly. Cal confirmar-ho trucant
+            @if (selectedPlace.phone?.trim()) {
+              a
+              <a [href]="'tel:' + selectedPlace.phone">{{ selectedPlace.phone }}</a>.
+            } @else {
+              al local.
+            }
+          </p>
         }
         @if (selectedPlace.petNotes?.trim()) {
           <p><strong>Notes per mascotes:</strong> {{ selectedPlace.petNotes }}</p>

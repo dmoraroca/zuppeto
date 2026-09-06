@@ -17,7 +17,8 @@ import {
   isLocationStubCopy,
   publicCategoryLabel,
   publicFeatureChips,
-  publicQuickContext
+  publicQuickContext,
+  shouldConfirmPetsByPhone
 } from '../../utils/place-detail-copy';
 
 @Component({
@@ -79,6 +80,10 @@ export class PlaceDetailPageComponent {
   protected readonly hasPetPolicy = computed(() => {
     const currentPlace = this.place();
     return currentPlace ? hasPublicPetPolicy(currentPlace) : false;
+  });
+  protected readonly confirmPetsByPhone = computed(() => {
+    const currentPlace = this.place();
+    return currentPlace ? shouldConfirmPetsByPhone(currentPlace) : false;
   });
   protected readonly hasRating = computed(() => {
     const currentPlace = this.place();

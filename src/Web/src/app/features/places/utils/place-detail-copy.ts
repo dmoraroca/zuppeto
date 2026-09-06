@@ -11,6 +11,46 @@ export function hasPublicPetPolicy(place: Pick<Place, 'petPolicyLabel'>): boolea
   return Boolean(place.petPolicyLabel?.trim());
 }
 
+const CONFIRMED_PET_POLICY_CHIPS = new Set(['gossos permesos', 'no es permeten gossos']);
+
+function foldConfirmText(value: string): string {
+  return value.trim().toLocaleLowerCase('ca');
+}
+
+export function hasConfirmedPetPolicy(
+  place: Pick<Place, 'petPolicyLabel' | 'petNotes' | 'features'>
+): boolean {
+  if (hasPublicPetPolicy(place) || Boolean(place.petNotes?.trim())) {
+    return true;
+  }
+
+  return (place.features ?? []).some((feature) =>
+    CONFIRMED_PET_POLICY_CHIPS.has(foldConfirmText(feature))
+  );
+}
+
+/** Bars and other venues without a real pet signal: ask to call, do not invent a policy. */
+export function shouldConfirmPetsByPhone(
+  place: Pick<Place, 'petPolicyLabel' | 'petNotes' | 'features' | 'name' | 'description'>
+): boolean {
+  if (hasConfirmedPetPolicy(place)) {
+    return false;
+  }
+
+  if (looksLikePetShop(place.name) || looksLikePetShop(place.description)) {
+    return false;
+  }
+
+  return !publicFeatureChips(place).some((chip) => {
+    const fold = foldConfirmText(chip).replace(/['’´]/gu, '');
+    return (
+      fold.includes('veterinar') ||
+      fold.includes('botiga danimals') ||
+      fold.includes('parc per a gossos')
+    );
+  });
+}
+
 export function hasPublicRating(place: Pick<Place, 'rating' | 'reviewCount'>): boolean {
   return place.reviewCount > 0 && place.rating > 0;
 }
