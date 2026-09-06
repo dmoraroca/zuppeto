@@ -37,7 +37,7 @@ public sealed class CreateAdminUserCommandHandler(
 
         if (await userRepository.ExistsByEmailAsync(email, cancellationToken))
         {
-            return Result<UserDto>.Fail(FailureKind.Conflict, $"User '{email}' already exists.");
+            return Result<UserDto>.Fail(FailureKind.Conflict, $"Ja existeix un usuari amb l’email «{email}».");
         }
 
         var user = new User(

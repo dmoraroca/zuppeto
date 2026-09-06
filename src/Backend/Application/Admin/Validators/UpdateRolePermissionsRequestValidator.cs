@@ -10,12 +10,12 @@ public sealed class UpdateRolePermissionsRequestValidator : IValidator<UpdateRol
 
         if (string.IsNullOrWhiteSpace(request.Role))
         {
-            result.Add(nameof(request.Role), "Role is required.");
+            result.Add(nameof(request.Role), "El rol és obligatori.");
         }
 
         if (request.PermissionKeys is null)
         {
-            result.Add(nameof(request.PermissionKeys), "Permission keys are required.");
+            result.Add(nameof(request.PermissionKeys), "Cal indicar les claus de permís.");
         }
 
         return result;

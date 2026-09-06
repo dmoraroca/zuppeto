@@ -81,7 +81,7 @@ internal static class AdminEndpoints
 
         if (!result.IsSuccess)
         {
-            return TypedResults.Conflict(result.Failure?.Message ?? "Unable to create user.");
+            return TypedResults.Conflict(result.Failure?.Message ?? "No s’ha pogut crear l’usuari.");
         }
 
         var created = result.Value!;
@@ -247,7 +247,7 @@ internal static class AdminEndpoints
         var outcome = await service.UpdateRolePermissionsAsync(normalized, cancellationToken);
         if (!outcome.IsSuccess)
         {
-            return TypedResults.Conflict(outcome.Failure?.Message ?? "Unable to update role permissions.");
+            return TypedResults.Conflict(outcome.Failure?.Message ?? "No s’han pogut actualitzar els permisos del rol.");
         }
 
         return TypedResults.Ok(outcome.Value!);
@@ -377,7 +377,7 @@ internal static class AdminEndpoints
         var result = await service.CreateRoleDefinitionAsync(request, cancellationToken);
         if (!result.IsSuccess)
         {
-            return TypedResults.Conflict(result.Failure?.Message ?? "Unable to create role.");
+            return TypedResults.Conflict(result.Failure?.Message ?? "No s’ha pogut crear el rol.");
         }
 
         return TypedResults.Ok(result.Value!);
@@ -411,7 +411,7 @@ internal static class AdminEndpoints
 
         if (!result.IsSuccess)
         {
-            return TypedResults.Conflict(result.Failure?.Message ?? "Unable to update role.");
+            return TypedResults.Conflict(result.Failure?.Message ?? "No s’ha pogut actualitzar el rol.");
         }
 
         return TypedResults.Ok(result.Value!);
@@ -437,7 +437,7 @@ internal static class AdminEndpoints
 
         if (!result.IsSuccess)
         {
-            return TypedResults.Conflict(result.Failure?.Message ?? "Unable to delete role.");
+            return TypedResults.Conflict(result.Failure?.Message ?? "No s’ha pogut esborrar el rol.");
         }
 
         return TypedResults.NoContent();
@@ -501,7 +501,7 @@ internal static class AdminEndpoints
 
         if (!result.IsSuccess)
         {
-            return TypedResults.Conflict(result.Failure?.Message ?? "Unable to delete menu.");
+            return TypedResults.Conflict(result.Failure?.Message ?? "No s’ha pogut esborrar el menú.");
         }
 
         return TypedResults.Ok(result.Value!);

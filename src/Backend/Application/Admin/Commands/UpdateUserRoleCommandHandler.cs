@@ -22,7 +22,7 @@ public sealed class UpdateUserRoleCommandHandler(
 
         if (user is null)
         {
-            return Result<UserDto>.Fail(FailureKind.NotFound, $"User '{command.UserId}' was not found.");
+            return Result<UserDto>.Fail(FailureKind.NotFound, "No s’ha trobat l’usuari.");
         }
 
         var catalogEntry = await roleCatalogRepository.GetByKeyAsync(command.Request.Role.Trim(), cancellationToken);

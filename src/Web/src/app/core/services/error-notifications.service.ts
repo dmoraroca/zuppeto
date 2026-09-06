@@ -285,7 +285,23 @@ export class ErrorNotificationsService {
       Password: 'Contrasenya',
       ConfirmPassword: 'Confirmació',
       Email: 'Email',
-      Id: 'Usuari'
+      Id: 'Usuari',
+      Name: 'Nom',
+      DisplayName: 'Nom visible',
+      Country: 'País',
+      CountryId: 'País',
+      City: 'Ciutat',
+      Code: 'Codi',
+      Key: 'Clau',
+      Label: 'Etiqueta',
+      Role: 'Rol',
+      Roles: 'Rols',
+      PermissionKeys: 'Permisos',
+      SortOrder: 'Ordre',
+      ScopeType: 'Tipus',
+      ScopePayload: 'Àmbit',
+      Latitude: 'Latitud',
+      Longitude: 'Longitud'
     };
 
     const lines: string[] = [];

@@ -8,17 +8,17 @@ public sealed class PostalAddress : ValueObject
     {
         if (string.IsNullOrWhiteSpace(line1))
         {
-            throw new DomainRuleException("Address line is required.");
+            throw new DomainRuleException("L’adreça és obligatòria.");
         }
 
         if (string.IsNullOrWhiteSpace(city))
         {
-            throw new DomainRuleException("City is required.");
+            throw new DomainRuleException("La ciutat és obligatòria.");
         }
 
         if (string.IsNullOrWhiteSpace(country))
         {
-            throw new DomainRuleException("Country is required.");
+            throw new DomainRuleException("El país és obligatori.");
         }
 
         Line1 = line1.Trim();

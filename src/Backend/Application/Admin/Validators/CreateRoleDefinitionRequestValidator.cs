@@ -13,7 +13,7 @@ public sealed class CreateRoleDefinitionRequestValidator : IValidator<CreateRole
 
         if (string.IsNullOrWhiteSpace(request.Key))
         {
-            result.Add(nameof(request.Key), "Key is required.");
+            result.Add(nameof(request.Key), "La clau és obligatòria.");
         }
         else
         {
@@ -27,13 +27,13 @@ public sealed class CreateRoleDefinitionRequestValidator : IValidator<CreateRole
             {
                 result.Add(
                     nameof(request.Key),
-                    "Key must start with a letter; only letters, digits and underscore.");
+                    "La clau ha de començar amb una lletra; només lletres, números i guió baix.");
             }
         }
 
         if (string.IsNullOrWhiteSpace(request.DisplayName))
         {
-            result.Add(nameof(request.DisplayName), "Display name is required.");
+            result.Add(nameof(request.DisplayName), "El nom visible és obligatori.");
         }
 
         return result;

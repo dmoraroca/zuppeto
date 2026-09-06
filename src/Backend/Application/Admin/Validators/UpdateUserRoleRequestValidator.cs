@@ -10,7 +10,7 @@ public sealed class UpdateUserRoleRequestValidator : IValidator<UpdateUserRoleRe
 
         if (string.IsNullOrWhiteSpace(request.Role))
         {
-            result.Add(nameof(request.Role), "Role is required.");
+            result.Add(nameof(request.Role), "El rol és obligatori.");
         }
 
         return result;

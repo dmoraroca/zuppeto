@@ -70,7 +70,7 @@ Fora d'abast a data d'aquest document:
 - autenticacio real contra API
 - permisos reals persistits
 - integracions externes de tercers
-- multiidioma complet
+- multiidioma complet (de moment tots els missatges visibles — UI, toasts i errors d’API — són en català)
 
 ## 3.1 Relacio amb les fases del projecte
 
@@ -1010,7 +1010,7 @@ Funcions del manteniment:
 | país | referència al país del cataleg (sempre obligatoria) |
 | `name` | nom de la ciutat tal com el producte el mostra. El camp no deixa escriure’n més de 200 |
 | `normalized_name` | opcional: variant normalitzada (p. ex. sense accents, minúscules) per cerca i regles d'unicitat |
-| `latitude` / `longitude` | opcionals com a centre aproximat per mapa o distància; el punt exacte del local continua sent atribut del lloc si cal |
+| `latitude` / `longitude` | opcionals com a centre aproximat per mapa o distància. Només decimals (signe i punt); no s’admeten lletres. Latitud -90 a 90, longitud -180 a 180. El punt exacte del local continua sent atribut del lloc si cal |
 | `is_active` | si la ciutat surt en llistes i cerques |
 | `sort_order` | ordre manual opcional dins del país |
 | `created_at` / `updated_at` | traçabilitat (recomanat) |

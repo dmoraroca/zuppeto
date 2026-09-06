@@ -46,7 +46,7 @@ internal sealed class UserApplicationService(
     public async Task UpdateProfileAsync(UserProfileUpdateRequest request, CancellationToken cancellationToken = default)
     {
         var user = await userRepository.GetByIdAsync(request.Id, cancellationToken)
-            ?? throw new InvalidOperationException($"User '{request.Id}' was not found.");
+            ?? throw new InvalidOperationException("No s’ha trobat l’usuari.");
 
         if (request.PrivacyAccepted && !user.PrivacyConsent.Accepted)
         {

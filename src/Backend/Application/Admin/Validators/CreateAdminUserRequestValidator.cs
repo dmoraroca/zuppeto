@@ -10,20 +10,20 @@ public sealed class CreateAdminUserRequestValidator : IValidator<CreateAdminUser
 
         if (string.IsNullOrWhiteSpace(request.Email))
         {
-            result.Add(nameof(request.Email), "Email is required.");
+            result.Add(nameof(request.Email), "L’email és obligatori.");
         }
         else if (!request.Email.Contains('@', StringComparison.Ordinal))
         {
-            result.Add(nameof(request.Email), "Email format is invalid.");
+            result.Add(nameof(request.Email), "El format de l’email no és vàlid.");
         }
 
         if (string.IsNullOrWhiteSpace(request.Password))
         {
-            result.Add(nameof(request.Password), "Password is required.");
+            result.Add(nameof(request.Password), "La contrasenya és obligatòria.");
         }
         else if (request.Password.Trim().Length < 6)
         {
-            result.Add(nameof(request.Password), "Password must be at least 6 characters.");
+            result.Add(nameof(request.Password), "La contrasenya ha de tenir com a mínim 6 caràcters.");
         }
 
         if (!string.Equals(request.Password?.Trim() ?? string.Empty, request.ConfirmPassword?.Trim() ?? string.Empty, StringComparison.Ordinal))
@@ -33,29 +33,29 @@ public sealed class CreateAdminUserRequestValidator : IValidator<CreateAdminUser
 
         if (string.IsNullOrWhiteSpace(request.DisplayName))
         {
-            result.Add(nameof(request.DisplayName), "Display name is required.");
+            result.Add(nameof(request.DisplayName), "El nom visible és obligatori.");
         }
         else if (request.DisplayName.Trim().Length < 3)
         {
-            result.Add(nameof(request.DisplayName), "Display name must be at least 3 characters long.");
+            result.Add(nameof(request.DisplayName), "El nom visible ha de tenir com a mínim 3 caràcters.");
         }
 
         if (string.IsNullOrWhiteSpace(request.City))
         {
-            result.Add(nameof(request.City), "City is required.");
+            result.Add(nameof(request.City), "La ciutat és obligatòria.");
         }
         else if (request.City.Trim().Length < 2)
         {
-            result.Add(nameof(request.City), "City must be at least 2 characters long.");
+            result.Add(nameof(request.City), "La ciutat ha de tenir com a mínim 2 caràcters.");
         }
 
         if (string.IsNullOrWhiteSpace(request.Country))
         {
-            result.Add(nameof(request.Country), "Country is required.");
+            result.Add(nameof(request.Country), "El país és obligatori.");
         }
         else if (request.Country.Trim().Length < 2)
         {
-            result.Add(nameof(request.Country), "Country must be at least 2 characters long.");
+            result.Add(nameof(request.Country), "El país ha de tenir com a mínim 2 caràcters.");
         }
 
         return result;

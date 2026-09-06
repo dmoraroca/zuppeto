@@ -18,7 +18,7 @@ public sealed class SetAdminUserPasswordCommandHandler(
         var user = await userRepository.GetByIdAsync(command.UserId, cancellationToken);
         if (user is null)
         {
-            return Result<UserDto>.Fail(FailureKind.NotFound, $"User '{command.UserId}' was not found.");
+            return Result<UserDto>.Fail(FailureKind.NotFound, "No s’ha trobat l’usuari.");
         }
 
         // Same persistence as profile account update: matching new/confirm becomes users.password_hash (login password).

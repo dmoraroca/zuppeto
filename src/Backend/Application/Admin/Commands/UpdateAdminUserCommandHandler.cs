@@ -18,7 +18,7 @@ public sealed class UpdateAdminUserCommandHandler(
         var user = await userRepository.GetByIdAsync(command.UserId, cancellationToken);
         if (user is null)
         {
-            return Result<UserDto>.Fail(FailureKind.NotFound, $"User '{command.UserId}' was not found.");
+            return Result<UserDto>.Fail(FailureKind.NotFound, "No s’ha trobat l’usuari.");
         }
 
         var request = command.Request;

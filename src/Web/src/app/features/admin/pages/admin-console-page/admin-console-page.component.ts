@@ -28,6 +28,11 @@ import {
 import { COUNTRY_CODE_MAX_LENGTH } from '../../policies/country-code.policy';
 import { DB_FIELD_MAX } from '../../../../shared/policies/db-field-max-length';
 import {
+  formatDecimalCoordinate,
+  isDecimalCoordinateKey,
+  sanitizeDecimalCoordinate
+} from '../../../../shared/policies/decimal-coordinate.policy';
+import {
   FORM_COMMIT_POLICY,
   FormCommitPolicy
 } from '../../../../shared/policies/form-commit.policy';
@@ -1932,8 +1937,8 @@ export class AdminConsolePageComponent {
       countryId: city.countryId,
       countryLabel: `${city.countryName} (${city.countryCode})`,
       name: city.name,
-      latitude: city.latitude?.toString() ?? '',
-      longitude: city.longitude?.toString() ?? '',
+      latitude: formatDecimalCoordinate(city.latitude?.toString() ?? ''),
+      longitude: formatDecimalCoordinate(city.longitude?.toString() ?? ''),
       sortOrder: city.sortOrder,
       isActive: city.isActive
     });
@@ -1983,8 +1988,8 @@ export class AdminConsolePageComponent {
       countryId: original.countryId,
       countryLabel: `${original.countryName} (${original.countryCode})`,
       name: original.name,
-      latitude: original.latitude?.toString() ?? '',
-      longitude: original.longitude?.toString() ?? '',
+      latitude: formatDecimalCoordinate(original.latitude?.toString() ?? ''),
+      longitude: formatDecimalCoordinate(original.longitude?.toString() ?? ''),
       sortOrder: original.sortOrder,
       isActive: original.isActive
     });
@@ -1995,6 +2000,64 @@ export class AdminConsolePageComponent {
   protected onCityCountryChange(value: string): void {
     this.editableCity.set({ ...this.editableCity(), countryId: value, name: '' });
     this.cityNameSuggestions.set([]);
+  }
+
+  protected onCoordinateKeydown(event: KeyboardEvent): void {
+    if (event.ctrlKey || event.metaKey || event.altKey) {
+      return;
+    }
+
+    if (event.key.length !== 1) {
+      return;
+    }
+
+    if (!isDecimalCoordinateKey(event.key)) {
+      event.preventDefault();
+    }
+  }
+
+  protected onCityLatitudeInput(value: string): void {
+    this.editableCity.set({ ...this.editableCity(), latitude: sanitizeDecimalCoordinate(value) });
+  }
+
+  protected onCityLongitudeInput(value: string): void {
+    this.editableCity.set({ ...this.editableCity(), longitude: sanitizeDecimalCoordinate(value) });
+  }
+
+  protected onCityLatitudeBlur(): void {
+    this.editableCity.set({
+      ...this.editableCity(),
+      latitude: formatDecimalCoordinate(this.editableCity().latitude)
+    });
+  }
+
+  protected onCityLongitudeBlur(): void {
+    this.editableCity.set({
+      ...this.editableCity(),
+      longitude: formatDecimalCoordinate(this.editableCity().longitude)
+    });
+  }
+
+  protected onPlaceLatitudeInput(value: string): void {
+    this.editablePlace.set({ ...this.editablePlace(), latitude: sanitizeDecimalCoordinate(value) });
+  }
+
+  protected onPlaceLongitudeInput(value: string): void {
+    this.editablePlace.set({ ...this.editablePlace(), longitude: sanitizeDecimalCoordinate(value) });
+  }
+
+  protected onPlaceLatitudeBlur(): void {
+    this.editablePlace.set({
+      ...this.editablePlace(),
+      latitude: formatDecimalCoordinate(this.editablePlace().latitude)
+    });
+  }
+
+  protected onPlaceLongitudeBlur(): void {
+    this.editablePlace.set({
+      ...this.editablePlace(),
+      longitude: formatDecimalCoordinate(this.editablePlace().longitude)
+    });
   }
 
   protected onCityNameInput(value: string): void {
@@ -2030,6 +2093,16 @@ export class AdminConsolePageComponent {
 
     const latitude = this.parseOptionalNumber(row.latitude);
     const longitude = this.parseOptionalNumber(row.longitude);
+
+    if (latitude != null && (latitude < -90 || latitude > 90)) {
+      this.notifications.notify('Dades invàlides', 'La latitud ha de ser entre -90 i 90.', 'error');
+      return;
+    }
+
+    if (longitude != null && (longitude < -180 || longitude > 180)) {
+      this.notifications.notify('Dades invàlides', 'La longitud ha de ser entre -180 i 180.', 'error');
+      return;
+    }
 
     try {
       if (this.cityIsNew()) {
@@ -2142,8 +2215,8 @@ export class AdminConsolePageComponent {
       city: place.city,
       country: place.country,
       neighborhood: place.neighborhood || '',
-      latitude: place.latitude.toString(),
-      longitude: place.longitude.toString(),
+      latitude: formatDecimalCoordinate(place.latitude.toString()),
+      longitude: formatDecimalCoordinate(place.longitude.toString()),
       acceptsDogs: place.acceptsDogs,
       acceptsCats: place.acceptsCats,
       petPolicyLabel: place.petPolicyLabel,
@@ -2209,8 +2282,8 @@ export class AdminConsolePageComponent {
       city: original.city,
       country: original.country,
       neighborhood: original.neighborhood || '',
-      latitude: original.latitude.toString(),
-      longitude: original.longitude.toString(),
+      latitude: formatDecimalCoordinate(original.latitude.toString()),
+      longitude: formatDecimalCoordinate(original.longitude.toString()),
       acceptsDogs: original.acceptsDogs,
       acceptsCats: original.acceptsCats,
       petPolicyLabel: original.petPolicyLabel,

@@ -10,7 +10,7 @@ public sealed class GoogleLoginRequestValidator : IValidator<GoogleLoginRequest>
 
         if (string.IsNullOrWhiteSpace(request.IdToken))
         {
-            result.Add(nameof(request.IdToken), "Id token is required.");
+            result.Add(nameof(request.IdToken), "Falta el testimoni d’identitat de Google.");
         }
 
         return result;

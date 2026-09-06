@@ -20,7 +20,7 @@ public sealed class PlaceCitySearchRequestValidator : IValidator<PlaceCitySearch
         {
             result.Add(
                 nameof(PlaceCitySearchRequest.Limit),
-                $"Limit ha d'estar entre 1 i {PlaceCitySearchDefaults.MaxLimit}.");
+                $"El límit ha d’estar entre 1 i {PlaceCitySearchDefaults.MaxLimit}.");
         }
 
         return result;

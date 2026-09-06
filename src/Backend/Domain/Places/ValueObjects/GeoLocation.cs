@@ -8,12 +8,12 @@ public sealed class GeoLocation : ValueObject
     {
         if (latitude is < -90 or > 90)
         {
-            throw new DomainRuleException("Latitude must be between -90 and 90.");
+            throw new DomainRuleException("La latitud ha de ser entre -90 i 90.");
         }
 
         if (longitude is < -180 or > 180)
         {
-            throw new DomainRuleException("Longitude must be between -180 and 180.");
+            throw new DomainRuleException("La longitud ha de ser entre -180 i 180.");
         }
 
         Latitude = latitude;

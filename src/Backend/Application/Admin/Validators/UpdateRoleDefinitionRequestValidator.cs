@@ -10,7 +10,7 @@ public sealed class UpdateRoleDefinitionRequestValidator : IValidator<UpdateRole
 
         if (string.IsNullOrWhiteSpace(request.DisplayName))
         {
-            result.Add(nameof(request.DisplayName), "Display name is required.");
+            result.Add(nameof(request.DisplayName), "El nom visible és obligatori.");
         }
 
         return result;

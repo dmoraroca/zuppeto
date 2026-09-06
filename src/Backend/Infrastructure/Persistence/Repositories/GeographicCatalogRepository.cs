@@ -169,14 +169,14 @@ internal sealed class GeographicCatalogRepository(ZuppetoDbContext dbContext) : 
         var countryExists = await dbContext.Countries.AnyAsync(c => c.Id == countryId, cancellationToken);
         if (!countryExists)
         {
-            throw new InvalidOperationException("Country not found.");
+            throw new InvalidOperationException("No s’ha trobat el país.");
         }
 
         var trimmed = name.Trim();
         var normalized = NormalizeCityName(trimmed);
         if (await IsCityNormalizedNameInUseAsync(countryId, normalized, null, cancellationToken))
         {
-            throw new InvalidOperationException("City name already exists in this country.");
+            throw new InvalidOperationException("Ja existeix una ciutat amb aquest nom en aquest país.");
         }
         var now = DateTimeOffset.UtcNow;
         var entity = new CityRecord
@@ -222,7 +222,7 @@ internal sealed class GeographicCatalogRepository(ZuppetoDbContext dbContext) : 
         var normalized = NormalizeCityName(trimmed);
         if (await IsCityNormalizedNameInUseAsync(entity.CountryId, normalized, id, cancellationToken))
         {
-            throw new InvalidOperationException("City name already exists in this country.");
+            throw new InvalidOperationException("Ja existeix una ciutat amb aquest nom en aquest país.");
         }
 
         entity.Name = trimmed;

@@ -1689,8 +1689,8 @@
             <label><span>País <strong class="form-field-required" aria-hidden="true">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().country" (ngModelChange)="editablePlace.set({ ...editablePlace(), country: $event })" [maxlength]="dbMax.placeCountry" /></label>
             <label><span>Adreça <strong class="form-field-required" aria-hidden="true">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().addressLine1" (ngModelChange)="editablePlace.set({ ...editablePlace(), addressLine1: $event })" [maxlength]="dbMax.placeAddress" /></label>
             <label><span>Barri <strong class="form-field-required" aria-hidden="true">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().neighborhood" (ngModelChange)="editablePlace.set({ ...editablePlace(), neighborhood: $event })" [maxlength]="dbMax.placeNeighborhood" /></label>
-            <label><span>Latitud <strong class="form-field-required" aria-hidden="true">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().latitude" (ngModelChange)="editablePlace.set({ ...editablePlace(), latitude: $event })" /></label>
-            <label><span>Longitud <strong class="form-field-required" aria-hidden="true">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().longitude" (ngModelChange)="editablePlace.set({ ...editablePlace(), longitude: $event })" /></label>
+            <label><span>Latitud <strong class="form-field-required" aria-hidden="true">*</strong></span><input type="text" inputmode="decimal" autocomplete="off" spellcheck="false" [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().latitude" (ngModelChange)="onPlaceLatitudeInput($event)" (keydown)="onCoordinateKeydown($event)" (blur)="onPlaceLatitudeBlur()" placeholder="p. ex. 41.387" /></label>
+            <label><span>Longitud <strong class="form-field-required" aria-hidden="true">*</strong></span><input type="text" inputmode="decimal" autocomplete="off" spellcheck="false" [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().longitude" (ngModelChange)="onPlaceLongitudeInput($event)" (keydown)="onCoordinateKeydown($event)" (blur)="onPlaceLongitudeBlur()" placeholder="p. ex. 2.170" /></label>
             <label><span>Preu <strong class="form-field-required" aria-hidden="true">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().pricingLabel" (ngModelChange)="editablePlace.set({ ...editablePlace(), pricingLabel: $event })" [maxlength]="dbMax.placePricingLabel" /></label>
             <label><span>Rating</span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().ratingAverage" (ngModelChange)="editablePlace.set({ ...editablePlace(), ratingAverage: $event })" /></label>
             <label><span>Reviews</span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().reviewCount" (ngModelChange)="editablePlace.set({ ...editablePlace(), reviewCount: $event })" /></label>
@@ -2140,19 +2140,31 @@
             <label>
               <span>Latitud</span>
               <input
+                type="text"
+                inputmode="decimal"
+                autocomplete="off"
+                spellcheck="false"
                 [readonly]="!cityIsNew() && !cityDetailEditMode()"
                 [ngModel]="editableCity().latitude"
-                (ngModelChange)="editableCity.set({ ...editableCity(), latitude: $event })"
-                placeholder="Opcional"
+                (ngModelChange)="onCityLatitudeInput($event)"
+                (keydown)="onCoordinateKeydown($event)"
+                (blur)="onCityLatitudeBlur()"
+                placeholder="Opcional, p. ex. 41.387"
               />
             </label>
             <label>
               <span>Longitud</span>
               <input
+                type="text"
+                inputmode="decimal"
+                autocomplete="off"
+                spellcheck="false"
                 [readonly]="!cityIsNew() && !cityDetailEditMode()"
                 [ngModel]="editableCity().longitude"
-                (ngModelChange)="editableCity.set({ ...editableCity(), longitude: $event })"
-                placeholder="Opcional"
+                (ngModelChange)="onCityLongitudeInput($event)"
+                (keydown)="onCoordinateKeydown($event)"
+                (blur)="onCityLongitudeBlur()"
+                placeholder="Opcional, p. ex. 2.170"
               />
             </label>
             <label>
