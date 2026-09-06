@@ -1,6 +1,7 @@
 import { InjectionToken } from '@angular/core';
 import { FormGroup } from '@angular/forms';
 
+import { FormCommitPolicy } from '../../../shared/policies/form-commit.policy';
 import { PasswordStrengthPolicy } from './password-strength.policy';
 
 export interface ProfileFormSnapshot {
@@ -70,6 +71,7 @@ const PROFILE_REQUIRED_FIELD_RULES: readonly ProfileRequiredFieldRule[] = [
 export class CatalogProfileSavePolicy implements ProfileSavePolicy {
   constructor(
     private readonly strength: PasswordStrengthPolicy,
+    private readonly commit: FormCommitPolicy,
     private readonly rules: readonly ProfileRequiredFieldRule[] = PROFILE_REQUIRED_FIELD_RULES
   ) {}
 
@@ -80,19 +82,12 @@ export class CatalogProfileSavePolicy implements ProfileSavePolicy {
   }
 
   canSave(snapshot: ProfileFormSnapshot): boolean {
-    if (snapshot.isPristine) {
-      return false;
-    }
-
-    if (this.missingRequiredLabels(snapshot).length > 0) {
-      return false;
-    }
-
-    if (!snapshot.isAdmin && !snapshot.privacyAccepted) {
-      return false;
-    }
-
-    return true;
+    return this.commit.canCommit({
+      hasChanges: !snapshot.isPristine,
+      rulesSatisfied:
+        this.missingRequiredLabels(snapshot).length === 0 &&
+        (snapshot.isAdmin || snapshot.privacyAccepted)
+    });
   }
 }
 

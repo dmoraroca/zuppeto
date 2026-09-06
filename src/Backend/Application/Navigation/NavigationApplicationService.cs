@@ -1,4 +1,5 @@
 using Zuppeto.Domain.Abstractions;
+using Zuppeto.Domain.Navigation;
 
 namespace Zuppeto.Application.Navigation;
 
@@ -11,12 +12,8 @@ internal sealed class NavigationApplicationService(IMenuRepository menuRepositor
         var items = await menuRepository.GetMenuItemsByRoleAsync(roleKey, cancellationToken);
         if (IsHomeOnlyRole(roleKey))
         {
-            items = items
-                .Where(item =>
-                    item.Key.Equals("home", StringComparison.OrdinalIgnoreCase)
-                    || item.Key.Equals("help", StringComparison.OrdinalIgnoreCase)
-                    || item.Key.StartsWith("help.", StringComparison.OrdinalIgnoreCase))
-                .ToArray();
+            var catalog = await menuRepository.GetDefinitionsAsync(cancellationToken);
+            items = AttachHomeAndHelpRoots(items, catalog);
         }
         var itemsByParent = items
             .GroupBy(item => item.ParentKey ?? string.Empty)
@@ -60,5 +57,27 @@ internal sealed class NavigationApplicationService(IMenuRepository menuRepositor
         var key = roleKey.Trim();
         return !key.Equals("Admin", StringComparison.OrdinalIgnoreCase)
             && !key.Equals("User", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Home-only roles always get Inici and Ajuda from the catalog, plus every menu assigned to the role.
+    /// </summary>
+    private static IReadOnlyCollection<MenuItemDefinition> AttachHomeAndHelpRoots(
+        IReadOnlyCollection<MenuItemDefinition> items,
+        IReadOnlyCollection<MenuItemDefinition> catalog)
+    {
+        var merged = items.ToList();
+        foreach (var root in catalog.Where(item =>
+                     item.IsActive
+                     && (item.Key.Equals("home", StringComparison.OrdinalIgnoreCase)
+                         || item.Key.Equals("help", StringComparison.OrdinalIgnoreCase))))
+        {
+            if (!merged.Any(item => item.Key.Equals(root.Key, StringComparison.OrdinalIgnoreCase)))
+            {
+                merged.Add(root);
+            }
+        }
+
+        return merged;
     }
 }

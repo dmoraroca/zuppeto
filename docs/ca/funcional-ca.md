@@ -480,8 +480,9 @@ Implementacio visible actual d'aquest tram:
 - la creacio d'usuaris demana `email`, `contrasenya inicial` amb confirmació, `nom visible`, `ciutat`, `pais`, `rol` i pot incorporar `avatar`
 - el detall d'usuari mostra `comentaris`, consentiment, data de consentiment, data d'alta i `ultim acces`
 - `ADMIN` ja pot editar dades basiques d'un altre usuari: `nom visible`, `ciutat`, `pais`, `comentaris`, `rol` i `avatar`
-- en desar el rol, l’aspecte (menú de capçalera) segueix el rol desat: `Admin` → menú intern; `User` → menú d’usuari i anar a Inici; qualsevol altre rol (`TEST`, Developer, Viewer, …) → **Inici** més campana de notificacions, menú de perfil (foto) i **Ajuda**
-- a l'edició admin, els `comentaris` són obligatoris (no poden ser buits) i **no** tenen mínim de caràcters
+- en desar el rol, l’aspecte (menú de capçalera) segueix el rol desat: `Admin` → menú intern; `User` → menú d’usuari i anar a Inici; qualsevol altre rol (`TEST`, Developer, Viewer, …) → **Inici**, campana, perfil (foto), **Ajuda** i **els menús assignats a aquell rol** (principal si Pare és buit; sota Ajuda si Pare és `help`). Un menú només TEST no el veuen User ni Admin.
+- els `comentaris` són **sempre opcionals** (perfil i admin)
+- **Crear**, **Desar** i **Guardar** entren desactivats; s’activen només si hi ha un canvi real i es compleixen les regles (obligatoris, contrasenyes, privacitat si cal)
 - la baixa d'usuari ja existeix com a operacio del manteniment intern
 - el backend ja registra `ultim acces` quan un usuari entra per login propi o federat
 - existeix una pagina de `notificacions` per consultar avisos i errors recents de la sessio
@@ -698,7 +699,7 @@ Flux administratiu actual ja visible:
 
 - la creacio d'usuari exigeix acceptacio expressa de privacitat dins el flux intern abans de desar, tret que qui opera sigui Administrador
 - l'edicio d'un altre usuari: si qui opera és **Administrador**, no es mostra ni es valida el check de privacitat (mateix criteri que al perfil); la resta de rols interns sí l’han d’acceptar
-- a l'edició, els `comentaris` no poden ser buits i no tenen límit mínim de longitud
+- els `comentaris` són **sempre opcionals** (es poden deixar buits)
 - l'`avatar` es pot pujar, substituir o esborrar i el sistema informa visualment del resultat
 - la baixa d'usuari es confirma abans d'executar-se i forma part del mateix manteniment
 - despres de crear, editar o eliminar, el llistat es recarrega sobre dades reals del backend
@@ -742,7 +743,7 @@ Criteri funcional de camps:
 
 - `nom visible` és editable (mínim 3 caràcters)
 - `email` és editable; no pot coincidir amb un altre compte
-- `comentaris` és editable i **opcional**: el camp **entra buit** si a la BD no n’hi ha; si n’hi ha uns de desats, es carreguen d’allà. El seed de Development i l’alta per Google **no** fabriquen textos de comentaris. A l’edició admin el mateix camp és **obligatori** (sense mínim de longitud). UI: «Comentaris». Columna BD: `users.comments`.
+- `comentaris` és editable i **opcional** (perfil i edició admin): el camp **entra buit** si a la BD no n’hi ha; si n’hi ha uns de desats, es carreguen d’allà. El seed de Development i l’alta per Google **no** fabriquen textos de comentaris. UI: «Comentaris». Columna BD: `users.comments`.
 - `url de foto` és opcional; sense foto es mostra el placeholder `NONE`
 - `consentiment` no porta `*`; per a `USER`, el check marcat és condició per activar **Guardar** (junt amb la resta)
 - `rol` només es veu; el canvia `ADMIN`
@@ -866,6 +867,7 @@ Regles funcionals del manteniment:
 - un menú contenidor pot existir sense `route` si el model navegacional ho justifica
 - l'ordre s'ha de governar de forma explícita i no quedar implícit
 - l'activació d'un menú no ha d'ignorar els permisos: una entrada activa pot continuar oculta per manca de rol
+- les assignacions de rol fetes aquí es conserven en reiniciar l’API (el seed de desenvolupament no les esborra)
 
 Estructura d'exemple sota el menú d'administració (criteri de producte: separar **Negoci** i **Tècnic** sense multiplicar pantalles):
 

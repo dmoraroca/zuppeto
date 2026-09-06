@@ -110,6 +110,8 @@ export class PasswordFieldComponent {
 
     const value = input.value;
     this.control().setValue(value, { emitEvent: true });
+    this.control().markAsDirty();
+    this.control().markAsTouched();
     this.valueTick.set(value);
     this.valueChanged.emit();
   }

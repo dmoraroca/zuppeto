@@ -26,6 +26,11 @@ import {
   CatalogRoleChromePolicy,
   ROLE_CHROME_POLICY
 } from './features/auth/policies/role-chrome.policy';
+import {
+  DirtyAndValidFormCommitPolicy,
+  FORM_COMMIT_POLICY,
+  FormCommitPolicy
+} from './shared/policies/form-commit.policy';
 import { BrowserAuthStoreService } from './features/auth/services/browser-auth-store.service';
 import { AUTH_STORE } from './features/auth/services/auth-store.token';
 import { MockFavoritesStoreService } from './features/favorites/mock/mock-favorites-store.service';
@@ -49,9 +54,14 @@ export const appConfig: ApplicationConfig = {
       useClass: RecommendedPasswordStrengthPolicy
     },
     {
+      provide: FORM_COMMIT_POLICY,
+      useClass: DirtyAndValidFormCommitPolicy
+    },
+    {
       provide: PROFILE_SAVE_POLICY,
-      useFactory: (strength: PasswordStrengthPolicy) => new CatalogProfileSavePolicy(strength),
-      deps: [PASSWORD_STRENGTH_POLICY]
+      useFactory: (strength: PasswordStrengthPolicy, commit: FormCommitPolicy) =>
+        new CatalogProfileSavePolicy(strength, commit),
+      deps: [PASSWORD_STRENGTH_POLICY, FORM_COMMIT_POLICY]
     },
     {
       provide: PROFILE_PASSWORD_CHANGE_POLICY,

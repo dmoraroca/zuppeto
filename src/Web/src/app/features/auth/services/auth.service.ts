@@ -226,10 +226,11 @@ export class AuthService {
    * then apply header chrome for the saved role (admin / user / TEST no-op).
    */
   async applySavedUserChrome(userId: string, role: string): Promise<RoleChromeKind> {
-    if (this.currentUser()?.id === userId) {
-      await this.refreshSessionFromServer();
+    if (this.currentUser()?.id !== userId) {
+      return this.roleChrome.resolve(this.currentUser()?.role ?? '');
     }
 
+    await this.refreshSessionFromServer();
     return this.applyRoleChrome(role);
   }
 
@@ -249,7 +250,7 @@ export class AuthService {
       return kind;
     }
 
-    this.navigationMenuState.set(this.buildHomeOnlyNavigationMenu());
+    await this.loadHomeOnlyNavigationFromApi();
     return kind;
   }
 
@@ -260,6 +261,20 @@ export class AuthService {
     }
 
     await this.applyRoleChrome(this.chromeRoleState() ?? this.sessionState()?.user.role ?? '');
+  }
+
+  private async loadHomeOnlyNavigationFromApi(): Promise<void> {
+    try {
+      const menu = await firstValueFrom(
+        this.http.get<NavigationMenuItem[]>(`${API_BASE_URL}/navigation/menu`)
+      );
+      const normalized = this.normalizeNavigationMenu(menu);
+      this.navigationMenuState.set(
+        normalized.length > 0 ? normalized : this.buildHomeOnlyNavigationMenu()
+      );
+    } catch {
+      this.navigationMenuState.set(this.buildHomeOnlyNavigationMenu());
+    }
   }
 
   private async loadAdminNavigationFromApi(): Promise<void> {

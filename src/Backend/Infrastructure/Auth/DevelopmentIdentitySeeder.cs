@@ -493,16 +493,23 @@ public sealed class DevelopmentIdentitySeeder(
         var menuKeys = await dbContext.Menus
             .Select(menu => menu.Key)
             .ToListAsync(cancellationToken);
-        var validMenuKeys = menuKeys.ToHashSet(StringComparer.Ordinal);
+        var validMenuKeys = menuKeys.ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         var existing = await dbContext.MenuRoles.ToListAsync(cancellationToken);
-        dbContext.MenuRoles.RemoveRange(existing);
 
         foreach (var (role, menuKeysForRole) in MenuRoleSeeds)
         {
             foreach (var menuKey in menuKeysForRole)
             {
                 if (!validMenuKeys.Contains(menuKey))
+                {
+                    continue;
+                }
+
+                var alreadyAssigned = existing.Any(row =>
+                    row.Role.Equals(role, StringComparison.OrdinalIgnoreCase)
+                    && row.MenuKey.Equals(menuKey, StringComparison.OrdinalIgnoreCase));
+                if (alreadyAssigned)
                 {
                     continue;
                 }

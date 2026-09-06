@@ -521,6 +521,14 @@
   margin-top: 1rem;
 }
 
+#admin-detail-user-form .admin-console-form__autofill-trap {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
 .admin-console-form--create .admin-console-primary {
   align-self: end;
 }

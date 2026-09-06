@@ -25,6 +25,11 @@ import {
   ADMIN_PRIVACY_CONSENT_POLICY,
   AdminPrivacyConsentPolicy
 } from '../../policies/admin-privacy-consent.policy';
+import {
+  FORM_COMMIT_POLICY,
+  FormCommitPolicy
+} from '../../../../shared/policies/form-commit.policy';
+import { EditorChangeTracker } from '../../../../shared/policies/editor-change-tracker';
 import { AuthService } from '../../../auth/services/auth.service';
 import { SectionHeadingComponent } from '../../../../shared/components/section-heading/section-heading.component';
 import { fileToAvatarDataUrl } from '../../../../shared/utils/avatar-image.util';
@@ -81,10 +86,21 @@ export class AdminConsolePageComponent {
   private readonly notifications = inject(ErrorNotificationsService);
   private readonly passwordStrength = inject<PasswordStrengthPolicy>(PASSWORD_STRENGTH_POLICY);
   private readonly privacyConsent = inject<AdminPrivacyConsentPolicy>(ADMIN_PRIVACY_CONSENT_POLICY);
+  private readonly formCommit = inject<FormCommitPolicy>(FORM_COMMIT_POLICY);
+  private readonly permissionCreateTracker = new EditorChangeTracker();
+  private readonly permissionDetailTracker = new EditorChangeTracker();
+  private readonly menuTracker = new EditorChangeTracker();
+  private readonly roleTracker = new EditorChangeTracker();
+  private readonly countryTracker = new EditorChangeTracker();
+  private readonly cityTracker = new EditorChangeTracker();
+  private readonly placeTracker = new EditorChangeTracker();
   protected readonly privacyRequired = computed(() =>
     this.privacyConsent.isRequired(this.authService.isAdmin())
   );
   private avatarSuccessTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly detailPasswordAutofillDelaysMs = [50, 300, 800, 1600] as const;
+  private detailPasswordAutofillTimers: ReturnType<typeof setTimeout>[] = [];
+  private detailPasswordEditedByUser = false;
   private cityNameSearchDebounce: ReturnType<typeof setTimeout> | null = null;
 
   protected readonly mode = signal<AdminMode>((this.route.snapshot.data['mode'] as AdminMode | undefined) ?? 'documentation');
@@ -186,7 +202,7 @@ export class AdminConsolePageComponent {
       displayName: ['', [Validators.required, Validators.minLength(3)]],
       city: ['', [Validators.required, Validators.minLength(2)]],
       country: ['', [Validators.required, Validators.minLength(2)]],
-      comments: ['', [Validators.required]],
+      comments: [''],
       role: this.formBuilder.nonNullable.control<string>('User'),
       newPassword: [''],
       confirmNewPassword: ['']
@@ -262,7 +278,7 @@ export class AdminConsolePageComponent {
     petPolicyNotes: string;
     pricingLabel: string;
     ratingAverage: string;
-    reviewCount: string;
+    reviewCount: string;  
     tags: string;
     features: string;
     /** Draft: '' means omit Google payload (new → Internal; edit → preserve existing link). */
@@ -506,6 +522,13 @@ export class AdminConsolePageComponent {
     this.rolePermissionsEditMode.set(true);
   }
 
+  protected canCommitRolePermissions(): boolean {
+    return this.formCommit.canCommit({
+      hasChanges: this.rolePermissionsTrackerHasChanges(),
+      rulesSatisfied: true
+    });
+  }
+
   protected cancelRolePermissionsEdit(): void {
     this.rolePermissionKeysDraft.set({ ...this.rolePermissionKeysInitial() });
     this.rolePermissionsEditMode.set(false);
@@ -520,7 +543,7 @@ export class AdminConsolePageComponent {
 
   protected async saveRolePermissionsDraft(): Promise<void> {
     const role = this.selectedRoleForEdit();
-    if (!role) {
+    if (!role || !this.canCommitRolePermissions()) {
       return;
     }
     const draft = this.rolePermissionKeysDraft();
@@ -676,6 +699,7 @@ export class AdminConsolePageComponent {
     this.selectedMenuItem.set(null);
     this.selectedMenuKey.set(null);
     this.menuModalOpen.set(true);
+    this.rememberMenuEditor();
   }
 
   /** Obre el modal en mode consulta (mateix patró que `selectUser`). */
@@ -695,6 +719,19 @@ export class AdminConsolePageComponent {
     }
     this.editMenu(snapshot);
     this.menuDetailEditMode.set(true);
+    this.rememberMenuEditor();
+  }
+
+  protected canCommitMenu(): boolean {
+    const menu = this.editableMenu();
+    return this.formCommit.canCommit({
+      hasChanges: this.menuTracker.hasChanges(this.menuEditorSnapshot()),
+      rulesSatisfied:
+        !!menu.key.trim() &&
+        !!menu.label.trim() &&
+        this.isValidMenuParent(menu.parentKey, menu.key) &&
+        (!this.menuIsNew() || this.privacyAllowsSave(this.createMaintenancePrivacyAccepted()))
+    });
   }
 
   protected cancelMenuDetailEdit(): void {
@@ -790,6 +827,13 @@ export class AdminConsolePageComponent {
     this.createUserModalOpen.set(true);
   }
 
+  protected canCommitCreateUser(): boolean {
+    return this.formCommit.canCommit({
+      hasChanges: !this.userForm.pristine || !!this.createAvatarPreview(),
+      rulesSatisfied: this.canCreateUser() && this.privacyAllowsSave(this.createPrivacyAccepted())
+    });
+  }
+
   protected closeCreateUserModal(): void {
     this.createUserModalOpen.set(false);
     this.createPrivacyAccepted.set(false);
@@ -822,9 +866,27 @@ export class AdminConsolePageComponent {
     this.detailAvatarPreview.set(user.avatarUrl);
     this.detailPrivacyAccepted.set(false);
     this.detailEditMode.set(true);
+    this.scheduleDetailPasswordAutofillClear();
+  }
+
+  protected canCommitUserDetail(): boolean {
+    return this.formCommit.canCommit({
+      hasChanges: this.userDetailHasChanges(),
+      rulesSatisfied: this.canSaveUserDetail() && this.privacyAllowsSave(this.detailPrivacyAccepted())
+    });
+  }
+
+  protected onDetailPasswordFocused(): void {
+    this.detailPasswordEditedByUser = true;
+  }
+
+  protected onDetailPasswordChanged(): void {
+    this.detailPasswordEditedByUser = true;
+    this.detailForm.markAsDirty();
   }
 
   protected cancelDetailEdit(): void {
+    this.clearDetailPasswordAutofillTimers();
     const user = this.selectedUser();
 
     if (!user) {
@@ -855,11 +917,11 @@ export class AdminConsolePageComponent {
       return;
     }
 
-    if (this.detailForm.invalid || !this.canSaveUserDetail()) {
+    if (!this.canCommitUserDetail()) {
       this.detailForm.markAllAsTouched();
       this.notifications.notify(
         'Dades incompletes',
-        'Revisa nom visible, ciutat, país, comentaris i, si canvies la contrasenya, que nova i confirmació coincideixin (mínim 6).',
+        'Revisa nom visible, ciutat, país i, si canvies la contrasenya, que nova i confirmació coincideixin (mínim 6).',
         'error'
       );
       return;
@@ -874,19 +936,22 @@ export class AdminConsolePageComponent {
     const nextRole = payload.role;
     const avatarOperation = this.getAvatarOperation(user.avatarUrl, this.detailAvatarPreview());
     const nextPassword = payload.newPassword.trim();
+    const profileChanged = this.userDetailProfileHasChanges(user, payload);
 
     try {
       if (nextPassword) {
         await this.adminService.setUserPassword(user.id, nextPassword, payload.confirmNewPassword.trim());
       }
 
-      await this.adminService.updateUserDetails(user.id, {
-        displayName: payload.displayName.trim(),
-        city: payload.city.trim(),
-        country: payload.country.trim(),
-        comments: payload.comments.trim(),
-        avatarUrl: this.detailAvatarPreview()
-      });
+      if (profileChanged) {
+        await this.adminService.updateUserDetails(user.id, {
+          displayName: payload.displayName.trim(),
+          city: payload.city.trim(),
+          country: payload.country.trim(),
+          comments: payload.comments.trim(),
+          avatarUrl: this.detailAvatarPreview()
+        });
+      }
 
       if (nextRole !== user.role) {
         await this.adminService.updateUserRole(user.id, nextRole);
@@ -896,9 +961,9 @@ export class AdminConsolePageComponent {
     }
 
     this.notifications.notify(
-      nextPassword ? 'Usuari i contrasenya actualitzats' : 'Usuari actualitzat',
+      nextPassword ? 'Contrasenya actualitzada' : 'Usuari actualitzat',
       nextPassword
-        ? 'Els canvis s’han desat. La nova contrasenya ja és la del compte.'
+        ? 'La nova contrasenya ja és la del compte.'
         : 'Els canvis s’han desat correctament.',
       'success'
     );
@@ -994,7 +1059,7 @@ export class AdminConsolePageComponent {
   }
 
   protected async createUser(): Promise<void> {
-    if (!this.canCreateUser()) {
+    if (!this.canCommitCreateUser()) {
       this.userForm.markAllAsTouched();
       this.notifications.notify(
         'Dades incompletes',
@@ -1070,7 +1135,7 @@ export class AdminConsolePageComponent {
   protected canSaveUserDetail(): boolean {
     const password = this.detailForm.controls.newPassword.value.trim();
     const confirm = this.detailForm.controls.confirmNewPassword.value.trim();
-    if (this.detailForm.invalid || !this.detailForm.controls.comments.value.trim()) {
+    if (this.detailForm.invalid) {
       return false;
     }
 
@@ -1091,6 +1156,33 @@ export class AdminConsolePageComponent {
       newPassword: '',
       confirmNewPassword: ''
     });
+  }
+
+  private clearDetailPasswordAutofillTimers(): void {
+    for (const timer of this.detailPasswordAutofillTimers) {
+      clearTimeout(timer);
+    }
+    this.detailPasswordAutofillTimers = [];
+  }
+
+  private scheduleDetailPasswordAutofillClear(): void {
+    this.clearDetailPasswordAutofillTimers();
+    this.detailPasswordEditedByUser = false;
+    this.clearDetailPasswordAutofill();
+    for (const delay of this.detailPasswordAutofillDelaysMs) {
+      this.detailPasswordAutofillTimers.push(setTimeout(() => this.clearDetailPasswordAutofill(), delay));
+    }
+  }
+
+  private clearDetailPasswordAutofill(): void {
+    if (this.detailPasswordEditedByUser) {
+      return;
+    }
+
+    this.detailForm.controls.newPassword.setValue('', { emitEvent: false });
+    this.detailForm.controls.confirmNewPassword.setValue('', { emitEvent: false });
+    this.detailForm.controls.newPassword.markAsPristine();
+    this.detailForm.controls.confirmNewPassword.markAsPristine();
   }
 
   private resetCreateUserForm(): void {
@@ -1118,6 +1210,15 @@ export class AdminConsolePageComponent {
     this.createPermissionRoleKeys.set([]);
     this.createMaintenancePrivacyAccepted.set(false);
     this.permissionCreateModalOpen.set(true);
+    this.permissionCreateTracker.remember(this.permissionCreateSnapshot());
+  }
+
+  protected canCommitCreatePermission(): boolean {
+    return this.formCommit.canCommit({
+      hasChanges: this.permissionCreateTracker.hasChanges(this.permissionCreateSnapshot()),
+      rulesSatisfied:
+        this.canSubmitCreatePermission() && this.privacyAllowsSave(this.createMaintenancePrivacyAccepted())
+    });
   }
 
   protected closeCreatePermissionModal(): void {
@@ -1145,6 +1246,10 @@ export class AdminConsolePageComponent {
   }
 
   protected async submitCreatePermission(): Promise<void> {
+    if (!this.canCommitCreatePermission()) {
+      return;
+    }
+
     if (!this.privacyAllowsSave(this.createMaintenancePrivacyAccepted())) {
       this.notifications.notify('Privacitat obligatòria', 'Cal acceptar les condicions de privacitat abans de crear.', 'error');
       return;
@@ -1234,6 +1339,15 @@ export class AdminConsolePageComponent {
     }
     this.syncPermissionDetailRolesFromCatalog(p.key);
     this.permissionDetailEditMode.set(true);
+    this.permissionDetailTracker.remember(this.permissionDetailSnapshot());
+  }
+
+  protected canCommitPermissionDetail(): boolean {
+    const draft = this.editablePermissionDetail();
+    return this.formCommit.canCommit({
+      hasChanges: this.permissionDetailTracker.hasChanges(this.permissionDetailSnapshot()),
+      rulesSatisfied: !!(draft.displayName ?? '').trim()
+    });
   }
 
   protected cancelPermissionDetailEdit(): void {
@@ -1301,7 +1415,7 @@ export class AdminConsolePageComponent {
 
   protected async savePermissionDetail(): Promise<void> {
     const p = this.selectedPermission();
-    if (!p) {
+    if (!p || !this.canCommitPermissionDetail()) {
       return;
     }
     const draft = this.editablePermissionDetail();
@@ -1397,6 +1511,10 @@ export class AdminConsolePageComponent {
   }
 
   protected async saveMenu(): Promise<void> {
+    if (!this.canCommitMenu()) {
+      return;
+    }
+
     if (this.menuIsNew() && !this.privacyAllowsSave(this.createMaintenancePrivacyAccepted())) {
       this.notifications.notify('Privacitat obligatòria', 'Cal acceptar les condicions de privacitat abans de desar.', 'error');
       return;
@@ -1406,6 +1524,15 @@ export class AdminConsolePageComponent {
 
     if (!menu.key.trim() || !menu.label.trim()) {
       this.notifications.notify('Dades incompletes', 'Cal informar `key` i `label` del menú.', 'error');
+      return;
+    }
+
+    if (!this.isValidMenuParent(menu.parentKey, menu.key)) {
+      this.notifications.notify(
+        'Pare invàlid',
+        'El pare ha de ser un menú existent (per Ajuda: help) i no pot ser el mateix menú.',
+        'error'
+      );
       return;
     }
 
@@ -1453,6 +1580,7 @@ export class AdminConsolePageComponent {
     this.roleDetailEditMode.set(true);
     this.editableRole.set({ key: '', displayName: '', isActive: true });
     this.roleModalOpen.set(true);
+    this.roleTracker.remember(this.editableRole());
   }
 
   protected selectRoleForEdit(role: RoleDefinition): void {
@@ -1478,6 +1606,17 @@ export class AdminConsolePageComponent {
       return;
     }
     this.roleDetailEditMode.set(true);
+    this.roleTracker.remember(this.editableRole());
+  }
+
+  protected canCommitRole(): boolean {
+    const row = this.editableRole();
+    const required = !!row.displayName.trim() && (!this.roleIsNew() || !!row.key.trim());
+    return this.formCommit.canCommit({
+      hasChanges: this.roleTracker.hasChanges(row),
+      rulesSatisfied:
+        required && (!this.roleIsNew() || this.privacyAllowsSave(this.createMaintenancePrivacyAccepted()))
+    });
   }
 
   protected cancelRoleDetailEdit(): void {
@@ -1501,6 +1640,10 @@ export class AdminConsolePageComponent {
   }
 
   protected async saveRole(): Promise<void> {
+    if (!this.canCommitRole()) {
+      return;
+    }
+
     if (this.roleIsNew() && !this.privacyAllowsSave(this.createMaintenancePrivacyAccepted())) {
       this.notifications.notify('Privacitat obligatòria', 'Cal acceptar les condicions de privacitat abans de desar.', 'error');
       return;
@@ -1621,6 +1764,7 @@ export class AdminConsolePageComponent {
     this.countryDetailEditMode.set(true);
     this.editableCountry.set({ code: '', name: '', sortOrder: 0, isActive: true });
     this.countryModalOpen.set(true);
+    this.countryTracker.remember(this.editableCountry());
   }
 
   protected selectCountryForEdit(country: CountryAdminDto): void {
@@ -1647,6 +1791,18 @@ export class AdminConsolePageComponent {
       return;
     }
     this.countryDetailEditMode.set(true);
+    this.countryTracker.remember(this.editableCountry());
+  }
+
+  protected canCommitCountry(): boolean {
+    const row = this.editableCountry();
+    return this.formCommit.canCommit({
+      hasChanges: this.countryTracker.hasChanges(row),
+      rulesSatisfied:
+        !!row.code.trim() &&
+        !!row.name.trim() &&
+        (!this.countryIsNew() || this.privacyAllowsSave(this.createMaintenancePrivacyAccepted()))
+    });
   }
 
   protected cancelCountryDetailEdit(): void {
@@ -1671,6 +1827,10 @@ export class AdminConsolePageComponent {
   }
 
   protected async saveCountry(): Promise<void> {
+    if (!this.canCommitCountry()) {
+      return;
+    }
+
     if (this.countryIsNew() && !this.privacyAllowsSave(this.createMaintenancePrivacyAccepted())) {
       this.notifications.notify('Privacitat obligatòria', 'Cal acceptar les condicions de privacitat abans de desar.', 'error');
       return;
@@ -1757,6 +1917,7 @@ export class AdminConsolePageComponent {
     });
     this.cityModalOpen.set(true);
     this.cityNameSuggestions.set([]);
+    this.cityTracker.remember(this.editableCity());
   }
 
   protected selectCityForEdit(city: CityAdminDto): void {
@@ -1788,6 +1949,18 @@ export class AdminConsolePageComponent {
       return;
     }
     this.cityDetailEditMode.set(true);
+    this.cityTracker.remember(this.editableCity());
+  }
+
+  protected canCommitCity(): boolean {
+    const row = this.editableCity();
+    return this.formCommit.canCommit({
+      hasChanges: this.cityTracker.hasChanges(row),
+      rulesSatisfied:
+        !!row.name.trim() &&
+        (!this.cityIsNew() || !!row.countryId) &&
+        (!this.cityIsNew() || this.privacyAllowsSave(this.createMaintenancePrivacyAccepted()))
+    });
   }
 
   protected cancelCityDetailEdit(): void {
@@ -1831,6 +2004,10 @@ export class AdminConsolePageComponent {
   }
 
   protected async saveCity(): Promise<void> {
+    if (!this.canCommitCity()) {
+      return;
+    }
+
     if (this.cityIsNew() && !this.privacyAllowsSave(this.createMaintenancePrivacyAccepted())) {
       this.notifications.notify('Privacitat obligatòria', 'Cal acceptar les condicions de privacitat abans de desar.', 'error');
       return;
@@ -1944,6 +2121,7 @@ export class AdminConsolePageComponent {
       googlePlaceId: ''
     });
     this.placeModalOpen.set(true);
+    this.placeTracker.remember(this.editablePlace());
   }
 
   protected selectPlaceForEdit(place: AdminPlaceDto): void {
@@ -1992,6 +2170,17 @@ export class AdminConsolePageComponent {
       return;
     }
     this.placeDetailEditMode.set(true);
+    this.placeTracker.remember(this.editablePlace());
+  }
+
+  protected canCommitPlace(): boolean {
+    const place = this.editablePlace();
+    return this.formCommit.canCommit({
+      hasChanges: this.placeTracker.hasChanges(place),
+      rulesSatisfied:
+        !this.validatePlaceDraft(place) &&
+        (!this.placeIsNew() || this.privacyAllowsSave(this.createMaintenancePrivacyAccepted()))
+    });
   }
 
   protected cancelPlaceDetailEdit(): void {
@@ -2067,6 +2256,10 @@ export class AdminConsolePageComponent {
   }
 
   protected async savePlace(): Promise<void> {
+    if (!this.canCommitPlace()) {
+      return;
+    }
+
     if (this.placeIsNew() && !this.privacyAllowsSave(this.createMaintenancePrivacyAccepted())) {
       this.notifications.notify('Privacitat obligatòria', 'Cal acceptar les condicions de privacitat abans de desar.', 'error');
       return;
@@ -2547,6 +2740,90 @@ export class AdminConsolePageComponent {
           message: 'La imatge de perfil s’ha actualitzat correctament.'
         };
     }
+  }
+
+  private userDetailHasChanges(): boolean {
+    const user = this.selectedUser();
+    if (!user) {
+      return false;
+    }
+
+    const payload = this.detailForm.getRawValue();
+    const password = payload.newPassword.trim();
+    const confirm = payload.confirmNewPassword.trim();
+    return (
+      this.userDetailProfileHasChanges(user, payload) ||
+      payload.role !== user.role ||
+      password.length > 0 ||
+      confirm.length > 0
+    );
+  }
+
+  private userDetailProfileHasChanges(
+    user: AdminUserListItem,
+    payload: {
+      displayName: string;
+      city: string;
+      country: string;
+      comments: string;
+    }
+  ): boolean {
+    return (
+      payload.displayName.trim() !== (user.displayName || '').trim() ||
+      payload.city.trim() !== (user.city || '').trim() ||
+      payload.country.trim() !== (user.country || '').trim() ||
+      payload.comments.trim() !== (user.comments || '').trim() ||
+      this.normalizeAvatarValue(this.detailAvatarPreview()) !== this.normalizeAvatarValue(user.avatarUrl)
+    );
+  }
+
+  private normalizeAvatarValue(value: string | null | undefined): string {
+    return value?.trim() || '';
+  }
+
+  private rolePermissionsTrackerHasChanges(): boolean {
+    return JSON.stringify(this.rolePermissionKeysDraft()) !== JSON.stringify(this.rolePermissionKeysInitial());
+  }
+
+  private isValidMenuParent(parentKey: string | null | undefined, menuKey: string): boolean {
+    const parent = (parentKey ?? '').trim();
+    const key = menuKey.trim();
+    if (!parent) {
+      return true;
+    }
+
+    if (parent.toLowerCase() === key.toLowerCase()) {
+      return false;
+    }
+
+    return !!this.menus()?.menus.some((item) => item.key.toLowerCase() === parent.toLowerCase());
+  }
+
+  private rememberMenuEditor(): void {
+    this.menuTracker.remember(this.menuEditorSnapshot());
+  }
+
+  private menuEditorSnapshot(): unknown {
+    return {
+      menu: this.editableMenu(),
+      roles: this.editableMenuRoles()
+    };
+  }
+
+  private permissionCreateSnapshot(): unknown {
+    return {
+      draft: this.newPermissionDraft(),
+      menus: this.createPermissionMenuKeys(),
+      page: this.createPermissionPageUrl(),
+      roles: this.createPermissionRoleKeys()
+    };
+  }
+
+  private permissionDetailSnapshot(): unknown {
+    return {
+      detail: this.editablePermissionDetail(),
+      roles: this.permissionDetailRoles()
+    };
   }
 }
 

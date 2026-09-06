@@ -37,11 +37,11 @@ internal sealed class MenuRepository(ZuppetoDbContext dbContext) : IMenuReposito
         string roleKey,
         CancellationToken cancellationToken = default)
     {
-        var roleValue = roleKey.Trim();
+        var roleValue = roleKey.Trim().ToLower();
 
         return await dbContext.MenuRoles
             .AsNoTracking()
-            .Where(menuRole => menuRole.Role == roleValue && menuRole.Menu != null && menuRole.Menu.IsActive)
+            .Where(menuRole => menuRole.Role.ToLower() == roleValue && menuRole.Menu != null && menuRole.Menu.IsActive)
             .OrderBy(menuRole => menuRole.Menu!.SortOrder)
             .Select(menuRole => new MenuItemDefinition(
                 menuRole.Menu!.Key,

@@ -220,7 +220,7 @@
                 </label>
               }
               <div class="admin-console-modal__footer-actions">
-                <button type="submit" form="admin-create-user-form" class="admin-console-primary" [disabled]="!canCreateUser() || !privacyAllowsSave(createPrivacyAccepted())">
+                <button type="submit" form="admin-create-user-form" class="admin-console-primary" [disabled]="!canCommitCreateUser()">
                   Crear
                 </button>
                 <button type="button" class="admin-console-primary admin-console-primary--secondary admin-console-role-strip__button" (click)="closeCreateUserModal()">
@@ -336,9 +336,9 @@
             </section>
 
             <label class="admin-console-form admin-console-form--readonly">
-              <span>Comentaris <strong class="form-field-required" aria-hidden="true">*</strong></span>
+              <span>Comentaris</span>
               @if (detailEditMode()) {
-                <textarea rows="4" formControlName="comments" aria-required="true"></textarea>
+                <textarea rows="4" formControlName="comments"></textarea>
               } @else {
                 <textarea class="admin-console-static-field" rows="4" [value]="user.comments || '-'" readonly></textarea>
               }
@@ -360,18 +360,28 @@
             </div>
 
             @if (detailEditMode()) {
+              <div class="admin-console-form__autofill-trap" aria-hidden="true">
+                <input type="text" tabindex="-1" autocomplete="username" />
+                <input type="password" tabindex="-1" autocomplete="current-password" />
+              </div>
               <div class="admin-console-form__password-pair">
                 <app-password-field
                   label="Contrasenya nova"
                   [control]="detailForm.controls.newPassword"
-                  autocomplete="new-password"
+                  autocomplete="off"
+                  [blockAutofill]="true"
                   [showStrength]="true"
+                  (focused)="onDetailPasswordFocused()"
+                  (valueChanged)="onDetailPasswordChanged()"
                 />
                 <app-password-field
                   label="Confirmar contrasenya"
                   [control]="detailForm.controls.confirmNewPassword"
-                  autocomplete="new-password"
+                  autocomplete="off"
+                  [blockAutofill]="true"
                   [matchControl]="detailForm.controls.newPassword"
+                  (focused)="onDetailPasswordFocused()"
+                  (valueChanged)="onDetailPasswordChanged()"
                 />
               </div>
               <p class="admin-console-password-hint">
@@ -398,7 +408,7 @@
                   <button
                     type="button"
                     class="admin-console-primary admin-console-role-strip__button"
-                    [disabled]="!privacyAllowsSave(detailPrivacyAccepted()) || !canSaveUserDetail()"
+                    [disabled]="!canCommitUserDetail()"
                     (click)="saveSelectedUserRole()"
                   >
                     Desar
@@ -736,7 +746,7 @@
                   type="submit"
                   form="admin-create-permission-form"
                   class="admin-console-primary admin-console-role-strip__button"
-                  [disabled]="!canSubmitCreatePermission() || !privacyAllowsSave(createMaintenancePrivacyAccepted())"
+                  [disabled]="!canCommitCreatePermission()"
                 >
                   Crear
                 </button>
@@ -811,7 +821,7 @@
               }
               <div class="admin-console-modal__footer-actions">
                 @if (rolePermissionsEditMode()) {
-                  <button type="button" class="admin-console-primary admin-console-role-strip__button" (click)="saveRolePermissionsDraft()">
+                  <button type="button" class="admin-console-primary admin-console-role-strip__button" [disabled]="!canCommitRolePermissions()" (click)="saveRolePermissionsDraft()">
                     Desar
                   </button>
                   <button
@@ -991,7 +1001,7 @@
             <div class="admin-console-modal__footer-band">
               <div class="admin-console-modal__footer-actions">
                 @if (permissionDetailEditMode()) {
-                  <button type="button" class="admin-console-primary admin-console-role-strip__button" (click)="savePermissionDetail()">
+                  <button type="button" class="admin-console-primary admin-console-role-strip__button" [disabled]="!canCommitPermissionDetail()" (click)="savePermissionDetail()">
                     Desar
                   </button>
                   <button
@@ -1222,7 +1232,7 @@
                   <button
                     type="button"
                     class="admin-console-primary admin-console-role-strip__button"
-                    [disabled]="!privacyAllowsSave(createMaintenancePrivacyAccepted())"
+                    [disabled]="!canCommitMenu()"
                     (click)="saveMenu()"
                   >
                     Desar menú
@@ -1340,7 +1350,7 @@
                       Tancar
                     </button>
                   } @else {
-                    <button type="button" class="admin-console-primary admin-console-role-strip__button" (click)="saveMenu()">Desar</button>
+                    <button type="button" class="admin-console-primary admin-console-role-strip__button" [disabled]="!canCommitMenu()" (click)="saveMenu()">Desar</button>
                     <button
                       type="button"
                       class="admin-console-primary admin-console-primary--secondary admin-console-role-strip__button"
@@ -1515,7 +1525,7 @@
                   <button
                     type="button"
                     class="admin-console-primary admin-console-role-strip__button"
-                    [disabled]="roleIsNew() && !privacyAllowsSave(createMaintenancePrivacyAccepted())"
+                    [disabled]="!canCommitRole()"
                     (click)="saveRole()"
                   >
                     Desar
@@ -1751,7 +1761,7 @@
                   <button
                     type="button"
                     class="admin-console-primary admin-console-role-strip__button"
-                    [disabled]="placeIsNew() && !privacyAllowsSave(createMaintenancePrivacyAccepted())"
+                    [disabled]="!canCommitPlace()"
                     (click)="savePlace()"
                   >
                     Desar
@@ -1929,7 +1939,7 @@
                   <button
                     type="button"
                     class="admin-console-primary admin-console-role-strip__button"
-                    [disabled]="countryIsNew() && !privacyAllowsSave(createMaintenancePrivacyAccepted())"
+                    [disabled]="!canCommitCountry()"
                     (click)="saveCountry()"
                   >
                     Desar
@@ -2169,7 +2179,7 @@
                   <button
                     type="button"
                     class="admin-console-primary admin-console-role-strip__button"
-                    [disabled]="cityIsNew() && !privacyAllowsSave(createMaintenancePrivacyAccepted())"
+                    [disabled]="!canCommitCity()"
                     (click)="saveCity()"
                   >
                     Desar

@@ -35,11 +35,6 @@ public sealed class UpdateAdminUserRequestValidator : IValidator<UpdateAdminUser
             result.Add(nameof(request.Country), "Country must be at least 2 characters long.");
         }
 
-        if (string.IsNullOrWhiteSpace(request.Comments))
-        {
-            result.Add(nameof(request.Comments), "Comments are required.");
-        }
-
         return result;
     }
 }
