@@ -6,15 +6,11 @@ public sealed class PetPolicy : ValueObject
 {
     public PetPolicy(bool acceptsDogs, bool acceptsCats, string label, string notes)
     {
-        if (string.IsNullOrWhiteSpace(label))
-        {
-            throw new DomainRuleException("L’etiqueta de política de mascotes és obligatòria.");
-        }
-
         AcceptsDogs = acceptsDogs;
         AcceptsCats = acceptsCats;
-        Label = label.Trim();
-        Notes = notes.Trim();
+        // Optional: ingested Google places often have no user-facing policy sentence.
+        Label = string.IsNullOrWhiteSpace(label) ? string.Empty : label.Trim();
+        Notes = string.IsNullOrWhiteSpace(notes) ? string.Empty : notes.Trim();
     }
 
     public bool AcceptsDogs { get; }

@@ -26,6 +26,7 @@ import {
   AdminPrivacyConsentPolicy
 } from '../../policies/admin-privacy-consent.policy';
 import { COUNTRY_CODE_MAX_LENGTH } from '../../policies/country-code.policy';
+import { renderInternalMarkdown } from '../../policies/internal-markdown.policy';
 import { DB_FIELD_MAX } from '../../../../shared/policies/db-field-max-length';
 import {
   formatDecimalCoordinate,
@@ -40,6 +41,7 @@ import { EditorChangeTracker } from '../../../../shared/policies/editor-change-t
 import { AuthService } from '../../../auth/services/auth.service';
 import { SectionHeadingComponent } from '../../../../shared/components/section-heading/section-heading.component';
 import { fileToAvatarDataUrl } from '../../../../shared/utils/avatar-image.util';
+import { PLACE_TYPE_LABELS } from '../../../places/mock/places.fake';
 import {
   AdminMenuCatalog,
   AdminMenuDefinition,
@@ -189,6 +191,10 @@ export class AdminConsolePageComponent {
   protected readonly menuDeleteCandidate = signal<AdminMenuDefinition | null>(null);
   protected readonly documents = signal<InternalDocumentSummary[]>([]);
   protected readonly selectedDocument = signal<InternalDocument | null>(null);
+  protected readonly selectedDocumentHtml = computed(() => {
+    const doc = this.selectedDocument();
+    return doc ? renderInternalMarkdown(doc.content) : '';
+  });
   protected readonly loading = signal(false);
 
   protected readonly userForm = this.formBuilder.nonNullable.group(
@@ -278,6 +284,7 @@ export class AdminConsolePageComponent {
     addressLine1: string;
     city: string;
     country: string;
+    countrySelectValue: string;
     neighborhood: string;
     latitude: string;
     longitude: string;
@@ -300,13 +307,14 @@ export class AdminConsolePageComponent {
     googleMetaCacheExpired?: boolean;
   }>({
     name: '',
-    type: 'Cafe',
+    type: '__unset__',
     shortDescription: '',
     description: '',
     coverImageUrl: '',
     addressLine1: '',
     city: '',
     country: '',
+    countrySelectValue: '',
     neighborhood: '',
     latitude: '0',
     longitude: '0',
@@ -324,6 +332,35 @@ export class AdminConsolePageComponent {
   });
 
   /** Options for admin Google linkage (aligned with backend `PlaceDataProvenance`). */
+  /** Fixed catalog. Do not rebuild from editablePlace — that resets the native select to Bar. */
+  protected readonly placeTypeUnset = '__unset__';
+  protected readonly placeTypeCatalog = Object.entries(PLACE_TYPE_LABELS).map(([value, label]) => ({
+    value,
+    label
+  }));
+  protected readonly placeTypeUnknownOption = computed(() => {
+    const current = this.editablePlace().type.trim();
+    if (!current || current === this.placeTypeUnset) {
+      return null;
+    }
+    const key = current.toLowerCase();
+    if (key in PLACE_TYPE_LABELS) {
+      return null;
+    }
+    return { value: current, label: current };
+  });
+  protected readonly placeCitySelectOptions = signal<
+    Array<{ value: string; label: string; latitude?: string; longitude?: string }>
+  >([]);
+  protected readonly placeCountrySelectOptions = computed(() => {
+    const options = this.createCityCountryOptions();
+    const current = this.editablePlace().countrySelectValue;
+    const name = this.editablePlace().country.trim();
+    if (current && name && !options.some((option) => option.value === current)) {
+      return [{ value: current, label: name }, ...options];
+    }
+    return options;
+  });
   protected readonly placeDataProvenanceSelectValues = ['', 'Internal', 'GooglePlaces', 'Mixed'] as const;
 
   constructor() {
@@ -1754,6 +1791,8 @@ export class AdminConsolePageComponent {
           await this.loadGeographicCities();
           break;
         case 'places':
+          await this.loadGeographicCountries();
+          await this.loadGeoNamesEuCountries();
           await this.loadPlaces();
           break;
         case 'documentation':
@@ -2038,6 +2077,18 @@ export class AdminConsolePageComponent {
     });
   }
 
+  protected onPlaceTypeChange(value: string): void {
+    this.editablePlace.set({ ...this.editablePlace(), type: value || this.placeTypeUnset });
+  }
+
+  private normalizePlaceType(type: string): string {
+    const key = type.trim().toLowerCase();
+    if (!key) {
+      return '';
+    }
+    return key in PLACE_TYPE_LABELS ? key : type.trim();
+  }
+
   protected onPlaceLatitudeInput(value: string): void {
     this.editablePlace.set({ ...this.editablePlace(), latitude: sanitizeDecimalCoordinate(value) });
   }
@@ -2058,6 +2109,149 @@ export class AdminConsolePageComponent {
       ...this.editablePlace(),
       longitude: formatDecimalCoordinate(this.editablePlace().longitude)
     });
+  }
+
+  protected onPlaceCountryChange(value: string): void {
+    this.editablePlace.set({
+      ...this.editablePlace(),
+      countrySelectValue: value,
+      country: this.resolvePlaceCountryName(value),
+      city: ''
+    });
+    void this.ensurePlaceCityOptions(value);
+  }
+
+  protected onPlaceCityChange(value: string): void {
+    const option = this.placeCitySelectOptions().find((item) => item.value === value);
+    this.editablePlace.set({
+      ...this.editablePlace(),
+      city: value,
+      latitude: option?.latitude
+        ? formatDecimalCoordinate(option.latitude)
+        : this.editablePlace().latitude,
+      longitude: option?.longitude
+        ? formatDecimalCoordinate(option.longitude)
+        : this.editablePlace().longitude
+    });
+  }
+
+  private resolvePlaceCountrySelectValue(countryName: string): string {
+    const normalized = countryName.trim().toLowerCase();
+    if (!normalized) {
+      return '';
+    }
+
+    const catalog = this.geographicCountries().find(
+      (country) =>
+        country.name.trim().toLowerCase() === normalized ||
+        country.code.trim().toLowerCase() === normalized
+    );
+    if (catalog) {
+      return catalog.id;
+    }
+
+    const geonames = this.geoNamesEuCountries().find(
+      (country) =>
+        country.name.trim().toLowerCase() === normalized ||
+        country.code.trim().toLowerCase() === normalized
+    );
+    if (geonames) {
+      return `geo:${geonames.code}`;
+    }
+
+    return `name:${countryName.trim()}`;
+  }
+
+  private resolvePlaceCountryName(value: string): string {
+    if (!value) {
+      return '';
+    }
+    if (value.startsWith('geo:')) {
+      const code = value.slice(4);
+      return this.geoNamesEuCountries().find((country) => country.code === code)?.name ?? '';
+    }
+    if (value.startsWith('name:')) {
+      return value.slice(5);
+    }
+    return this.geographicCountries().find((country) => country.id === value)?.name ?? '';
+  }
+
+  private resolvePlaceCountryCode(value: string): string {
+    if (value.startsWith('geo:')) {
+      return value.slice(4).trim().toUpperCase();
+    }
+    if (value.startsWith('name:')) {
+      return '';
+    }
+    return this.geographicCountries().find((country) => country.id === value)?.code?.trim().toUpperCase() ?? '';
+  }
+
+  private async ensurePlaceCityOptions(countryValue: string, keepCity?: string): Promise<void> {
+    if (!countryValue) {
+      this.placeCitySelectOptions.set([]);
+      return;
+    }
+
+    const catalogCountryId =
+      countryValue.startsWith('geo:') || countryValue.startsWith('name:')
+        ? this.geographicCountries().find(
+            (country) => country.code.trim().toUpperCase() === this.resolvePlaceCountryCode(countryValue)
+          )?.id
+        : countryValue;
+    const countryCode = this.resolvePlaceCountryCode(countryValue);
+
+    let catalogCities: CityAdminDto[] = [];
+    if (catalogCountryId) {
+      try {
+        catalogCities = await this.adminService.listCities(catalogCountryId);
+      } catch {
+        catalogCities = [];
+      }
+    }
+
+    const geonamesCities = countryCode
+      ? await this.adminService.listCitiesByCountryFromGeoNames(countryCode, 80)
+      : [];
+
+    const seen = new Set<string>();
+    const options: Array<{ value: string; label: string; latitude?: string; longitude?: string }> = [];
+
+    for (const city of catalogCities) {
+      const key = city.name.trim().toLowerCase();
+      if (!key || seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+      options.push({
+        value: city.name,
+        label: city.name,
+        latitude: city.latitude != null ? String(city.latitude) : undefined,
+        longitude: city.longitude != null ? String(city.longitude) : undefined
+      });
+    }
+
+    for (const city of geonamesCities) {
+      const key = city.name.trim().toLowerCase();
+      if (!key || seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+      options.push({
+        value: city.name,
+        label: city.name,
+        latitude: city.latitude,
+        longitude: city.longitude
+      });
+    }
+
+    options.sort((left, right) => left.label.localeCompare(right.label, 'ca', { sensitivity: 'base' }));
+
+    const kept = keepCity?.trim() ?? '';
+    if (kept && !options.some((option) => option.value.toLowerCase() === kept.toLowerCase())) {
+      options.unshift({ value: kept, label: kept });
+    }
+
+    this.placeCitySelectOptions.set(options);
   }
 
   protected onCityNameInput(value: string): void {
@@ -2175,13 +2369,14 @@ export class AdminConsolePageComponent {
     this.placeDetailEditMode.set(true);
     this.editablePlace.set({
       name: '',
-      type: 'Cafe',
+      type: '__unset__',
       shortDescription: '',
       description: '',
       coverImageUrl: '',
       addressLine1: '',
       city: '',
       country: '',
+      countrySelectValue: '',
       neighborhood: '',
       latitude: '0',
       longitude: '0',
@@ -2197,6 +2392,7 @@ export class AdminConsolePageComponent {
       dataProvenance: '',
       googlePlaceId: ''
     });
+    this.placeCitySelectOptions.set([]);
     this.placeModalOpen.set(true);
     this.placeTracker.remember(this.editablePlace());
   }
@@ -2207,13 +2403,14 @@ export class AdminConsolePageComponent {
     this.editablePlace.set({
       id: place.id,
       name: place.name,
-      type: place.type,
+      type: this.normalizePlaceType(place.type),
       shortDescription: place.shortDescription,
       description: place.description,
       coverImageUrl: place.coverImageUrl,
       addressLine1: place.addressLine1,
       city: place.city,
       country: place.country,
+      countrySelectValue: this.resolvePlaceCountrySelectValue(place.country),
       neighborhood: place.neighborhood || '',
       latitude: formatDecimalCoordinate(place.latitude.toString()),
       longitude: formatDecimalCoordinate(place.longitude.toString()),
@@ -2234,6 +2431,7 @@ export class AdminConsolePageComponent {
       googleMetaCacheExpired: place.googleCoordinatesCacheExpired
     });
     this.placeModalOpen.set(true);
+    void this.ensurePlaceCityOptions(this.editablePlace().countrySelectValue, place.city);
   }
 
   protected closePlaceModal(): void {
@@ -2274,13 +2472,14 @@ export class AdminConsolePageComponent {
     this.editablePlace.set({
       id: original.id,
       name: original.name,
-      type: original.type,
+      type: this.normalizePlaceType(original.type),
       shortDescription: original.shortDescription,
       description: original.description,
       coverImageUrl: original.coverImageUrl,
       addressLine1: original.addressLine1,
       city: original.city,
       country: original.country,
+      countrySelectValue: this.resolvePlaceCountrySelectValue(original.country),
       neighborhood: original.neighborhood || '',
       latitude: formatDecimalCoordinate(original.latitude.toString()),
       longitude: formatDecimalCoordinate(original.longitude.toString()),
@@ -2301,6 +2500,7 @@ export class AdminConsolePageComponent {
       googleMetaCacheExpired: original.googleCoordinatesCacheExpired
     });
     this.placeDetailEditMode.set(false);
+    void this.ensurePlaceCityOptions(this.editablePlace().countrySelectValue, original.city);
   }
 
   protected askDeletePlace(place: AdminPlaceDto, event?: Event): void {
@@ -2391,16 +2591,10 @@ export class AdminConsolePageComponent {
     googlePlaceId: string;
   }): string | null {
     if (!place.name.trim()) return 'El nom del lloc és obligatori.';
-    if (!place.type.trim()) return 'El tipus del lloc és obligatori.';
-    if (!place.shortDescription.trim()) return 'La descripció curta és obligatòria.';
-    if (!place.description.trim()) return 'La descripció és obligatòria.';
-    if (!place.coverImageUrl.trim()) return 'La imatge de portada és obligatòria.';
+    if (!place.type.trim() || place.type === this.placeTypeUnset) return 'El tipus del lloc és obligatori.';
     if (!place.addressLine1.trim()) return "L'adreça és obligatòria.";
     if (!place.city.trim()) return 'La ciutat és obligatòria.';
     if (!place.country.trim()) return 'El país és obligatori.';
-    if (!place.neighborhood.trim()) return 'El barri és obligatori.';
-    if (!place.petPolicyLabel.trim()) return 'La política de mascotes és obligatòria.';
-    if (!place.pricingLabel.trim()) return "L'etiqueta de preu és obligatòria.";
     if (!place.acceptsDogs && !place.acceptsCats) return 'Cal acceptar com a mínim gossos o gats.';
 
     const latitude = this.parseOptionalNumber(place.latitude);
@@ -2418,11 +2612,13 @@ export class AdminConsolePageComponent {
 
     const dp = place.dataProvenance?.trim() ?? '';
     const gid = place.googlePlaceId?.trim() ?? '';
-    if (gid && dp !== 'GooglePlaces' && dp !== 'Mixed') {
-      return 'Si hi ha Google Place ID, cal triar procedència «GooglePlaces» o «Mixed».';
-    }
-    if ((dp === 'GooglePlaces' || dp === 'Mixed') && !gid) {
-      return 'Amb procedència Google Places o mixta cal omplir el Google Place ID.';
+    if (!this.placeIsNew()) {
+      if (gid && dp !== 'GooglePlaces' && dp !== 'Mixed') {
+        return 'Si hi ha Google Place ID, cal triar procedència «GooglePlaces» o «Mixed».';
+      }
+      if ((dp === 'GooglePlaces' || dp === 'Mixed') && !gid) {
+        return 'Amb procedència Google Places o mixta cal omplir el Google Place ID.';
+      }
     }
 
     return null;
@@ -2465,21 +2661,21 @@ export class AdminConsolePageComponent {
     const payload: AdminPlaceUpsertRequest = {
       id: place.id,
       name: place.name.trim(),
-      type: place.type.trim(),
+      type: this.normalizePlaceType(place.type),
       shortDescription: place.shortDescription.trim(),
       description: place.description.trim(),
       coverImageUrl: place.coverImageUrl.trim(),
       addressLine1: place.addressLine1.trim(),
       city: place.city.trim(),
       country: place.country.trim(),
-      neighborhood: place.neighborhood.trim(),
+      neighborhood: (place.neighborhood ?? '').trim(),
       latitude,
       longitude,
       acceptsDogs: place.acceptsDogs,
       acceptsCats: place.acceptsCats,
-      petPolicyLabel: place.petPolicyLabel.trim(),
-      petPolicyNotes: place.petPolicyNotes.trim(),
-      pricingLabel: place.pricingLabel.trim(),
+      petPolicyLabel: (place.petPolicyLabel ?? '').trim(),
+      petPolicyNotes: (place.petPolicyNotes ?? '').trim(),
+      pricingLabel: (place.pricingLabel ?? '').trim(),
       ratingAverage,
       reviewCount,
       tags: this.splitCsv(place.tags),
@@ -2500,6 +2696,11 @@ export class AdminConsolePageComponent {
   ): void {
     const dp = draft.dataProvenance?.trim() ?? '';
     const gid = draft.googlePlaceId?.trim() ?? '';
+
+    if (!payload.id || !gid) {
+      payload.dataProvenance = 'Internal';
+      return;
+    }
 
     if (dp === 'Internal') {
       payload.dataProvenance = 'Internal';

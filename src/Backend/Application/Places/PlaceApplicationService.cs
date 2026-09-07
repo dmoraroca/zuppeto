@@ -249,6 +249,8 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
             return;
         }
 
+        // No Place ID: catalog-only. Do not start the 30-day Google coordinate cache.
+
         if (string.Equals(request.DataProvenance?.Trim(), nameof(PlaceDataProvenance.Internal), StringComparison.OrdinalIgnoreCase))
         {
             place.SetDataProvenance(PlaceDataProvenance.Internal, null, null, null);

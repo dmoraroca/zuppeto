@@ -94,18 +94,8 @@ public sealed class Place : AggregateRoot<Guid>
 
     public void UpdateDescriptions(string shortDescription, string description)
     {
-        if (string.IsNullOrWhiteSpace(shortDescription))
-        {
-            throw new DomainRuleException("La descripció curta és obligatòria.");
-        }
-
-        if (string.IsNullOrWhiteSpace(description))
-        {
-            throw new DomainRuleException("La descripció és obligatòria.");
-        }
-
-        ShortDescription = shortDescription.Trim();
-        Description = description.Trim();
+        ShortDescription = string.IsNullOrWhiteSpace(shortDescription) ? string.Empty : shortDescription.Trim();
+        Description = string.IsNullOrWhiteSpace(description) ? string.Empty : description.Trim();
     }
 
     public void SetCoverImage(string coverImageUrl)

@@ -387,15 +387,40 @@ internal sealed class AdminApplicationService(
             return null;
         }
 
-        var repoRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
-        var fullPath = Path.Combine(repoRoot, relativePath);
-
-        if (!File.Exists(fullPath))
+        // Walk up from the API bin folder: a fixed number of ".." misses the repo root
+        // under some TFM output paths and returns 404 for every markdown document.
+        var fullPath = ResolveRepositoryFile(relativePath);
+        if (fullPath is null)
         {
             return null;
         }
 
         var content = await File.ReadAllTextAsync(fullPath, cancellationToken);
         return new InternalDocumentDto(doc.Key, doc.Title, content);
+    }
+
+    private static string? ResolveRepositoryFile(string relativePath)
+    {
+        foreach (var start in new[] { AppContext.BaseDirectory, Directory.GetCurrentDirectory() })
+        {
+            if (string.IsNullOrWhiteSpace(start))
+            {
+                continue;
+            }
+
+            var dir = new DirectoryInfo(start);
+            while (dir is not null)
+            {
+                var candidate = Path.GetFullPath(Path.Combine(dir.FullName, relativePath));
+                if (File.Exists(candidate))
+                {
+                    return candidate;
+                }
+
+                dir = dir.Parent;
+            }
+        }
+
+        return null;
     }
 }

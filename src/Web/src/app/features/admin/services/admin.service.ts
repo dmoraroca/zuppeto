@@ -222,6 +222,8 @@ export interface GeoNamesCityOption {
   countryName: string;
   adminName1: string;
   displayLabel: string;
+  latitude?: string;
+  longitude?: string;
 }
 
 export interface RoleDefinition {
@@ -591,6 +593,8 @@ export class AdminService {
             countryCode?: string;
             countryName?: string;
             adminName1?: string;
+            lat?: string;
+            lng?: string;
           }>;
         }>('https://secure.geonames.org/searchJSON', { params })
       );
@@ -610,7 +614,69 @@ export class AdminService {
             countryCode: resolvedCountryCode,
             countryName,
             adminName1,
-            displayLabel: countryPart ? `${name} (${countryPart})` : name
+            displayLabel: countryPart ? `${name} (${countryPart})` : name,
+            latitude: (item.lat ?? '').trim() || undefined,
+            longitude: (item.lng ?? '').trim() || undefined
+          };
+        })
+        .filter(
+          (item, index, all) =>
+            all.findIndex((candidate) => candidate.name.toLowerCase() === item.name.toLowerCase()) === index
+        );
+    } catch {
+      return [];
+    }
+  }
+
+  async listCitiesByCountryFromGeoNames(
+    countryCode: string,
+    limit = 80,
+    username = 'zuppeto'
+  ): Promise<GeoNamesCityOption[]> {
+    const normalizedCode = countryCode.trim().toUpperCase();
+    if (!normalizedCode) {
+      return [];
+    }
+
+    try {
+      const params = new HttpParams()
+        .set('country', normalizedCode)
+        .set('featureClass', 'P')
+        .set('cities', 'cities15000')
+        .set('orderby', 'population')
+        .set('style', 'FULL')
+        .set('maxRows', String(Math.min(Math.max(limit, 1), 200)))
+        .set('username', username);
+
+      const payload = await firstValueFrom(
+        this.http.get<{
+          geonames?: Array<{
+            name?: string;
+            countryCode?: string;
+            countryName?: string;
+            adminName1?: string;
+            lat?: string;
+            lng?: string;
+          }>;
+        }>('https://secure.geonames.org/searchJSON', { params })
+      );
+
+      const items = payload.geonames ?? [];
+      return items
+        .filter((item) => (item.name ?? '').trim().length > 0)
+        .map((item) => {
+          const name = (item.name ?? '').trim();
+          const resolvedCountryCode = (item.countryCode ?? normalizedCode).trim().toUpperCase();
+          const countryName = (item.countryName ?? '').trim();
+          const adminName1 = (item.adminName1 ?? '').trim();
+          return {
+            name,
+            countryCode: resolvedCountryCode,
+            countryName,
+            adminName1,
+            displayLabel: name,
+            latitude: (item.lat ?? '').trim() || undefined,
+            longitude: (item.lng ?? '').trim() || undefined
           };
         })
         .filter(

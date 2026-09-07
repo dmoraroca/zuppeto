@@ -7,6 +7,30 @@ No substitueix `docs/project-phases.md` ni el joc de proves Excel: aquí només 
 
 ---
 
+## 2026-09-07 00:22 CEST
+
+**Àmbit:** Admin · Llocs · apartat Google Places (compliment) · combo Procedència · ZUP-140 (en curs)
+
+**Què es veu:** a l’alta/edició de lloc, el desplegable de procedència té textos tècnics llargs: «Sense canvi (nou: catàleg intern; edició: manté vincle Google si existeix)», «Intern — elimina vincle Google», «Google Places», «Mixt (intern + Google)».
+
+**Millora:** revisar aquest apartat (copy, opcions i quan cal cada procedència) perquè sigui clar per qui opera el catàleg, sense llenguatge intern de vincle/API. **No implementar ara.**
+
+**Estat:** pendent; no implementar ara.
+
+---
+
+## 2026-09-07 00:23 CEST
+
+**Àmbit:** Admin · Llocs · formulari d’alta/edició · ZUP-140 (en curs)
+
+**Què es veu:** el modal «Nou lloc» és dens i poc clar (molts camps, apartat Google tècnic).
+
+**Millora:** fer una **pantalla més vistosa i fàcil** (layout, agrupació, copy). La descripció curta i la descripció **ja no són obligatòries** (decidit ara). El redisseny visual **no** s’implementa ara.
+
+**Estat:** pendent (pantalla); descripcions opcionals aplicades; no implementar el redisseny ara.
+
+---
+
 ## 2026-09-04 21:06 CEST
 
 **Àmbit:** Consola admin · check «Accepto les condicions» · actor Administrador · ZUP-112 (en curs)

@@ -549,7 +549,7 @@ Fora d'abast immediat:
 - decidir encara tot el pipeline tecnic de conversio
 - substituir avui mateix tots els `.md` existents del repo
 
-Mentrestant, mentre la implementacio no arribi, els `.md` actuals es poden mantenir com a suport intern de treball. Pero funcionalment ja no s'han de considerar la forma final prevista de consum de la documentacio dins la zona interna.
+Mentrestant, mentre la implementacio no arribi, els `.md` actuals es poden mantenir com a suport intern de treball. El visor interpreta el markdown (negreta, títols, llistes, taules) perquè es pugui **llegir**, no com a producte final. Funcionalment ja no s'han de considerar la forma final prevista de consum de la documentacio dins la zona interna.
 
 ### 3.10 Manteniment intern d'usuaris
 
@@ -1158,6 +1158,8 @@ Per evitar cost i latència repetida, cada consulta funcional s'ha de poder guar
 4. `restaurant`
 5. `hotel`
 6. `apartment`
+
+Aquestes tipologies són **tancades de producte** (no hi ha manteniment de tipus). A l’alta/edició de lloc (`/admin/llocs`) es trien amb **desplegable**, no amb text lliure. **País** va primer i **ciutat** depenent: tots dos són combo (catàleg Zuppeto ∪ GeoNames); triar un país omple les ciutats d’aquell país. La **descripció curta**, la **descripció**, la **imatge de portada**, el **barri**, el **preu** i la **política de mascotes** (frase) són opcionals. Les etiquetes del formulari són en català (imatge de portada, etiquetes, característiques, valoració, ressenyes). Un lloc **nou** no demana Place ID de Google ni activa la caché de 30 dies; això només aplica si el local té Place ID.
 
 **Dades mínimes del local (v1 aprovada)**
 

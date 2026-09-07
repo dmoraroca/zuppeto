@@ -6,12 +6,8 @@ public sealed class Pricing : ValueObject
 {
     public Pricing(string displayLabel)
     {
-        if (string.IsNullOrWhiteSpace(displayLabel))
-        {
-            throw new DomainRuleException("L’etiqueta de preu és obligatòria.");
-        }
-
-        DisplayLabel = displayLabel.Trim();
+        // Optional: Google Places rows often have no product price copy.
+        DisplayLabel = string.IsNullOrWhiteSpace(displayLabel) ? string.Empty : displayLabel.Trim();
     }
 
     public string DisplayLabel { get; }

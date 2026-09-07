@@ -23,21 +23,6 @@ public sealed class PlaceUpsertRequestValidator : IValidator<PlaceUpsertRequest>
             result.Add(nameof(request.Type), "El tipus de lloc no és vàlid.");
         }
 
-        if (string.IsNullOrWhiteSpace(request.ShortDescription))
-        {
-            result.Add(nameof(request.ShortDescription), "La descripció curta és obligatòria.");
-        }
-
-        if (string.IsNullOrWhiteSpace(request.Description))
-        {
-            result.Add(nameof(request.Description), "La descripció és obligatòria.");
-        }
-
-        if (string.IsNullOrWhiteSpace(request.CoverImageUrl))
-        {
-            result.Add(nameof(request.CoverImageUrl), "La imatge de portada és obligatòria.");
-        }
-
         if (string.IsNullOrWhiteSpace(request.AddressLine1))
         {
             result.Add(nameof(request.AddressLine1), "L'adreça és obligatòria.");
@@ -53,11 +38,6 @@ public sealed class PlaceUpsertRequestValidator : IValidator<PlaceUpsertRequest>
             result.Add(nameof(request.Country), "El país és obligatori.");
         }
 
-        if (string.IsNullOrWhiteSpace(request.Neighborhood))
-        {
-            result.Add(nameof(request.Neighborhood), "El barri és obligatori.");
-        }
-
         if (request.Latitude is < -90 or > 90)
         {
             result.Add(nameof(request.Latitude), "La latitud ha d'estar entre -90 i 90.");
@@ -71,16 +51,6 @@ public sealed class PlaceUpsertRequestValidator : IValidator<PlaceUpsertRequest>
         if (!request.AcceptsDogs && !request.AcceptsCats)
         {
             result.Add(nameof(request.AcceptsDogs), "Cal acceptar com a mínim gossos o gats.");
-        }
-
-        if (string.IsNullOrWhiteSpace(request.PetPolicyLabel))
-        {
-            result.Add(nameof(request.PetPolicyLabel), "La política de mascotes és obligatòria.");
-        }
-
-        if (string.IsNullOrWhiteSpace(request.PricingLabel))
-        {
-            result.Add(nameof(request.PricingLabel), "L'etiqueta de preu és obligatòria.");
         }
 
         if (request.RatingAverage is < 0 or > 5)
