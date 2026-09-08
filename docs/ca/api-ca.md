@@ -43,9 +43,9 @@ Resum del diagrama:
 
 El grup **`/api/places`** exigeix **`Authorization: Bearer <JWT>`** per defecte. Per al preview públic del login, aquestes lectures són anònimes: `GET /api/places`, `GET /api/places/cities` i `GET /api/places/cities/search`. La resta (inclòs detall per id, cerques externes i escrits) segueix amb JWT; els escrits **`POST` / `PUT`** també requereixen permís **`action.places.manage`**.
 
-- `GET /api/places` (anònim)
-- `GET /api/places/cities` (anònim)
-- `GET /api/places/cities/search` (anònim)
+- `GET /api/places` (anònim) — admet `country` i `city`; país filtra per coincidència exacta sense distingir majúscules
+- `GET /api/places/cities` (anònim) — llista `PlaceCitySuggestionDto` amb llocs, fins a 1000 resultats GeoNames (màxim per petició) i catàleg governat (`source`: `places` | `geonames` | `catalog`)
+- `GET /api/places/cities/search` (anònim) — typeahead de 2 caràcters sobre totes les fonts, fins a 1000 resultats
 - `GET /api/places/{id}`
 - `POST /api/places`
 - `PUT /api/places/{id}`

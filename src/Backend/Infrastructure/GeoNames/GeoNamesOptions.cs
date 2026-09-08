@@ -8,7 +8,7 @@ public sealed class GeoNamesOptions
 
     public string Username { get; set; } = string.Empty;
 
-    public int DefaultMaxRows { get; set; } = 10;
+    public int DefaultMaxRows { get; set; } = 1000;
 
     public int TimeoutSeconds { get; set; } = 6;
 

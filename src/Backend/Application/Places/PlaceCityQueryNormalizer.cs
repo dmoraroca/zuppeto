@@ -29,7 +29,7 @@ internal static class PlaceCityQueryNormalizer
 
 internal static class PlaceCitySearchDefaults
 {
-    public const int DefaultLimit = 50;
-    public const int MaxLimit = 100;
+    public const int DefaultLimit = 1000;
+    public const int MaxLimit = 1000;
     public const int MinQueryLength = 2;
 }

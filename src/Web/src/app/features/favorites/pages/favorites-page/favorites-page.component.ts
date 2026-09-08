@@ -189,6 +189,7 @@ export class FavoritesPageComponent {
     this.selectedPlaceIdState.set(null);
     this.appliedFiltersState.set({
       search: next.search?.trim() ?? '',
+      country: '',
       city: next.city?.trim() ?? '',
       type: next.type?.trim() ?? '',
       pet: next.pet ?? 'all',

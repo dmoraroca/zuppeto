@@ -1,5 +1,6 @@
 .places-page {
-  max-width: var(--yp-max-width);
+  width: 100%;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 2rem 1.5rem 4rem;
   display: grid;
@@ -14,8 +15,11 @@
 }
 
 .places-page__search {
+  position: relative;
+  z-index: 20;
   display: grid;
   gap: 1.5rem;
+  overflow: visible;
 }
 
 .places-page__search-actions {
@@ -44,6 +48,8 @@
 }
 
 .places-page__map-block {
+  position: relative;
+  z-index: 0;
   display: grid;
   gap: 0.9rem;
 }

@@ -2,31 +2,26 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Zuppeto API (local, F5)",
+      "name": "Zuppeto: Tot el projecte (F5)",
       "type": "coreclr",
-      "request": "launch",
-      "preLaunchTask": "build api (local)",
-      "program": "${workspaceFolder}/src/Backend/Api/bin-local/Debug/net10.0/Api.dll",
-      "args": [],
-      "cwd": "${workspaceFolder}/src/Backend/Api",
-      "console": "integratedTerminal",
-      "stopAtEntry": false,
-      "env": {
-        "ASPNETCORE_ENVIRONMENT": "Development",
-        "ASPNETCORE_URLS": "http://localhost:5211"
+      "request": "attach",
+      "requireExactSource": false,
+      "processId": "1",
+      "pipeTransport": {
+        "pipeProgram": "docker",
+        "pipeArgs": [
+          "exec",
+          "-i",
+          "zuppeto-api"
+        ],
+        "debuggerPath": "/vsdbg/vsdbg",
+        "pipeCwd": "${workspaceFolder}",
+        "quoteArgs": false
       },
-      "serverReadyAction": {
-        "action": "startDebugging",
-        "name": "Zuppeto Swagger + Web (Chrome)",
-        "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
-      }
-    },
-    {
-      "name": "Zuppeto Swagger + Web (Chrome)",
-      "type": "node-terminal",
-      "request": "launch",
-      "command": "/var/lib/flatpak/exports/bin/com.google.Chrome --new-window http://localhost:5211/swagger/index.html http://localhost:4200",
-      "preLaunchTask": "web up + ready"
+      "sourceFileMap": {
+        "/app": "${workspaceFolder}"
+      },
+      "preLaunchTask": "stack up + ready + vsdbg"
     },
     {
       "name": "Docker: DB",
@@ -133,14 +128,6 @@
     }
   ],
   "compounds": [
-    {
-      "name": "Zuppeto local (F5)",
-      "configurations": [
-        "Zuppeto API (local, F5)",
-        "Docker: Web (Debug)"
-      ],
-      "stopAll": false
-    },
     {
       "name": "Docker: API + Swagger (Attach)",
       "configurations": [

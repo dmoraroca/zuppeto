@@ -2,6 +2,7 @@ namespace Zuppeto.Application.Places;
 
 public sealed record PlaceSearchRequest(
     string? SearchText,
+    string? Country,
     string? City,
     string? Type,
     string PetCategory,
@@ -43,7 +44,7 @@ public sealed record PlaceExternalCandidateDto(
     string? PhotoReference = null);
 
 /// <summary>
-/// Query for <c>GET /api/places/cities/search</c>: typeahead over distinct cities that have at least one place.
+/// Query for <c>GET /api/places/cities/search</c>: typeahead over the cities catalog, places, and GeoNames.
 /// </summary>
 public sealed record PlaceCitySearchRequest(string? Q, int? Limit);
 

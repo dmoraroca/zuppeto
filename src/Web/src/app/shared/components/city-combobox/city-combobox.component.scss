@@ -11,50 +11,69 @@
 }
 
 .city-combobox--open {
-  z-index: 5;
+  z-index: 100;
 }
 
 .city-combobox__field {
-  display: flex;
-  align-items: stretch;
+  position: relative;
   width: 100%;
   min-width: 0;
+  min-height: 2.9rem;
   border-radius: 0.95rem;
   border: 1px solid rgba(209, 213, 219, 0.8);
   background: rgba(255, 255, 255, 0.98);
   overflow: hidden;
 }
 
+.city-combobox__field:focus-within {
+  border-color: #1f2937;
+  box-shadow: 0 0 0 1px #1f2937;
+}
+
 .city-combobox__input {
-  flex: 1 1 auto;
+  display: block;
+  width: 100%;
   min-width: 0;
   min-height: 2.9rem;
   border: 0;
   border-radius: 0;
-  padding: 0.75rem 0.4rem 0.75rem 0.9rem;
+  padding: 0.75rem 2.75rem 0.75rem 0.9rem;
   background: transparent;
   font: inherit;
 }
 
 .city-combobox__input:focus {
-  outline: 2px solid color-mix(in srgb, var(--yp-color-primary) 50%, transparent);
-  outline-offset: -2px;
+  outline: none;
 }
 
 .city-combobox__toggle {
-  flex: 0 0 auto;
-  min-width: 2.4rem;
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 2.75rem;
+  min-width: 2.75rem;
+  min-height: 100%;
+  padding: 0;
   border: 0;
-  background: rgba(0, 0, 0, 0.03);
+  border-radius: 0;
+  background: transparent;
   cursor: pointer;
-  font-size: 0.75rem;
-  color: var(--yp-color-text-muted, #6b7280);
+  color: var(--yp-color-text, #1f2937);
+  display: grid;
+  align-items: center;
+  justify-items: end;
+  padding-right: 0.55rem;
 }
 
 .city-combobox__chevron {
   display: block;
-  transform: scaleY(0.9);
-  line-height: 1;
+  width: 0.42rem;
+  height: 0.42rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  font-size: 0;
+  transform: translateY(-0.12rem) rotate(45deg);
 }
 
 .city-combobox__list {

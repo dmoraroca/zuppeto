@@ -114,7 +114,9 @@
             <app-city-combobox
               [value]="previewFilters().city"
               (valueChange)="onPreviewCityChange($event)"
-              [staticOptions]="previewCities()"
+              [pinOptions]="previewPinCities()"
+              [apiOptions]="previewApiCities()"
+              [staticOptions]="previewCatalogCities()"
               [minCharsForRemote]="2"
             />
           </label>

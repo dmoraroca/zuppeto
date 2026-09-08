@@ -1,5 +1,5 @@
 {
-  "debug.defaultLaunchConfiguration": "Docker: Stack completa (Attach)",
+  "debug.defaultLaunchConfiguration": "Zuppeto: Tot el projecte (F5)",
   "dotnet.defaultSolution": "Zuppeto.sln",
   "workbench.activityBar.location": "default",
   "workbench.activityBar.orientation": "vertical"

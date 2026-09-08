@@ -12,6 +12,7 @@ import { PlaceMapComponent } from '../../components/place-map/place-map.componen
 import { Place, PlaceFilters } from '../../models/place.model';
 import { PLACE_LIST_PAGE_SIZE, PlaceService } from '../../services/place.service';
 import { resolveCityMapFocus } from '../../utils/city-map-focus';
+import { formatCityDisplayLabel, mergeCityLabelsDistinct } from '../../utils/city-typeahead.utils';
 import { parsePetFilter } from '../../utils/place-list-filter';
 import { placesVisibleOnOsmMap } from '../../utils/places-osm-map';
 
@@ -46,6 +47,7 @@ export class PlacesPageComponent {
     const map = this.queryParams();
     return {
       search: (map.get('search') ?? '').trim(),
+      country: (map.get('country') ?? '').trim(),
       city: (map.get('city') ?? '').trim(),
       type: (map.get('type') ?? '').trim(),
       pet: parsePetFilter(map.get('pet'))
@@ -57,9 +59,12 @@ export class PlacesPageComponent {
   protected readonly listingHasMore = signal(false);
   protected readonly listingLoading = signal(false);
   private readonly catalogCities = signal<string[]>([]);
+  private readonly placeApiCities = signal<string[]>([]);
+  private readonly availableCountries = signal<string[]>([]);
   /** Form values; listing/map only change after Cercar (or Netejar). Seeded from the URL so Inici chips mark the combo on first paint. */
   protected readonly draftFilters = signal<PlaceFilters>({
     search: (this.route.snapshot.queryParamMap.get('search') ?? '').trim(),
+    country: (this.route.snapshot.queryParamMap.get('country') ?? '').trim(),
     city: (this.route.snapshot.queryParamMap.get('city') ?? '').trim(),
     type: (this.route.snapshot.queryParamMap.get('type') ?? '').trim(),
     pet: parsePetFilter(this.route.snapshot.queryParamMap.get('pet'))
@@ -77,17 +82,24 @@ export class PlacesPageComponent {
     void this.loadCatalogCities();
   }
 
-  protected readonly cities = computed(() => {
-    const merged = new Set(
-      [...this.catalogCities(), ...this.placeService.getAvailableCities()]
-        .map((city) => city.trim())
-        .filter((city) => city.length > 0)
-    );
-    return [...merged].sort((a, b) => a.localeCompare(b, 'ca'));
-  });
+  protected readonly cities = computed(() => this.catalogCities());
+  protected readonly apiCities = computed(() => this.placeApiCities());
+  protected readonly countries = computed(() =>
+    [
+      ...new Set([
+        ...this.placeService.getEuropeanCountries(),
+        ...this.availableCountries()
+      ])
+    ].sort((a, b) => a.localeCompare(b, 'ca'))
+  );
   protected readonly types = this.placeService.getAvailableTypes();
   protected readonly places = computed(() => this.listingPlaces());
   protected readonly mapPlaces = computed(() => placesVisibleOnOsmMap(this.places()));
+  protected readonly pinCities = computed(() =>
+    mergeCityLabelsDistinct(
+      this.mapPlaces().map((place) => formatCityDisplayLabel(place.city, place.country))
+    )
+  );
   /** City centre when the filter has a known city but no pins (e.g. Berlin / Lisboa). */
   protected readonly cityMapFocus = computed(() => resolveCityMapFocus(this.filters().city));
   protected readonly selectedPlaceId = this.selectedPlaceIdState.asReadonly();
@@ -98,8 +110,12 @@ export class PlacesPageComponent {
   });
   /** Stable keys for control-flow @for (avoid NG0956 when labels share text across updates). */
   protected readonly activeFilterChips = computed(() => {
-    const { city, type, pet, search } = this.filters();
+    const { country, city, type, pet, search } = this.filters();
     const chips: { id: string; label: string }[] = [];
+
+    if (country.trim()) {
+      chips.push({ id: 'country', label: `País: ${country.trim()}` });
+    }
 
     if (city.trim()) {
       chips.push({ id: 'city', label: `Ciutat: ${city.trim()}` });
@@ -192,11 +208,13 @@ export class PlacesPageComponent {
   protected applyFilters(next: PlaceFilters): void {
     this.selectedPlaceIdState.set(null);
     const search = next.search?.trim() ?? '';
+    const country = next.country?.trim() ?? '';
     const city = next.city?.trim() ?? '';
     const type = next.type?.trim() ?? '';
     void this.router.navigate(['/places'], {
       queryParams: {
         search: search || null,
+        country: country || null,
         city: city || null,
         type: type || null,
         pet: next.pet !== 'all' ? next.pet : null
@@ -217,7 +235,7 @@ export class PlacesPageComponent {
   }
 
   protected clearAllFilters(): void {
-    const empty: PlaceFilters = { search: '', city: '', type: '', pet: 'all' };
+    const empty: PlaceFilters = { search: '', country: '', city: '', type: '', pet: 'all' };
     this.draftFilters.set(empty);
     this.applyFilters(empty);
   }
@@ -244,8 +262,20 @@ export class PlacesPageComponent {
   }
 
   private async loadCatalogCities(): Promise<void> {
-    const cities = await this.placeService.fetchPublicCities();
-    this.catalogCities.set(cities);
+    const suggestions = await this.placeService.fetchPublicCitySuggestions();
+    this.availableCountries.set(
+      [...new Set(suggestions.map((item) => item.country.trim()).filter(Boolean))].sort((a, b) =>
+        a.localeCompare(b, 'ca')
+      )
+    );
+    this.placeApiCities.set(
+      suggestions
+        .filter((item) => item.source !== 'catalog')
+        .map((item) => item.displayLabel)
+    );
+    this.catalogCities.set(
+      suggestions.filter((item) => item.source === 'catalog').map((item) => item.displayLabel)
+    );
   }
 
   private async refreshMissingCovers(filters: PlaceFilters, requestId: number): Promise<void> {

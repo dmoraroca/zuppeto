@@ -9,7 +9,10 @@
   <form class="places-page__search" (submit)="onSearchSubmit($event)">
     <app-place-filters
       [filters]="draftFilters()"
+      [pinCities]="pinCities()"
+      [apiCities]="apiCities()"
       [cities]="cities()"
+      [countries]="countries()"
       [types]="types"
       [showClearButton]="false"
       (filtersChanged)="onDraftFiltersChanged($event)"

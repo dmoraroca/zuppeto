@@ -15,26 +15,33 @@ internal sealed class PlaceCoverEnrichmentHostedService(
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        await foreach (var placeId in queue.Reader.ReadAllAsync(stoppingToken))
+        try
         {
-            try
+            await foreach (var placeId in queue.Reader.ReadAllAsync(stoppingToken))
             {
-                using var scope = scopeFactory.CreateScope();
-                var places = scope.ServiceProvider.GetRequiredService<IPlaceApplicationService>();
-                await places.GetByIdAsync(placeId, stoppingToken);
+                try
+                {
+                    using var scope = scopeFactory.CreateScope();
+                    var places = scope.ServiceProvider.GetRequiredService<IPlaceApplicationService>();
+                    await places.GetByIdAsync(placeId, stoppingToken);
+                }
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                {
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "Background cover enrichment failed for {PlaceId}.", placeId);
+                }
+                finally
+                {
+                    queue.MarkProcessed(placeId);
+                }
             }
-            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-            {
-                break;
-            }
-            catch (Exception ex)
-            {
-                logger.LogWarning(ex, "Background cover enrichment failed for {PlaceId}.", placeId);
-            }
-            finally
-            {
-                queue.MarkProcessed(placeId);
-            }
+        }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+        {
+            // Normal shutdown while the queue is waiting for more work.
         }
     }
 }

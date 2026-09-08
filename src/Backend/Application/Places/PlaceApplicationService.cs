@@ -8,6 +8,7 @@ namespace Zuppeto.Application.Places;
 internal sealed class PlaceApplicationService : IPlaceApplicationService
 {
     private readonly IPlaceRepository placeRepository;
+    private readonly IGeographicCatalogRepository geographicCatalogRepository;
     private readonly IPlaceSearchQueryRepository placeSearchQueryRepository;
     private readonly IExternalCitySuggestionProvider externalCitySuggestionProvider;
     private readonly IExternalPlaceSuggestionProvider externalPlaceSuggestionProvider;
@@ -19,6 +20,7 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
 
     public PlaceApplicationService(
         IPlaceRepository placeRepository,
+        IGeographicCatalogRepository geographicCatalogRepository,
         IPlaceSearchQueryRepository placeSearchQueryRepository,
         IExternalCitySuggestionProvider externalCitySuggestionProvider,
         IExternalPlaceSuggestionProvider externalPlaceSuggestionProvider,
@@ -29,6 +31,7 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
         IOptions<GooglePlacesIntegrationOptions> googlePlacesIntegrationOptions)
     {
         this.placeRepository = placeRepository;
+        this.geographicCatalogRepository = geographicCatalogRepository;
         this.placeSearchQueryRepository = placeSearchQueryRepository;
         this.externalCitySuggestionProvider = externalCitySuggestionProvider;
         this.externalPlaceSuggestionProvider = externalPlaceSuggestionProvider;
@@ -63,7 +66,9 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
         var preferExternalFirst =
             googlePlacesEnabled && googlePlacesIntegrationOptions.Value.PreferExternalSearchFirst;
 
-        if (preferExternalFirst && PlaceCatalogEnums.ShouldAttemptGooglePlacesFallback(request))
+        if (preferExternalFirst &&
+            string.IsNullOrWhiteSpace(request.Country) &&
+            PlaceCatalogEnums.ShouldAttemptGooglePlacesFallback(request))
         {
             var externalFirst = await googleSearchIngest.SearchAndPersistAsync(request, nowUtc, cancellationToken);
             if (externalFirst.Count > 0)
@@ -72,15 +77,19 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
             }
         }
 
+        // Existing snapshot persistence has no country column; country searches must not reuse it.
+        var useSnapshot = string.IsNullOrWhiteSpace(request.Country);
         var searchSnapshotKey = new IPlaceSearchQueryRepository.SearchSnapshotKey(
             request.SearchText ?? string.Empty,
             request.City ?? string.Empty,
             request.Type ?? string.Empty,
             request.PetCategory);
-        var cachedIds = await placeSearchQueryRepository.TryGetFreshPlaceIdsAsync(
-            searchSnapshotKey,
-            nowUtc,
-            cancellationToken);
+        var cachedIds = useSnapshot
+            ? await placeSearchQueryRepository.TryGetFreshPlaceIdsAsync(
+                searchSnapshotKey,
+                nowUtc,
+                cancellationToken)
+            : null;
         if (cachedIds is { Count: > 0 })
         {
             var cachedPlaces = await placeRepository.GetByIdsAsync(cachedIds, cancellationToken);
@@ -89,13 +98,14 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
 
         var criteria = new PlaceSearchCriteria(
             request.SearchText,
+            request.Country,
             request.City,
             PlaceCatalogEnums.ParsePlaceType(request.Type),
             PlaceCatalogEnums.ParsePetCategory(request.PetCategory));
 
         var places = await placeRepository.SearchAsync(criteria, cancellationToken);
         var ordered = places.ToArray();
-        if (ordered.Length > 0)
+        if (ordered.Length > 0 && useSnapshot)
         {
             await placeSearchQueryRepository.SaveSnapshotAsync(
                 searchSnapshotKey,
@@ -106,7 +116,15 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
             return searchPageAssembler.FromPlaces(ordered, request);
         }
 
-        if (!googlePlacesEnabled || preferExternalFirst || !PlaceCatalogEnums.ShouldAttemptGooglePlacesFallback(request))
+        if (ordered.Length > 0)
+        {
+            return searchPageAssembler.FromPlaces(ordered, request);
+        }
+
+        if (!googlePlacesEnabled ||
+            preferExternalFirst ||
+            !string.IsNullOrWhiteSpace(request.Country) ||
+            !PlaceCatalogEnums.ShouldAttemptGooglePlacesFallback(request))
         {
             return searchPageAssembler.Empty(request);
         }
@@ -147,9 +165,15 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
         return externalPlaceSuggestionProvider.SearchPlacesAsync(normalized, cancellationToken);
     }
 
-    public Task<IReadOnlyCollection<string>> GetAvailableCitiesAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyCollection<PlaceCitySuggestionDto>> GetAvailableCitiesAsync(CancellationToken cancellationToken = default)
     {
-        return placeRepository.GetAvailableCitiesAsync(cancellationToken);
+        var own = await BuildCitySuggestionsAsync(query: null, PlaceCitySearchDefaults.MaxLimit, cancellationToken);
+        var fromExternal = await externalCitySuggestionProvider.SearchCitiesAsync(
+            string.Empty,
+            PlaceCitySearchDefaults.MaxLimit,
+            cancellationToken);
+        // Do not let the provider limit remove catalog rows appended after external results.
+        return CombineCitySources(own, fromExternal, int.MaxValue);
     }
 
     public async Task<IReadOnlyCollection<PlaceCitySuggestionDto>> SearchAvailableCitiesAsync(
@@ -158,38 +182,90 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
     {
         var normalized = PlaceCityQueryNormalizer.Normalize(request.Q);
         var limit = Math.Clamp(request.Limit ?? PlaceCitySearchDefaults.DefaultLimit, 1, PlaceCitySearchDefaults.MaxLimit);
+        var fromOwnCatalog = await BuildCitySuggestionsAsync(normalized, limit, cancellationToken);
+        var fromExternal = await externalCitySuggestionProvider.SearchCitiesAsync(normalized, limit, cancellationToken);
+        return CombineCitySources(fromOwnCatalog, fromExternal, limit);
+    }
 
-        var fromCatalog = await placeRepository.SearchAvailableCitiesAsync(normalized, limit, cancellationToken);
-        var catalogSuggestions = fromCatalog
-            .Select(item => new PlaceCitySuggestionDto(
-                item.City,
+    private async Task<IReadOnlyCollection<PlaceCitySuggestionDto>> BuildCitySuggestionsAsync(
+        string? query,
+        int limit,
+        CancellationToken cancellationToken)
+    {
+        var geographic = await geographicCatalogRepository.ListCitiesAsync(null, cancellationToken);
+        var fromGeographic = geographic
+            .Where(city => city.IsActive)
+            .Where(city => CityNameMatchesQuery(city.Name, city.NormalizedName, query))
+            .Select(city => ToCitySuggestion(
+                city.Name,
+                city.CountryName,
+                "catalog"));
+
+        var fromPlaces = (await placeRepository.GetAvailableCitiesAsync(cancellationToken))
+            .Select(item => ToCitySuggestion(
+                PlaceCityDisplay.StripPostalPrefix(item.City),
                 item.Country,
-                null,
-                PlaceCitySuggestionFormatter.BuildDisplayLabel(item.City, item.Country),
-                "catalog"))
-            .ToArray();
+                "places"))
+            .Where(item => CityNameMatchesQuery(item.City, item.City, query));
 
-        if (catalogSuggestions.Length >= limit)
+        var places = MergeCitySuggestions(fromPlaces, limit, sortByName: true);
+        var catalog = MergeCitySuggestions(fromGeographic, limit, sortByName: true);
+        return MergeCitySuggestions(places.Concat(catalog), limit, sortByName: false);
+    }
+
+    private static IReadOnlyCollection<PlaceCitySuggestionDto> CombineCitySources(
+        IEnumerable<PlaceCitySuggestionDto> own,
+        IEnumerable<PlaceCitySuggestionDto> fromExternal,
+        int limit)
+    {
+        var owned = own.ToArray();
+        var places = owned.Where(item => string.Equals(item.Source, "places", StringComparison.OrdinalIgnoreCase));
+        var catalog = owned.Where(item => string.Equals(item.Source, "catalog", StringComparison.OrdinalIgnoreCase));
+        return MergeCitySuggestions(places.Concat(fromExternal).Concat(catalog), limit, sortByName: false);
+    }
+
+    private static PlaceCitySuggestionDto ToCitySuggestion(string city, string country, string source)
+    {
+        var name = city.Trim();
+        return new PlaceCitySuggestionDto(
+            name,
+            country.Trim(),
+            null,
+            PlaceCitySuggestionFormatter.BuildDisplayLabel(name, country),
+            source);
+    }
+
+    private static bool CityNameMatchesQuery(string name, string normalizedName, string? query)
+    {
+        if (string.IsNullOrWhiteSpace(query))
         {
-            return catalogSuggestions;
+            return true;
         }
 
-        var remaining = limit - catalogSuggestions.Length;
-        var fromExternal = await externalCitySuggestionProvider.SearchCitiesAsync(normalized, remaining, cancellationToken);
-        if (fromExternal.Count == 0)
-        {
-            return catalogSuggestions;
-        }
+        return name.Contains(query, StringComparison.OrdinalIgnoreCase)
+            || normalizedName.Contains(query, StringComparison.OrdinalIgnoreCase);
+    }
 
-        return catalogSuggestions
-            .Concat(fromExternal)
+    private static IReadOnlyCollection<PlaceCitySuggestionDto> MergeCitySuggestions(
+        IEnumerable<PlaceCitySuggestionDto> items,
+        int limit,
+        bool sortByName = true)
+    {
+        var merged = items
             .Where(item => !string.IsNullOrWhiteSpace(item.City))
             .GroupBy(
                 item => $"{item.City.Trim().ToLowerInvariant()}|{item.Country.Trim().ToLowerInvariant()}",
                 StringComparer.Ordinal)
-            .Select(group => group.First())
-            .Take(limit)
-            .ToArray();
+            .Select(group => group.First());
+
+        if (sortByName)
+        {
+            merged = merged
+                .OrderBy(item => item.City, StringComparer.CurrentCultureIgnoreCase)
+                .ThenBy(item => item.Country, StringComparer.CurrentCultureIgnoreCase);
+        }
+
+        return merged.Take(limit).ToArray();
     }
 
     public async Task<Guid> SaveAsync(PlaceUpsertRequest request, CancellationToken cancellationToken = default)

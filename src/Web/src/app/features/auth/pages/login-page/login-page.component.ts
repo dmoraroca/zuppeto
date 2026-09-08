@@ -8,7 +8,8 @@ import {
 } from '../../../../core/services/error-notifications.service';
 import { CityComboboxComponent } from '../../../../shared/components/city-combobox/city-combobox.component';
 import { Place, PlaceFilters } from '../../../places/models/place.model';
-import { PlaceService } from '../../../places/services/place.service';
+import { CitySuggestion, PlaceService } from '../../../places/services/place.service';
+import { formatCityDisplayLabel, mergeCityLabelsDistinct } from '../../../places/utils/city-typeahead.utils';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
@@ -28,12 +29,13 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
   private readonly placeService = inject(PlaceService);
   private readonly previewFiltersState = signal<PlaceFilters>({
     search: '',
+    country: '',
     city: '',
     type: '',
     pet: 'all'
   });
   private readonly previewPlacesState = signal<Place[]>([]);
-  private readonly previewCitiesState = signal<string[]>([]);
+  private readonly previewCitySuggestionsState = signal<CitySuggestion[]>([]);
   private readonly previewLoadingState = signal(false);
 
   protected readonly previewFilters = this.previewFiltersState.asReadonly();
@@ -43,7 +45,21 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
   protected readonly linkedInProvider = signal<boolean>(false);
   protected readonly facebookProvider = signal<boolean>(false);
   protected readonly googleButtonVisible = signal(false);
-  protected readonly previewCities = this.previewCitiesState.asReadonly();
+  protected readonly previewPinCities = computed(() =>
+    mergeCityLabelsDistinct(
+      this.previewPlacesState().map((place) => formatCityDisplayLabel(place.city, place.country))
+    )
+  );
+  protected readonly previewApiCities = computed(() =>
+    this.previewCitySuggestionsState()
+      .filter((item) => item.source !== 'catalog')
+      .map((item) => item.displayLabel)
+  );
+  protected readonly previewCatalogCities = computed(() =>
+    this.previewCitySuggestionsState()
+      .filter((item) => item.source === 'catalog')
+      .map((item) => item.displayLabel)
+  );
   protected readonly previewTypes = this.placeService.getAvailableTypes();
   /** Mosaic cards: API hits (BD first, Google Places fallback). */
   protected readonly samplePlaces = computed(() => this.previewPlacesState().slice(0, 8));
@@ -70,6 +86,7 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
     const filters = this.previewFilters();
     const queryParams = {
       search: filters.search || null,
+      country: filters.country || null,
       city: filters.city || null,
       type: filters.type || null,
       pet: filters.pet !== 'all' ? filters.pet : null
@@ -476,8 +493,8 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
   private async loadPublicPreviewAsync(): Promise<void> {
     this.previewLoadingState.set(true);
     try {
-      const cities = await this.placeService.fetchPublicCities();
-      this.previewCitiesState.set([...cities].sort((a, b) => a.localeCompare(b)));
+      const suggestions = await this.placeService.fetchPublicCitySuggestions();
+      this.previewCitySuggestionsState.set(suggestions);
 
       const filters = this.previewFilters();
       if (!this.hasPublicDiscoveryQuery(filters)) {
@@ -487,12 +504,9 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
 
       const places = await this.placeService.fetchPublicPlaces(filters);
       this.previewPlacesState.set(places);
-      const fromPlaces = [...new Set(places.map((place) => place.city).filter(Boolean))];
-      const merged = [...new Set([...cities, ...fromPlaces])].sort((a, b) => a.localeCompare(b));
-      this.previewCitiesState.set(merged);
     } catch {
       this.previewPlacesState.set([]);
-      this.previewCitiesState.set([]);
+      this.previewCitySuggestionsState.set([]);
     } finally {
       this.previewLoadingState.set(false);
     }

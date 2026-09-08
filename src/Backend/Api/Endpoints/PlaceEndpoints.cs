@@ -21,11 +21,11 @@ internal static class PlaceEndpoints
         group.MapGet("/cities/search", SearchAvailableCitiesAsync)
             .AllowAnonymous()
             .WithName("SearchAvailablePlaceCities")
-            .WithSummary("Search distinct cities that have at least one place (typeahead).")
+            .WithSummary("Search distinct cities from places, GeoNames and the governed catalog.")
             .WithDescription(
-                "Returns city names (distinct) whose places match the substring q (case-insensitive). " +
-                "Requires at least 3 valid characters in q after normalization. " +
-                "Optional limit: default 50, maximum 100.");
+                "Returns city suggestions that match q (case-insensitive). " +
+                "Requires at least 2 valid characters after normalization. " +
+                "Optional limit: default and maximum 1000.");
 
         group.MapGet("/cities", GetAvailableCitiesAsync).AllowAnonymous();
         group.MapGet("/{id:guid}", GetByIdAsync);
@@ -48,6 +48,7 @@ internal static class PlaceEndpoints
         var result = await service.SearchAsync(
             new PlaceSearchRequest(
                 query.SearchText,
+                query.Country,
                 query.City,
                 query.Type,
                 query.PetCategory ?? "All",
@@ -58,7 +59,7 @@ internal static class PlaceEndpoints
         return TypedResults.Ok(result);
     }
 
-    private static async Task<Ok<IReadOnlyCollection<string>>> GetAvailableCitiesAsync(
+    private static async Task<Ok<IReadOnlyCollection<PlaceCitySuggestionDto>>> GetAvailableCitiesAsync(
         IPlaceApplicationService service,
         CancellationToken cancellationToken)
     {
@@ -175,6 +176,7 @@ internal static class PlaceEndpoints
         var result = await service.SearchAsync(
             new PlaceSearchRequest(
                 query.SearchText,
+                query.Country,
                 query.City,
                 query.Type,
                 query.PetCategory ?? "All",
@@ -270,6 +272,7 @@ internal static class PlaceEndpoints
 
     internal sealed record PlaceSearchQuery(
         string? SearchText,
+        string? Country,
         string? City,
         string? Type,
         string? PetCategory,

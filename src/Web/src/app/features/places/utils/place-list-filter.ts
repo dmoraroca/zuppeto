@@ -1,9 +1,11 @@
 import { PetFilter, Place, PlaceFilters } from '../models/place.model';
+import { stripPostalPrefixFromCity } from './city-typeahead.utils';
 import { normalizeSearchQuery, placeMatchesFreeTextSearch } from './place-text-search';
 import { isProhibitedPlaceName } from './prohibited-place-terms/prohibited-place-name.filter';
 
 export const DEFAULT_PLACE_FILTERS: PlaceFilters = {
   search: '',
+  country: '',
   city: '',
   type: '',
   pet: 'all'
@@ -27,20 +29,31 @@ export function parsePetFilter(raw: string | null | undefined): PetFilter {
 export function filterPlaces(places: Place[], filters: Partial<PlaceFilters> = {}): Place[] {
   const safeFilters = { ...DEFAULT_PLACE_FILTERS, ...filters };
   const normalizedSearch = normalizeSearchQuery(safeFilters.search);
+  const countryFilter = (safeFilters.country ?? '').trim();
   const cityFilter = (safeFilters.city ?? '').trim();
   const typeFilter = (safeFilters.type ?? '').trim().toLowerCase();
 
   return places.filter((place) => {
     const matchesSearch = placeMatchesFreeTextSearch(place, normalizedSearch);
+    const matchesCountry =
+      !countryFilter ||
+      place.country.localeCompare(countryFilter, 'und', { sensitivity: 'base' }) === 0;
     const placeCity = (place.city ?? '').trim();
-    const matchesCity =
-      !cityFilter || placeCity.localeCompare(cityFilter, 'und', { sensitivity: 'base' }) === 0;
+    const matchesCity = !cityFilter || cityNamesMatch(placeCity, cityFilter);
     const matchesType = !typeFilter || place.type.toString().toLowerCase() === typeFilter;
     const matchesPet = placeMatchesPet(place, safeFilters.pet);
     const onTopic = !isProhibitedPlaceName(place.name);
 
-    return matchesSearch && matchesCity && matchesType && matchesPet && onTopic;
+    return matchesSearch && matchesCountry && matchesCity && matchesType && matchesPet && onTopic;
   });
+}
+
+function cityNamesMatch(placeCity: string, filterCity: string): boolean {
+  if (placeCity.localeCompare(filterCity, 'und', { sensitivity: 'base' }) === 0) {
+    return true;
+  }
+
+  return stripPostalPrefixFromCity(placeCity).localeCompare(filterCity, 'und', { sensitivity: 'base' }) === 0;
 }
 
 function placeMatchesPet(place: Place, pet: PetFilter): boolean {

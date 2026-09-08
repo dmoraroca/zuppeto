@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Zuppeto.Domain.Abstractions;
-using Zuppeto.Domain.Geography;
 using Zuppeto.Domain.Places;
 using Zuppeto.Infrastructure.Persistence.Entities;
 using Zuppeto.Infrastructure.Persistence.Specifications;
@@ -76,19 +75,22 @@ internal sealed class PlaceRepository(ZuppetoDbContext dbContext) : IPlaceReposi
             .ToArray();
     }
 
-    public async Task<IReadOnlyCollection<string>> GetAvailableCitiesAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyCollection<IPlaceRepository.CityCatalogItem>> GetAvailableCitiesAsync(CancellationToken cancellationToken = default)
     {
-        var codes = EuropeanCountryCodes.Iso3166Alpha2;
-
-        return await dbContext.Places
+        // Place.country is a free-text label (e.g. Espanya) and often does not equal catalog names (Spain).
+        // Joining on exact name hid Barcelona/Madrid and left only rows that happened to match.
+        var rows = await dbContext.Places
             .AsNoTracking()
             .Where(place => place.City != string.Empty)
-            .Where(place => dbContext.Countries
-                .Any(c => codes.Contains(c.Code) && c.Name.ToLower() == place.Country.ToLower()))
-            .Select(place => place.City)
+            .Select(place => new { place.City, place.Country })
             .Distinct()
-            .OrderBy(city => city)
+            .OrderBy(row => row.City)
+            .ThenBy(row => row.Country)
             .ToArrayAsync(cancellationToken);
+
+        return rows
+            .Select(row => new IPlaceRepository.CityCatalogItem(row.City, row.Country))
+            .ToArray();
     }
 
     public async Task<IReadOnlyCollection<IPlaceRepository.CityCatalogItem>> SearchAvailableCitiesAsync(
@@ -102,14 +104,11 @@ internal sealed class PlaceRepository(ZuppetoDbContext dbContext) : IPlaceReposi
         }
 
         var pattern = $"%{normalizedQueryFragment}%";
-        var codes = EuropeanCountryCodes.Iso3166Alpha2;
 
         var rows = await dbContext.Places
             .AsNoTracking()
             .Where(place => place.City != string.Empty)
             .Where(place => EF.Functions.ILike(place.City, pattern))
-            .Where(place => dbContext.Countries
-                .Any(c => codes.Contains(c.Code) && c.Name.ToLower() == place.Country.ToLower()))
             .Select(place => new { place.City, place.Country })
             .Distinct()
             .OrderBy(row => row.City)

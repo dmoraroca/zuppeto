@@ -16,7 +16,7 @@ public interface IPlaceApplicationService
         PlaceExternalSearchRequest request,
         CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyCollection<string>> GetAvailableCitiesAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyCollection<PlaceCitySuggestionDto>> GetAvailableCitiesAsync(CancellationToken cancellationToken = default);
 
     Task<IReadOnlyCollection<PlaceCitySuggestionDto>> SearchAvailableCitiesAsync(
         PlaceCitySearchRequest request,

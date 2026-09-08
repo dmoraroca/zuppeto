@@ -11,12 +11,27 @@
     </label>
   }
 
+  @if (showCountry()) {
+    <label>
+      <span>País</span>
+      <select [value]="filters().country" (change)="onCountry($event)">
+        <option value="">Tots</option>
+        @for (country of countries(); track country) {
+          <option [value]="country">{{ country }}</option>
+        }
+      </select>
+    </label>
+  }
+
   @if (showCity()) {
     <label>
       <span>Ciutat</span>
       <app-city-combobox
         [value]="filters().city"
+        [country]="filters().country"
         (valueChange)="onCityChange($event)"
+        [pinOptions]="pinCities()"
+        [apiOptions]="apiCities()"
         [staticOptions]="cities()"
         [minCharsForRemote]="remoteCityMinChars()"
       />

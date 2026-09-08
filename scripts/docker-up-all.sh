@@ -6,4 +6,6 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-docker compose up -d db rabbitmq api web
+docker compose up -d db rabbitmq
+docker compose up -d --force-recreate api
+docker compose up -d --no-deps web

@@ -12,7 +12,12 @@ import {
 } from '@angular/core';
 
 import { CitySuggestion, PlaceService } from '../../../features/places/services/place.service';
-import { extractCityNameFromTypeaheadValue } from '../../../features/places/utils/city-typeahead.utils';
+import {
+  extractCityNameFromTypeaheadValue,
+  filterCityLabels,
+  filterCityLabelsByCountry,
+  mergeCityLabelsDistinct
+} from '../../../features/places/utils/city-typeahead.utils';
 
 @Component({
   selector: 'app-city-combobox',
@@ -31,9 +36,18 @@ export class CityComboboxComponent {
   /** Bound city name (plain name, as stored for places and query params). */
   readonly value = input<string>('');
   readonly valueChange = output<string>();
+  readonly country = input<string>('');
   /**
-   * Extra values shown in the list (cities with places, favorites) so a focus click is not an empty
-   * list when the user has not typed enough characters for the GeoNames / catalog remote search yet.
+   * Cities of pins currently on the map / listing. Shown first.
+   */
+  readonly pinOptions = input<string[]>([]);
+  /**
+   * Cities that already have places (GET /api/places/cities, source=places). Shown after pins,
+   * together with GeoNames when the user has typed enough characters.
+   */
+  readonly apiOptions = input<string[]>([]);
+  /**
+   * Admin catalog cities (source=catalog). Shown last.
    */
   readonly staticOptions = input<string[]>([]);
   /** First list option that clears the city filter (same idea as Tipus → Tots). */
@@ -47,16 +61,19 @@ export class CityComboboxComponent {
   protected readonly open = signal(false);
   protected readonly apiSuggestions = signal<CitySuggestion[]>([]);
   protected readonly remoteLoading = signal(false);
-  protected readonly filteredStaticOptions = computed(() => {
-    const q = this.text().trim().toLowerCase();
-    const all = this.staticOptions();
-    if (all.length === 0) {
-      return [];
-    }
-    if (q.length === 0) {
-      return all.slice(0, 20);
-    }
-    return all.filter((city) => city.toLowerCase().includes(q)).slice(0, 20);
+  protected readonly listOptions = computed(() => {
+    const q = this.text().trim();
+    const geonames = this.apiSuggestions()
+      .filter((item) => item.source === 'geonames')
+      .map((item) => item.displayLabel);
+    return mergeCityLabelsDistinct(
+      filterCityLabels(filterCityLabelsByCountry(this.pinOptions(), this.country()), q),
+      filterCityLabels(
+        filterCityLabelsByCountry([...this.apiOptions(), ...geonames], this.country()),
+        q
+      ),
+      filterCityLabels(filterCityLabelsByCountry(this.staticOptions(), this.country()), q)
+    );
   });
   protected readonly isOpenForDisplay = computed(() => {
     if (!this.open()) {
@@ -73,7 +90,7 @@ export class CityComboboxComponent {
       return true;
     }
 
-    if (this.filteredStaticOptions().length > 0) {
+    if (this.listOptions().length > 0) {
       return true;
     }
 
@@ -157,15 +174,7 @@ export class CityComboboxComponent {
   protected selectStaticOption(city: string): void {
     const t = city.trim();
     this.text.set(t);
-    this.valueChange.emit(t);
-    this.apiSuggestions.set([]);
-    this.closePanel();
-  }
-
-  protected selectApiSuggestion(s: CitySuggestion): void {
-    const t = s.city.trim();
-    this.text.set(t);
-    this.valueChange.emit(t);
+    this.valueChange.emit(extractCityNameFromTypeaheadValue(t));
     this.apiSuggestions.set([]);
     this.closePanel();
   }
@@ -206,7 +215,7 @@ export class CityComboboxComponent {
       return;
     }
 
-    const suggestions = await this.placeService.searchCitySuggestions(query, 12);
+    const suggestions = await this.placeService.searchCitySuggestions(query, 1000);
     this.apiSuggestions.set(suggestions);
     this.remoteLoading.set(false);
   }

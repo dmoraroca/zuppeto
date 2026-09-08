@@ -15,9 +15,15 @@ export type PlaceFilterSort = 'recent' | 'rating' | 'name';
 })
 export class PlaceFiltersComponent {
   readonly filters = input.required<PlaceFilters>();
+  /** Cities of pins currently found (map/listing). Shown first in the combo. */
+  readonly pinCities = input<string[]>([]);
+  /** Cities that already have places. Shown after pins. */
+  readonly apiCities = input<string[]>([]);
   readonly cities = input.required<string[]>();
+  readonly countries = input<string[]>([]);
   readonly types = input.required<{ value: string; label: string }[]>();
   readonly showSearch = input(true);
+  readonly showCountry = input(true);
   readonly showCity = input(true);
   readonly showType = input(true);
   readonly showPet = input(true);
@@ -41,6 +47,11 @@ export class PlaceFiltersComponent {
     this.filtersChanged.emit({ city });
   }
 
+  protected onCountry(event: Event): void {
+    const country = (event.target as HTMLSelectElement).value;
+    this.filtersChanged.emit({ country, city: '' });
+  }
+
   protected onType(event: Event): void {
     const value = (event.target as HTMLSelectElement).value;
     this.filtersChanged.emit({ type: value });
@@ -58,6 +69,7 @@ export class PlaceFiltersComponent {
   protected clear(): void {
     this.filtersChanged.emit({
       search: '',
+      country: '',
       city: '',
       type: '',
       pet: 'all'

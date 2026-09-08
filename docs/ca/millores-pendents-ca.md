@@ -7,6 +7,18 @@ No substitueix `docs/project-phases.md` ni el joc de proves Excel: aquí només 
 
 ---
 
+## 2026-09-08 21:44 CEST
+
+**Àmbit:** Llocs (`/places`) · desplegable de país i ciutat · ZUP-138
+
+**Què queda OK ara:** les ciutats actives creades al catàleg d’administració apareixen al desplegable de `/places` amb el format «Ciutat (País)», sense el prefix del codi postal. La ZUP-138 queda tancada com a **OK**.
+
+**Millora (interessant, no ara):** el desplegable de països inclou tots els països europeus, però el catàleg de ciutats no és exhaustiu i països com Andorra poden aparèixer sense ciutats. Descarregar els ZIP de GeoNames per país, importar a PostgreSQL les poblacions europees (`featureClass=P`) i consultar-les per país i text introduït, amb un límit de 20–50 resultats aplicat a SQL. Deixar l’API externa de GeoNames només com a fallback, actualitzar periòdicament el catàleg local i afegir l’atribució exigida per la llicència CC BY. **No implementar ara.**
+
+**Estat:** pendent; implementar després de les proves manuals actuals.
+
+---
+
 ## 2026-09-07 00:22 CEST
 
 **Àmbit:** Admin · Llocs · apartat Google Places (compliment) · combo Procedència · ZUP-140 (en curs)

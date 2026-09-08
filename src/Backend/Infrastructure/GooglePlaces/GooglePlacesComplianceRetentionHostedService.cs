@@ -70,7 +70,14 @@ internal sealed class GooglePlacesComplianceRetentionHostedService(
             }
 
             var delayMinutes = Math.Max(5, options.Value.RunIntervalMinutes);
-            await Task.Delay(TimeSpan.FromMinutes(delayMinutes), stoppingToken);
+            try
+            {
+                await Task.Delay(TimeSpan.FromMinutes(delayMinutes), stoppingToken);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                break;
+            }
         }
     }
 }

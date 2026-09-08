@@ -12,6 +12,12 @@ import { DEFAULT_PLACE_FILTERS, filterPlaces } from '../utils/place-list-filter'
 
 export const PLACE_LIST_PAGE_SIZE = 20;
 const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '');
+const EUROPEAN_COUNTRY_CODES = [
+  'AD', 'AL', 'AT', 'AX', 'BA', 'BE', 'BG', 'BY', 'CH', 'CY', 'CZ', 'DE', 'DK', 'EE', 'ES',
+  'FI', 'FO', 'FR', 'GB', 'GG', 'GI', 'GR', 'HR', 'HU', 'IE', 'IM', 'IS', 'IT', 'JE', 'LI',
+  'LT', 'LU', 'LV', 'MC', 'MD', 'ME', 'MK', 'MT', 'NL', 'NO', 'PL', 'PT', 'RO', 'RS', 'RU',
+  'SE', 'SI', 'SJ', 'SK', 'SM', 'TR', 'UA', 'VA', 'XK'
+] as const;
 
 @Injectable({ providedIn: 'root' })
 export class PlaceService {
@@ -57,7 +63,7 @@ export class PlaceService {
     );
   }
 
-  async searchCitySuggestions(query: string, limit = 10): Promise<CitySuggestion[]> {
+  async searchCitySuggestions(query: string, limit = 1000): Promise<CitySuggestion[]> {
     const normalized = query.trim();
     if (normalized.length < 2) {
       return [];
@@ -74,19 +80,18 @@ export class PlaceService {
         .pipe(
           catchError(() => of([])),
         ),
-    ).then((items) =>
-      items.map((item) => ({
-        city: item.city,
-        country: this.resolveCountryName(item.country, item.countryCode),
-        countryCode: item.countryCode,
-        displayLabel: this.resolveDisplayLabel(item),
-        source: item.source
-      })),
-    );
+    ).then((items) => items.map((item) => this.toCitySuggestion(item)));
   }
 
   getAvailableTypes(): { value: string; label: string }[] {
     return Object.entries(PLACE_TYPE_LABELS).map(([value, label]) => ({ value, label }));
+  }
+
+  getEuropeanCountries(): string[] {
+    const displayNames = new Intl.DisplayNames(['ca'], { type: 'region' });
+    return EUROPEAN_COUNTRY_CODES
+      .map((code) => displayNames.of(code) ?? code)
+      .sort((left, right) => left.localeCompare(right, 'ca'));
   }
 
   getTypeLabel(type: PlaceType): string {
@@ -181,11 +186,17 @@ export class PlaceService {
     return filterPlaces(places, { pet: safeFilters.pet });
   }
 
-  /** Public login explorer: cities that already have places in the catalog. */
-  async fetchPublicCities(): Promise<string[]> {
-    return await firstValueFrom(
-      this.http.get<string[]>(`${API_BASE_URL}/places/cities`).pipe(catchError(() => of([])))
+  /** Public city combo: places plus admin catalog (`source` = places | catalog). */
+  async fetchPublicCitySuggestions(): Promise<CitySuggestion[]> {
+    const items = await firstValueFrom(
+      this.http.get<CitySuggestionApiDto[]>(`${API_BASE_URL}/places/cities`).pipe(catchError(() => of([])))
     );
+    return items.map((item) => this.toCitySuggestion(item));
+  }
+
+  async fetchPublicCities(): Promise<string[]> {
+    const items = await this.fetchPublicCitySuggestions();
+    return items.map((item) => item.displayLabel);
   }
 
   /**
@@ -210,11 +221,13 @@ export class PlaceService {
 
   private shouldSendFilteredPlacesRequest(filters: PlaceFilters): boolean {
     const search = (filters.search ?? '').trim();
+    const country = (filters.country ?? '').trim();
     const city = (filters.city ?? '').trim();
     const type = (filters.type ?? '').trim();
 
     return (
       search.length >= 2 ||
+      country.length > 0 ||
       city.length >= 2 ||
       type.length > 0 ||
       filters.pet !== 'all'
@@ -224,11 +237,16 @@ export class PlaceService {
   private buildPlacesQueryParams(filters: PlaceFilters): HttpParams {
     let params = new HttpParams();
     const search = (filters.search ?? '').trim();
+    const country = (filters.country ?? '').trim();
     const city = (filters.city ?? '').trim();
     const type = (filters.type ?? '').trim();
 
     if (search.length > 0) {
       params = params.set('searchText', search);
+    }
+
+    if (country.length > 0) {
+      params = params.set('country', country);
     }
 
     if (city.length > 0) {
@@ -297,6 +315,16 @@ export class PlaceService {
         lat: place.latitude,
         lng: place.longitude
       }
+    };
+  }
+
+  private toCitySuggestion(item: CitySuggestionApiDto): CitySuggestion {
+    return {
+      city: item.city,
+      country: this.resolveCountryName(item.country, item.countryCode),
+      countryCode: item.countryCode,
+      displayLabel: this.resolveDisplayLabel(item),
+      source: item.source
     };
   }
 

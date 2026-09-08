@@ -39,7 +39,7 @@
       @if (remoteLoading() && text().trim().length >= minCharsForRemote()) {
         <li class="city-combobox__hint">Carregant…</li>
       }
-      @for (city of filteredStaticOptions(); track city) {
+      @for (city of listOptions(); track city) {
         <li>
           <button
             type="button"
@@ -48,18 +48,6 @@
             (click)="selectStaticOption(city)"
           >
             {{ city }}
-          </button>
-        </li>
-      }
-      @for (s of apiSuggestions(); track s.city + s.displayLabel) {
-        <li>
-          <button
-            type="button"
-            class="city-combobox__option"
-            (mousedown)="preventLoseTextFocus($event)"
-            (click)="selectApiSuggestion(s)"
-          >
-            {{ s.displayLabel }}
           </button>
         </li>
       }

@@ -20,13 +20,15 @@ internal sealed class GeoNamesCitySuggestionProvider(
         int limit,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(normalizedQuery) || limit <= 0 || string.IsNullOrWhiteSpace(geoOptions.Username))
+        if (limit <= 0 || string.IsNullOrWhiteSpace(geoOptions.Username))
         {
             return [];
         }
 
-        var effectiveLimit = Math.Min(limit, Math.Max(1, geoOptions.DefaultMaxRows));
-        var cacheKey = $"geonames:cities:eu:{normalizedQuery.ToLowerInvariant()}:{effectiveLimit}";
+        var effectiveLimit = Math.Min(Math.Max(limit, 1), Math.Min(1000, Math.Max(1, geoOptions.DefaultMaxRows)));
+        var cacheKey = string.IsNullOrWhiteSpace(normalizedQuery)
+            ? $"geonames:cities:eu:top:{effectiveLimit}"
+            : $"geonames:cities:eu:{normalizedQuery.ToLowerInvariant()}:{effectiveLimit}";
 
         if (cache.TryGetValue(cacheKey, out IReadOnlyCollection<PlaceCitySuggestionDto>? cached) && cached is not null)
         {
@@ -35,10 +37,12 @@ internal sealed class GeoNamesCitySuggestionProvider(
 
         try
         {
+            var nameFilter = string.IsNullOrWhiteSpace(normalizedQuery)
+                ? string.Empty
+                : $"name_startsWith={Uri.EscapeDataString(normalizedQuery)}&";
             var uri =
-                $"searchJSON?name_startsWith={Uri.EscapeDataString(normalizedQuery)}" +
-                $"&featureClass=P&continentCode=EU&orderby=population&style=FULL&maxRows={effectiveLimit}" +
-                $"&username={Uri.EscapeDataString(geoOptions.Username)}";
+                $"searchJSON?{nameFilter}featureClass=P&continentCode=EU&orderby=population&style=FULL&maxRows={effectiveLimit}" +
+                $"&lang=ca&username={Uri.EscapeDataString(geoOptions.Username)}";
 
             var payload = await httpClient.GetFromJsonAsync<GeoNamesSearchResponse>(uri, cancellationToken);
             var cities = payload?.Geonames?
@@ -52,7 +56,7 @@ internal sealed class GeoNamesCitySuggestionProvider(
                     var countryWithRegion = BuildCountryWithRegion(country, countryCode, region);
                     return new PlaceCitySuggestionDto(
                         city,
-                        countryWithRegion,
+                        country,
                         countryCode,
                         PlaceCitySuggestionFormatter.BuildDisplayLabel(city, countryWithRegion),
                         "geonames");

@@ -18,7 +18,7 @@ public interface IPlaceRepository
         IReadOnlyCollection<Guid> ids,
         CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyCollection<string>> GetAvailableCitiesAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyCollection<CityCatalogItem>> GetAvailableCitiesAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Distinct city names from places whose city contains the fragment (case-insensitive).

@@ -1891,7 +1891,8 @@ Objectiu: al llistat i a la fitxa, dades **útils** (adreça, foto, gos sí/no, 
 - Mapa: per defecte **centrat a Espanya** (no s’allunya al món si hi ha un pin llunyà). Ciutat filtrada → s’ajusta a aquella zona. **No** es pinta el títol «Mode mixt: mapa + llistat» ni el paràgraf explicatiu a sobre (el mapa va directe sota Cercar/Netejar).
 - Clic al **pin**: el pin queda **verd**, popup simple (nom i ciutat), es destaca la targeta i es fa scroll fins a ella.
 - Clic a la **targeta**: selecciona el mateix pin verd al mapa. «Veure detall» obre la fitxa.
-- El filtre de ciutat té **Totes** a dalt del desplegable (com Tipus → Tots i Mascota → Totes). El combo mostra ciutats del catàleg, no només les de la pàgina filtrada.
+- Els controls de cerca, **País**, **Ciutat**, Tipus i Mascota es mostren en **una sola fila** en escriptori, dins un contenidor ample. País va abans de Ciutat: triar-lo buida la ciutat anterior i limita les opcions i els resultats al país.
+- El filtre de ciutat té **Totes** a dalt del desplegable. Mostra, en aquest ordre i **sense duplicats**: ciutats dels **pins trobats**, totes les ciutats de l’**API** (llocs + GeoNames UE, fins al màxim del servei) i el **catàleg BD**. Cada opció va amb país (`Barcelona (Espanya)`), no amb el prefix postal del pin. Amb 2 lletres es refina el typeahead GeoNames; per exemple, `Arenys` retorna `Arenys de Mar (Catalunya, Espanya)`.
 - Canviar **Cerca / Ciutat / Tipus / Mascota** no filtra sol: el mapa i el llistat només es recarreguen amb **Cercar** (o **Netejar**, que buida i aplica). Els xips «Filtres escollits» reflecteixen el que ja s’ha cercat.
 - Si a un local **visible** li falta la portada: el llistat es pinta **de seguida** (placeholder si cal); Place Details + Place Photos corren **en segon pla**. Si l’API New no porta foto, es fa fallback a Place Photos legacy. Recàrregues posteriors usen la URL nostra (finestra 30 dies).
 

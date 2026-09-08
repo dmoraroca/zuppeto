@@ -8,9 +8,18 @@ internal sealed class PlaceSearchSpecification(PlaceSearchCriteria criteria) : I
 {
     public IQueryable<PlaceRecord> Apply(IQueryable<PlaceRecord> query)
     {
+        if (!string.IsNullOrWhiteSpace(criteria.Country))
+        {
+            query = query.Where(place => EF.Functions.ILike(place.Country, criteria.Country));
+        }
+
         if (!string.IsNullOrWhiteSpace(criteria.City))
         {
-            query = query.Where(place => place.City == criteria.City);
+            var city = criteria.City.Trim();
+            var postalSuffixed = "% " + city;
+            query = query.Where(place =>
+                place.City == city ||
+                EF.Functions.ILike(place.City, postalSuffixed));
         }
 
         if (criteria.Type is not null)
