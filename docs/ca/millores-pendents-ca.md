@@ -7,6 +7,18 @@ No substitueix `docs/project-phases.md` ni el joc de proves Excel: aquí només 
 
 ---
 
+## 2026-09-08 22:04 CEST
+
+**Àmbit:** navegació i sistema de rutes · ZUP-150
+
+**Què queda OK ara:** l’ADMIN pot accedir a `/permissions` i consultar la pantalla informativa de rols i permisos. La ZUP-150 queda tancada com a **OK**.
+
+**Millora (interessant, no ara):** unificar en anglès els segments de totes les rutes internes per mantenir un criteri de codi més net i coherent. Els textos i noms visibles per a l’usuari continuaran en català. En implementar-ho, actualitzar la configuració del router, els enllaços, els menús, les redireccions, els guards, la documentació i les proves; conservar redireccions temporals des de les URL antigues per no trencar accessos guardats. **No implementar ara.**
+
+**Estat:** pendent; implementar més endavant.
+
+---
+
 ## 2026-09-08 21:44 CEST
 
 **Àmbit:** Llocs (`/places`) · desplegable de país i ciutat · ZUP-138
