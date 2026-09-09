@@ -740,6 +740,17 @@
   resize: vertical;
 }
 
+.admin-console-form .admin-console-form__control--invalid {
+  border-color: #dc2626;
+}
+
+.admin-console-form__error {
+  margin: 0;
+  color: #b91c1c;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
 .admin-console-form input[readonly],
 .admin-console-form textarea[readonly],
 .admin-console-static-field {

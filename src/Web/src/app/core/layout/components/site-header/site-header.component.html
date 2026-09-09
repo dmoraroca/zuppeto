@@ -1,6 +1,6 @@
 <header class="site-header">
   <div class="site-header__inner">
-    <a class="site-header__brand" routerLink="/" aria-label="Zuppeto home">
+    <a class="site-header__brand" routerLink="/" aria-label="Zuppeto home" (click)="closeAllDropdowns()">
       <img class="site-header__logo" src="/images/logo.png" alt="Zuppeto" />
     </a>
 
@@ -61,6 +61,7 @@
               [routerLink]="item.route"
               routerLinkActive="site-header__nav-link--active"
               [routerLinkActiveOptions]="{ exact: item.route === '/' }"
+              (click)="closeAllDropdowns()"
             >
               {{ item.label }}
             </a>

@@ -7,6 +7,30 @@ No substitueix `docs/project-phases.md` ni el joc de proves Excel: aquí només 
 
 ---
 
+## 2026-09-09 22:45 CEST
+
+**Àmbit:** Login · mapa i selectors geogràfics
+
+**Què es veu:** el selector geogràfic associat al mapa del login no segueix la mateixa disposició que la pantalla Llocs. A Llocs, `País` apareix al costat de `Ciutat`, però al login no es presenta igual.
+
+**Millora (interessant, no ara):** unificar el selector geogràfic del login amb el de Llocs, mostrant `País` al costat de `Ciutat` i reutilitzant el mateix component o una base compartida per evitar diferències de comportament, dades i disseny. Revisar abans si actualment són components diferents o configuracions diferents del mateix component. **No implementar ara.**
+
+**Estat:** pendent; implementar després de finalitzar les proves manuals.
+
+---
+
+## 2026-09-09 22:31 CEST
+
+**Àmbit:** Contacte (`/contacte`) · ZUP-095
+
+**Què queda OK ara:** la pantalla carrega correctament per al rol VIEWER, mostra el títol, les etiquetes informatives i el canal `suport@zuppeto.fake`. La ZUP-095 queda tancada com a **OK**.
+
+**Millora (interessant, no ara):** revisar i millorar la pantalla de Contacte perquè tingui una presentació més clara, atractiva i útil per a l’usuari. Concretar el redisseny visual, la jerarquia del contingut i els canals o accions de contacte abans d’implementar-lo. **No implementar ara.**
+
+**Estat:** pendent; implementar més endavant.
+
+---
+
 ## 2026-09-08 22:04 CEST
 
 **Àmbit:** navegació i sistema de rutes · ZUP-150

@@ -141,7 +141,21 @@
             </p>
             <label>
               <span>Email <strong class="form-field-required" aria-hidden="true">*</strong></span>
-              <input type="email" placeholder="usuari@domini.com" formControlName="email" [maxlength]="dbMax.userEmail" required />
+              <input
+                type="email"
+                placeholder="usuari@domini.com"
+                formControlName="email"
+                [maxlength]="dbMax.userEmail"
+                required
+                [class.admin-console-form__control--invalid]="userForm.controls.email.hasError('email')"
+                [attr.aria-invalid]="userForm.controls.email.hasError('email')"
+                [attr.aria-describedby]="userForm.controls.email.hasError('email') ? 'admin-create-user-email-error' : null"
+              />
+              @if (userForm.controls.email.hasError('email')) {
+                <p id="admin-create-user-email-error" class="admin-console-form__error" role="alert">
+                  L’email té un format incorrecte.
+                </p>
+              }
             </label>
             <label>
               <span>Nom visible <strong class="form-field-required" aria-hidden="true">*</strong></span>
