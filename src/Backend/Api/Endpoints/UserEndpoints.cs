@@ -67,7 +67,11 @@ internal static class UserEndpoints
         CancellationToken cancellationToken)
     {
         var userId = principal.GetCurrentUserId();
-        if (userId is null || userId.Value != id)
+        var isViewer = string.Equals(
+            principal.GetCurrentRoleKey(),
+            "Viewer",
+            StringComparison.OrdinalIgnoreCase);
+        if (userId is null || userId.Value != id || isViewer)
         {
             return TypedResults.Forbid();
         }
@@ -93,7 +97,11 @@ internal static class UserEndpoints
         CancellationToken cancellationToken)
     {
         var userId = principal.GetCurrentUserId();
-        if (userId is null || userId.Value != id)
+        var isViewer = string.Equals(
+            principal.GetCurrentRoleKey(),
+            "Viewer",
+            StringComparison.OrdinalIgnoreCase);
+        if (userId is null || userId.Value != id || isViewer)
         {
             return TypedResults.Forbid();
         }

@@ -42,18 +42,29 @@
     </aside>
 
     <section class="profile-form-shell">
-      <form class="profile-form" [formGroup]="form" (submit)="$event.preventDefault()">
-        <div class="form-field-required-hint profile-form__required-hint">
-          <p>
-            <strong class="form-field-required" aria-hidden="true">*</strong>
-            Camps obligatoris per poder guardar el perfil.
-          </p>
-          @if (missingRequiredFields().length) {
-            <p class="profile-form__missing" role="status">
-              Falten: {{ missingRequiredFields().join(', ') }}.
+      <form
+        class="profile-form"
+        [class.profile-form--readonly]="isViewer()"
+        [formGroup]="form"
+        (submit)="$event.preventDefault()"
+      >
+        @if (isViewer()) {
+          <div class="profile-form__readonly-note" role="status">
+            Perfil de només lectura. El rol VIEWER no pot modificar cap dada.
+          </div>
+        } @else {
+          <div class="form-field-required-hint profile-form__required-hint">
+            <p>
+              <strong class="form-field-required" aria-hidden="true">*</strong>
+              Camps obligatoris per poder guardar el perfil.
             </p>
-          }
-        </div>
+            @if (missingRequiredFields().length) {
+              <p class="profile-form__missing" role="status">
+                Falten: {{ missingRequiredFields().join(', ') }}.
+              </p>
+            }
+          </div>
+        }
 
         <label class="profile-form__field">
           <span>Nom visible <strong class="form-field-required" aria-hidden="true">*</strong></span>
@@ -150,12 +161,14 @@
             }
           </div>
 
-          <div class="profile-avatar-editor__controls">
-            <input #profileAvatarInput type="file" accept="image/*" hidden (change)="onAvatarSelected($event)" />
-            <button type="button" (click)="profileAvatarInput.click()">Afegir imatge</button>
-            <button type="button" class="profile-avatar-editor__remove" (click)="removeAvatar()">Treure</button>
-            <p>També pots arrossegar una imatge des del teu ordinador.</p>
-          </div>
+          @if (!isViewer()) {
+            <div class="profile-avatar-editor__controls">
+              <input #profileAvatarInput type="file" accept="image/*" hidden (change)="onAvatarSelected($event)" />
+              <button type="button" (click)="profileAvatarInput.click()">Afegir imatge</button>
+              <button type="button" class="profile-avatar-editor__remove" (click)="removeAvatar()">Treure</button>
+              <p>També pots arrossegar una imatge des del teu ordinador.</p>
+            </div>
+          }
         </section>
 
         <label class="profile-form__field">
@@ -177,9 +190,11 @@
           </p>
         }
 
-        <div class="profile-form__actions">
-          <button type="button" [disabled]="!canSave()" (click)="save()">Guardar canvis</button>
-        </div>
+        @if (!isViewer()) {
+          <div class="profile-form__actions">
+            <button type="button" [disabled]="!canSave()" (click)="save()">Guardar canvis</button>
+          </div>
+        }
       </form>
     </section>
   </section>

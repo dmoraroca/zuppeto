@@ -58,6 +58,7 @@ export class PlaceDetailPageComponent {
   protected readonly place = computed(() =>
     this.placeService.getPlaceById(this.params().get('id') ?? '')
   );
+  protected readonly canWriteFavorites = this.favoritesService.canWrite;
   protected readonly hasLoaded = computed(() => this.placeService.hasLoaded());
   protected readonly relatedPlaces = computed(() => {
     const currentPlace = this.place();

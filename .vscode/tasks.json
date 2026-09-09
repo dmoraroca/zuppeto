@@ -160,14 +160,31 @@
       }
     },
     {
-      "label": "stack up + ready + vsdbg",
+      "label": "open Web + Swagger",
+      "type": "shell",
+      "command": "setsid -f /var/lib/flatpak/exports/bin/com.google.Chrome --new-window --user-data-dir=/tmp/chrome-zuppeto-f5 --no-first-run http://localhost:4200 http://localhost:5211/swagger/index.html",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "silent",
+        "panel": "dedicated",
+        "showReuseMessage": false,
+        "close": true
+      }
+    },
+    {
+      "label": "Building: Zuppeto API + Web",
       "dependsOn": [
         "docker up all",
         "wait api ready",
         "wait web ready",
-        "install vsdbg (api)"
+        "install vsdbg (api)",
+        "open Web + Swagger"
       ],
       "dependsOrder": "sequence",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
       "problemMatcher": [],
       "presentation": {
         "reveal": "always",

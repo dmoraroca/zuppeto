@@ -103,6 +103,7 @@ export class PlacesPageComponent {
   /** City centre when the filter has a known city but no pins (e.g. Berlin / Lisboa). */
   protected readonly cityMapFocus = computed(() => resolveCityMapFocus(this.filters().city));
   protected readonly selectedPlaceId = this.selectedPlaceIdState.asReadonly();
+  protected readonly canWriteFavorites = this.favoritesService.canWrite;
   protected readonly selectedPlace = computed(() => {
     const selectedPlaceId = this.selectedPlaceId();
 

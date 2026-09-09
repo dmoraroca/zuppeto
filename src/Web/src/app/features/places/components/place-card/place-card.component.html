@@ -85,11 +85,13 @@
           </a>
         }
       </div>
-      <app-favorite-toggle-button
-        [compact]="true"
-        [active]="favorite()"
-        (toggled)="onFavoriteToggle()"
-      />
+      @if (showFavoriteAction()) {
+        <app-favorite-toggle-button
+          [compact]="true"
+          [active]="favorite()"
+          (toggled)="onFavoriteToggle()"
+        />
+      }
     </div>
   </div>
 </article>

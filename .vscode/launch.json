@@ -21,7 +21,7 @@
       "sourceFileMap": {
         "/app": "${workspaceFolder}"
       },
-      "preLaunchTask": "stack up + ready + vsdbg"
+      "preLaunchTask": "Building: Zuppeto API + Web"
     },
     {
       "name": "Docker: DB",
@@ -146,11 +146,9 @@
     },
     {
       "name": "Docker: Stack completa (Attach)",
-      "preLaunchTask": "stack up + ready + vsdbg",
+      "preLaunchTask": "Building: Zuppeto API + Web",
       "configurations": [
-        "Docker: API (Attach, from stack)",
-        "Docker: Web (Debug, from stack)",
-        "Docker: Swagger (from stack)"
+        "Docker: API (Attach, from stack)"
       ],
       "stopAll": false
     }

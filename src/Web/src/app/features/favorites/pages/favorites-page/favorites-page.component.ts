@@ -64,6 +64,7 @@ export class FavoritesPageComponent {
     return selectedPlaceId ? this.places().find((place) => place.id === selectedPlaceId) ?? null : null;
   });
   protected readonly favoritesCount = this.favoritesService.count;
+  protected readonly canWriteFavorites = this.favoritesService.canWrite;
   protected readonly visibleCount = computed(() => this.places().length);
   protected readonly favoriteCities = computed(() =>
     [...new Set(this.allPlaces().map((place) => place.city))].sort((left, right) => left.localeCompare(right))

@@ -16,6 +16,7 @@ export class PlaceCardComponent {
   readonly place = input.required<Place>();
   readonly typeLabel = input.required<string>();
   readonly favorite = input(false);
+  readonly showFavoriteAction = input(true);
   readonly selected = input(false);
   readonly showCityExploreLink = input(false);
   readonly favoriteToggled = output<string>();

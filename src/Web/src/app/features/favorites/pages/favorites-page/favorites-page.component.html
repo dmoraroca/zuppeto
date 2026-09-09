@@ -4,7 +4,11 @@
   <section class="favorites-page__hero">
     <app-section-heading eyebrow="Favorits" title="Els teus llocs guardats" />
     <p class="favorites-page__copy">
-      Guarda llocs mentre explores, torna-hi des d'aquí i revisa ràpidament què tens més a mà.
+      @if (canWriteFavorites()) {
+        Guarda llocs mentre explores, torna-hi des d'aquí i revisa ràpidament què tens més a mà.
+      } @else {
+        Consulta els llocs guardats en mode de només lectura.
+      }
     </p>
 
     @if (allPlaces().length) {
@@ -30,9 +34,11 @@
 
       <div class="favorites-page__actions">
         <a routerLink="/places">Continuar explorant</a>
-        <button type="button" class="favorites-page__ghost-button" (click)="clearFavorites()">
-          Buidar favorits
-        </button>
+        @if (canWriteFavorites()) {
+          <button type="button" class="favorites-page__ghost-button" (click)="clearFavorites()">
+            Buidar favorits
+          </button>
+        }
       </div>
     }
   </section>
@@ -142,6 +148,7 @@
         [place]="place"
         [typeLabel]="place.categoryLabel || getTypeLabel(place.type)"
         [favorite]="isFavorite(place.id)"
+        [showFavoriteAction]="canWriteFavorites()"
         [selected]="selectedPlaceId() === place.id"
         [showCityExploreLink]="true"
         (favoriteToggled)="toggleFavorite($event)"

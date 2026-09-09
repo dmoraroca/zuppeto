@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Zuppeto.Application.Admin;
 using Zuppeto.Application.Favorites;
 
 namespace Zuppeto.Api.Endpoints;
@@ -41,10 +42,20 @@ internal static class FavoriteEndpoints
         Guid ownerUserId,
         Guid placeId,
         ClaimsPrincipal principal,
+        IAdminApplicationService adminService,
         IFavoriteListApplicationService service,
         CancellationToken cancellationToken)
     {
-        if (!IsFavoriteOwner(principal, ownerUserId))
+        var isViewer = string.Equals(
+            principal.GetCurrentRoleKey(),
+            "Viewer",
+            StringComparison.OrdinalIgnoreCase);
+        if (!IsFavoriteOwner(principal, ownerUserId)
+            || isViewer
+            || !await principal.HasPermissionAsync(
+                adminService,
+                "action.favorites.write",
+                cancellationToken))
         {
             return TypedResults.Forbid();
         }
@@ -57,10 +68,20 @@ internal static class FavoriteEndpoints
         Guid ownerUserId,
         Guid placeId,
         ClaimsPrincipal principal,
+        IAdminApplicationService adminService,
         IFavoriteListApplicationService service,
         CancellationToken cancellationToken)
     {
-        if (!IsFavoriteOwner(principal, ownerUserId))
+        var isViewer = string.Equals(
+            principal.GetCurrentRoleKey(),
+            "Viewer",
+            StringComparison.OrdinalIgnoreCase);
+        if (!IsFavoriteOwner(principal, ownerUserId)
+            || isViewer
+            || !await principal.HasPermissionAsync(
+                adminService,
+                "action.favorites.write",
+                cancellationToken))
         {
             return TypedResults.Forbid();
         }

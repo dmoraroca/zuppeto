@@ -41,10 +41,12 @@
         <h1>{{ selectedPlace.name }}</h1>
 
         <div class="place-detail-page__actions">
-          <app-favorite-toggle-button
-            [active]="isFavorite(selectedPlace.id)"
-            (toggled)="toggleFavorite(selectedPlace.id)"
-          />
+          @if (canWriteFavorites()) {
+            <app-favorite-toggle-button
+              [active]="isFavorite(selectedPlace.id)"
+              (toggled)="toggleFavorite(selectedPlace.id)"
+            />
+          }
           <a routerLink="/places" [queryParams]="backToPlacesQueryParams()">Tornar al llistat</a>
           @if (cameFromMap()) {
             <span class="place-detail-page__from-map">Has arribat des del mapa</span>

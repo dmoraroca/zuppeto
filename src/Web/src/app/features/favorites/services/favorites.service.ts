@@ -37,6 +37,10 @@ export class FavoritesService {
 
   readonly favoriteIds = computed(() => this.favoriteIdsState());
   readonly count = computed(() => this.favoriteIdsState().length);
+  readonly canWrite = computed(
+    () => this.authService.role()?.toLowerCase() !== 'viewer'
+      && this.authService.hasPermission('action.favorites.write')
+  );
 
   isFavorite(placeId: string): boolean {
     return this.favoriteIdsState().includes(placeId);
@@ -45,7 +49,7 @@ export class FavoritesService {
   toggle(placeId: string): void {
     const currentUser = this.authService.currentUser();
 
-    if (!currentUser) {
+    if (!currentUser || !this.canWrite()) {
       return;
     }
 
@@ -67,6 +71,10 @@ export class FavoritesService {
 
     if (!currentUser) {
       this.persistFavoriteIds([]);
+      return;
+    }
+
+    if (!this.canWrite()) {
       return;
     }
 

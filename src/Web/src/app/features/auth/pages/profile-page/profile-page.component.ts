@@ -56,6 +56,9 @@ export class ProfilePageComponent implements AfterViewInit {
   protected readonly dbMax = DB_FIELD_MAX;
   protected readonly user = computed(() => this.authService.currentUser());
   protected readonly isAdmin = computed(() => this.authService.isAdmin());
+  protected readonly isViewer = computed(
+    () => this.authService.role()?.toLowerCase() === 'viewer'
+  );
   protected readonly avatarPreview = signal<string | null>(this.currentUser?.avatarUrl ?? null);
 
   protected readonly form = this.formBuilder.nonNullable.group({
@@ -110,6 +113,12 @@ export class ProfilePageComponent implements AfterViewInit {
       );
       this.avatarPreview.set(sessionUser.avatarUrl ?? null);
     });
+
+    effect(() => {
+      if (this.isViewer()) {
+        this.form.disable({ emitEvent: false });
+      }
+    });
   }
 
   ngAfterViewInit(): void {
@@ -156,6 +165,10 @@ export class ProfilePageComponent implements AfterViewInit {
   protected readonly canSave = computed(() => this.savePolicy.canSave(this.snapshot()));
 
   protected async onAvatarSelected(event: Event): Promise<void> {
+    if (this.isViewer()) {
+      return;
+    }
+
     const input = event.target as HTMLInputElement | null;
     const file = input?.files?.[0];
 
@@ -169,6 +182,10 @@ export class ProfilePageComponent implements AfterViewInit {
 
   protected async onAvatarDropped(event: DragEvent): Promise<void> {
     event.preventDefault();
+    if (this.isViewer()) {
+      return;
+    }
+
     const file = event.dataTransfer?.files?.[0];
 
     if (!file) {
@@ -183,11 +200,19 @@ export class ProfilePageComponent implements AfterViewInit {
   }
 
   protected removeAvatar(): void {
+    if (this.isViewer()) {
+      return;
+    }
+
     this.avatarPreview.set(null);
     this.form.controls.avatarUrl.setValue('');
   }
 
   protected async save(): Promise<void> {
+    if (this.isViewer()) {
+      return;
+    }
+
     if (!this.canSave()) {
       this.form.markAllAsTouched();
       this.notifications.notify(
