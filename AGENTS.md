@@ -21,3 +21,21 @@ Quan una prova es tanqui com a `OK`, cal marcar com a `EN CURS` el primer regist
 ## Textos per a Git
 
 Els textos proposats per a Git s'han de donar sempre com a text pla, sense blocs de codi Markdown ni accents greus envoltant el text.
+
+## Arquitectura i qualitat
+
+Qualsevol implementació del projecte, inclosa l'automatització E2E, ha de respectar fidelment **DDD** i **SOLID**.
+
+- Mantenir el llenguatge ubic del domini (`Place`, `Favorite`, `Viewer`, `Permission` i els casos ZUP).
+- Separar domini, aplicació i infraestructura, evitant dependències del domini cap a Angular, Playwright, HTTP, PostgreSQL o altres detalls tècnics.
+- Aplicar inversió de dependències mitjançant ports, contractes i adaptadors quan correspongui.
+- Donar una única responsabilitat clara a components, serveis, escenaris i helpers.
+- Evitar fitxers gegants, duplicació entre navegadors i herències innecessàries.
+- Als E2E, mantenir les especificacions primes i expressades com a comportament funcional; encapsular Playwright, API, dades i navegadors en fixtures o adaptadors reutilitzables.
+- Aplicar aquests principis amb proporcionalitat i sense sobrearquitecturar solucions senzilles.
+
+## Documentació de l'automatització E2E
+
+El document `docs/ca/e2e-automatitzacio-ca.md` és el registre viu de l'automatització E2E. Cada canvi material en aquesta iniciativa ha d'actualitzar-lo amb l'estat, les decisions, l'estructura, els navegadors afectats i els resultats obtinguts.
+
+Tant `docs/ca/e2e-automatitzacio-ca.md` com `docs/ca/millores-pendents-ca.md` han d'estar disponibles al catàleg de Documentació interna de Zuppeto.

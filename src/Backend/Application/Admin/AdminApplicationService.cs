@@ -24,7 +24,9 @@ internal sealed class AdminApplicationService(
         new("project-phases", "Fases del projecte"),
         new("tecnic-ca", "Documentació tècnica"),
         new("funcional-ca", "Documentació funcional"),
-        new("auth-ca", "Autenticació")
+        new("auth-ca", "Autenticació"),
+        new("millores-pendents-ca", "Millores pendents"),
+        new("e2e-automatitzacio-ca", "Automatització E2E")
     ];
 
     public async Task<IReadOnlyCollection<AdminUserListItemDto>> GetUsersAsync(CancellationToken cancellationToken = default)
@@ -379,6 +381,8 @@ internal sealed class AdminApplicationService(
             "tecnic-ca" => Path.Combine("docs", "ca", "tecnic-ca.md"),
             "funcional-ca" => Path.Combine("docs", "ca", "funcional-ca.md"),
             "auth-ca" => Path.Combine("docs", "ca", "auth-ca.md"),
+            "millores-pendents-ca" => Path.Combine("docs", "ca", "millores-pendents-ca.md"),
+            "e2e-automatitzacio-ca" => Path.Combine("docs", "ca", "e2e-automatitzacio-ca.md"),
             _ => string.Empty
         };
 

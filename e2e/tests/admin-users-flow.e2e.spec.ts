@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../infrastructure/playwright/test';
 import { API_BASE_URL, apiLogin, ensureRoleUsers, loginViaUi } from './helpers';
 
 test.beforeAll(async ({ request }) => {

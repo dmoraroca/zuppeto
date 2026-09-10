@@ -2133,6 +2133,21 @@ E2E:
 - suite `internal-pages.e2e.spec.ts`
 - execucio OK documentada a `docs/probes-e2e-resultats/`
 
+### 12.1 Observabilitat i correlació E2E
+
+- Serilog registra consola i fitxers diaris `src/Backend/Api/logs/zuppeto-YYYYMMDD.log`.
+- Els fitxers roten també quan arriben a 25 MB i se'n conserven com a màxim 31.
+- Docker limita els logs JSON de cada contenidor a tres fitxers de 10 MB per evitar un creixement indefinit del disc.
+- Les query strings d'entrada no es registren i la categoria `System.Net.Http.HttpClient` queda a nivell `Warning` per no exposar claus o tokens inclosos en URLs externes.
+- `EnableSensitiveDataLogging` d'Entity Framework és desactivat per defecte fins i tot en desenvolupament; només es pot activar explícitament amb `Zuppeto__EnableSensitiveDataLogging=true` durant un diagnòstic controlat.
+- La clau de Google Places no es desa a `appsettings.Development.json`; Docker la rep mitjançant `GOOGLE_PLACES_API_KEY`.
+- El registre HTTP inclou mètode, ruta, estat, durada, `TraceId`, `CorrelationId`, codi ZUP, rol de prova i navegador; la query string no es registra per evitar exposar tokens o dades personals.
+- `RequestCorrelationMiddleware` valida les capçaleres de correlació i retorna `X-Correlation-ID` a la resposta.
+- `RequestLogEnrichmentMiddleware`, executat després de l'autenticació, afegeix l'usuari i el rol autenticats al context estructurat de Serilog.
+- Playwright captura globalment excepcions JavaScript, `console.error`, errors de xarxa essencials i HTTP 5xx. En cas d'error adjunta diagnòstic JSON, captura de pantalla i traça.
+- Els informes Playwright es generen en format JSON i HTML. El JSON és l'entrada prevista del procés únic que actualitzarà l'Excel.
+- Els fitxers locals de log i els artefactes E2E estan exclosos de Git.
+
 ## 13. Punts pendents de refinament
 
 - millor UX de marcadors

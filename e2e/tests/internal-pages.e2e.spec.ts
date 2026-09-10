@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../infrastructure/playwright/test';
 import { ensureRoleUsers } from './helpers';
 
 async function login(page: import('@playwright/test').Page, email: string, password: string) {

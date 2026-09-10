@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../infrastructure/playwright/test';
 import {
   ensureRoleUsers,
   fetchFirstPlaceId,
@@ -10,18 +10,10 @@ test.beforeAll(async ({ request }) => {
 });
 
 test('pàgina de login (sense sessió)', async ({ page }) => {
-  const pageErrors: string[] = [];
-  page.on('pageerror', (error) => pageErrors.push(error.message));
-
   await page.goto('/login');
   await expect(page.getByRole('heading', { name: /Torna a entrar a Zuppeto/ })).toBeVisible();
   await expect(page.getByLabel('Email')).toBeVisible();
   await expect(page.getByLabel('Contrasenya')).toBeVisible();
-
-  const appErrors = pageErrors.filter(
-    (message) => !/runtime\.lastError|message port closed before a response was received/i.test(message)
-  );
-  expect(appErrors).toEqual([]);
 });
 
 test('login mostra error amb credencials incorrectes (ZUP-003)', async ({ page }) => {

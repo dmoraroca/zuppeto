@@ -16,6 +16,8 @@
 *.GlobalUsings.g.cs
 .NETCoreApp,Version=*.AssemblyAttributes.cs
 .DS_Store
+.env
+!.env.example
 config/google/*.json
 config/facebook/*.json
 config/linkedin/*.json

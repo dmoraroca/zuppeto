@@ -93,8 +93,11 @@ public static class DependencyInjection
             options.AddInterceptors(new ClampStringMaxLengthInterceptor());
             if (hostEnvironment.IsDevelopment())
             {
-                options.EnableSensitiveDataLogging();
                 options.EnableDetailedErrors();
+                if (configuration.GetValue("Zuppeto:EnableSensitiveDataLogging", false))
+                {
+                    options.EnableSensitiveDataLogging();
+                }
             }
         });
         services.AddHttpClient<ILinkedInOAuthClient, LinkedInOAuthClient>();

@@ -173,4 +173,4 @@ Preparar el producte per sortir a un entorn real.
 - revisió de rendiment (**PENDENT**)
 - QA (**PENDENT**)
 - desplegament (**PENDENT**)
-- observabilitat mínima (**PENDENT**)
+- observabilitat mínima (**BASE IMPLEMENTADA**: Serilog correlacionat amb ZUP/rol/navegador i diagnòstic Playwright; centralització de producció **PENDENT**)

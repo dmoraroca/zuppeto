@@ -10,6 +10,7 @@ using Zuppeto.Infrastructure.Auth;
 using Zuppeto.Application;
 using Zuppeto.Application.Places;
 using Zuppeto.Api.Endpoints;
+using Zuppeto.Api.Observability;
 using Zuppeto.Infrastructure;
 using Zuppeto.Infrastructure.Persistence;
 
@@ -53,8 +54,10 @@ static void AddApiFileSink(LoggerConfiguration loggerConfiguration, string logsD
         restrictedToMinimumLevel: LogEventLevel.Debug,
         rollingInterval: RollingInterval.Day,
         retainedFileCountLimit: 31,
+        fileSizeLimitBytes: 25 * 1024 * 1024,
+        rollOnFileSizeLimit: true,
         shared: true,
-        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}");
+        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {SourceContext}: {Message:lj} {Properties:j}{NewLine}{Exception}");
     Console.Error.WriteLine($"[Zuppeto] Serilog escriu logs a: {logsDir} (fitxers zuppeto-YYYYMMDD.log)");
 }
 
@@ -100,13 +103,6 @@ builder.Host.UseSerilog((context, services, loggerConfiguration) =>
                 Directory.GetCurrentDirectory(),
                 logsDir);
 
-            Directory.CreateDirectory(logsDir);
-            var marker = Path.Combine(logsDir, $"zuppeto-boot-{DateTime.UtcNow:yyyyMMddHHmmss}.txt");
-            File.WriteAllText(
-                marker,
-                $"Arrencada OK {DateTime.UtcNow:o}{Environment.NewLine}PID {Environment.ProcessId}{Environment.NewLine}");
-            Console.Error.WriteLine($"[Zuppeto] Prova d’escriptura: creat {marker}");
-
             AddApiFileSink(loggerConfiguration, logsDir);
         }
         catch (Exception ex)
@@ -123,7 +119,7 @@ builder.Host.UseSerilog((context, services, loggerConfiguration) =>
     loggerConfiguration
         .ReadFrom.Configuration(context.Configuration)
         .WriteTo.Console(
-            outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}");
+            outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {SourceContext}: {Message:lj} {Properties:j}{NewLine}{Exception}");
 });
 
 builder.Services.Configure<GooglePlacesIntegrationOptions>(
@@ -207,10 +203,11 @@ Log.Information(
     fileLogsActive ? apiLogsPath : "(desactivat)",
     app.Environment.ContentRootPath);
 
+app.UseMiddleware<RequestCorrelationMiddleware>();
 app.UseSerilogRequestLogging(options =>
 {
     options.MessageTemplate =
-        "HTTP {RequestMethod} {RequestPath}{Query} → {StatusCode} en {Elapsed:0.0000} ms [trace {TraceId}]";
+        "HTTP {RequestMethod} {RequestPath} → {StatusCode} en {Elapsed:0.0000} ms [trace {TraceId}] [correlation {CorrelationId}] [ZUP {ZupTestCode}] [rol {TestRole}] [navegador {TestBrowser}]";
     options.GetLevel = (httpContext, elapsed, ex) => ex != null
         ? LogEventLevel.Error
         : httpContext.Response.StatusCode > 499
@@ -218,7 +215,6 @@ app.UseSerilogRequestLogging(options =>
             : LogEventLevel.Information;
     options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
     {
-        diagnosticContext.Set("Query", httpContext.Request.QueryString.Value ?? string.Empty);
         diagnosticContext.Set("TraceId", httpContext.TraceIdentifier);
         diagnosticContext.Set("RequestHost", httpContext.Request.Host.Value ?? string.Empty);
         diagnosticContext.Set("UserAgent", httpContext.Request.Headers.UserAgent.ToString());
@@ -252,6 +248,7 @@ await using (var scope = app.Services.CreateAsyncScope())
 app.UseExceptionHandler();
 app.UseCors("web");
 app.UseAuthentication();
+app.UseMiddleware<RequestLogEnrichmentMiddleware>();
 app.UseAuthorization();
 
 var mediaRoot = Path.Combine(app.Environment.ContentRootPath, "storage");

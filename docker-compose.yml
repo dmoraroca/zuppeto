@@ -1,8 +1,15 @@
+x-default-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   db:
     image: postgres:17
     container_name: zuppeto-db
     restart: unless-stopped
+    logging: *default-logging
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-zuppeto}
       POSTGRES_USER: ${POSTGRES_USER:-app}
@@ -22,6 +29,7 @@ services:
     image: rabbitmq:4-management
     container_name: zuppeto-rabbitmq
     restart: unless-stopped
+    logging: *default-logging
     ports:
       - "${RABBITMQ_PORT:-5672}:5672"
       - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
@@ -42,6 +50,7 @@ services:
       dockerfile: docker/api/Dockerfile.dev
     image: zuppeto-api-dev
     container_name: zuppeto-api
+    logging: *default-logging
     working_dir: /app
     volumes:
       - ./:/app:cached
@@ -62,6 +71,7 @@ services:
       RabbitMq__Port: "5672"
       RabbitMq__UserName: ${RABBITMQ_USER:-guest}
       RabbitMq__Password: ${RABBITMQ_PASSWORD:-guest}
+      GooglePlaces__ApiKey: ${GOOGLE_PLACES_API_KEY:-}
       COMPlus_EnableDiagnostics: 1
     depends_on:
       db:
@@ -79,6 +89,7 @@ services:
       dockerfile: docker/web/Dockerfile.dev
     image: zuppeto-web-dev
     container_name: zuppeto-web
+    logging: *default-logging
     working_dir: /app/src/Web
     volumes:
       - ./:/app:cached
@@ -101,6 +112,7 @@ services:
   e2e:
     image: mcr.microsoft.com/playwright:v1.53.0-jammy
     container_name: zuppeto-e2e
+    logging: *default-logging
     working_dir: /app/e2e
     profiles: ["e2e"]
     volumes:
