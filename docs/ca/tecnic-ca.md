@@ -483,6 +483,8 @@ El build Docker de l'`API` usa `ZUPPETO_BUILD_ROOT=/tmp/zuppeto-build` (`Directo
 
 La tasca `fix backend build perms` (`scripts/fix-backend-build-perms-for-ide.sh`) és opcional i **no bloqueja el F5** si Cursor no pot usar Docker (`permission denied` al socket). En aquest cas, **reinicia Cursor** perquè agafi el grup `docker`.
 
+Des del 2026-09-10, el build local de VS Code força `-m:1` i `Directory.Build.props` desactiva `BuildInParallel` només a l'host. MSBuild 18 podia acabar silenciosament amb `Build FAILED`, `0 errors` i `0 warnings` durant l'avaluació paral·lela dels projectes sobre aquest filesystem. Docker conserva la compilació paral·lela perquè usa `/tmp/zuppeto-build`. Els paquets de Data Protection i `System.Security.Cryptography.Xml` s'han alineat a `10.0.12`; així F5 torna a compilar amb `0 errors` i `0 warnings` de vulnerabilitat.
+
 Scripts manuals: `scripts/fix-backend-perms-after-docker.sh` i `scripts/fix-backend-dotnet-permissions.sh`.
 
 ## 3. Arquitectura aplicada
@@ -571,7 +573,7 @@ Sobre la base anterior, la implementació ja incorpora aquestes peces tècniques
   - `GET /api/places/searches/recent?limit=...`
 - connector extern base per locals:
   - `IExternalPlaceSuggestionProvider`
-  - `GooglePlacesSuggestionProvider`
+  - `GooglePlacesSearchAdapter` sobre `GooglePlacesApiClient`
   - opció de configuració `GooglePlaces` (`BaseUrl`, `ApiKey`, `TimeoutSeconds`, `CoordinateCacheRetentionDays` — per defecte **30**, compartit entre capa d’aplicació i infraestructura via la mateixa secció JSON)
 - endpoint de preview extern (sense ingestió automàtica al catàleg principal):
   - `GET /api/places/external/search?query=...&city=...&type=...&limit=...`
@@ -641,7 +643,7 @@ Remissió funcional: `docs/ca/funcional-ca.md` **§12.7**.
 - `PlacePublicCopy` (Application): si l’etiqueta de política conté `Google`, `cache`, `place_id` o és `Unspecified`, el DTO envia `petPolicyLabel` **buit**. Descripcions tipus «Resultat Google Places» / «Candidat extern» es substitueixen per nom o adreça. Copy tipus «Servei a {ciutat}» (o equivalent que només restata tipus+ciutat) **no** es pinta: l’adreça ja és a «Abans d’anar-hi». Preu `—` surt buit. A la fitxa, `shouldConfirmPetsByPhone` (`place-detail-copy.ts`) mostra a «Abans d’anar-hi» que cal trucar si no hi ha política/notes/xip de gossos confirmat.
 - `PlaceAddressContext.ToContextTags`: barri i tipus; **no** s’hi posa la ciutat (ja va a l’adreça).
 - Xips Google (Application): `PlaceGoogleTypeCatalog` (taula OCP), `PlaceGoogleTypeInterpreter` (estratègia: pet/vet abans que `bakery`), `PlaceGoogleHighlights.ToFeatureChips`. Evidència = nom desat + nom Google + editorial + text web. `pet_store` → «Botiga d'animals» + «Pinso» + «Accessoris» + «Productes per a mascotes». Re-enriquiment si el nom/descripció és de botiga i els xips encara són «Fleca». La fitxa (`place-pet-shop-chips.ts`) no pinta Fleca si el títol o la descripció diuen botiga; si ja hi ha xips de veterinària, **hi afegeix** els de botiga (no els substitueix).
-- Enriquiment Details: `PlaceGoogleDetailsEnricher` (no el servei de llocs). Ingest Text Search: `PlaceGoogleSearchIngest`. DTO: `PlaceResponseMapper`. Catàleg tags/features: `PlaceCatalogBinder` (INSERT de files noves). HTML del web oficial: `HtmlVenuePageParser`.
+- Sincronització externa: `PlaceExternalDataSynchronizer`; importació de cerca: `PlaceExternalSearchImporter`; precedència de camps: `PlaceExternalDataMergePolicy`. DTO: `PlaceResponseMapper`. Catàleg tags/features: `PlaceCatalogBinder` (INSERT de files noves). HTML del web oficial: `HtmlVenuePageParser`.
 - `PetPolicy` de domini **permet** `acceptsDogs` i `acceptsCats` tots dos `false` (p. ex. «No es permeten gossos») i **etiqueta buida**. L’admin (`PlaceUpsertRequestValidator`) segueix exigint almenys un tipus de mascota a l’alta/edició manual; barri, preu i frase de política no són obligatoris.
 
 #### Portades JPEG (storage, no blob a `places`)
@@ -656,10 +658,10 @@ Remissió funcional: `docs/ca/funcional-ca.md` **§12.7**.
 
 #### Place Details (enriquiment de fitxa i portada)
 
-- Port: `IExternalPlaceDetailsProvider` (mateixa classe que Text Search: `GooglePlacesSuggestionProvider`).
+- Ports segregats: `IExternalPlaceSuggestionProvider`, `IExternalPlaceDetailsProvider` i `IExternalPlacePhotoProvider`. Els adaptadors Google deleguen en `GooglePlacesApiClient`, que queda confinat a Infrastructure.
 - **`Enabled` només tanca Text Search (descobriment).** Place Details i Place Photos s’executen si hi ha `ApiKey`, encara que `Enabled=false` (Development amb catàleg local).
 - Quan: hi ha `google_place_id` i procedència Google/Mixed, i **falta** portada / política pública / features **o** han passat `CoordinateCacheRetentionDays` / caché de coords caducada. Si Details o Photos fallen, es marca un intent al JSON de storage i **no es reintenta** dins la finestra de 30 dies.
-- On: `GET /api/places/{id}` → `PlaceGoogleDetailsEnricher` (un local, síncron). `GET /api/places?take=…` **no espera** Details: torna el catàleg de seguida i encola els IDs **sense portada** de la pàgina (`IPlaceCoverEnrichmentQueue` + `PlaceCoverEnrichmentHostedService`). El client refresca les targetes quan el JPEG ja és a BD. Sense `take` (login/`reload`) **no** s’enriqueix el catàleg sencer.
+- On: `GET /api/places/{id}` és una lectura pura de la BD/caché i no dispara consum extern. La importació externa sincronitza només els candidats limitats; el worker de portades usa explícitament `IPlaceExternalDataSynchronizer`. Sense `take` (login/`reload`) **no** s’enriqueix el catàleg sencer.
 - API **nova** (`places.googleapis.com/v1/places/{id}`, field mask amb `allowsDogs`, `outdoorSeating`, etc.); si retorna 403/401 (p. ex. Places API New no activada al projecte GCP), es desactiva per al procés i s’usa **legacy** `details/json` + Place Photos. Si la New torna dades **sense foto** (o amb `photos.name` que no es pot baixar), es fa **fallback a Place Photos legacy** i es prova més d’una `photo_reference` fins que el JPEG es desa. Un `.json` d’intent **sense** `.jpg` no compta com a portada feta: es torna a provar.
 - `IPlaceWebsitePageReader` (`HttpPlaceWebsitePageReader` + `HtmlVenuePageParser`): fins a 2 GET al web oficial (mateix host); si la pàgina d’inici no cita el nom del local, igualment s’usa (cadenes). Meta `description` / `og:description` al capdavant del text. `PlacePublicCopy.ComposeQuickContext` munta Context ràpid només amb editorial + resum del web (sense frase inventada de categoria). `StripInventedCategoryLead` treu el prefix antic «És una/un ….» de copy ja desat.
 - Features persistides (si vénen): `Gossos permesos` / `No es permeten gossos`, `Terrassa`, `Reserva`, `Per emportar`, `Lavabo`, `Apta per nens`, xips del tipus principal (`Botiga d'animals` + `Pinso` + `Accessoris` + `Productes per a mascotes` per a `pet_store`) i xips confirmats al web (`Terrassa`, `Jardí`, `Cocteleria`, `Pinso`, …). `PlaceCatalogBinder`: un xip/tag nou es fa amb `Features.Add` / `Tags.Add` (INSERT). Assignar només un Guid sobre l’entitat del graf feia `UPDATE` d’id inexistent i `place_features` trencava l’FK (`23503` → HTTP 500).
@@ -670,7 +672,8 @@ Remissió funcional: `docs/ca/funcional-ca.md` **§12.7**.
 - `PlaceService.searchPage` / `loadById`; pàgina de llocs: `listingPlaces` + `hasMore`; mapa = visibles.
 - `place-card`: fila Booking (`grid` foto | contingut); amaga nota 0, preu buit i política buida.
 - `place-detail-page`: tres columnes (`.place-detail-page__stack`), **sense caixa** (títol negreta, text normal); una columna sota `960px`. Adreça sempre; apartats 2 i 3 només si hi ha contingut; `loadById` per enriquir.
-- `favorites-page`: mateix patró Cercar/Netejar que Llocs; `filterPlaces` sobre favorits; `PlaceGoogleDetailsRefresh` → `loadById` si la caché Google ha caducat.
+- `favorites-page`: mateix patró Cercar/Netejar que Llocs; `filterPlaces` sobre favorits; `PlaceSessionCatalogLoader` només carrega del servidor els IDs encara no resolts.
+- `PlaceService` conserva el catàleg en un `signal` singleton durant la sessió viva de l’aplicació. `loadById` reutilitza primer aquest estat; una URL directa o un ID absent consulta el servidor. No es duplica el catàleg a `sessionStorage`: la font persistent continua sent la BD.
 - `place-map`: popup només nom + ciutat. Pin seleccionat **verd** (`#22c55e`); si els pins s’estenen > ~1200 km, vista Espanya (zoom 6) en lloc de `fitBounds` mundial. Clic a la card del llistat emet `placeClicked` → mateix `selectedPlaceId`.
 - `place-detail-copy.ts`: `hasPublicPetPolicy` / `hasPublicRating` / `hasPublicPrice`.
 
@@ -684,8 +687,9 @@ flowchart LR
   APP --> QR[(place_search_query_results)]
   APP --> REP[(PlaceRepository)]
   APP --> COVER[FilePlaceCoverStorage]
-  APP --> EXT[GooglePlacesSuggestionProvider]
-  EXT --> GP[(Google Places API)]
+  APP --> EXT[Ports externs]
+  EXT --> ADAPTERS[Adaptadors Google]
+  ADAPTERS --> GP[(Google Places API)]
   COVER --> DISK[(storage/place-covers JPEG)]
 ```
 
@@ -760,14 +764,17 @@ Remissió funcional: `docs/ca/funcional-ca.md` (**§12.5** i **§12.5.1**).
 | `last_google_sync_at` | Darrer instant de sincronització amb Google (nullable). |
 | `latitude`, `longitude` | Nullables quan la coordenada **no** ha de persistir-se per compliment (vegeu mapper i worker). |
 | `exclude_from_osm_map` | Quan no hi ha lat/lng plotables (p. ex. després de redacció per caducitat), el pin no es pinta. Amb coordenades vigents (inclòs origen Google) el local surt al mapa **i** al llistat. El valor persistit a BD pot quedar desfasat; el mapper deriva l’exclusió de `Latitude`/`Longitude` null. |
+| `manual_fields` | Màscara de grups governats manualment (`PlaceManualFields`). Una sincronització externa no pot sobreescriure aquests camps. |
 
-Migracions de referència al repositori: `20260427120000_AddPlaceProvenance`; coordenades nullable / compliment OSM: `20260501141000_PlaceGoogleCoordinateRedaction`. El `ZuppetoDbContextModelSnapshot` ha de coincidir amb el runtime EF.
+Migracions de referència al repositori: `20260427120000_AddPlaceProvenance`; coordenades nullable / compliment OSM: `20260501141000_PlaceGoogleCoordinateRedaction`; protecció manual: `20260910144928_AddPlaceManualFieldProtection`. El `ZuppetoDbContextModelSnapshot` ha de coincidir amb el runtime EF.
+
+La migració de protecció marca conservadorament amb `All` els registres existents `Internal` o `Mixed`. Els upserts administratius també protegeixen els camps manuals. `PlaceExternalDataMergePolicy` aplica sempre **manual > extern**, i el manteniment de caducitat no elimina coordenades protegides manualment.
 
 #### Configuració
 
-- **`GooglePlaces`** (`GooglePlacesOptions` a Infrastructure, `GooglePlacesIntegrationOptions` a Application): mateixa secció JSON. Camps habituals: **`Enabled`** (si és `false`, no hi ha Text Search; Details/Photos sí, si hi ha `ApiKey`), `BaseUrl`, `ApiKey`, `TimeoutSeconds`, **`CoordinateCacheRetentionDays`** (per defecte **30**), `PreferExternalSearchFirst`.  
+- **`GooglePlaces`** (`GooglePlacesOptions` a Infrastructure, `PlaceExternalIntegrationOptions` a Application): mateixa secció JSON. Camps habituals: **`Enabled`**, `BaseUrl`, `ApiKey`, `TimeoutSeconds`, **`CoordinateCacheRetentionDays`** (per defecte **30**), `PreferExternalSearchFirst`, `MaxNewPlacesPerSearch` i `MaxPhotoDownloadsPerPlace`.
   - En **Development** (`appsettings.Development.json`): `Enabled=false` i `PreferExternalSearchFirst=false` mentre es fan proves manuals (catàleg local ~100+ locals ja persistits; portades via Details als 20 visibles).  
-  - Registre: `Program.cs` fa `Configure<GooglePlacesIntegrationOptions>(configuration.GetSection(...))` abans de `AddApplication()`.
+  - Registre: `Program.cs` fa `Configure<PlaceExternalIntegrationOptions>(configuration.GetSection(...))` abans de `AddApplication()`.
 - **`GooglePlacesCompliance`**: `GooglePlacesComplianceOptions` — `Enabled`, `RunIntervalMinutes`.
 
 #### Aplicació (upsert, validació, resums sintètics)
@@ -793,7 +800,7 @@ Migracions de referència al repositori: `20260427120000_AddPlaceProvenance`; co
 En cada cicle (interval configurable):
 
 1. **`DELETE FROM place_search_queries WHERE expires_at_utc < now`** — elimina snapshots de cerca caducats (independentment de `GooglePlacesCompliance:Enabled`).
-2. Si **`GooglePlacesCompliance:Enabled`**, executa un **`UPDATE places`** sobre files amb `data_provenance IN ('GooglePlaces','Mixed')`, `google_coordinates_cached_until IS NOT NULL` i **`google_coordinates_cached_until < now`**, posant:  
+2. Si **`GooglePlacesCompliance:Enabled`**, `PlaceCacheRetentionService` executa un **`UPDATE places`** sobre files amb procedència externa/mixta, caché caducada i coordenades no protegides a `manual_fields`, posant:
    `latitude = NULL`, `longitude = NULL`, `exclude_from_osm_map = TRUE`, `google_coordinates_cached_until = NULL`, `last_google_sync_at = NULL`.  
    **No** modifica `google_place_id` ni `data_provenance` — es mantenen per permetre una nova sincronització via API.
 
@@ -804,8 +811,8 @@ En cada cicle (interval configurable):
 #### Resum d’ubicacions al codi
 
 - Domini: `PlaceDataProvenance`, `Place`, `SetDataProvenance`, `PetPolicy` (pot no acceptar cap mascota si l’etiqueta ho diu).
-- Infraestructura: `PlaceRecord`, `PlaceConfiguration`, `PlacePersistenceMapper`, `GooglePlacesSuggestionProvider` (Text Search + Details + Photos), `FilePlaceCoverStorage`, `GooglePlacesComplianceRetentionHostedService`.
-- Aplicació / API: `PlaceContracts` (`PlaceSearchPageDto`, `PlaceExternalDetailsDto`), `PlacePublicCopy`, `IExternalPlaceDetailsProvider`, `IPlaceCoverStorage`, `PlaceUpsertRequestValidator`, `PlaceApplicationService`, `GooglePlacesIntegrationOptions`, `PlaceEndpoints` (`skip`/`take`, static `/media`).
+- Infraestructura: `PlaceRecord`, `PlaceConfiguration`, `PlacePersistenceMapper`, `GooglePlacesApiClient` i els adaptadors Search/Details/Photo, `FilePlaceCoverStorage`, `PlaceCacheRetentionService`, `GooglePlacesComplianceRetentionHostedService`.
+- Aplicació / API: `PlaceContracts`, els tres ports externs segregats, `IPlaceExternalDataSynchronizer`, `IPlaceCacheRetentionService`, `PlaceExternalDataMergePolicy`, `PlaceExternalSearchImporter`, `PlaceApplicationService`, `PlaceExternalIntegrationOptions` i `PlaceEndpoints`.
 
 ### 2.11.5 Menús d’administració: API, esborrat, seed `Negoci` / `Tècnic`, client
 
@@ -1369,7 +1376,7 @@ Decisions tecniques rellevants:
 - l'estat es manté local i simulat
 - `favorites-page` reutilitza `PlaceFiltersComponent` + **Cercar** / **Netejar** (draft vs aplicat, com `/places`); filtra amb `filterPlaces` sobre `getFavoritePlaces()` (catàleg BD), **sense** `searchPage`
 - el combo de ciutat a Favorits només llista ciutats dels favorits (`enableRemoteCitySearch=false`); no crida `GET /api/places/cities/search`
-- caducitat Google: `PlaceGoogleDetailsRefresh` fa `loadById` (`GET /api/places/{id}` → `PlaceGoogleDetailsEnricher`) si el snapshot té més de `CoordinateCacheRetentionDays` (~30) o falta al catàleg carregat; **no** Text Search
+- resolució de catàleg: `PlaceSessionCatalogLoader` fa `loadById` només quan un ID favorit encara no és al `signal` de sessió; la consulta del detall no dispara sincronització externa
 - la llista de favorits usa la mateixa graella d’una columna que `/places` (`place-card` fila ampla); el resum (comptador/ciutats/tipologies) continua en targetes a part
 - `place-map` també a Favorits: pins = `placesVisibleOnOsmMap` dels favorits filtrats; selecció sincronitzada amb la targeta; **Veure detall** porta `fromMap=true`
 - `place-card` a Favorits pot mostrar **Més llocs a {ciutat}** al costat de Veure detall (`showCityExploreLink`)
@@ -1451,7 +1458,7 @@ Notes tecniques:
 
 - els `id` es persisteixen a `localStorage`
 - en afegir un favorit, aquest puja al primer lloc de la llista
-- `favorites-page` filtra el catàleg de favorits (`filterPlaces` + Cercar/Netejar) i refresca Details caducats via `PlaceGoogleDetailsRefresh`
+- `favorites-page` filtra el catàleg de favorits (`filterPlaces` + Cercar/Netejar) i carrega del servidor únicament els IDs no resolts via `PlaceSessionCatalogLoader`
 - `FavoritesService` treballa contra un port injectable (`FAVORITES_STORE`)
 - el mock actual entra per `MockFavoritesStoreService`
 
@@ -1916,7 +1923,10 @@ src/Backend/Application/Places/IExternalPlaceDetailsProvider.cs
 src/Backend/Application/Places/IPlaceCoverStorage.cs
 src/Backend/Application/Places/PlaceContracts.cs
 src/Backend/Application/Places/PlaceApplicationService.cs
-src/Backend/Infrastructure/GooglePlaces/GooglePlacesSuggestionProvider.cs
+src/Backend/Infrastructure/GooglePlaces/GooglePlacesApiClient.cs
+src/Backend/Infrastructure/GooglePlaces/GooglePlacesSearchAdapter.cs
+src/Backend/Infrastructure/GooglePlaces/GooglePlacesDetailsAdapter.cs
+src/Backend/Infrastructure/GooglePlaces/GooglePlacesPhotoAdapter.cs
 src/Backend/Infrastructure/GooglePlaces/FilePlaceCoverStorage.cs
 src/Backend/Api/Endpoints/PlaceEndpoints.cs
 src/Backend/Api/Program.cs

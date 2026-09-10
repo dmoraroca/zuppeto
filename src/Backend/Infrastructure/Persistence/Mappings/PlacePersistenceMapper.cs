@@ -44,7 +44,8 @@ internal static class PlacePersistenceMapper
             record.GooglePlaceId,
             record.GoogleCoordinatesCachedUntil,
             record.LastGoogleSyncAt,
-            excludeFromOsmMap);
+            excludeFromOsmMap,
+            (PlaceManualFields)record.ManualFields);
 
         place.ReplaceTags(
             record.PlaceTags
@@ -92,6 +93,7 @@ internal static class PlacePersistenceMapper
         record.GooglePlaceId = place.GooglePlaceId;
         record.GoogleCoordinatesCachedUntil = place.GoogleCoordinatesCachedUntil;
         record.LastGoogleSyncAt = place.LastGoogleSyncAt;
+        record.ManualFields = (int)place.ManualFields;
     }
 
     public static void SyncCollections(Place place, PlaceRecord record)

@@ -108,7 +108,7 @@ public static class DependencyInjection
             client.BaseAddress = new Uri(geoOptions.BaseUrl);
             client.Timeout = TimeSpan.FromSeconds(Math.Max(2, geoOptions.TimeoutSeconds));
         });
-        services.AddHttpClient<GooglePlacesSuggestionProvider>((sp, client) =>
+        services.AddHttpClient<GooglePlacesApiClient>((sp, client) =>
         {
             var placesOptions = sp.GetRequiredService<IOptions<GooglePlacesOptions>>().Value;
             client.BaseAddress = new Uri(placesOptions.BaseUrl);
@@ -119,10 +119,9 @@ public static class DependencyInjection
             AllowAutoRedirect = true,
             MaxAutomaticRedirections = 5
         });
-        services.AddScoped<IExternalPlaceSuggestionProvider>(
-            sp => sp.GetRequiredService<GooglePlacesSuggestionProvider>());
-        services.AddScoped<IExternalPlaceDetailsProvider>(
-            sp => sp.GetRequiredService<GooglePlacesSuggestionProvider>());
+        services.AddScoped<IExternalPlaceSuggestionProvider, GooglePlacesSearchAdapter>();
+        services.AddScoped<IExternalPlaceDetailsProvider, GooglePlacesDetailsAdapter>();
+        services.AddScoped<IExternalPlacePhotoProvider, GooglePlacesPhotoAdapter>();
         services.AddHttpClient<IPlaceWebsitePageReader, HttpPlaceWebsitePageReader>(client =>
         {
             client.Timeout = TimeSpan.FromSeconds(8);
@@ -141,6 +140,7 @@ public static class DependencyInjection
         services.AddScoped<IFavoriteListRepository, FavoriteListRepository>();
         services.AddScoped<IPlaceReviewRepository, PlaceReviewRepository>();
         services.AddScoped<IPlaceSearchQueryRepository, PlaceSearchQueryRepository>();
+        services.AddScoped<IPlaceCacheRetentionService, PlaceCacheRetentionService>();
         services.AddScoped<IGeographicCatalogRepository, GeographicCatalogRepository>();
         services.AddScoped<IRoleCatalogRepository, RoleCatalogRepository>();
 

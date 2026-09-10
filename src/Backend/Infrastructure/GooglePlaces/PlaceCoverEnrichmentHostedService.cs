@@ -22,8 +22,8 @@ internal sealed class PlaceCoverEnrichmentHostedService(
                 try
                 {
                     using var scope = scopeFactory.CreateScope();
-                    var places = scope.ServiceProvider.GetRequiredService<IPlaceApplicationService>();
-                    await places.GetByIdAsync(placeId, stoppingToken);
+                    var synchronizer = scope.ServiceProvider.GetRequiredService<IPlaceExternalDataSynchronizer>();
+                    await synchronizer.SynchronizeAsync(placeId, stoppingToken);
                 }
                 catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
                 {

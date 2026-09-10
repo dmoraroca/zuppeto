@@ -121,6 +121,13 @@ export class PlaceService {
       return undefined;
     }
 
+    // La llista ja ha carregat el DTO complet a la sessió viva d'Angular.
+    // Només consultem el servidor en una entrada directa o si encara no és a memòria.
+    const sessionPlace = this.getPlaceById(normalized);
+    if (sessionPlace) {
+      return sessionPlace;
+    }
+
     const dto = await firstValueFrom(
       this.http
         .get<PlaceApiSummaryDto>(`${API_BASE_URL}/places/${normalized}`)

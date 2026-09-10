@@ -114,7 +114,9 @@ public sealed record PlaceSummaryDto(
     string? OpeningHours = null,
     string? Phone = null,
     string? Website = null,
-    string? CategoryLabel = null);
+    string? CategoryLabel = null,
+    string? CoverAttribution = null,
+    string? CoverSourceUri = null);
 
 public sealed record PlaceDetailDto(
     Guid Id,

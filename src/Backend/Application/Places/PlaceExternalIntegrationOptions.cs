@@ -3,7 +3,7 @@ namespace Zuppeto.Application.Places;
 /// <summary>
 /// Application-level settings for Google Places integration (reads the same configuration section as Infrastructure).
 /// </summary>
-public sealed class GooglePlacesIntegrationOptions
+public sealed class PlaceExternalIntegrationOptions
 {
     public const string SectionName = "GooglePlaces";
 
@@ -28,4 +28,7 @@ public sealed class GooglePlacesIntegrationOptions
 
     /// <summary>Nombre màxim de referències de fotografia provades per lloc i enriquiment.</summary>
     public int MaxPhotoDownloadsPerPlace { get; set; } = 2;
+
+    /// <summary>Nombre màxim de candidats nous que es completen i retornen per cerca externa.</summary>
+    public int MaxNewPlacesPerSearch { get; set; } = 3;
 }

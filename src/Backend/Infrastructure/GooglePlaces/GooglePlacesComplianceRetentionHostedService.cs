@@ -1,9 +1,8 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Zuppeto.Infrastructure.Persistence;
+using Zuppeto.Application.Places;
 
 namespace Zuppeto.Infrastructure.GooglePlaces;
 
@@ -22,42 +21,25 @@ internal sealed class GooglePlacesComplianceRetentionHostedService(
             try
             {
                 using var scope = scopeFactory.CreateScope();
-                var db = scope.ServiceProvider.GetRequiredService<ZuppetoDbContext>();
                 var now = DateTimeOffset.UtcNow;
-
-                var deletedQueries = await db.Database.ExecuteSqlInterpolatedAsync(
-                    $"""DELETE FROM place_search_queries WHERE expires_at_utc < {now};""",
+                var retentionService = scope.ServiceProvider.GetRequiredService<IPlaceCacheRetentionService>();
+                var result = await retentionService.ExpireAsync(
+                    now,
+                    options.Value.Enabled,
                     stoppingToken);
 
-                if (deletedQueries > 0)
+                if (result.DeletedSearchSnapshots > 0)
                 {
                     logger.LogInformation(
                         "Purged {Count} expired place search query snapshot(s).",
-                        deletedQueries);
+                        result.DeletedSearchSnapshots);
                 }
 
-                if (options.Value.Enabled)
+                if (result.RedactedCoordinateCaches > 0)
                 {
-                    var redacted = await db.Database.ExecuteSqlInterpolatedAsync(
-                        $"""
-                         UPDATE places
-                         SET latitude = NULL,
-                             longitude = NULL,
-                             exclude_from_osm_map = TRUE,
-                             google_coordinates_cached_until = NULL,
-                             last_google_sync_at = NULL
-                         WHERE data_provenance IN ('GooglePlaces', 'Mixed')
-                           AND google_coordinates_cached_until IS NOT NULL
-                           AND google_coordinates_cached_until < {now};
-                         """,
-                        stoppingToken);
-
-                    if (redacted > 0)
-                    {
-                        logger.LogInformation(
-                            "Redacted expired Google Places coordinate cache on {Count} place row(s).",
-                            redacted);
-                    }
+                    logger.LogInformation(
+                        "Redacted expired Google Places coordinate cache on {Count} place row(s).",
+                        result.RedactedCoordinateCaches);
                 }
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)

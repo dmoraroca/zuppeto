@@ -8,7 +8,7 @@ import { PlaceCardComponent } from '../../../places/components/place-card/place-
 import { PlaceFiltersComponent, PlaceFilterSort } from '../../../places/components/place-filters/place-filters.component';
 import { PlaceMapComponent } from '../../../places/components/place-map/place-map.component';
 import { PlaceFilters } from '../../../places/models/place.model';
-import { PlaceGoogleDetailsRefresh } from '../../../places/services/place-google-details-refresh.service';
+import { PlaceSessionCatalogLoader } from '../../../places/services/place-session-catalog-loader.service';
 import { PlaceService } from '../../../places/services/place.service';
 import { resolveCityMapFocus } from '../../../places/utils/city-map-focus';
 import { filterPlaces } from '../../../places/utils/place-list-filter';
@@ -41,7 +41,7 @@ export class FavoritesPageComponent {
 
   private readonly placeService = inject(PlaceService);
   private readonly favoritesService = inject(FavoritesService);
-  private readonly googleDetailsRefresh = inject(PlaceGoogleDetailsRefresh);
+  private readonly sessionCatalogLoader = inject(PlaceSessionCatalogLoader);
   private readonly router = inject(Router);
   private readonly selectedPlaceIdState = signal<string | null>(null);
   protected readonly draftFilters = signal<FavoriteReviewFilters>({ ...EMPTY_FAVORITE_REVIEW_FILTERS });
@@ -119,11 +119,10 @@ export class FavoritesPageComponent {
     });
 
     effect(() => {
-      const savedPlaces = this.allPlaces();
       const unresolvedIds = this.favoritesService
         .favoriteIds()
         .filter((placeId) => !this.placeService.getPlaceById(placeId));
-      this.googleDetailsRefresh.refreshSavedPlaces(savedPlaces, unresolvedIds);
+      this.sessionCatalogLoader.loadUnresolved(unresolvedIds);
     });
   }
 

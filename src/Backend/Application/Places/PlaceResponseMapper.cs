@@ -9,6 +9,7 @@ internal sealed class PlaceResponseMapper(IPlaceCoverStorage coverStorage)
         var (cacheExpired, requiresGoogleMap) = ComputeGoogleCoordinateFlags(place);
         var excludeFromOsmMap = place.ExcludeFromOsmMap && !requiresGoogleMap;
         var visit = PlaceVisitNotes.Split(place.PetPolicy.Notes);
+        var attribution = coverStorage.ReadAttribution(place.Id);
         return new PlaceSummaryDto(
             place.Id,
             place.Name,
@@ -41,13 +42,14 @@ internal sealed class PlaceResponseMapper(IPlaceCoverStorage coverStorage)
             visit.Hours,
             visit.Phone,
             visit.Website,
-            PlaceGoogleHighlights.CategoryLabel(place.Features, PlaceTypeLabels.From(place.Type)));
+            PlaceGoogleHighlights.CategoryLabel(place.Features, PlaceTypeLabels.From(place.Type)),
+            attribution?.AuthorName,
+            attribution?.SourceUri);
     }
 
     internal PlaceDetailDto ToDetail(Place place)
     {
         var summary = ToSummary(place);
-        var attribution = coverStorage.ReadAttribution(place.Id);
         return new PlaceDetailDto(
             summary.Id,
             summary.Name,
@@ -77,8 +79,8 @@ internal sealed class PlaceResponseMapper(IPlaceCoverStorage coverStorage)
             summary.ReviewCount,
             summary.Tags,
             summary.Features,
-            attribution?.AuthorName,
-            attribution?.SourceUri,
+            summary.CoverAttribution,
+            summary.CoverSourceUri,
             summary.OpeningHours,
             summary.Phone,
             summary.Website,

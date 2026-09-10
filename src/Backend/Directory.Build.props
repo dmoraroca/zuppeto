@@ -9,6 +9,9 @@
     <BaseIntermediateOutputPath Condition="'$(_ZuppetoBuildRoot)' == ''">obj-local/</BaseIntermediateOutputPath>
     <MSBuildProjectExtensionsPath Condition="'$(_ZuppetoBuildRoot)' == ''">obj-local/</MSBuildProjectExtensionsPath>
     <BaseOutputPath Condition="'$(_ZuppetoBuildRoot)' == ''">bin-local/</BaseOutputPath>
+    <!-- En alguns filesystems del host, MSBuild 18 pot fallar silenciosament
+         mentre avalua projectes en paral·lel (0 errors, exit code 1). -->
+    <BuildInParallel Condition="'$(_ZuppetoBuildRoot)' == ''">false</BuildInParallel>
     <DefaultItemExcludes>$(DefaultItemExcludes);**/obj/**;**/bin/**;**/obj-local/**;**/bin-local/**</DefaultItemExcludes>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>

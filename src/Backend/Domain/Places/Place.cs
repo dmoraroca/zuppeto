@@ -24,7 +24,8 @@ public sealed class Place : AggregateRoot<Guid>
         string? googlePlaceId = null,
         DateTimeOffset? googleCoordinatesCachedUntil = null,
         DateTimeOffset? lastGoogleSyncAt = null,
-        bool excludeFromOsmMap = false) : base(id)
+        bool excludeFromOsmMap = false,
+        PlaceManualFields manualFields = PlaceManualFields.None) : base(id)
     {
         Rename(name);
         UpdateDescriptions(shortDescription, description);
@@ -37,6 +38,7 @@ public sealed class Place : AggregateRoot<Guid>
         Rating = rating;
         SetDataProvenance(dataProvenance, googlePlaceId, googleCoordinatesCachedUntil, lastGoogleSyncAt);
         ExcludeFromOsmMap = excludeFromOsmMap;
+        ManualFields = manualFields;
     }
 
     public string Name { get; private set; } = string.Empty;
@@ -81,6 +83,16 @@ public sealed class Place : AggregateRoot<Guid>
     /// When true, persisted coordinates must not be rendered on the OpenStreetMap layer (Google compliance routing).
     /// </summary>
     public bool ExcludeFromOsmMap { get; private set; }
+
+    public PlaceManualFields ManualFields { get; private set; }
+
+    public bool IsManuallyMaintained(PlaceManualFields fields) =>
+        (ManualFields & fields) == fields;
+
+    public void ProtectManualFields(PlaceManualFields fields)
+    {
+        ManualFields |= fields;
+    }
 
     public void Rename(string name)
     {

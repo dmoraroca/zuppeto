@@ -50,6 +50,8 @@ public sealed class PlaceRecord
 
     public DateTimeOffset? LastGoogleSyncAt { get; set; }
 
+    public int ManualFields { get; set; }
+
     public DateTimeOffset CreatedAtUtc { get; set; }
 
     public DateTimeOffset UpdatedAtUtc { get; set; }

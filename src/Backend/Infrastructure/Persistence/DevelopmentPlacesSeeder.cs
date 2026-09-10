@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
+using Zuppeto.Domain.Places;
 using Zuppeto.Infrastructure.Persistence.Entities;
 
 namespace Zuppeto.Infrastructure.Persistence;
@@ -54,7 +55,8 @@ public sealed class DevelopmentPlacesSeeder(ZuppetoDbContext dbContext, IHostEnv
             DataProvenance = "Internal",
             GooglePlaceId = null,
             GoogleCoordinatesCachedUntil = null,
-            LastGoogleSyncAt = null
+            LastGoogleSyncAt = null,
+            ManualFields = (int)PlaceManualFields.All
         };
 
         yield return new PlaceRecord
@@ -84,7 +86,8 @@ public sealed class DevelopmentPlacesSeeder(ZuppetoDbContext dbContext, IHostEnv
             DataProvenance = "Internal",
             GooglePlaceId = null,
             GoogleCoordinatesCachedUntil = null,
-            LastGoogleSyncAt = null
+            LastGoogleSyncAt = null,
+            ManualFields = (int)PlaceManualFields.All
         };
 
         yield return new PlaceRecord
@@ -114,7 +117,8 @@ public sealed class DevelopmentPlacesSeeder(ZuppetoDbContext dbContext, IHostEnv
             DataProvenance = "Internal",
             GooglePlaceId = null,
             GoogleCoordinatesCachedUntil = null,
-            LastGoogleSyncAt = null
+            LastGoogleSyncAt = null,
+            ManualFields = (int)PlaceManualFields.All
         };
     }
 }

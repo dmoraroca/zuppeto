@@ -9,22 +9,23 @@ using Zuppeto.Domain.Places.ValueObjects;
 namespace Zuppeto.Application.Places;
 
 /// <summary>
-/// Text Search ingest: upsert Google candidates and store a search snapshot.
+/// Imports external search candidates and stores a reusable search snapshot.
 /// </summary>
-internal sealed class PlaceGoogleSearchIngest(
+internal sealed class PlaceExternalSearchImporter(
     IPlaceRepository placeRepository,
     IPlaceSearchQueryRepository placeSearchQueryRepository,
     IExternalPlaceSuggestionProvider externalPlaceSuggestionProvider,
-    IOptions<GooglePlacesIntegrationOptions> googlePlacesIntegrationOptions,
+    IPlaceExternalDataSynchronizer externalDataSynchronizer,
+    IOptions<PlaceExternalIntegrationOptions> externalIntegrationOptions,
     IExternalPlaceCallPolicy externalCallPolicy,
     ProhibitedPlaceNameFilter prohibitedPlaceNameFilter)
 {
     internal static readonly TimeSpan SnapshotTtl = TimeSpan.FromHours(12);
 
     private int CoordinateCacheRetentionDays =>
-        Math.Clamp(googlePlacesIntegrationOptions.Value.CoordinateCacheRetentionDays, 1, 366);
+        Math.Clamp(externalIntegrationOptions.Value.CoordinateCacheRetentionDays, 1, 366);
 
-    internal async Task<IReadOnlyList<Place>> SearchAndPersistAsync(
+    internal async Task<IReadOnlyList<Place>> ImportAsync(
         PlaceSearchRequest request,
         DateTimeOffset nowUtc,
         CancellationToken cancellationToken)
@@ -39,7 +40,7 @@ internal sealed class PlaceGoogleSearchIngest(
                 request.SearchText?.Trim(),
                 request.City?.Trim(),
                 request.Type?.Trim(),
-                15),
+                Math.Clamp(externalIntegrationOptions.Value.MaxNewPlacesPerSearch, 1, 20)),
             cancellationToken);
 
         var petCategory = PlaceCatalogEnums.ParsePetCategory(request.PetCategory);
@@ -72,7 +73,15 @@ internal sealed class PlaceGoogleSearchIngest(
             SnapshotTtl,
             cancellationToken);
 
-        return persisted;
+        var synchronized = new List<Place>(persisted.Count);
+        foreach (var place in persisted)
+        {
+            synchronized.Add(
+                await externalDataSynchronizer.SynchronizeAsync(place.Id, cancellationToken)
+                ?? place);
+        }
+
+        return synchronized;
     }
 
     private async Task<Place> UpsertCandidateAsync(
@@ -84,21 +93,35 @@ internal sealed class PlaceGoogleSearchIngest(
         var googlePlaceId = candidate.ExternalId.Trim();
         var existing = await placeRepository.GetByGooglePlaceIdAsync(googlePlaceId, cancellationToken);
         var placeId = existing?.Id ?? StablePlaceIdFromGoogleExternalId(googlePlaceId);
-        var cacheUntil = nowUtc.AddDays(CoordinateCacheRetentionDays);
-        var type = PlaceCatalogEnums.ParsePlaceType(request.Type) ?? existing?.Type ?? PlaceType.Service;
+        var manualFields = existing?.ManualFields ?? PlaceManualFields.None;
+        DateTimeOffset? cacheUntil = existing?.IsManuallyMaintained(PlaceManualFields.Coordinates) == true
+            ? null
+            : nowUtc.AddDays(CoordinateCacheRetentionDays);
+        var type = existing?.IsManuallyMaintained(PlaceManualFields.Identity) == true
+            ? existing.Type
+            : PlaceCatalogEnums.ParsePlaceType(request.Type) ?? existing?.Type ?? PlaceType.Service;
 
-        var city = string.IsNullOrWhiteSpace(candidate.City)
-            ? (existing?.Address.City ?? "Desconeguda")
-            : candidate.City.Trim();
-        var country = string.IsNullOrWhiteSpace(candidate.Country)
-            ? (existing?.Address.Country ?? "Desconegut")
-            : candidate.Country.Trim();
-        var addressLine = string.IsNullOrWhiteSpace(candidate.Address)
-            ? $"{city}, {country}"
-            : candidate.Address.Trim();
+        var keepsManualAddress = existing?.IsManuallyMaintained(PlaceManualFields.Address) == true;
+        var city = keepsManualAddress
+            ? existing!.Address.City
+            : string.IsNullOrWhiteSpace(candidate.City)
+                ? (existing?.Address.City ?? "Desconeguda")
+                : candidate.City.Trim();
+        var country = keepsManualAddress
+            ? existing!.Address.Country
+            : string.IsNullOrWhiteSpace(candidate.Country)
+                ? (existing?.Address.Country ?? "Desconegut")
+                : candidate.Country.Trim();
+        var addressLine = keepsManualAddress
+            ? existing!.Address.Line1
+            : string.IsNullOrWhiteSpace(candidate.Address)
+                ? $"{city}, {country}"
+                : candidate.Address.Trim();
 
         var acceptsPets = candidate.PetFriendlyAuto != false;
-        var petPolicy = existing is not null && PlacePublicCopy.IsPublicPetPolicyLabel(existing.PetPolicy.Label)
+        var preservesManualPetPolicy = existing?.IsManuallyMaintained(PlaceManualFields.PetPolicy) == true;
+        var petPolicy = existing is not null &&
+                        (preservesManualPetPolicy || PlacePublicCopy.IsPublicPetPolicyLabel(existing.PetPolicy.Label))
             ? existing.PetPolicy
             : new PetPolicy(
                 acceptsPets,
@@ -112,25 +135,36 @@ internal sealed class PlaceGoogleSearchIngest(
 
         var place = new Place(
             placeId,
-            candidate.Name.Trim(),
+            existing?.IsManuallyMaintained(PlaceManualFields.Identity) == true
+                ? existing.Name
+                : candidate.Name.Trim(),
             type,
-            candidate.Name.Trim(),
-            addressLine,
+            existing?.IsManuallyMaintained(PlaceManualFields.Descriptions) == true
+                ? existing.ShortDescription
+                : candidate.Name.Trim(),
+            existing?.IsManuallyMaintained(PlaceManualFields.Descriptions) == true
+                ? existing.Description
+                : addressLine,
             coverUrl,
             new PostalAddress(
                 addressLine,
                 city,
                 country,
                 existing?.Address.Neighborhood ?? string.Empty),
-            new GeoLocation(candidate.Latitude, candidate.Longitude),
+            existing?.IsManuallyMaintained(PlaceManualFields.Coordinates) == true
+                ? existing.Location
+                : new GeoLocation(candidate.Latitude, candidate.Longitude),
             petPolicy,
             existing?.Pricing ?? new Pricing("—"),
             existing?.Rating ?? new RatingSnapshot(0m, 0),
-            PlaceDataProvenance.GooglePlaces,
+            manualFields == PlaceManualFields.None
+                ? PlaceDataProvenance.GooglePlaces
+                : PlaceDataProvenance.Mixed,
             googlePlaceId,
             cacheUntil,
             nowUtc,
-            excludeFromOsmMap: false);
+            excludeFromOsmMap: false,
+            manualFields);
 
         if (existing is not null)
         {

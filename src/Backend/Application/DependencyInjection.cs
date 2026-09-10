@@ -31,8 +31,9 @@ public static class DependencyInjection
         services.AddScoped<PlaceCoverPhotoStore>();
         services.AddScoped<PlaceResponseMapper>();
         services.AddScoped<PlaceSearchPageAssembler>();
-        services.AddScoped<PlaceGoogleSearchIngest>();
-        services.AddScoped<PlaceGoogleDetailsEnricher>();
+        services.AddScoped<PlaceExternalSearchImporter>();
+        services.AddSingleton<PlaceExternalDataMergePolicy>();
+        services.AddScoped<IPlaceExternalDataSynchronizer, PlaceExternalDataSynchronizer>();
         services.AddSingleton<IExternalPlaceCallPolicy, AllowExternalPlaceCallsPolicy>();
         services.AddScoped<IPlaceApplicationService, PlaceApplicationService>();
         services.AddScoped<IFavoriteListApplicationService, FavoriteListApplicationService>();

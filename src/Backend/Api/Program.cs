@@ -122,8 +122,8 @@ builder.Host.UseSerilog((context, services, loggerConfiguration) =>
             outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {SourceContext}: {Message:lj} {Properties:j}{NewLine}{Exception}");
 });
 
-builder.Services.Configure<GooglePlacesIntegrationOptions>(
-    builder.Configuration.GetSection(GooglePlacesIntegrationOptions.SectionName));
+builder.Services.Configure<PlaceExternalIntegrationOptions>(
+    builder.Configuration.GetSection(PlaceExternalIntegrationOptions.SectionName));
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration, builder.Environment);
 builder.Services.AddHttpContextAccessor();

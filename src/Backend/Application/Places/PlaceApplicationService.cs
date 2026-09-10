@@ -12,11 +12,10 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
     private readonly IPlaceSearchQueryRepository placeSearchQueryRepository;
     private readonly IExternalCitySuggestionProvider externalCitySuggestionProvider;
     private readonly IExternalPlaceSuggestionProvider externalPlaceSuggestionProvider;
-    private readonly PlaceGoogleDetailsEnricher googleDetailsEnricher;
-    private readonly PlaceGoogleSearchIngest googleSearchIngest;
+    private readonly PlaceExternalSearchImporter externalSearchImporter;
     private readonly PlaceSearchPageAssembler searchPageAssembler;
     private readonly PlaceResponseMapper responseMapper;
-    private readonly IOptions<GooglePlacesIntegrationOptions> googlePlacesIntegrationOptions;
+    private readonly IOptions<PlaceExternalIntegrationOptions> externalIntegrationOptions;
 
     public PlaceApplicationService(
         IPlaceRepository placeRepository,
@@ -24,26 +23,24 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
         IPlaceSearchQueryRepository placeSearchQueryRepository,
         IExternalCitySuggestionProvider externalCitySuggestionProvider,
         IExternalPlaceSuggestionProvider externalPlaceSuggestionProvider,
-        PlaceGoogleDetailsEnricher googleDetailsEnricher,
-        PlaceGoogleSearchIngest googleSearchIngest,
+        PlaceExternalSearchImporter externalSearchImporter,
         PlaceSearchPageAssembler searchPageAssembler,
         PlaceResponseMapper responseMapper,
-        IOptions<GooglePlacesIntegrationOptions> googlePlacesIntegrationOptions)
+        IOptions<PlaceExternalIntegrationOptions> externalIntegrationOptions)
     {
         this.placeRepository = placeRepository;
         this.geographicCatalogRepository = geographicCatalogRepository;
         this.placeSearchQueryRepository = placeSearchQueryRepository;
         this.externalCitySuggestionProvider = externalCitySuggestionProvider;
         this.externalPlaceSuggestionProvider = externalPlaceSuggestionProvider;
-        this.googleDetailsEnricher = googleDetailsEnricher;
-        this.googleSearchIngest = googleSearchIngest;
+        this.externalSearchImporter = externalSearchImporter;
         this.searchPageAssembler = searchPageAssembler;
         this.responseMapper = responseMapper;
-        this.googlePlacesIntegrationOptions = googlePlacesIntegrationOptions;
+        this.externalIntegrationOptions = externalIntegrationOptions;
     }
 
     private int CoordinateCacheRetentionDays =>
-        Math.Clamp(googlePlacesIntegrationOptions.Value.CoordinateCacheRetentionDays, 1, 366);
+        Math.Clamp(externalIntegrationOptions.Value.CoordinateCacheRetentionDays, 1, 366);
 
     public async Task<PlaceDetailDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
@@ -53,7 +50,6 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
             return null;
         }
 
-        place = await googleDetailsEnricher.EnrichIfNeededAsync(place, DateTimeOffset.UtcNow, cancellationToken);
         return responseMapper.ToDetail(place);
     }
 
@@ -62,15 +58,15 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
         CancellationToken cancellationToken = default)
     {
         var nowUtc = DateTimeOffset.UtcNow;
-        var googlePlacesEnabled = googlePlacesIntegrationOptions.Value.Enabled;
+        var googlePlacesEnabled = externalIntegrationOptions.Value.Enabled;
         var preferExternalFirst =
-            googlePlacesEnabled && googlePlacesIntegrationOptions.Value.PreferExternalSearchFirst;
+            googlePlacesEnabled && externalIntegrationOptions.Value.PreferExternalSearchFirst;
 
         if (preferExternalFirst &&
             string.IsNullOrWhiteSpace(request.Country) &&
             PlaceCatalogEnums.ShouldAttemptGooglePlacesFallback(request))
         {
-            var externalFirst = await googleSearchIngest.SearchAndPersistAsync(request, nowUtc, cancellationToken);
+            var externalFirst = await externalSearchImporter.ImportAsync(request, nowUtc, cancellationToken);
             if (externalFirst.Count > 0)
             {
                 return searchPageAssembler.FromPlaces(externalFirst, request);
@@ -111,7 +107,7 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
                 searchSnapshotKey,
                 ordered.Select(item => item.Id).ToArray(),
                 nowUtc,
-                PlaceGoogleSearchIngest.SnapshotTtl,
+                PlaceExternalSearchImporter.SnapshotTtl,
                 cancellationToken);
             return searchPageAssembler.FromPlaces(ordered, request);
         }
@@ -130,7 +126,7 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
         }
 
         return searchPageAssembler.FromPlaces(
-            await googleSearchIngest.SearchAndPersistAsync(request, nowUtc, cancellationToken),
+            await externalSearchImporter.ImportAsync(request, nowUtc, cancellationToken),
             request);
     }
 
@@ -290,6 +286,9 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
 
         place.ReplaceTags(request.Tags);
         place.ReplaceFeatures(request.Features);
+        // Aquest cas d'ús és el manteniment humà del catàleg. Tot valor enviat
+        // passa a ser autoritatiu i cap sincronització externa el pot substituir.
+        place.ProtectManualFields(PlaceManualFields.All);
         ApplyGoogleMetadataFromUpsert(place, request, existing, nowUtc);
 
         if (existing is null)
@@ -319,6 +318,11 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
         if (!string.IsNullOrWhiteSpace(requestGoogleId))
         {
             var provenance = PlaceCatalogEnums.ParseUpsertDataProvenance(request.DataProvenance);
+            if (provenance == PlaceDataProvenance.GooglePlaces && place.ManualFields != PlaceManualFields.None)
+            {
+                provenance = PlaceDataProvenance.Mixed;
+            }
+
             var cachedUntil = request.GoogleCoordinatesCachedUntil ?? nowUtc.AddDays(CoordinateCacheRetentionDays);
             var lastSync = request.LastGoogleSyncAt ?? nowUtc;
             place.SetDataProvenance(provenance, requestGoogleId, cachedUntil, lastSync);
@@ -337,7 +341,7 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
             && !string.IsNullOrWhiteSpace(existing.GooglePlaceId))
         {
             place.SetDataProvenance(
-                existing.DataProvenance,
+                PlaceDataProvenance.Mixed,
                 existing.GooglePlaceId,
                 existing.GoogleCoordinatesCachedUntil,
                 existing.LastGoogleSyncAt);

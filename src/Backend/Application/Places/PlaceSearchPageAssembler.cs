@@ -7,7 +7,7 @@ namespace Zuppeto.Application.Places;
 internal sealed class PlaceSearchPageAssembler(
     PlaceResponseMapper responseMapper,
     IPlaceCoverEnrichmentQueue enrichmentQueue,
-    IOptions<GooglePlacesIntegrationOptions> googlePlacesOptions,
+    IOptions<PlaceExternalIntegrationOptions> externalIntegrationOptions,
     IExternalPlaceCallPolicy externalCallPolicy,
     ProhibitedPlaceNameFilter prohibitedPlaceNameFilter)
 {
@@ -40,7 +40,7 @@ internal sealed class PlaceSearchPageAssembler(
                 string.IsNullOrWhiteSpace(item.CoverImageUrl)
                 || item.Features.Count == 0)
             .Select(item => item.Id)
-            .Take(Math.Clamp(googlePlacesOptions.Value.MaxBackgroundEnrichmentsPerPage, 0, 10))
+            .Take(Math.Clamp(externalIntegrationOptions.Value.MaxBackgroundEnrichmentsPerPage, 0, 10))
             .ToArray();
         if (missingCovers.Length > 0)
         {

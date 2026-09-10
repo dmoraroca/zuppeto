@@ -16,7 +16,7 @@
     {
       "label": "build api (local)",
       "type": "shell",
-      "command": "dotnet build \"${workspaceFolder}/src/Backend/Api/Api.csproj\" -c Debug",
+      "command": "dotnet build \"${workspaceFolder}/src/Backend/Api/Api.csproj\" -c Debug -m:1",
       "dependsOn": ["fix backend build perms"],
       "group": {
         "kind": "build",

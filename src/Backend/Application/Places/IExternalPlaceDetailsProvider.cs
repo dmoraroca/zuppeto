@@ -1,14 +1,17 @@
 namespace Zuppeto.Application.Places;
 
 /// <summary>
-/// Place Details and Place Photos for a known Google <c>place_id</c> (not Text Search).
+/// Detall extern d'un lloc conegut. No assumeix cap proveïdor concret.
 /// </summary>
 public interface IExternalPlaceDetailsProvider
 {
     Task<PlaceExternalDetailsDto?> GetDetailsAsync(
-        string googlePlaceId,
+        string externalPlaceId,
         CancellationToken cancellationToken = default);
+}
 
+public interface IExternalPlacePhotoProvider
+{
     Task<byte[]?> DownloadPhotoAsync(
         string photoReferenceOrName,
         CancellationToken cancellationToken = default);

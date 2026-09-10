@@ -1917,6 +1917,8 @@ Objectiu: al llistat i a la fitxa, dades **útils** (adreça, foto, gos sí/no, 
 
 **Estat d’aquest tram (2026-09-01):** **OK**, tancat. Pendent (no ara): recordar, per filtre, quants resultats s’han carregat (20 → 40 → 60) i mostrar el mateix si es torna a aplicar; més una volta lleugera de llistat/detall. Vegeu `millores-pendents-ca.md`.
 
+**Protecció de dades manuals (2026-09-10):** qualsevol dada introduïda o confirmada des del manteniment preval sobre Google. La sincronització externa només pot completar els grups no protegits i el procés de caducitat no pot eliminar coordenades manuals. La consulta del detall reutilitza primer el catàleg carregat durant la sessió Angular i no provoca per si sola una nova petició facturable; en accés directe, recupera la fitxa persistent del servidor.
+
 ## 13. Referencia documental
 
 Document tecnic:

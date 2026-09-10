@@ -6,12 +6,11 @@ using Zuppeto.Application.Places;
 
 namespace Zuppeto.Infrastructure.GooglePlaces;
 
-internal sealed class GooglePlacesSuggestionProvider(
+internal sealed class GooglePlacesApiClient(
     HttpClient httpClient,
     IOptions<GooglePlacesOptions> options,
     IExternalPlaceCallPolicy externalPlaceCallPolicy,
-    ILogger<GooglePlacesSuggestionProvider> logger)
-    : IExternalPlaceSuggestionProvider, IExternalPlaceDetailsProvider
+    ILogger<GooglePlacesApiClient> logger)
 {
     private const string NewPlacesFieldMask =
         "id,displayName,formattedAddress,location,photos.name,photos.authorAttributions,rating,userRatingCount,priceLevel,allowsDogs,outdoorSeating,restroom,reservable,goodForChildren,takeout,editorialSummary,nationalPhoneNumber,websiteUri,regularOpeningHours.weekdayDescriptions,types,primaryType,primaryTypeDisplayName";

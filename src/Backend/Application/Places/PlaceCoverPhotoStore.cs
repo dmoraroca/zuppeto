@@ -1,7 +1,7 @@
 namespace Zuppeto.Application.Places;
 
 internal sealed class PlaceCoverPhotoStore(
-    IExternalPlaceDetailsProvider detailsProvider,
+    IExternalPlacePhotoProvider photoProvider,
     IPlaceCoverStorage coverStorage)
 {
     internal async Task<string?> TryStoreFromReferenceAsync(
@@ -10,7 +10,7 @@ internal sealed class PlaceCoverPhotoStore(
         PlaceCoverAttribution? attribution,
         CancellationToken cancellationToken)
     {
-        var bytes = await detailsProvider.DownloadPhotoAsync(photoReference, cancellationToken);
+        var bytes = await photoProvider.DownloadPhotoAsync(photoReference, cancellationToken);
         if (bytes is null || bytes.Length == 0)
         {
             return null;
