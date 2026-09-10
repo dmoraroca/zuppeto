@@ -22,4 +22,10 @@ public sealed class GooglePlacesIntegrationOptions
     /// When true and the request has discovery text, call Google Places before the internal catalog (useful for local testing).
     /// </summary>
     public bool PreferExternalSearchFirst { get; set; }
+
+    /// <summary>Nombre màxim de llocs visibles enriquits en segon pla per resposta.</summary>
+    public int MaxBackgroundEnrichmentsPerPage { get; set; } = 3;
+
+    /// <summary>Nombre màxim de referències de fotografia provades per lloc i enriquiment.</summary>
+    public int MaxPhotoDownloadsPerPlace { get; set; } = 2;
 }

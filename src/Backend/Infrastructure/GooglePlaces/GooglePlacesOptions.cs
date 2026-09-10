@@ -20,4 +20,10 @@ public sealed class GooglePlacesOptions
     /// Advertised Google coordinate cache retention in days (same JSON keys as application integration options).
     /// </summary>
     public int CoordinateCacheRetentionDays { get; set; } = 30;
+
+    /// <summary>
+    /// Activa Places API (New). Es manté desactivada mentre la clau de desenvolupament
+    /// només tingui autoritzada Places API Legacy.
+    /// </summary>
+    public bool UseNewApi { get; set; }
 }

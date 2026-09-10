@@ -33,6 +33,7 @@ public static class DependencyInjection
         services.AddScoped<PlaceSearchPageAssembler>();
         services.AddScoped<PlaceGoogleSearchIngest>();
         services.AddScoped<PlaceGoogleDetailsEnricher>();
+        services.AddSingleton<IExternalPlaceCallPolicy, AllowExternalPlaceCallsPolicy>();
         services.AddScoped<IPlaceApplicationService, PlaceApplicationService>();
         services.AddScoped<IFavoriteListApplicationService, FavoriteListApplicationService>();
         services.AddScoped<IUserApplicationService, UserApplicationService>();

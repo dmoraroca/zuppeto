@@ -2145,8 +2145,18 @@ E2E:
 - `RequestCorrelationMiddleware` valida les capçaleres de correlació i retorna `X-Correlation-ID` a la resposta.
 - `RequestLogEnrichmentMiddleware`, executat després de l'autenticació, afegeix l'usuari i el rol autenticats al context estructurat de Serilog.
 - Playwright captura globalment excepcions JavaScript, `console.error`, errors de xarxa essencials i HTTP 5xx. En cas d'error adjunta diagnòstic JSON, captura de pantalla i traça.
+- `IExternalPlaceCallPolicy` manté l'aplicació independent del transport; l'adaptador HTTP bloqueja crides facturables de Google Places quan la petició prové de Playwright.
 - Els informes Playwright es generen en format JSON i HTML. El JSON és l'entrada prevista del procés únic que actualitzarà l'Excel.
 - Els fitxers locals de log i els artefactes E2E estan exclosos de Git.
+
+Control de consum de Google Places:
+
+- la clau DEV actual queda restringida a Places API Legacy i `UseNewApi=false`; la versió nova només s'activarà amb una clau i decisió explícites;
+- una consulta de detalls usa una sola versió de l'API; Legacy només actua com a fallback si la versió nova està activada i falla;
+- la cerca externa persisteix candidats però no descarrega una fotografia per cadascun;
+- cada resposta només pot encolar tres llocs visibles per enriquir i cada lloc prova com a màxim dues referències fotogràfiques;
+- un intent fallit crea una marca local que evita repetir la mateixa consulta fins que acabi la finestra de retenció;
+- `MaxBackgroundEnrichmentsPerPage` i `MaxPhotoDownloadsPerPlace` són límits configurables i defensius.
 
 ## 13. Punts pendents de refinament
 

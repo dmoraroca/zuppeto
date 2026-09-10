@@ -15,8 +15,8 @@ internal sealed class PlaceGoogleSearchIngest(
     IPlaceRepository placeRepository,
     IPlaceSearchQueryRepository placeSearchQueryRepository,
     IExternalPlaceSuggestionProvider externalPlaceSuggestionProvider,
-    PlaceCoverPhotoStore coverPhotoStore,
     IOptions<GooglePlacesIntegrationOptions> googlePlacesIntegrationOptions,
+    IExternalPlaceCallPolicy externalCallPolicy,
     ProhibitedPlaceNameFilter prohibitedPlaceNameFilter)
 {
     internal static readonly TimeSpan SnapshotTtl = TimeSpan.FromHours(12);
@@ -29,6 +29,11 @@ internal sealed class PlaceGoogleSearchIngest(
         DateTimeOffset nowUtc,
         CancellationToken cancellationToken)
     {
+        if (!externalCallPolicy.AllowsBillableCalls)
+        {
+            return [];
+        }
+
         var externalCandidates = await externalPlaceSuggestionProvider.SearchPlacesAsync(
             new PlaceExternalSearchRequest(
                 request.SearchText?.Trim(),
@@ -101,15 +106,9 @@ internal sealed class PlaceGoogleSearchIngest(
                 PlacePublicCopy.UnspecifiedPetPolicyLabel,
                 existing?.PetPolicy.Notes ?? string.Empty);
 
+        // La cerca només persisteix candidats. La portada s'enriqueix de manera limitada
+        // quan el lloc entra en una pàgina visible o quan se n'obre el detall.
         var coverUrl = existing?.CoverImageUrl ?? string.Empty;
-        if (string.IsNullOrWhiteSpace(coverUrl) && !string.IsNullOrWhiteSpace(candidate.PhotoReference))
-        {
-            coverUrl = await coverPhotoStore.TryStoreFromReferenceAsync(
-                placeId,
-                candidate.PhotoReference,
-                null,
-                cancellationToken) ?? string.Empty;
-        }
 
         var place = new Place(
             placeId,

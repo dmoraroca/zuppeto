@@ -16,6 +16,7 @@ internal sealed class PlaceGoogleDetailsEnricher(
     IPlaceWebsitePageReader websitePageReader,
     PlaceCoverPhotoStore coverPhotoStore,
     IOptions<GooglePlacesIntegrationOptions> googlePlacesIntegrationOptions,
+    IExternalPlaceCallPolicy externalCallPolicy,
     ILogger<PlaceGoogleDetailsEnricher> logger)
 {
     private int CoordinateCacheRetentionDays =>
@@ -26,7 +27,8 @@ internal sealed class PlaceGoogleDetailsEnricher(
         DateTimeOffset nowUtc,
         CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(place.GooglePlaceId)
+        if (!externalCallPolicy.AllowsBillableCalls
+            || string.IsNullOrWhiteSpace(place.GooglePlaceId)
             || place.DataProvenance is not (PlaceDataProvenance.GooglePlaces or PlaceDataProvenance.Mixed))
         {
             return place;
@@ -51,7 +53,7 @@ internal sealed class PlaceGoogleDetailsEnricher(
             place.Id,
             nowUtc,
             CoordinateCacheRetentionDays);
-        if (recentCoverAttempt && !missingCover && !missingHighlights && !cacheExpired && !syncStale)
+        if (recentCoverAttempt)
         {
             return place;
         }
@@ -179,7 +181,11 @@ internal sealed class PlaceGoogleDetailsEnricher(
             return coverUrl;
         }
 
-        foreach (var photoReference in details.PhotoReferenceCandidates())
+        var maximumDownloads = Math.Clamp(
+            googlePlacesIntegrationOptions.Value.MaxPhotoDownloadsPerPlace,
+            0,
+            5);
+        foreach (var photoReference in details.PhotoReferenceCandidates().Take(maximumDownloads))
         {
             coverUrl = await coverPhotoStore.TryStoreFromReferenceAsync(
                 place.Id,

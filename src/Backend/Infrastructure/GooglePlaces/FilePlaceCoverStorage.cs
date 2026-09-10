@@ -50,12 +50,6 @@ internal sealed class FilePlaceCoverStorage : IPlaceCoverStorage
 
     public bool HasRecentEnrichmentAttempt(Guid placeId, DateTimeOffset nowUtc, int retentionDays)
     {
-        var imagePath = Path.Combine(directory, FileName(placeId, ".jpg"));
-        if (!File.Exists(imagePath))
-        {
-            return false;
-        }
-
         var latest = LatestWriteTimeUtc(placeId);
         if (latest is null)
         {

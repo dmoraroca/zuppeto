@@ -98,6 +98,8 @@ Cada petició web a `/api/` i cada petició feta amb la fixture `request` envia:
 
 L'API valida la longitud i els caràcters d'aquestes capçaleres abans d'incorporar-les a Serilog. Quan el títol d'una prova encara no conté codi ZUP o rol, queda registrat com `UNMAPPED` o `UNSPECIFIED`; la migració dels 177 casos haurà d'eliminar progressivament aquests valors.
 
+`HttpRequestExternalPlaceCallPolicy` interpreta la capçalera de navegador E2E com un context no facturable. Els escenaris E2E no poden iniciar cerques, detalls, fotografies ni enriquiments en segon pla contra Google Places real; han de treballar amb el catàleg persistent o amb adaptadors controlats.
+
 Quan una prova falli, l'informe ha d'incloure:
 
 - codi ZUP;

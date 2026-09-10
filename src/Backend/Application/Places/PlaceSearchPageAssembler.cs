@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Options;
 using Zuppeto.Domain.Places;
 using Zuppeto.Domain.Places.ProhibitedTerms;
 
@@ -6,6 +7,8 @@ namespace Zuppeto.Application.Places;
 internal sealed class PlaceSearchPageAssembler(
     PlaceResponseMapper responseMapper,
     IPlaceCoverEnrichmentQueue enrichmentQueue,
+    IOptions<GooglePlacesIntegrationOptions> googlePlacesOptions,
+    IExternalPlaceCallPolicy externalCallPolicy,
     ProhibitedPlaceNameFilter prohibitedPlaceNameFilter)
 {
     internal PlaceSearchPageDto FromPlaces(IReadOnlyCollection<Place> places, PlaceSearchRequest request)
@@ -27,7 +30,7 @@ internal sealed class PlaceSearchPageAssembler(
     private PlaceSearchPageDto FromSummaries(IReadOnlyList<PlaceSummaryDto> items, PlaceSearchRequest request)
     {
         var page = ToPage(items, request);
-        if (request.Take is null)
+        if (request.Take is null || !externalCallPolicy.AllowsBillableCalls)
         {
             return page;
         }
@@ -37,6 +40,7 @@ internal sealed class PlaceSearchPageAssembler(
                 string.IsNullOrWhiteSpace(item.CoverImageUrl)
                 || item.Features.Count == 0)
             .Select(item => item.Id)
+            .Take(Math.Clamp(googlePlacesOptions.Value.MaxBackgroundEnrichmentsPerPage, 0, 10))
             .ToArray();
         if (missingCovers.Length > 0)
         {

@@ -9,6 +9,7 @@ namespace Zuppeto.Infrastructure.GooglePlaces;
 internal sealed class GooglePlacesSuggestionProvider(
     HttpClient httpClient,
     IOptions<GooglePlacesOptions> options,
+    IExternalPlaceCallPolicy externalPlaceCallPolicy,
     ILogger<GooglePlacesSuggestionProvider> logger)
     : IExternalPlaceSuggestionProvider, IExternalPlaceDetailsProvider
 {
@@ -23,6 +24,11 @@ internal sealed class GooglePlacesSuggestionProvider(
         PlaceExternalSearchRequest request,
         CancellationToken cancellationToken = default)
     {
+        if (!externalPlaceCallPolicy.AllowsBillableCalls)
+        {
+            return [];
+        }
+
         if (!TryGetApiKey(requireDiscoveryEnabled: true, out var apiKey))
         {
             return [];
@@ -82,6 +88,11 @@ internal sealed class GooglePlacesSuggestionProvider(
         string googlePlaceId,
         CancellationToken cancellationToken = default)
     {
+        if (!externalPlaceCallPolicy.AllowsBillableCalls)
+        {
+            return null;
+        }
+
         if (!TryGetApiKey(requireDiscoveryEnabled: false, out var apiKey))
         {
             return null;
@@ -93,42 +104,27 @@ internal sealed class GooglePlacesSuggestionProvider(
             return null;
         }
 
-        PlaceExternalDetailsDto? fromNew = null;
-        if (!newPlacesApiDisabled)
+        if (googleOptions.UseNewApi && !newPlacesApiDisabled)
         {
-            fromNew = await TryGetDetailsFromNewApiAsync(placeId, apiKey, cancellationToken);
-        }
-
-        var fromLegacy = await TryGetDetailsFromLegacyApiAsync(placeId, apiKey, cancellationToken);
-        if (fromLegacy is not null && HasPhoto(fromLegacy))
-        {
-            if (fromNew is null)
+            var fromNew = await TryGetDetailsFromNewApiAsync(placeId, apiKey, cancellationToken);
+            if (fromNew is not null)
             {
-                return fromLegacy;
+                return fromNew;
             }
-
-            return fromNew with
-            {
-                PhotoReference = fromLegacy.PhotoReference,
-                PhotoAttribution = fromLegacy.PhotoAttribution ?? fromNew.PhotoAttribution,
-                PhotoSourceUri = fromLegacy.PhotoSourceUri ?? fromNew.PhotoSourceUri,
-                ExtraPhotoReferences = fromLegacy.ExtraPhotoReferences,
-                Types = fromNew.Types is { Count: > 0 } ? fromNew.Types : fromLegacy.Types,
-                PrimaryType = fromNew.PrimaryType ?? fromLegacy.PrimaryType,
-                PrimaryTypeDisplayName = fromNew.PrimaryTypeDisplayName ?? fromLegacy.PrimaryTypeDisplayName
-            };
         }
 
-        return fromNew ?? fromLegacy;
+        return await TryGetDetailsFromLegacyApiAsync(placeId, apiKey, cancellationToken);
     }
-
-    private static bool HasPhoto(PlaceExternalDetailsDto details) =>
-        details.PhotoReferenceCandidates().Any();
 
     public async Task<byte[]?> DownloadPhotoAsync(
         string photoReferenceOrName,
         CancellationToken cancellationToken = default)
     {
+        if (!externalPlaceCallPolicy.AllowsBillableCalls)
+        {
+            return null;
+        }
+
         if (!TryGetApiKey(requireDiscoveryEnabled: false, out var apiKey))
         {
             return null;
