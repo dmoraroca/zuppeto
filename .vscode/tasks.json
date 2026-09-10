@@ -162,10 +162,10 @@
     {
       "label": "open Web + Swagger",
       "type": "shell",
-      "command": "setsid -f /var/lib/flatpak/exports/bin/com.google.Chrome --new-window --user-data-dir=/tmp/chrome-zuppeto-f5 --no-first-run http://localhost:4200 http://localhost:5211/swagger/index.html",
+      "command": "bash \"${workspaceFolder}/scripts/open-development-pages.sh\"",
       "problemMatcher": [],
       "presentation": {
-        "reveal": "silent",
+        "reveal": "never",
         "panel": "dedicated",
         "showReuseMessage": false,
         "close": true

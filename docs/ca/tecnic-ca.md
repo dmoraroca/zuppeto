@@ -485,6 +485,10 @@ La tasca `fix backend build perms` (`scripts/fix-backend-build-perms-for-ide.sh`
 
 Des del 2026-09-10, el build local de VS Code força `-m:1` i `Directory.Build.props` desactiva `BuildInParallel` només a l'host. MSBuild 18 podia acabar silenciosament amb `Build FAILED`, `0 errors` i `0 warnings` durant l'avaluació paral·lela dels projectes sobre aquest filesystem. Docker conserva la compilació paral·lela perquè usa `/tmp/zuppeto-build`. Els paquets de Data Protection i `System.Security.Cryptography.Xml` s'han alineat a `10.0.12`; així F5 torna a compilar amb `0 errors` i `0 warnings` de vulnerabilitat.
 
+`scripts/docker-up-all.sh` no força la recreació de l'API a cada F5. Reutilitza els serveis actius i compara els fitxers del backend amb l'assembly carregat: només reinicia i recompila l'API quan detecta canvis reals. Això també conserva `vsdbg` dins del contenidor. Angular continua en watch i reutilitza el contenidor web.
+
+Quan Web i API ja responen, la tasca `open Web + Swagger` executa `scripts/open-development-pages.sh`. El script usa `xdg-open` perquè F5 obri `http://localhost:4200` i `http://localhost:5211/swagger/index.html` amb el navegador predeterminat del sistema, sense lligar el projecte a Chrome Flatpak ni a un perfil temporal.
+
 Scripts manuals: `scripts/fix-backend-perms-after-docker.sh` i `scripts/fix-backend-dotnet-permissions.sh`.
 
 ## 3. Arquitectura aplicada
