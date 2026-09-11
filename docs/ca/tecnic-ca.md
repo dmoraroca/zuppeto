@@ -487,7 +487,7 @@ Des del 2026-09-10, el build local de VS Code força `-m:1` i `Directory.Build.p
 
 `scripts/docker-up-all.sh` no força la recreació de l'API a cada F5. Reutilitza els serveis actius i compara els fitxers del backend amb l'assembly carregat: només reinicia i recompila l'API quan detecta canvis reals. Això també conserva `vsdbg` dins del contenidor. Angular continua en watch i reutilitza el contenidor web.
 
-Quan Web i API ja responen, la tasca `open Web + Swagger` executa `scripts/open-development-pages.sh`. El script usa `xdg-open` perquè F5 obri `http://localhost:4200` i `http://localhost:5211/swagger/index.html` amb el navegador predeterminat del sistema, sense lligar el projecte a Chrome Flatpak ni a un perfil temporal.
+Quan Web i API ja responen, la tasca `open Web + Swagger` executa `scripts/open-development-pages.sh`. El script resol l'aplicació d'escriptori predeterminada i l'obre amb `gtk-launch`; si no està disponible, usa `xdg-open` com a alternativa. Així F5 obre `http://localhost:4200` i `http://localhost:5211/swagger/index.html` també quan el navegador predeterminat és una aplicació Flatpak, sense lligar el projecte a Chrome ni a un perfil temporal.
 
 Scripts manuals: `scripts/fix-backend-perms-after-docker.sh` i `scripts/fix-backend-dotnet-permissions.sh`.
 

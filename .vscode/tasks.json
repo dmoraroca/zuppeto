@@ -165,7 +165,7 @@
       "command": "bash \"${workspaceFolder}/scripts/open-development-pages.sh\"",
       "problemMatcher": [],
       "presentation": {
-        "reveal": "never",
+        "reveal": "silent",
         "panel": "dedicated",
         "showReuseMessage": false,
         "close": true
