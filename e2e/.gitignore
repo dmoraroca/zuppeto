@@ -4,3 +4,5 @@ blob-report/
 .playwright/
 .cache/ms-playwright/
 node_modules/
+.runner-build/
+.runs/

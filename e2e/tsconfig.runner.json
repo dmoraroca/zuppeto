@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "rootDir": ".",
+    "outDir": ".runner-build",
+    "strict": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "types": ["node"]
+  },
+  "include": [
+    "domain/**/*.ts",
+    "application/**/*.ts",
+    "ports/**/*.ts",
+    "infrastructure/persistence/**/*.ts",
+    "infrastructure/simulation/**/*.ts",
+    "runner/**/*.ts",
+    "tests/runner/**/*.ts"
+  ],
+  "exclude": ["node_modules", ".runner-build"]
+}
