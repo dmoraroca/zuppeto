@@ -8,6 +8,7 @@ test('pilot catalog contains exactly the three approved scenarios with protected
     'ZUP-001-SENSE-SESSIO-principal', 'ZUP-073-USER-principal', 'ZUP-115-DEVELOPER-principal'
   ]);
   assert.ok(pilotScenarios.every((scenario) => scenario.key.browser === 'Chrome' && scenario.key.scenarioId === 'principal'));
+  assert.deepEqual(pilotScenarios.map((scenario) => scenario.role), ['SENSE_SESSIO', 'USER', 'DEVELOPER']);
 });
 
 test('pilot diagnostics remove credentials and query strings before persistence', () => {

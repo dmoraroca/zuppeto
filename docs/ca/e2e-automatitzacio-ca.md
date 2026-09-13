@@ -2,7 +2,7 @@
 
 ## Estat, abast i accés
 
-**Estat:** Fases 1, 2 i 3 validades. El pilot Chrome real, el resume després d'una interrupció real i la revalidació neta dels tres ZUP han passat. No s'ha iniciat cap fase posterior.
+**Estat:** Fases 1, 2, 3 i 4 validades. El pilot Chrome real consumeix sessions, factories, adapters i cleanup generalitzats; no s'ha iniciat Chrome complet ni cap altre navegador o CI.
 **Principi rector:** Codex construeix i manté la infraestructura; Playwright, invocat des del terminal o CI, executa les tirades llargues de forma autònoma.
 
 Aquest és el document viu de l'automatització E2E. Qualsevol decisió material, canvi d'estructura, navegador incorporat o resultat de validació l'ha d'actualitzar.
@@ -25,7 +25,7 @@ Consultar la documentació no concedeix permisos d'execució, escriptura sobre l
 | Fase 1 — Runner base amb simulació interna | PASS | Completada el 2026-09-13 amb persistència, resume i simulació interna determinista. No s'ha connectat cap sistema real. |
 | Fase 2 — Sincronització Excel temporal i idempotència | PASS | Completada el 2026-09-13; migració estructural validada sense execucions E2E reals. |
 | Fase 3 — Pilot amb ZUP reals | PASS | Interrupció/resume real, cleanup i tirada final neta de ZUP-001, ZUP-073 i ZUP-115 validats el 2026-09-13. |
-| Fase 4 — Fixtures, dades i cleanup | NO INICIADA | Posterior al pilot. |
+| Fase 4 — Fixtures, dades i cleanup | PASS | Completada el 2026-09-13; sessions per rol, identitats temporals, factories, adapters, cleanup i restauració validats. |
 | Fases de navegadors i CI | NO INICIADES | Chrome, Firefox, WebKit, Edge i CI segons els gates aprovats. |
 
 ---
@@ -262,7 +262,7 @@ DDD i SOLID s'apliquen on separen responsabilitats reals: escenaris, tirades, ex
     e2e/
       scenarios/                 # comportament funcional ZUP
       domain/                    # identitats, resultats i invariants
-      application/               # iniciar, reprendre, seleccionar, finalitzar
+      application/               # iniciar, reprendre, fixtures, cleanup i finalitzar
       ports/                     # contractes
       infrastructure/
         playwright/              # executor, reporter, diagnòstic
@@ -271,10 +271,6 @@ DDD i SOLID s'apliquen on separen responsabilitats reals: escenaris, tirades, ex
         excel/                   # resolució, protecció, escriptura
         persistence/             # JSON, JSONL, artefactes
         config/                  # configuració no secreta
-      test-support/
-        fixtures/
-        factories/
-        builders/
       runner/                    # CLI, ordre, resume, ETA, resum
       scripts/                   # entrades npm
       tests/
@@ -606,6 +602,54 @@ La validació final ha inclòs una interrupció real del procés Node `pilot-cli
 La tirada completa final neta `sim-20260913T115044005Z-76067d9f` ha finalitzat amb ZUP-001 PASS (7.560 ms), ZUP-073 PASS (11.836 ms) i ZUP-115 PASS (10.384 ms): 0 retries, 0 FAIL, 0 BLOCKED i 0 INTERRUPTED. El cleanup de ZUP-073 conserva només els dos favorits preexistents del compte USER E2E i no deixa el favorit temporal. `npm run runner:test` ha finalitzat amb 6 fitxers PASS i 0 FAIL.
 
 L'historial **Execucions E2E** conté 32 execucions tècniques, sense `executionId` duplicats. Les 178 files MANUAL continuen protegides sense cap canvi. S'ha verificat que els secrets E2E no apareixen a Git, documentació, `.runs`, Excel ni als historials locals de shell examinats. **Estat: PASS — Fase 3 completada el 2026-09-13.**
+
+## Fase 4 — Fixtures, comptes, factories i cleanup generalitzats
+
+La Fase 4 generalitza incrementalment la infraestructura del pilot sense ampliar el catàleg, executar Chrome complet, afegir navegadors ni preparar CI. Els tres escenaris aprovats continuen sent ZUP-001, ZUP-073 i ZUP-115.
+
+Com a comprovació retrospectiva de la precondició, el commit base exacte `afb0ea1920b5edf535eadfba63719196c4ddd252` s'ha exportat a una còpia temporal, amb Excel temporal i configuració local enllaçada sense copiar secrets. El run `sim-20260913T202250169Z-3b8ffc8e` ha donat els tres pilots PASS, tots en intent 1, sense alterar el worktree ni l'Excel principal.
+
+### Fixtures i comptes
+
+`RoleSessionFixture` implementa un cicle uniforme per a `SENSE_SESSIO`, `USER`, `ADMIN`, `DEVELOPER` i `VIEWER`. Cada escenari rep un context de navegador nou, comença esborrant cookies, `localStorage` i `sessionStorage`, i, si és autenticat, obté una sessió nova per API, en valida el rol i instal·la només la sessió necessària al navegador. Els escenaris no llegeixen credencials ni coneixen l'endpoint de login.
+
+La inspecció de només lectura de la base local confirma un compte dedicat per a USER E2E, DEVELOPER E2E i VIEWER E2E. No existeix un ADMIN E2E dedicat i el compte admin de desenvolupament general no es reutilitza. Abans d'executar ZUP ADMIN cal crear, fora de la suite funcional, un compte amb correu inequívocament E2E, rol Admin i contrasenya aleatòria emmagatzemada només al fitxer local; després s'han d'afegir `E2E_ADMIN_EMAIL` i `E2E_ADMIN_PASSWORD` localment. La creació requereix una operació administrativa explícitament autoritzada i no ha de modificar cap compte humà.
+
+USER i DEVELOPER estan configurats localment. VIEWER existeix però encara no té credencial configurada al fitxer E2E local; la fixture queda disponible i falla de manera segura si s'intenta usar un rol no configurat. ADMIN queda bloquejat per absència de compte dedicat i credencial local.
+
+### Dades, factories i adapters
+
+`TestDataIdentityFactory` aplica la convenció exacta `E2E-<ZUP>-<ROL>-<runId>-<suffix>`, valida cada segment i evita patrons o identificadors ambigus. `UserDraftBuilder` i `PlaceDraftBuilder` produeixen esborranys vàlids i traçables per als futurs ZUP que realment hagin de crear aquestes entitats. No s'han connectat encara a endpoints administratius perquè falta l'ADMIN E2E dedicat i fer-ho ara no aportaria una execució segura.
+
+`FavoriteFactory` crea la relació exacta usuari-lloc necessària per ZUP-073, hi associa la traça de l'execució i registra el cleanup immediatament. Reutilitza un lloc de catàleg que no era favorit i no modifica ni elimina el lloc. Preferències i notificacions són actualment estat aïllat del navegador, no entitats persistides amb API de preparació; no s'hi han afegit factories artificials. Quan un ZUP en necessiti dades persistents, s'hi afegirà el port corresponent.
+
+La `FavoriteFixture` validada a la Fase 3 es conserva sense canvis funcionals com a compatibilitat, però ja no és dependència dels pilots; les noves incorporacions han d'usar els ports i la factory generalitzada.
+
+Els endpoints queden encapsulats per `AuthenticationApiAdapter`, `PlaceApiAdapter` i `FavoriteApiAdapter`, damunt del port `ApiTransport`. `PlaywrightPageApiTransport` és l'adapter exterior actual. Els escenaris només expressen comportament funcional i reben sessió, identitat, factory i cleanup preparats.
+
+### Cleanup i restauració
+
+`CleanupCoordinator` registra recursos exactes, rebutja registres duplicats, executa en ordre invers fins i tot després de FAIL, continua amb la resta si una operació falla i és idempotent. No conté DELETE per patró, prefix o propietari global. Qualsevol incidència es classifica com `CLEANUP`, se saneja i s'afegeix al registre tècnic; una incidència de cleanup sense FAIL funcional produeix BLOCKED, no un KO funcional.
+
+`OriginalStateRestorer<T>` captura una còpia de l'estat abans de modificar una dada no eliminable i registra la restauració exacta al mateix coordinador. Els tests propis demostren captura, canvi i restauració estructural exacta, així com continuació després d'un error CLEANUP.
+
+### Validació i gate
+
+`npm run runner:test` passa amb 7 fitxers, 25 tests i 0 FAIL. La cobertura nova inclou configuració local i permisos, cinc rols de sessió, compte absent, rol incorrecte, identitats i col·lisions, builders, adapters API, factory de favorits, cleanup invers/idempotent/després d'error i restauració d'estat.
+
+Amb Chrome real 153.0.8010.36-1 s'han completat quatre tirades consecutives dels tres pilots, totes amb 3 PASS, 0 FAIL, 0 BLOCKED, 0 INTERRUPTED, 0 retries i intent 1. Els `runId` validats són `sim-20260913T201453101Z-6cf04497`, `sim-20260913T201518390Z-79822fe2`, `sim-20260913T201530833Z-36678337` i `sim-20260913T201543873Z-428a550f`. També s'han executat individualment en ordre invers ZUP-115, ZUP-073 i ZUP-001, tots PASS amb intent 1.
+
+El gate posterior a la verificació explícita de sessió ha tornat a passar els tres pilots al `runId` `sim-20260913T202008684Z-ba615cf8`, també sense retries.
+
+El gate precommit final `sim-20260913T203754298Z-71feccb6` ha confirmat novament ZUP-001, ZUP-073 i ZUP-115 PASS, tots en intent 1. L'Excel principal conté 74 execucions E2E append-only i zero `executionId` duplicats.
+
+Durant el desenvolupament es van registrar divuit BLOCKED tècnics per executar Chrome Flatpak dins un sandbox que no podia assignar una instància, i tres FAIL tècnics per intentar netejar `localStorage` abans de navegar a un origen web. No s'han comptat com a repeticions de robustesa. La inicialització de l'origen es va corregir i totes les tirades reals posteriors han estat deterministes; l'historial append-only conserva aquests intents per traçabilitat.
+
+Els recomptes de favorits dedicats abans i després són idèntics: USER 2, DEVELOPER 1 i VIEWER 1. Per tant, la Fase 4 ha deixat zero dades residuals. Les 178 files MANUAL continuen intactes: 141 OK, 33 KO, 3 N/A i 1 EN CURS. Els secrets continuen en fitxers ignorats, amb permisos 600, i la comparació sense mostrar valors no detecta coincidències en Git, Excel, `.runs`, logs ni artefactes.
+
+Riscos oberts: ADMIN E2E dedicat absent; credencial VIEWER local pendent; factories administratives d'usuari i lloc encara no connectades fins disposar d'ADMIN E2E. Cap d'aquests riscos bloqueja els tres pilots actuals, però ADMIN i VIEWER són NO-GO per a ZUP autenticats fins resoldre la seva precondició.
+
+**Estat: PASS — Fase 4 completada el 2026-09-13. No s'autoritza l'inici de la Fase 5.**
 
 ## Gates
 

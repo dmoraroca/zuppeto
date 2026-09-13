@@ -19,7 +19,8 @@ export class PilotExcelReporter {
         engine: 'Blink', browserVersion: this.executor.version(), environment: this.environment, commit: this.commit,
         startedAt: record.startedAt, finishedAt: record.finishedAt, durationMs: record.durationMs, attempt: record.attempt,
         outcome: record.outcome, javascriptErrors: evidence.javascriptErrors, networkErrors: evidence.networkErrors,
-        message: record.message, evidencePaths: evidence.evidencePaths, origin: 'LOCAL'
+        message: [record.message, evidence.cleanupErrors].filter((value) => value !== '').join('\n'),
+        evidencePaths: evidence.evidencePaths, origin: 'LOCAL'
       });
       this.synced.add(record.executionId);
     }

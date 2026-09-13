@@ -15,7 +15,7 @@ export class ExecuteScenario {
     await this.store.save(running);
     const item = running.scenarios.find((value) => value.scenarioId === scenario.id.value);
     if (item === undefined) throw new Error('Running scenario was not found.');
-    const result = await this.executor.execute(scenario, item.attempt);
+    const result = await this.executor.execute(scenario, item.attempt, running.runId);
     const finishedAt = this.clock.now();
     const execution = createExecutionRecord({
       runId: RunId.from(running.runId), scenarioId: ScenarioId.from(item.scenarioId),
