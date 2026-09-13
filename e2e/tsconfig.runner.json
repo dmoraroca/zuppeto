@@ -16,6 +16,7 @@
     "application/**/*.ts",
     "ports/**/*.ts",
     "infrastructure/persistence/**/*.ts",
+    "infrastructure/excel/**/*.ts",
     "infrastructure/simulation/**/*.ts",
     "runner/**/*.ts",
     "tests/runner/**/*.ts"

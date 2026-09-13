@@ -55,7 +55,7 @@ test('simulated run continues after FAIL and BLOCKED, interrupts, resumes and pr
     };
     assert.equal(summary.status, 'completed');
     assert.equal(summary.totalAttempts, 5);
-    assert.deepEqual(summary.counts, { passed: 2, failed: 1, blocked: 1, interrupted: 1 });
+    assert.deepEqual(summary.counts, { passed: 2, failed: 1, blocked: 1, skipped: 0, interrupted: 1 });
   });
 });
 

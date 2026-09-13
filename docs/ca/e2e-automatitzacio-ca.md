@@ -2,7 +2,7 @@
 
 ## Estat, abast i accés
 
-**Estat:** Fase 1 del runner base validada amb simulació interna; les fases que connecten amb Excel, Playwright o serveis reals continuen pendents.
+**Estat:** Fases 1 i 2 validades: runner intern i sincronització Excel segura. Les fases amb ZUP reals, Playwright o serveis reals continuen pendents.
 **Principi rector:** Codex construeix i manté la infraestructura; Playwright, invocat des del terminal o CI, executa les tirades llargues de forma autònoma.
 
 Aquest és el document viu de l'automatització E2E. Qualsevol decisió material, canvi d'estructura, navegador incorporat o resultat de validació l'ha d'actualitzar.
@@ -23,7 +23,7 @@ Consultar la documentació no concedeix permisos d'execució, escriptura sobre l
 | Readiness | PASS | Validació realitzada i reclassificada per fase. |
 | Fase 0 — Neteja del llegat E2E | PASS | Completada el 2026-09-13; artefactes antics eliminats. |
 | Fase 1 — Runner base amb simulació interna | PASS | Completada el 2026-09-13 amb persistència, resume i simulació interna determinista. No s'ha connectat cap sistema real. |
-| Fase 2 — Excel temporal i idempotència | NO INICIADA | Posterior a la Fase 1. |
+| Fase 2 — Sincronització Excel temporal i idempotència | PASS | Completada el 2026-09-13; migració estructural validada sense execucions E2E reals. |
 | Fase 3 — Pilot amb ZUP reals | NO INICIADA | Posterior a Excel; valida el circuit vertical abans de les fixtures completes. |
 | Fase 4 — Fixtures, dades i cleanup | NO INICIADA | Posterior al pilot. |
 | Fases de navegadors i CI | NO INICIADES | Chrome, Firefox, WebKit, Edge i CI segons els gates aprovats. |
@@ -119,7 +119,7 @@ Els resultats manuals són intocables:
 - no es reinterpreten com E2E;
 - els resultats manuals existents de Chrome no es toquen.
 
-S'incorporaran controladament:
+S'han incorporat controladament:
 
 - **Id escenari**: identificador estable; el valor habitual inicial serà principal.
 - **Origen resultat**: MANUAL, E2E o buit mentre no hi hagi resultat.
@@ -136,13 +136,13 @@ Un PASS E2E elegible pot convertir PENDENT en OK; un FAIL E2E elegible, en KO; e
 
 Cada intent automàtic hi genera una fila append-only, fins i tot si és Chrome i la fila de Proves està protegida com a manual.
 
-Cada registre ha d'incloure com a mínim:
+L'estructura vigent conté exactament:
 
-- runId, identificador d'execució, ZUP, id escenari, rol i variant;
+- runId, executionId, id escenari, codi prova, rol i variant;
 - navegador, motor i versió real;
 - entorn, commit, inici, final, durada i intent;
-- resultat, missatge, errors JavaScript i xarxa;
-- evidències, estat de sincronització i referència de revalidació.
+- resultat tècnic, errors JavaScript, errors HTTP/xarxa i missatge;
+- evidències/rutes relatives, SyncStatus, origen Local/CI i referència de revalidació.
 
 No desa fitxers binaris; només resums i rutes relatives.
 
@@ -563,6 +563,25 @@ La Fase 1 finalitza quan una tirada simulada:
 La persistència queda sota `e2e/.runs/<runId>/` i és ignorada per Git: `state.json` s'escriu atòmicament, `executions.jsonl` és append-only i `summary.json` consolida el resultat. Les proves pròpies del runner validen identificadors, transicions, ETA, escriptura atòmica, idempotència del diari, continuïtat després de FAIL/BLOCKED i recuperació d'una execució interrompuda. La comanda `npm run runner:test` ha passat sense errors.
 
 Fora d'aquesta fase i encara **no implementat**: Playwright, navegadors, UI, API, base de dades, Excel real, ZUP reals, autenticació, secrets, fixtures, dades, cleanup, reporter d'evidències, CI i paral·lelisme.
+
+## Fase 2 — Sincronització Excel temporal i idempotència
+
+La Fase 2 implementa l'adaptador d'Excel sense executar Playwright, cap navegador, ZUP funcional real, servei extern ni fixture. L'adaptador queda separat en `ExcelRowResolver`, `ExcelWorkbookSync`, bloqueig d'escriptura i escriptor atòmic; l'aplicació en depèn mitjançant el port `ExcelSyncGateway`.
+
+Abans de la migració s'ha creat el backup estructural `BACKUPS/20260913-003-MAIN_PROBES_ZUPETTO-abans-fase-ii.xlsx`, verificat amb SHA-256 `d1ccb4bc61c78dcc1382aefb02be9616d5750e323f5d6302e40c22a353474093`. La migració només ha afegit a **Proves** `Id escenari` i `Origen resultat`:
+
+- les 1.062 files de prova tenen `Id escenari = principal`;
+- els 178 resultats històrics no pendents (141 OK, 33 KO, 3 N/A i 1 EN CURS) tenen `Origen resultat = MANUAL`;
+- les 884 files PENDENT mantenen l'origen buit;
+- les 14 columnes originals, inclosos Resultat, Data, Observacions i camps de correcció, s'han mantingut idèntiques cel·la a cel·la.
+
+**Execucions E2E** manté zero execucions reals i una única fila de 23 capçaleres tècniques. `executionId` és la clau d'idempotència: si ja existeix, no s'afegeix cap fila ni es torna a tocar Proves. PASS i FAIL només poden actualitzar una fila PENDENT única i elegible; BLOCKED, SKIP i INTERRUPTED només s'inscriuen a l'historial tècnic. Una clau absent o ambigua no modifica Proves i queda identificada com a error d'integritat.
+
+L'escriptura adquireix un lock exclusiu, desa a un fitxer temporal, reobre el temporal per validar-lo i el substitueix atòmicament. Si aquesta operació falla, el resultat retorna `NOT_SYNCED`; el diari `executions.jsonl` continua sent la font recuperable. Una resincronització posterior pot registrar-lo com `SYNCED` sense duplicar-lo.
+
+**Estat: PASS — completada el 2026-09-13.** La validació s'ha executat íntegrament sobre còpies temporals de l'Excel i cobreix: protecció MANUAL, EN CURS i resultats històrics; PASS→OK/E2E; FAIL→KO/E2E; BLOCKED/SKIP/INTERRUPTED sense canvi a Proves; append de l'historial; idempotència per executionId; clau absent o ambigua; error d'escriptura amb JSONL intacte; i resincronització posterior. `npm run runner:test` ha finalitzat amb 5 fitxers de prova PASS i 0 FAIL.
+
+No s'ha iniciat la Fase 3. No hi ha cap execució E2E fictícia o real a l'Excel després de la migració.
 
 ## Gates
 

@@ -1,4 +1,4 @@
-export const technicalOutcomes = ['passed', 'failed', 'blocked', 'interrupted'] as const;
+export const technicalOutcomes = ['passed', 'failed', 'blocked', 'skipped', 'interrupted'] as const;
 
 export type TechnicalOutcome = (typeof technicalOutcomes)[number];
 export type ScenarioStatus = 'planned' | 'running' | TechnicalOutcome;
