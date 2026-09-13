@@ -6,3 +6,4 @@ blob-report/
 node_modules/
 .runner-build/
 .runs/
+.env.e2e.local

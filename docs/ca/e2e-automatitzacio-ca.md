@@ -2,7 +2,7 @@
 
 ## Estat, abast i accés
 
-**Estat:** Fases 1 i 2 validades: runner intern i sincronització Excel segura. Les fases amb ZUP reals, Playwright o serveis reals continuen pendents.
+**Estat:** Fases 1, 2 i 3 validades. El pilot Chrome real, el resume després d'una interrupció real i la revalidació neta dels tres ZUP han passat. No s'ha iniciat cap fase posterior.
 **Principi rector:** Codex construeix i manté la infraestructura; Playwright, invocat des del terminal o CI, executa les tirades llargues de forma autònoma.
 
 Aquest és el document viu de l'automatització E2E. Qualsevol decisió material, canvi d'estructura, navegador incorporat o resultat de validació l'ha d'actualitzar.
@@ -24,7 +24,7 @@ Consultar la documentació no concedeix permisos d'execució, escriptura sobre l
 | Fase 0 — Neteja del llegat E2E | PASS | Completada el 2026-09-13; artefactes antics eliminats. |
 | Fase 1 — Runner base amb simulació interna | PASS | Completada el 2026-09-13 amb persistència, resume i simulació interna determinista. No s'ha connectat cap sistema real. |
 | Fase 2 — Sincronització Excel temporal i idempotència | PASS | Completada el 2026-09-13; migració estructural validada sense execucions E2E reals. |
-| Fase 3 — Pilot amb ZUP reals | NO INICIADA | Posterior a Excel; valida el circuit vertical abans de les fixtures completes. |
+| Fase 3 — Pilot amb ZUP reals | PASS | Interrupció/resume real, cleanup i tirada final neta de ZUP-001, ZUP-073 i ZUP-115 validats el 2026-09-13. |
 | Fase 4 — Fixtures, dades i cleanup | NO INICIADA | Posterior al pilot. |
 | Fases de navegadors i CI | NO INICIADES | Chrome, Firefox, WebKit, Edge i CI segons els gates aprovats. |
 
@@ -581,7 +581,31 @@ L'escriptura adquireix un lock exclusiu, desa a un fitxer temporal, reobre el te
 
 **Estat: PASS — completada el 2026-09-13.** La validació s'ha executat íntegrament sobre còpies temporals de l'Excel i cobreix: protecció MANUAL, EN CURS i resultats històrics; PASS→OK/E2E; FAIL→KO/E2E; BLOCKED/SKIP/INTERRUPTED sense canvi a Proves; append de l'historial; idempotència per executionId; clau absent o ambigua; error d'escriptura amb JSONL intacte; i resincronització posterior. `npm run runner:test` ha finalitzat amb 5 fitxers de prova PASS i 0 FAIL.
 
-No s'ha iniciat la Fase 3. No hi ha cap execució E2E fictícia o real a l'Excel després de la migració.
+La Fase 3 només pot registrar execucions reals a l'historial; no introdueix cap execució fictícia a l'Excel.
+
+## Fase 3 — Pilot Playwright real
+
+Els pilots seleccionats són ZUP-001 (Sense sessió, accés a `/login`), ZUP-073 (USER, eliminar un favorit de la graella amb cleanup) i ZUP-115 (DEVELOPER, accés denegat a `/admin/usuaris`). Les tres files Chrome de **Proves** ja eren `OK` amb origen `MANUAL`; el sincronitzador només escriu l'historial **Execucions E2E** i les manté protegides.
+
+La infraestructura del pilot separa el catàleg d'escenaris, configuració local ignorada, executor Chrome real, diagnòstic sanejat, evidències, reporter i sincronització Excel. Les credencials de USER i DEVELOPER E2E es restableixen fora del repositori i només es llegeixen des d'un fitxer local ignorat amb permisos restrictius. No es persisteixen en Git, Excel, JSONL, logs, traces ni artefactes.
+
+Ordres preparades:
+
+    npm run e2e:pilot
+    npm run e2e:pilot -- --scenario=ZUP-001-SENSE-SESSIO-principal --headed
+    npm run e2e:pilot:resume -- --run-id=<runId>
+
+**Estat: NO-GO — 2026-09-13.** Google Chrome real 153.0.8010.36 s'ha executat en mode visible per ZUP-001. La primera tirada completa ha donat ZUP-001 PASS, ZUP-073 FAIL i ZUP-115 PASS. El diagnòstic de ZUP-073 ha confirmat que el producte eliminava correctament el favorit objectiu: el test esperava incorrectament una llista completament buida, tot i que el requisit només exigeix que desaparegui aquell lloc.
+
+La correcció controlada de ZUP-073 prepara un favorit que no existia prèviament mitjançant l'API autenticada del context E2E, en verifica l'existència, l'identifica per `data-place-id`, el desmarca des de la graella de Favorits i verifica que desapareix aquesta targeta concreta. El cleanup només elimina aquest favorit gestionat i en comprova l'absència; no toca els favorits preexistents del compte E2E.
+
+Durant l'ajust inicial de la fixture es van registrar quatre FAIL tècnics per una ruta API incompleta (`404`) abans d'arribar a l'acció funcional. Es va corregir només la construcció de la ruta dins la fixture. Després, una execució normal i tres repeticions equivalents de ZUP-073 han acabat en PASS, sense retries: 13.972 ms, 13.228 ms, 11.819 ms i 12.833 ms. El cleanup ha deixat només els dos favorits previs del compte, tots dos creats abans del pilot; el favorit objectiu no roman a la BD.
+
+La validació final ha inclòs una interrupció real del procés Node `pilot-cli.js` amb `SIGKILL`, no una simulació d'estat. Al run `sim-20260913T114829506Z-1518f832`, ZUP-001 va acabar PASS amb `a01`; ZUP-073 va quedar persistit en `running` amb `a01`; i ZUP-115 va quedar en `planned`. El resume va inscriure `a01` com `INTERRUPTED`, va reexecutar ZUP-073 amb `a02` PASS i va executar ZUP-115 amb `a01` PASS, sense repetir ZUP-001 ni duplicar cap `executionId`. El resum del run és coherent: 3 PASS i 1 intent INTERRUPTED.
+
+La tirada completa final neta `sim-20260913T115044005Z-76067d9f` ha finalitzat amb ZUP-001 PASS (7.560 ms), ZUP-073 PASS (11.836 ms) i ZUP-115 PASS (10.384 ms): 0 retries, 0 FAIL, 0 BLOCKED i 0 INTERRUPTED. El cleanup de ZUP-073 conserva només els dos favorits preexistents del compte USER E2E i no deixa el favorit temporal. `npm run runner:test` ha finalitzat amb 6 fitxers PASS i 0 FAIL.
+
+L'historial **Execucions E2E** conté 32 execucions tècniques, sense `executionId` duplicats. Les 178 files MANUAL continuen protegides sense cap canvi. S'ha verificat que els secrets E2E no apareixen a Git, documentació, `.runs`, Excel ni als historials locals de shell examinats. **Estat: PASS — Fase 3 completada el 2026-09-13.**
 
 ## Gates
 

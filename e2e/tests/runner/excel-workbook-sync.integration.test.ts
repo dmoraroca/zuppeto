@@ -9,7 +9,7 @@ import { headerIndex, stringValue } from '../../infrastructure/excel/excel-row-r
 import type { ExcelExecution } from '../../ports/excel-sync-gateway.js';
 import { withTemporaryDirectory } from './test-support.js';
 
-const sourceWorkbook = resolve(process.cwd(), '../docs/probes-e2e/probes-pagines/MAIN_PROBES_ZUPETTO.xlsx');
+const sourceWorkbook = resolve(process.cwd(), '../docs/probes-e2e/probes-pagines/BACKUPS/20260913-003-MAIN_PROBES_ZUPETTO-abans-fase-ii.xlsx');
 
 interface ProvesRow {
   readonly rowNumber: number;

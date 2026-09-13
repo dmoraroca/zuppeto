@@ -11,7 +11,9 @@
     "runner:test": "npm run runner:build && node --test .runner-build/tests/runner/**/*.test.js",
     "runner:simulate": "npm run runner:build && node .runner-build/runner/cli.js simulate",
     "runner:resume": "npm run runner:build && node .runner-build/runner/cli.js resume",
-    "excel:migrate": "npm run runner:build && node .runner-build/runner/excel-migrate-cli.js"
+    "excel:migrate": "npm run runner:build && node .runner-build/runner/excel-migrate-cli.js",
+    "e2e:pilot": "npm run runner:build && node .runner-build/runner/pilot-cli.js",
+    "e2e:pilot:resume": "npm run runner:build && node .runner-build/runner/pilot-cli.js --resume"
   },
   "devDependencies": {
     "@playwright/test": "^1.53.0",
