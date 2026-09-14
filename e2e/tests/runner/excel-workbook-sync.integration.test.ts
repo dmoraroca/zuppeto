@@ -140,6 +140,21 @@ test('eligible PENDENT rows translate PASS to OK/E2E and FAIL to KO/E2E', async 
   });
 });
 
+test('a later E2E revalidation updates the current result while preserving append-only history', async () => {
+  await withMigratedWorkbook(async (path) => {
+    const row = pick(await readProvesRows(path), 'PENDENT');
+    const service = new ExcelWorkbookSync(path);
+    assert.equal((await service.synchronize(execution(row, 'revalidation-fail', 'failed'))).status, 'SYNCED');
+    assert.equal((await service.synchronize(execution(row, 'revalidation-pass', 'passed'))).status, 'SYNCED');
+    const current = (await readProvesRows(path)).find((item) => item.rowNumber === row.rowNumber)!;
+    assert.equal(current.result, 'OK');
+    assert.equal(current.origin, 'E2E');
+    assert.match(current.observations, /revalidation-fail/);
+    assert.match(current.observations, /revalidation-pass/);
+    assert.equal((await executionRows(path)).length, 2);
+  });
+});
+
 test('BLOCKED, SKIP and INTERRUPTED append technical history but never alter Proves', async () => {
   await withMigratedWorkbook(async (path) => {
     const before = await readProvesRows(path);

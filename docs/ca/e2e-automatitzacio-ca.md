@@ -2,7 +2,7 @@
 
 ## Estat, abast i accés
 
-**Estat:** Fases 1, 2, 3 i 4 validades. El pilot Chrome real consumeix sessions, factories, adapters i cleanup generalitzats; no s'ha iniciat Chrome complet ni cap altre navegador o CI.
+**Estat:** Fases 1–5 validades. La cobertura completa de Google Chrome real està implementada i té una regressió final neta; no s'ha iniciat cap altre navegador, CI ni Fase 6.
 **Principi rector:** Codex construeix i manté la infraestructura; Playwright, invocat des del terminal o CI, executa les tirades llargues de forma autònoma.
 
 Aquest és el document viu de l'automatització E2E. Qualsevol decisió material, canvi d'estructura, navegador incorporat o resultat de validació l'ha d'actualitzar.
@@ -26,7 +26,8 @@ Consultar la documentació no concedeix permisos d'execució, escriptura sobre l
 | Fase 2 — Sincronització Excel temporal i idempotència | PASS | Completada el 2026-09-13; migració estructural validada sense execucions E2E reals. |
 | Fase 3 — Pilot amb ZUP reals | PASS | Interrupció/resume real, cleanup i tirada final neta de ZUP-001, ZUP-073 i ZUP-115 validats el 2026-09-13. |
 | Fase 4 — Fixtures, dades i cleanup | PASS | Completada el 2026-09-13; sessions per rol, identitats temporals, factories, adapters, cleanup i restauració validats. |
-| Fases de navegadors i CI | NO INICIADES | Chrome, Firefox, WebKit, Edge i CI segons els gates aprovats. |
+| Fase 5 — Cobertura completa Google Chrome | PASS | 177 escenaris executats: 172 PASS, 5 SKIP justificats, 0 FAIL/BLOCKED/retries. |
+| Altres navegadors i CI | NO INICIATS | Firefox, WebKit, Edge i CI queden fora de l'abast i requereixen autorització. |
 
 ---
 
@@ -650,6 +651,102 @@ Els recomptes de favorits dedicats abans i després són idèntics: USER 2, DEVE
 Riscos oberts: ADMIN E2E dedicat absent; credencial VIEWER local pendent; factories administratives d'usuari i lloc encara no connectades fins disposar d'ADMIN E2E. Cap d'aquests riscos bloqueja els tres pilots actuals, però ADMIN i VIEWER són NO-GO per a ZUP autenticats fins resoldre la seva precondició.
 
 **Estat: PASS — Fase 4 completada el 2026-09-13. No s'autoritza l'inici de la Fase 5.**
+
+## Fase 5 — Cobertura completa Google Chrome
+
+La Fase 5 parteix del checkpoint `f0b600112295c082ffc79ea2d72189404c9a31cc` i amplia incrementalment la infraestructura validada, sense substituir runner, Excel, fixtures ni pilots. Google Chrome real 153.0.8010.36-1 és l'únic navegador executat.
+
+### Inventari i blocs
+
+El full **Proves** conté 177 files Chrome, 153 ZUP únics i 177 escenaris reals. L'inventari congelat en codi conserva ZUP, ScenarioId, rol, variant, pantalla, passos, resultat esperat, precondicions, fixture, dades, cleanup, tags, dependències i risc. Hi ha 172 escenaris automatitzables i 5 exclusions explícites:
+
+- ZUP-016: login OAuth complet, classificat `EXTERNAL` perquè requereix un proveïdor extern real;
+- ZUP-021: `SPECIFICATION`, perquè USER no disposa del menú administratiu descrit;
+- ZUP-107: `SPECIFICATION`, perquè VIEWER no pot crear usuaris;
+- ZUP-109: `SPECIFICATION`, perquè DEVELOPER no pot gestionar usuaris;
+- ZUP-145: `SPECIFICATION`, perquè la fila declara ADMIN però els passos descriuen USER.
+
+Els 15 blocs implementats són: autenticació (16), navegació i seguretat (19), home (11), llocs (20), detall de lloc (13), favorits (11), perfil (9), notificacions (8), ajuda i contacte (15), rols admin (5), usuaris admin (12), permisos i menús admin (11), geografia admin (12), llocs admin (5) i documentació/API/seguretat (10). 86 casos tenen dependències o risc especial declarat.
+
+### Runner Chrome i infraestructura
+
+Les ordres finals són:
+
+    npm run chrome:inventory
+    npm run chrome:accounts
+    npm run e2e:chrome
+    npm run e2e:chrome -- --block=<bloc>
+    npm run e2e:chrome -- --scenario=<ScenarioId> --headed
+    npm run e2e:chrome:resume -- --run-id=<runId>
+
+Cada escenari obre un context Chrome nou, prepara una sessió coneguda per `SENSE_SESSIO`, `USER`, `ADMIN`, `DEVELOPER` o `VIEWER`, i rep només ports/factories des del punt de composició. El runner mostra ScenarioId, progrés, percentatge, comptadors, retries, temps i ETA; persisteix estat recuperable, intents append-only i summary, i continua davant resultats terminals no satisfactoris.
+
+S'han afegit adapters i factories exactes per rols, usuaris administratius, permisos de rol, menús, països, ciutats i llocs administratius. Favorits i perfil capturen/restauren l'estat previ; notificacions conserven l'estat original del navegador. Les dades fan servir identitats `E2E-<ZUP>-<ROL>-<runId>-<suffix>` o claus derivades limitades per l'esquema. El cleanup es registra abans de les operacions sensibles, s'executa en ordre invers després de PASS o FAIL, és idempotent i només esborra IDs, claus o relacions exactes.
+
+USER, ADMIN, DEVELOPER i VIEWER disposen de comptes E2E dedicats provisionats localment. Les credencials aleatòries només són a `e2e/.env.e2e.local`, ignorat per Git i amb permisos 600; no s'ha reutilitzat ni modificat cap compte humà.
+
+### Incidències, diagnòstics i correccions
+
+Les tirades originals es conserven immutables. Els FAIL de desenvolupament s'han classificat i revalidat en noves tirades:
+
+- `TEST`: selectors accessibles, esperes de respostes asíncrones, modals i visibilitat de `<details>`;
+- `FIXTURE/DATA`: alta administrativa amb cleanup registrat abans de crear, cerca exacta a llistats paginats i precondició determinista de permisos DEVELOPER;
+- `PRODUCT`: Leaflet podia executar una animació després de destruir el mapa; s'ha desactivat `zoomAnimation` i s'han afegit noms/teclat accessibles als marcadors. Favorits ha incorporat l'ordenació funcional «Guardat més recent» exigida per Proves;
+- `SPECIFICATION/EXTERNAL`: els cinc SKIP detallats a l'inventari;
+- `INFRASTRUCTURE`: una tirada d'usuaris admin interrompuda s'ha reprès amb el mateix runId, marcant l'intent running com `INTERRUPTED`, executant un intent nou i continuant sense duplicar executionId.
+
+La dada d'usuari que va quedar després d'aquella interrupció es va identificar i eliminar per ID/correu exactes. No es va aplicar cap DELETE massiu ni es va tocar cap dada humana. Les revalidacions focalitzades i de bloc posteriors passen, inclosos els 12 casos geogràfics, els 5 casos de llocs admin i els 11 casos de permisos/menús dins la regressió final.
+
+Les traces Playwright poden contenir credencials o tokens encara que els logs estiguin redactats. L'auditoria ho va detectar en traces de FAIL locals; s'han eliminat exclusivament els `trace.zip` afectats i la política final només activa tracing en escenaris sense sessió que no introdueixen credencials. Els escenaris autenticats conserven screenshot i diagnòstic sanejat. L'auditoria posterior dona zero coincidències de secrets en Git, `.runs`, logs i Excel.
+
+### Robustesa i regressió final
+
+Els casos nous i delicats s'han executat focalitzats, després per bloc i finalment en ordre complet. ZUP-118 es va estabilitzar fixant la precondició «DEVELOPER sense accés», concedint el permís des de la UI, validant una sessió DEVELOPER nova i restaurant exactament els permisos originals. No queda cap flaky crític o obert.
+
+La primera regressió completa neta `sim-20260913T231847871Z-19e05afb` va executar 177 escenaris en 558.915 ms. Després d'endurir la política de traces, la regressió final definitiva `sim-20260913T233530302Z-6bb99abe`, sobre el codi final exacte de Fase V, ha repetit 177 escenaris i 177 intents en 395.070 ms: 172 PASS, 5 SKIP, 0 FAIL, 0 BLOCKED, 0 INTERRUPTED i 0 retries. El summary ha finalitzat en estat `completed`.
+
+`npm run runner:test` cobreix 10 grups i passa amb 0 FAIL. L'Excel conté 856 execucions E2E append-only i zero `executionId` duplicats. Les 178 files MANUAL continuen intactes: 141 OK, 33 KO, 3 N/A i 1 EN CURS.
+
+L'auditoria posterior de PostgreSQL dona zero usuaris temporals, rols, menús, països, ciutats i llocs E2E residuals. També confirma restaurats els permisos crítics originals d'Admin, Developer i User. No s'han executat Firefox, WebKit, Edge, Brave, Opera ni CI, i no s'ha fet cap commit, push, rebase o modificació de l'historial.
+
+**Estat: PASS — Fase 5 completada el 2026-09-14. No s'autoritza l'inici de la Fase 6.**
+
+## Fase 6 — Firefox
+
+La Fase 6 parteix del mateix checkpoint `f0b600112295c082ffc79ea2d72189404c9a31cc` i és incremental sobre la infraestructura encara no versionada de la Fase 5. No duplica especificacions ni handlers: Firefox carrega les mateixes 177 variants funcionals, 153 ZUP únics, fixtures, factories, adapters i cleanup de Chrome. La composició comuna rep un `BrowserTarget` i un `BrowserLauncher`; els únics punts específics són l'entrada de CLI i l'adapter de llançament.
+
+El Firefox instal·lat al sistema és 155.0, però no implementa el canal `-juggler-pipe` requerit per Playwright i, per tant, no és executable amb aquest driver. La suite usa el build oficial compatible descarregat per Playwright, Firefox 148.0.2, motor Gecko. La versió 148.0.2, `Firefox`, `Gecko`, entorn `LOCAL`, commit, runId i executionId queden registrats a totes les 563 execucions Firefox d'Excel.
+
+Les ordres finals són:
+
+    npm run e2e:firefox
+    npm run e2e:firefox -- --block=<bloc>
+    npm run e2e:firefox -- --scenario=<ScenarioId> --headed
+    npm run e2e:firefox:resume -- --run-id=<runId>
+
+Els runs Firefox viuen a `.runs/firefox`, separats dels runs Chrome. Aquesta partició evita que `resume` pugui seleccionar estat d'un navegador incompatible, sense alterar el format append-only ni el runner validat. Headless és el mode normal; ZUP-001 s'ha validat també headed amb PASS.
+
+### Tirades, diagnòstic i revalidació
+
+La primera tirada completa immutable `sim-20260914T092913072Z-47a96703` va executar 177 escenaris i 177 intents en 849.384 ms: 171 PASS, 1 FAIL, 5 SKIP, 0 BLOCKED, 0 INTERRUPTED i 0 retries. L'únic FAIL fou ZUP-110: la validació funcional obtenia correctament el conflicte 409 i confirmava un sol usuari, però Firefox serialitzava l'objecte de consola esperat com `JSHandle@object`, mentre Chrome exposava `HttpErrorResponse`/409. Es va classificar `TEST/COMPATIBILITY`, no `PRODUCT`.
+
+La correcció mínima amplia només la llista d'errors de consola esperats dins ZUP-110, que continua exigint explícitament la resposta HTTP 409. No hi ha cap `if firefox` ni relaxació global de diagnòstics. La revalidació focalitzada `sim-20260914T094703372Z-710e1b2f` passa 1/1; el bloc admin-users `sim-20260914T094732909Z-55386b7f` passa amb 10 PASS i 2 SKIP. La regressió completa `sim-20260914T094857801Z-d500a98f` també queda neta. Finalment, la regressió definitiva sobre el codi final exacte `sim-20260914T101404121Z-3a9802fe` executa 177 escenaris i 177 intents en 856.817 ms amb 172 PASS, 5 SKIP, 0 FAIL, 0 BLOCKED, 0 INTERRUPTED i 0 retries. No queda cap flaky crític ni obert.
+
+Les cinc exclusions són exactament les ja aprovades: ZUP-016 `EXTERNAL` i ZUP-021, ZUP-107, ZUP-109 i ZUP-145 `SPECIFICATION`. No s'ha afegit cap exclusió pròpia de Firefox.
+
+### Resume, Excel, cleanup i seguretat
+
+El mode resume s'ha validat amb una interrupció real al bloc d'autenticació. El run `sim-20260914T100629153Z-fdae89c7` conserva tres casos completats, marca ZUP-004 intent 1 com `INTERRUPTED`, crea l'intent 2 amb un executionId nou i acaba amb 15 PASS, 1 SKIP, 0 FAIL i un retry traçable. Els 17 executionId del run són únics.
+
+Durant l'auditoria es va detectar que Proves conservava el KO inicial de ZUP-110 encara que les revalidacions posteriors fossin PASS. El sincronitzador ara protegeix incondicionalment les files MANUAL, però permet que una fila ja controlada per E2E reflecteixi l'últim PASS/FAIL; Execucions E2E continua preservant tots els intents append-only. Un test d'integració cobreix FAIL seguit de PASS. La revalidació `sim-20260914T101019223Z-1607f2dc` deixa ZUP-110 en OK/E2E.
+
+L'Excel final conté 1.419 execucions E2E, 563 de Firefox, i zero executionId duplicats. A Proves, Firefox queda amb 171 OK/E2E, 5 PENDENT per les exclusions i ZUP-001 EN CURS/MANUAL protegit; no hi ha cap KO Firefox obert. Les 178 files MANUAL romanen intactes: 141 OK, 33 KO, 3 N/A i 1 EN CURS.
+
+L'auditoria exacta posterior de PostgreSQL confirma zero usuaris, rols, menús, països, ciutats i llocs temporals E2E. No s'ha usat cap DELETE massiu ni s'ha afectat cap dada humana. `e2e/.env.e2e.local` continua ignorat per Git, amb permisos 600. La comparació de quatre valors sensibles, sense mostrar-los, dona zero coincidències en fitxers versionats, Excel, `.runs`, logs i artefactes.
+
+`npm run runner:test` passa amb 11 grups i 0 FAIL, inclosos inventari Firefox, metadades Gecko, aïllament de resume i revalidació E2E d'Excel. No s'han executat WebKit, Edge, Brave, Opera ni CI. No s'ha fet cap commit, push, rebase o modificació de l'historial.
+
+**Estat: PASS — Fase 6 completada el 2026-09-14. No s'autoritza l'inici de la Fase 7.**
 
 ## Gates
 

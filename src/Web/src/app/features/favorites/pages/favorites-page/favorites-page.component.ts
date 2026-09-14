@@ -50,6 +50,7 @@ export class FavoritesPageComponent {
   });
 
   protected readonly allPlaces = computed(() => this.placeService.getFavoritePlaces());
+  protected readonly latestFavorite = computed(() => this.allPlaces()[0] ?? null);
   protected readonly appliedFilters = this.appliedFiltersState.asReadonly();
   protected readonly places = computed(() => {
     const applied = this.appliedFilters();

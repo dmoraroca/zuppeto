@@ -32,6 +32,17 @@
         </article>
       </div>
 
+      @if (latestFavorite(); as latest) {
+        <article class="favorites-page__latest">
+          <div>
+            <span class="favorites-page__summary-label">Guardat més recent</span>
+            <h2>{{ latest.name }}</h2>
+            <p>{{ latest.city }}, {{ latest.country }}</p>
+          </div>
+          <a [routerLink]="['/places', latest.id]">Veure detall</a>
+        </article>
+      }
+
       <div class="favorites-page__actions">
         <a routerLink="/places">Continuar explorant</a>
         @if (canWriteFavorites()) {

@@ -25,5 +25,11 @@
     }
   </div>
 
-  <div class="place-map__canvas" #mapContainer [style.height]="height()"></div>
+  <div
+    class="place-map__canvas"
+    #mapContainer
+    [style.height]="height()"
+    role="region"
+    aria-label="Mapa interactiu de llocs"
+  ></div>
 </section>

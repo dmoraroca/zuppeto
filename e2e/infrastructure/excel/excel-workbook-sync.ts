@@ -92,7 +92,7 @@ function applyProvesResult(sheet: ExcelJS.Worksheet, execution: ExcelExecution, 
   const resolution = resolver.resolve(sheet, execution.scenario);
   if (resolution.kind === 'missing') return { status: 'INTEGRITY_ERROR', provesUpdated: false, message: 'Cap fila de Proves coincideix amb la clau de l’escenari.' };
   if (resolution.kind === 'ambiguous') return { status: 'INTEGRITY_ERROR', provesUpdated: false, message: 'Més d’una fila de Proves coincideix amb la clau de l’escenari.' };
-  if (resolution.row!.origin === manualOrigin || resolution.row!.result !== pendingResult) {
+  if (resolution.row!.origin === manualOrigin || (resolution.row!.origin !== e2eOrigin && resolution.row!.result !== pendingResult)) {
     return { status: 'NOT_ELIGIBLE', provesUpdated: false, message: 'La fila de Proves està protegida i no és elegible per E2E.' };
   }
   const columns = headerIndex(sheet);

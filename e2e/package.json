@@ -12,6 +12,12 @@
     "runner:simulate": "npm run runner:build && node .runner-build/runner/cli.js simulate",
     "runner:resume": "npm run runner:build && node .runner-build/runner/cli.js resume",
     "excel:migrate": "npm run runner:build && node .runner-build/runner/excel-migrate-cli.js",
+    "chrome:inventory": "npm run runner:build && node .runner-build/runner/chrome-inventory-cli.js",
+    "chrome:accounts": "npm run runner:build && node .runner-build/runner/chrome-account-provision-cli.js",
+    "e2e:chrome": "npm run runner:build && node .runner-build/runner/chrome-cli.js",
+    "e2e:chrome:resume": "npm run runner:build && node .runner-build/runner/chrome-cli.js --resume",
+    "e2e:firefox": "npm run runner:build && node .runner-build/runner/firefox-cli.js",
+    "e2e:firefox:resume": "npm run runner:build && node .runner-build/runner/firefox-cli.js --resume",
     "e2e:pilot": "npm run runner:build && node .runner-build/runner/pilot-cli.js",
     "e2e:pilot:resume": "npm run runner:build && node .runner-build/runner/pilot-cli.js --resume"
   },

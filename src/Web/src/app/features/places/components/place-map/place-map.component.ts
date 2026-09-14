@@ -125,6 +125,9 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
 
       this.map = this.leaflet.map(container, {
         zoomControl: true,
+        // Leaflet keeps a delayed zoom-transition callback alive after remove().
+        // Route changes can otherwise make that callback access an already removed map pane.
+        zoomAnimation: false,
         // Wheel zoom only while the pointer is over the map (Leaflet targets the container).
         scrollWheelZoom: true
       });
@@ -197,7 +200,8 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
         weight: 2,
         color: PlaceMapComponent.idlePinStroke,
         fillColor: PlaceMapComponent.idlePinFill,
-        fillOpacity: 0.85
+        fillOpacity: 0.85,
+        className: 'place-map__marker'
       });
 
       marker.bindPopup(
@@ -212,6 +216,19 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
         }
       );
       marker.on('click', () => this.placeSelected.emit(place.id));
+      marker.on('add', () => {
+        const markerElement = marker.getElement();
+        markerElement?.setAttribute('role', 'button');
+        markerElement?.setAttribute('aria-label', `Seleccionar ${place.name} al mapa`);
+        markerElement?.setAttribute('tabindex', '0');
+        markerElement?.addEventListener('keydown', (event) => {
+          const keyEvent = event as KeyboardEvent;
+          if (keyEvent.key === 'Enter' || keyEvent.key === ' ') {
+            event.preventDefault();
+            this.placeSelected.emit(place.id);
+          }
+        });
+      });
       marker.addTo(this.markersLayer);
       this.markers.set(place.id, marker);
     }

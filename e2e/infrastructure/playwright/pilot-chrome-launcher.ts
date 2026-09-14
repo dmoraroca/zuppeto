@@ -1,9 +1,10 @@
 import { access } from 'node:fs/promises';
 import { chromium, type Browser } from '@playwright/test';
+import type { BrowserLauncher } from './browser-launcher.js';
 
 const flatpakChromeExecutable = '/var/lib/flatpak/exports/bin/com.google.Chrome';
 
-export class PilotChromeLauncher {
+export class PilotChromeLauncher implements BrowserLauncher {
   public async launch(headed: boolean): Promise<Browser> {
     try {
       await access(flatpakChromeExecutable);

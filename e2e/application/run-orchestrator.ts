@@ -11,8 +11,8 @@ import type { RunStateStore } from '../ports/run-state-store.js';
 
 export interface RunProgress {
   readonly runId: string; readonly completedScenarios: number; readonly totalScenarios: number;
-  readonly passed: number; readonly failed: number; readonly blocked: number; readonly interrupted: number;
-  readonly currentScenarioId?: string; readonly eta?: EtaEstimate;
+  readonly passed: number; readonly failed: number; readonly blocked: number; readonly skipped: number; readonly interrupted: number;
+  readonly retries: number; readonly elapsedMs: number; readonly currentScenarioId?: string; readonly eta?: EtaEstimate;
 }
 
 export class RunOrchestrator {
@@ -49,6 +49,8 @@ export class RunOrchestrator {
     return {
       runId: state.runId, completedScenarios: completed, totalScenarios: state.scenarios.length,
       passed: count('passed'), failed: count('failed'), blocked: count('blocked'), interrupted: count('interrupted'),
+      skipped: count('skipped'), retries: records.reduce((total, record) => total + Math.max(0, record.attempt - 1), 0),
+      elapsedMs: Math.max(0, this.clock.now().getTime() - new Date(state.startedAt).getTime()),
       currentScenarioId, eta: estimateRemainingDuration(durations, state.scenarios.length - completed)
     };
   }

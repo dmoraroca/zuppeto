@@ -19,6 +19,7 @@
     "infrastructure/excel/**/*.ts",
     "infrastructure/config/**/*.ts",
     "infrastructure/playwright/pilot-*.ts",
+    "infrastructure/provisioning/**/*.ts",
     "infrastructure/simulation/**/*.ts",
     "scenarios/**/*.ts",
     "runner/**/*.ts",
