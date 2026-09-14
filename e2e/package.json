@@ -21,6 +21,8 @@
     "webkit:inventory": "npm run runner:build && node .runner-build/runner/webkit-inventory-cli.js",
     "e2e:webkit": "npm run runner:build && node .runner-build/runner/webkit-cli.js",
     "e2e:webkit:resume": "npm run runner:build && node .runner-build/runner/webkit-cli.js --resume",
+    "e2e:edge": "npm run runner:build && node .runner-build/runner/edge-cli.js",
+    "e2e:edge:resume": "npm run runner:build && node .runner-build/runner/edge-cli.js --resume",
     "e2e:pilot": "npm run runner:build && node .runner-build/runner/pilot-cli.js",
     "e2e:pilot:resume": "npm run runner:build && node .runner-build/runner/pilot-cli.js --resume"
   },

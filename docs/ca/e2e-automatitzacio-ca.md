@@ -2,7 +2,7 @@
 
 ## Estat, abast i accés
 
-**Estat:** Fases 1–5 validades. La cobertura completa de Google Chrome real està implementada i té una regressió final neta; no s'ha iniciat cap altre navegador, CI ni Fase 6.
+**Estat:** Fases 1–8 validades. La mateixa cobertura completa està validada en Google Chrome, Firefox, WebKit i Microsoft Edge real; CI i la Fase 9 no s'han iniciat.
 **Principi rector:** Codex construeix i manté la infraestructura; Playwright, invocat des del terminal o CI, executa les tirades llargues de forma autònoma.
 
 Aquest és el document viu de l'automatització E2E. Qualsevol decisió material, canvi d'estructura, navegador incorporat o resultat de validació l'ha d'actualitzar.
@@ -27,7 +27,10 @@ Consultar la documentació no concedeix permisos d'execució, escriptura sobre l
 | Fase 3 — Pilot amb ZUP reals | PASS | Interrupció/resume real, cleanup i tirada final neta de ZUP-001, ZUP-073 i ZUP-115 validats el 2026-09-13. |
 | Fase 4 — Fixtures, dades i cleanup | PASS | Completada el 2026-09-13; sessions per rol, identitats temporals, factories, adapters, cleanup i restauració validats. |
 | Fase 5 — Cobertura completa Google Chrome | PASS | 177 escenaris executats: 172 PASS, 5 SKIP justificats, 0 FAIL/BLOCKED/retries. |
-| Altres navegadors i CI | NO INICIATS | Firefox, WebKit, Edge i CI queden fora de l'abast i requereixen autorització. |
+| Fase 6 — Firefox | PASS | Mateixa suite validada sobre Firefox/Gecko: 172 PASS, 5 SKIP justificats i 0 FAIL/BLOCKED/retries. |
+| Fase 7 — WebKit | PASS | Mateixa suite validada sobre Playwright WebKit 26.4: 172 PASS, 5 SKIP justificats i 0 FAIL/BLOCKED/retries. |
+| Fase 8 — Microsoft Edge | PASS | Mateixa suite validada sobre Microsoft Edge real 153.0.4234.32/Blink: 172 PASS, 5 SKIP justificats i 0 FAIL/BLOCKED/retries. |
+| Fase 9 i CI | NO INICIATS | Queden fora de l'abast i requereixen autorització explícita. |
 
 ---
 
@@ -783,6 +786,38 @@ La regressió completa definitiva `sim-20260914T120006596Z-480cded7`, posterior 
 L'auditoria PostgreSQL posterior dona zero usuaris, rols, menús, països, ciutats, llocs i favorits sobre llocs temporals E2E. `e2e/.env.e2e.local` continua ignorat i amb permisos 600; quatre valors sensibles s'han contrastat sense mostrar-los contra Git, Excel, `.runs`, diagnòstics, captures i traces descomprimides, amb zero coincidències. `.runs` i tots els artefactes continuen ignorats per Git.
 
 **Estat: PASS — Fase 7 completada el 2026-09-14. WebKit no equival a Safari real. No s'autoritza l'inici de la Fase 8.**
+
+## Fase 8 — Microsoft Edge
+
+La Fase 8 reutilitza sense còpies les mateixes 177 variants funcionals, 153 ZUP, fixtures, comptes, factories, adapters, assertions i cleanup de Chrome, Firefox i WebKit. `BrowserTarget` identifica el navegador com a **Edge**, el motor com a **Blink** i aïlla estat, resume i artefactes a `.runs/edge`. No s'ha afegit cap ZUP, exclusió, handler duplicat ni condicional específic d'Edge dins els escenaris.
+
+La validació s'ha executat amb el Microsoft Edge estable real instal·lat com a Flatpak del sistema, paquet `com.microsoft.Edge`, versió **153.0.4234.32**. `EdgeLauncher` encapsula l'executable real `/var/lib/flatpak/exports/bin/com.microsoft.Edge`; la resta del runner continua depenent només dels ports compartits. Les ordres incorporades són:
+
+    npm run e2e:edge
+    npm run e2e:edge -- --block=<bloc>
+    npm run e2e:edge -- --scenario=<ScenarioId>
+    npm run e2e:edge -- --headed
+    npm run e2e:edge:resume -- --run-id=<runId>
+
+### Smoke, immutable, headed i resume
+
+El smoke inicial va passar en intent 1 i sense retries: ZUP-001 sense sessió (`sim-20260914T123057296Z-e8658d88`), ZUP-073 USER amb favorit temporal i cleanup (`sim-20260914T123125909Z-1d679f87`) i ZUP-115 DEVELOPER amb permís protegit (`sim-20260914T123147051Z-6521d4f1`).
+
+La primera regressió completa immutable `sim-20260914T123232755Z-80a85d3a` va executar 177 escenaris i 177 intents en 538.598 ms: **172 PASS, 5 SKIP, 0 FAIL, 0 BLOCKED, 0 INTERRUPTED i 0 retries**. No va revelar cap defecte funcional, incidència específica d'Edge ni necessitat de corregir producte, escenaris o infraestructura.
+
+El mode headed s'ha validat sobre Edge real amb ZUP-001, run `sim-20260914T124550468Z-a396f961`, PASS en l'intent 1. El resume s'ha validat amb una interrupció real del bloc d'autenticació al run `sim-20260914T124617291Z-0cd8e4fc`: conserva ZUP-001 i ZUP-002 ja completats, registra ZUP-003 intent 1 com `INTERRUPTED`, el reprèn en un executionId nou a l'intent 2 i acaba amb 15 PASS, 1 SKIP, 0 FAIL i 17 executionId únics. Els registres terminals previs no es reexecuten ni se sobreescriuen.
+
+### Regressió definitiva i gate
+
+La regressió completa definitiva `sim-20260914T124912638Z-d8259591`, sobre el codi final, va executar 177 escenaris i 177 intents en 547.672 ms: **172 PASS, 5 SKIP, 0 FAIL, 0 BLOCKED, 0 INTERRUPTED i 0 retries**. Les cinc exclusions són exactament les compartides: ZUP-016 `EXTERNAL` i ZUP-021, ZUP-107, ZUP-109 i ZUP-145 `SPECIFICATION`. No hi ha exclusions d'Edge, flakiness, correccions pendents ni defectes oberts.
+
+La fase suma set runId Edge i 375 execucions append-only: tres smokes, una immutable completa, una validació headed, una interrupció/resume i la regressió definitiva. L'Excel final conté 2.579 execucions E2E amb 2.579 executionId únics; les 375 d'Edge estan `SYNCED` i registren la versió 153.0.4234.32. Proves deixa Edge amb 172 OK/E2E i 5 PENDENT justificats. Les 178 files MANUAL romanen intactes: 141 OK, 33 KO, 3 N/A i 1 EN CURS.
+
+L'auditoria PostgreSQL posterior dona zero usuaris, rols, menús, països, ciutats, llocs i favorits sobre llocs temporals E2E. `e2e/.env.e2e.local` continua ignorat i amb permisos 600; quatre valors sensibles s'han contrastat sense mostrar-los contra 723 fitxers versionats, Excel, 614 fitxers de `.runs` i la traça descomprimida, amb zero coincidències. `.runs`, traces, captures, diagnòstics i logs continuen ignorats per Git.
+
+`npm run runner:test` passa amb 13 grups i 0 FAIL, inclosos l'inventari Edge, les metadades Edge/Blink i l'aïllament respecte dels altres navegadors. No s'ha executat cap altre navegador durant la fase, ni CI, ni s'ha fet commit, push, rebase o modificació de l'historial.
+
+**Estat: PASS — Fase 8 completada el 2026-09-14. No s'autoritza l'inici de la Fase 9.**
 
 ## Gates
 
