@@ -53,7 +53,7 @@ export async function executeNavigationScenario(code: number, context: ChromeSce
     return;
   }
   if (code === 25) {
-    await page.goto('/'); await page.reload();
+    await page.goto('/', { waitUntil: 'networkidle' }); await page.reload({ waitUntil: 'networkidle' });
     await expect(page.getByLabel('Primary navigation').locator('summary', { hasText: 'Del administrador' })).toBeVisible();
     return;
   }
@@ -63,10 +63,10 @@ export async function executeNavigationScenario(code: number, context: ChromeSce
     return;
   }
   if (code === 29) {
-    await page.goto('/places');
+    await page.goto('/places', { waitUntil: 'networkidle' });
     await expect(page.getByRole('button', { name: /Favorit|Treure de favorits/ })).toHaveCount(0);
-    await page.goto('/favorites'); await expect(page.getByRole('button', { name: /Buidar favorits/ })).toHaveCount(0);
-    await page.goto('/perfil');
+    await page.goto('/favorites', { waitUntil: 'networkidle' }); await expect(page.getByRole('button', { name: /Buidar favorits/ })).toHaveCount(0);
+    await page.goto('/perfil', { waitUntil: 'networkidle' });
     await expect(page.locator('form.profile-form')).toHaveClass(/profile-form--readonly/);
     const editableControls = page.locator('form.profile-form [formcontrolname]');
     expect(await editableControls.evaluateAll((controls) => controls.every((control) => control.hasAttribute('disabled')))).toBe(true);

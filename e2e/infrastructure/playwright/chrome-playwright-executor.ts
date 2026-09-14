@@ -70,7 +70,7 @@ export class ChromePlaywrightExecutor implements ScenarioExecutor {
       }
       page = await browserContext.newPage();
       const collector = new PilotDiagnosticsCollector(page); collector.start();
-      await page.goto(this.environment.webBaseUrl + '/login');
+      await page.goto(this.environment.webBaseUrl + '/login', { waitUntil: 'networkidle' });
       const transport = new PlaywrightPageApiTransport(page, this.environment.webBaseUrl, this.environment.apiBaseUrl);
       const authentication = new AuthenticationApiAdapter(transport);
       const session = await new RoleSessionFixture(this.environment.accounts, authentication, new PlaywrightSessionDriver(browserContext, page)).prepare(scenario.sessionRole);

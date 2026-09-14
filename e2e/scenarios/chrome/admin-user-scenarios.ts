@@ -73,8 +73,12 @@ export async function executeAdminUserScenario(code: number, context: ChromeScen
     await modal.locator('.admin-console-role-strip select').selectOption('Viewer');
     const privacy = modal.getByRole('checkbox', { name: /Accepto les condicions/ });
     if (await privacy.count()) await privacy.check();
-    await modal.getByRole('button', { name: 'Desar' }).click();
-    await context.page.reload();
+    const [updated] = await Promise.all([
+      context.page.waitForResponse((response) => response.url().endsWith(`/api/admin/users/${prepared.id}/role`) && response.request().method() === 'PUT'),
+      modal.getByRole('button', { name: 'Desar' }).click()
+    ]);
+    expect(updated.ok()).toBe(true);
+    await context.page.reload({ waitUntil: 'networkidle' });
     await expect(userRow(context, prepared.email)).toContainText('Viewer');
     return;
   }

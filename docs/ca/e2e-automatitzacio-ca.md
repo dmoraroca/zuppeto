@@ -748,6 +748,42 @@ L'auditoria exacta posterior de PostgreSQL confirma zero usuaris, rols, menús, 
 
 **Estat: PASS — Fase 6 completada el 2026-09-14. No s'autoritza l'inici de la Fase 7.**
 
+## Fase 7 — Validació cross-browser WebKit
+
+La Fase 7 reutilitza les mateixes 177 variants funcionals, 153 ZUP, fixtures, comptes, factories, adapters, assertions i política de cleanup de Chrome i Firefox. No s'ha creat cap còpia dels escenaris ni cap condicional `if (browser === 'webkit')`. El nou `BrowserTarget` registra el navegador i el motor com a **WebKit**, mai com Safari, i aïlla estat, resume i artefactes a `.runs/webkit`.
+
+Playwright 1.59.1 usa WebKit 26.4, build 2272. El component WebKit es va instal·lar localment, però el host no disposa de quatre biblioteques de runtime i la seva instal·lació requereix sudo interactiu. La validació s'ha executat amb la imatge oficial `mcr.microsoft.com/playwright:v1.59.1-noble`, compatible amb la versió del paquet, xarxa del host i usuari no privilegiat. Aquesta validació certifica Playwright WebKit 26.4; no certifica Safari real de macOS o iOS.
+
+El full Proves no contenia files WebKit. `ExcelBrowserMatrixProvisioner` hi materialitza de manera segura la mateixa matriu Chrome com 177 files WebKit noves, totes inicialment PENDENT i sense origen de resultat. Abans d'escriure exigeix claus úniques; si la matriu destí ja existeix, en comprova l'equivalència exacta i no modifica res. Els tests en còpia temporal demostren creació exacta, idempotència i preservació de tots els valors de les files prèvies. Les ordres finals són:
+
+    npm run webkit:inventory
+    npm run e2e:webkit
+    npm run e2e:webkit -- --block=<bloc>
+    npm run e2e:webkit -- --scenario=<ScenarioId>
+    npm run e2e:webkit:resume -- --run-id=<runId>
+
+### Smoke, immutable i diagnòstic
+
+El smoke inicial va passar en intent 1: ZUP-001 sense sessió (`sim-20260914T105932430Z-533c36f8`), ZUP-073 USER amb favorit temporal i cleanup (`sim-20260914T105949742Z-d1a196f2`) i ZUP-115 DEVELOPER amb permís protegit (`sim-20260914T110010359Z-1dac5a2f`).
+
+La primera regressió completa immutable `sim-20260914T110029548Z-1d538653` va executar 177 escenaris i 177 intents en 521.501 ms: 157 PASS, 15 FAIL, 5 SKIP, 0 BLOCKED, 0 INTERRUPTED i 0 retries. Dotze FAIL eren cancel·lacions d'imports dinàmics de Vite quan una navegació nova començava abans que WebKit acabés de carregar la pantalla anterior. ZUP-138 cancel·lava la consulta de ciutats en navegar fora del catàleg, i ZUP-142/ZUP-143 van trobar transitòriament la pantalla admin sense el component lazy ja carregat. Les assertions funcionals dels dotze primers casos havien passat; els diagnòstics estrictes van impedir classificar-los falsament com PASS.
+
+Les revalidacions van revelar tres navegacions asíncrones addicionals que Chrome i Firefox toleraven: ZUP-025 recarregava abans d'acabar imports i menú; ZUP-029 encadenava llocs, favorits i perfil amb requests pendents; ZUP-112 recarregava abans que acabés el PUT de canvi de rol. No es van detectar defectes funcionals de producte.
+
+Les correccions són compartides i deterministes: espera `networkidle` en la inicialització del context; espera de càrrega completa abans de navegacions que cancel·laven treball; selector del heading de ciutats acotat a `.admin-console-panel`; i espera/validació explícita del PUT `/role` abans de recarregar ZUP-112. No s'han afegit sleeps arbitraris, retries, exclusions, relaxacions globals ni branques de navegador.
+
+Després de cada correcció es va executar el ZUP afectat i el bloc corresponent. Autenticació va quedar amb 15 PASS i 1 SKIP; navegació/seguretat amb 18 PASS i 1 SKIP; admin-users amb 10 PASS i 2 SKIP; llocs admin amb 5 PASS; ZUP-138 i ZUP-112 van passar també focalitzats. En total hi ha 18 runId WebKit i 785 intents append-only: tres smokes, la immutable, revalidacions focalitzades/de bloc i quatre regressions completes. Els FAIL històrics es conserven i no s'han sobreescrit.
+
+### Regressió definitiva i gate
+
+La regressió completa definitiva `sim-20260914T120006596Z-480cded7`, posterior a totes les correccions i sobre el codi final, va executar 177 escenaris i 177 intents en 649.669 ms: **172 PASS, 5 SKIP, 0 FAIL, 0 BLOCKED, 0 INTERRUPTED i 0 retries**. Les cinc exclusions són exactament les compartides: ZUP-016 `EXTERNAL` i ZUP-021, ZUP-107, ZUP-109 i ZUP-145 `SPECIFICATION`. No hi ha cap exclusió específica de WebKit ni cap flaky crític o obert.
+
+`npm run runner:test` passa amb 12 grups i 0 FAIL. L'Excel final conté 2.204 execucions E2E: 856 Chrome, 563 Firefox i 785 WebKit, totes les WebKit amb SyncStatus `SYNCED`, i zero executionId duplicats. Proves deixa WebKit amb 172 OK/E2E i 5 PENDENT justificats. Les 178 files MANUAL romanen intactes: 141 OK, 33 KO, 3 N/A i 1 EN CURS.
+
+L'auditoria PostgreSQL posterior dona zero usuaris, rols, menús, països, ciutats, llocs i favorits sobre llocs temporals E2E. `e2e/.env.e2e.local` continua ignorat i amb permisos 600; quatre valors sensibles s'han contrastat sense mostrar-los contra Git, Excel, `.runs`, diagnòstics, captures i traces descomprimides, amb zero coincidències. `.runs` i tots els artefactes continuen ignorats per Git.
+
+**Estat: PASS — Fase 7 completada el 2026-09-14. WebKit no equival a Safari real. No s'autoritza l'inici de la Fase 8.**
+
 ## Gates
 
 | Fase | GO | NO-GO |

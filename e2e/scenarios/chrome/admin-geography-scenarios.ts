@@ -42,7 +42,7 @@ async function countryScenario(code: number, context: ChromeScenarioContext, ses
 async function cityScenario(code: number, context: ChromeScenarioContext, session: NonNullable<ChromeScenarioContext['session']['session']>): Promise<void> {
   const country = code >= 134 ? await context.adminGeographyFactory.createCountry(context.identity, session, context.cleanup) : undefined;
   let city = country && code >= 135 ? await context.adminGeographyFactory.createCity(context.identity, country, session, context.cleanup, code === 135) : undefined;
-  await context.page.goto('/admin/ciutats'); await expect(context.page.getByRole('heading', { name: 'Catàleg de ciutats' })).toBeVisible();
+  await context.page.goto('/admin/ciutats', { waitUntil: 'networkidle' }); await expect(context.page.locator('.admin-console-panel').getByRole('heading', { name: 'Catàleg de ciutats' })).toBeVisible();
   if (code === 133) { for (const h of ['País', 'Nom', 'Lat', 'Lon', 'Ordre', 'Actiu', 'Accions']) await expect(context.page.getByRole('columnheader', { name: h })).toBeVisible(); return; }
   if (!country) throw new Error('Falta el país temporal.');
   if (code === 134) {

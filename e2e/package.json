@@ -18,6 +18,9 @@
     "e2e:chrome:resume": "npm run runner:build && node .runner-build/runner/chrome-cli.js --resume",
     "e2e:firefox": "npm run runner:build && node .runner-build/runner/firefox-cli.js",
     "e2e:firefox:resume": "npm run runner:build && node .runner-build/runner/firefox-cli.js --resume",
+    "webkit:inventory": "npm run runner:build && node .runner-build/runner/webkit-inventory-cli.js",
+    "e2e:webkit": "npm run runner:build && node .runner-build/runner/webkit-cli.js",
+    "e2e:webkit:resume": "npm run runner:build && node .runner-build/runner/webkit-cli.js --resume",
     "e2e:pilot": "npm run runner:build && node .runner-build/runner/pilot-cli.js",
     "e2e:pilot:resume": "npm run runner:build && node .runner-build/runner/pilot-cli.js --resume"
   },
