@@ -18,6 +18,7 @@
     "infrastructure/persistence/**/*.ts",
     "infrastructure/excel/**/*.ts",
     "infrastructure/config/**/*.ts",
+    "infrastructure/ci/**/*.ts",
     "infrastructure/playwright/pilot-*.ts",
     "infrastructure/provisioning/**/*.ts",
     "infrastructure/simulation/**/*.ts",

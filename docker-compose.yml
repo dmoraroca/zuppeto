@@ -62,8 +62,9 @@ services:
     ports:
       - "${API_PORT:-5211}:${API_PORT:-5211}"
     environment:
-      ASPNETCORE_ENVIRONMENT: Development
-      ZUPPETO_FILE_LOGS: "true"
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ZUPPETO_FILE_LOGS: ${ZUPPETO_FILE_LOGS:-true}
+      ZUPPETO_AUTO_MIGRATE: ${ZUPPETO_AUTO_MIGRATE:-false}
       ZUPPETO_BUILD_ROOT: /tmp/zuppeto-build
       ConnectionStrings__Zuppeto: Host=db;Port=5432;Database=${POSTGRES_DB:-zuppeto};Username=${POSTGRES_USER:-app};Password=${POSTGRES_PASSWORD:-app}
       RabbitMq__Enabled: "true"
@@ -78,6 +79,12 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:5211/health/db"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 90s
     cap_add:
       - SYS_PTRACE
     security_opt:
@@ -107,7 +114,13 @@ services:
       NG_CLI_ANALYTICS: "false"
     depends_on:
       api:
-        condition: service_started
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:4200"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
 
   e2e:
     image: mcr.microsoft.com/playwright:v1.53.0-jammy

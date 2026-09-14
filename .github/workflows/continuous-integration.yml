@@ -1,0 +1,339 @@
+name: Continuous integration
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '17 2 * * *'
+  workflow_dispatch:
+    inputs:
+      level:
+        description: Nivell E2E que cal executar
+        required: true
+        default: smoke
+        type: choice
+        options:
+          - smoke
+          - critical
+          - full
+
+permissions:
+  contents: read
+
+concurrency:
+  group: zuppeto-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '22'
+  DOTNET_VERSION: '10.0.x'
+
+jobs:
+  build:
+    name: Build .NET and Angular
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: src/Web/package-lock.json
+      - name: Restore and build .NET
+        run: |
+          dotnet restore Zuppeto.sln
+          dotnet build Zuppeto.sln --configuration Release --no-restore
+      - name: Install and build Angular
+        working-directory: src/Web
+        run: |
+          npm ci
+          npm run build
+
+  unit_tests:
+    name: Existing unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: src/Web/package-lock.json
+      - name: Check .NET test inventory
+        run: |
+          dotnet restore Zuppeto.sln
+          dotnet test Zuppeto.sln --configuration Release --no-restore
+      - name: Run Angular unit tests
+        working-directory: src/Web
+        run: |
+          npm ci
+          npm test -- --watch=false
+
+  runner_tests:
+    name: E2E runner tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+      - working-directory: e2e
+        run: |
+          npm ci
+          npm run runner:test
+
+  smoke_chrome:
+    name: Smoke Chrome
+    needs: [build, unit_tests, runner_tests]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env: &e2e-environment
+      CI: 'true'
+      E2E_BASE_URL: http://localhost:4200
+      E2E_API_URL: http://localhost:5211
+      E2E_RUNS_ROOT: .runs
+      E2E_DEFER_EXCEL_SYNC: 'true'
+      E2E_FAIL_ON_NON_PASS: 'true'
+      E2E_USER_EMAIL: user.e2e@zuppeto.local
+      E2E_USER_PASSWORD: ${{ secrets.E2E_USER_PASSWORD }}
+      E2E_ADMIN_EMAIL: admin.e2e@zuppeto.local
+      E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+      E2E_DEVELOPER_EMAIL: developer.e2e@zuppeto.local
+      E2E_DEVELOPER_PASSWORD: ${{ secrets.E2E_DEVELOPER_PASSWORD }}
+      E2E_VIEWER_EMAIL: viewer.e2e@zuppeto.local
+      E2E_VIEWER_PASSWORD: ${{ secrets.E2E_VIEWER_PASSWORD }}
+      POSTGRES_DB: zuppeto_ci
+      POSTGRES_USER: zuppeto_ci
+      POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
+      RABBITMQ_USER: zuppeto_ci
+      RABBITMQ_PASSWORD: ${{ secrets.CI_RABBITMQ_PASSWORD }}
+      JWT_SIGNING_KEY: ${{ secrets.CI_JWT_SIGNING_KEY }}
+      ASPNETCORE_ENVIRONMENT: CI
+      ZUPPETO_FILE_LOGS: 'false'
+      ZUPPETO_AUTO_MIGRATE: 'true'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+      - name: Install runner and Chrome
+        working-directory: e2e
+        run: |
+          npm ci
+          npx playwright install --with-deps chrome
+      - id: e2e
+        name: Run shared smoke profile
+        continue-on-error: true
+        working-directory: e2e
+        run: bash ci/run-e2e-job.sh chrome smoke
+      - id: audit
+        name: Audit safe artifacts
+        if: always()
+        working-directory: e2e
+        run: npm run ci:artifacts:audit -- --path=.runs
+      - name: Publish smoke evidence
+        if: always() && steps.audit.outcome == 'success'
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-results-chrome-smoke
+          path: e2e/.runs
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
+      - name: Enforce smoke gate
+        if: always()
+        run: test '${{ steps.e2e.outcome }}' = success && test '${{ steps.audit.outcome }}' = success
+
+  critical_chrome:
+    name: Critical Chrome
+    needs: [smoke_chrome]
+    if: github.event_name == 'schedule' || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))) || (github.event_name == 'workflow_dispatch' && (inputs.level == 'critical' || inputs.level == 'full'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env: *e2e-environment
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+      - working-directory: e2e
+        run: |
+          npm ci
+          npx playwright install --with-deps chrome
+      - id: e2e
+        continue-on-error: true
+        working-directory: e2e
+        run: bash ci/run-e2e-job.sh chrome critical
+      - id: audit
+        if: always()
+        working-directory: e2e
+        run: npm run ci:artifacts:audit -- --path=.runs
+      - if: always() && steps.audit.outcome == 'success'
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-results-chrome-critical
+          path: e2e/.runs
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
+      - if: always()
+        run: test '${{ steps.e2e.outcome }}' = success && test '${{ steps.audit.outcome }}' = success
+
+  full_chrome:
+    name: Full Chrome
+    needs: [critical_chrome]
+    if: github.event_name == 'schedule' || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))) || (github.event_name == 'workflow_dispatch' && inputs.level == 'full')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env: *e2e-environment
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+      - working-directory: e2e
+        run: |
+          npm ci
+          npx playwright install --with-deps chrome
+      - id: e2e
+        continue-on-error: true
+        working-directory: e2e
+        run: bash ci/run-e2e-job.sh chrome full
+      - id: audit
+        if: always()
+        working-directory: e2e
+        run: npm run ci:artifacts:audit -- --path=.runs
+      - if: always() && steps.audit.outcome == 'success'
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-results-chrome-full
+          path: e2e/.runs
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 21
+      - if: always()
+        run: test '${{ steps.e2e.outcome }}' = success && test '${{ steps.audit.outcome }}' = success
+
+  cross_browser_full:
+    name: Full ${{ matrix.browser }}
+    needs: [full_chrome]
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.level == 'full')
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - browser: firefox
+            channel: firefox
+          - browser: webkit
+            channel: webkit
+          - browser: edge
+            channel: msedge
+    env: *e2e-environment
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+      - working-directory: e2e
+        run: |
+          npm ci
+          npx playwright install --with-deps '${{ matrix.channel }}'
+      - id: e2e
+        continue-on-error: true
+        working-directory: e2e
+        run: bash ci/run-e2e-job.sh '${{ matrix.browser }}' full
+      - id: audit
+        if: always()
+        working-directory: e2e
+        run: npm run ci:artifacts:audit -- --path=.runs
+      - if: always() && steps.audit.outcome == 'success'
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-results-${{ matrix.browser }}-full
+          path: e2e/.runs
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 21
+      - if: always()
+        run: test '${{ steps.e2e.outcome }}' = success && test '${{ steps.audit.outcome }}' = success
+
+  consolidate:
+    name: Consolidate E2E results and Excel
+    needs: [smoke_chrome, critical_chrome, full_chrome, cross_browser_full]
+    if: always() && needs.smoke_chrome.result != 'skipped'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+      - working-directory: e2e
+        run: npm ci
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: e2e-results-*
+          path: e2e/ci-artifacts
+          merge-multiple: true
+      - name: Serialize Excel consolidation
+        working-directory: e2e
+        run: >-
+          npm run ci:consolidate --
+          --artifacts=ci-artifacts
+          --workbook=../docs/probes-e2e/probes-pagines/MAIN_PROBES_ZUPETTO.xlsx
+          --output=ci-output/MAIN_PROBES_ZUPETTO-CI.xlsx
+          --summary=ci-output/consolidated-summary.json
+      - name: Audit consolidated artifacts
+        working-directory: e2e
+        run: npm run ci:artifacts:audit -- --path=ci-output
+      - uses: actions/upload-artifact@v7
+        with:
+          name: e2e-consolidated
+          path: e2e/ci-output
+          if-no-files-found: error
+          retention-days: 21
+
+  quality_gate:
+    name: Quality gate
+    needs: [build, unit_tests, runner_tests, smoke_chrome, critical_chrome, full_chrome, cross_browser_full, consolidate]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce completed required jobs
+        env:
+          BUILD_RESULT: ${{ needs.build.result }}
+          UNIT_RESULT: ${{ needs.unit_tests.result }}
+          RUNNER_RESULT: ${{ needs.runner_tests.result }}
+          SMOKE_RESULT: ${{ needs.smoke_chrome.result }}
+          CRITICAL_RESULT: ${{ needs.critical_chrome.result }}
+          FULL_CHROME_RESULT: ${{ needs.full_chrome.result }}
+          CROSS_BROWSER_RESULT: ${{ needs.cross_browser_full.result }}
+          CONSOLIDATE_RESULT: ${{ needs.consolidate.result }}
+        run: |
+          test "$BUILD_RESULT" = success
+          test "$UNIT_RESULT" = success
+          test "$RUNNER_RESULT" = success
+          test "$SMOKE_RESULT" = success
+          test "$CONSOLIDATE_RESULT" = success
+          test "$CRITICAL_RESULT" = success || test "$CRITICAL_RESULT" = skipped
+          test "$FULL_CHROME_RESULT" = success || test "$FULL_CHROME_RESULT" = skipped
+          test "$CROSS_BROWSER_RESULT" = success || test "$CROSS_BROWSER_RESULT" = skipped

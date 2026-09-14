@@ -17,12 +17,22 @@ export async function loadPilotEnvironment(path: string): Promise<PilotEnvironme
     if (separator <= 0 || line.trimStart().startsWith('#')) continue;
     values.set(line.slice(0, separator).trim(), line.slice(separator + 1));
   }
+  return loadEnvironment(values, 'local');
+}
+
+export function loadCiEnvironment(source: NodeJS.ProcessEnv = process.env): PilotEnvironment {
+  const values = new Map<string, string>();
+  for (const [key, value] of Object.entries(source)) if (value !== undefined) values.set(key, value);
+  return loadEnvironment(values, 'CI');
+}
+
+function loadEnvironment(values: ReadonlyMap<string, string>, source: string): PilotEnvironment {
   const accounts = new Map<E2ERole, E2EAccount>();
   addAccount(accounts, values, 'USER');
   addAccount(accounts, values, 'ADMIN');
   addAccount(accounts, values, 'DEVELOPER');
   addAccount(accounts, values, 'VIEWER');
-  return { webBaseUrl: required(values, 'E2E_BASE_URL'), apiBaseUrl: required(values, 'E2E_API_URL'), accounts };
+  return { webBaseUrl: required(values, 'E2E_BASE_URL', source), apiBaseUrl: required(values, 'E2E_API_URL', source), accounts };
 }
 
 function addAccount(accounts: Map<E2ERole, E2EAccount>, values: ReadonlyMap<string, string>, role: AuthenticatedRole): void {
@@ -33,8 +43,8 @@ function addAccount(accounts: Map<E2ERole, E2EAccount>, values: ReadonlyMap<stri
   accounts.set(role, { role, email, password });
 }
 
-function required(values: ReadonlyMap<string, string>, key: string): string {
+function required(values: ReadonlyMap<string, string>, key: string, source: string): string {
   const value = values.get(key);
-  if (value === undefined || value.length === 0) throw new Error('Falta la variable local requerida: ' + key);
+  if (value === undefined || value.length === 0) throw new Error(`Falta la variable ${source} requerida: ${key}`);
   return value;
 }

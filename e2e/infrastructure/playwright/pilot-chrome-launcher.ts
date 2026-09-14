@@ -6,6 +6,9 @@ const flatpakChromeExecutable = '/var/lib/flatpak/exports/bin/com.google.Chrome'
 
 export class PilotChromeLauncher implements BrowserLauncher {
   public async launch(headed: boolean): Promise<Browser> {
+    if (process.env.CI === 'true') {
+      return chromium.launch({ channel: 'chrome', headless: !headed, args: ['--no-first-run', '--no-default-browser-check'] });
+    }
     try {
       await access(flatpakChromeExecutable);
     } catch {

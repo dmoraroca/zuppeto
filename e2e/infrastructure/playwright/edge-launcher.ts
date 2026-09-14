@@ -6,6 +6,9 @@ const flatpakEdgeExecutable = '/var/lib/flatpak/exports/bin/com.microsoft.Edge';
 
 export class EdgeLauncher implements BrowserLauncher {
   public async launch(headed: boolean): Promise<Browser> {
+    if (process.env.CI === 'true' || process.platform === 'win32') {
+      return chromium.launch({ channel: 'msedge', headless: !headed, args: ['--no-first-run', '--no-default-browser-check'] });
+    }
     try {
       await access(flatpakEdgeExecutable);
     } catch {

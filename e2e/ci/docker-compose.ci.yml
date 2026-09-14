@@ -1,0 +1,4 @@
+services:
+  api:
+    environment:
+      Auth__Jwt__SigningKey: ${JWT_SIGNING_KEY:?Falta JWT_SIGNING_KEY de CI}

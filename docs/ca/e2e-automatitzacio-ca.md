@@ -2,7 +2,7 @@
 
 ## Estat, abast i accés
 
-**Estat:** Fases 1–8 validades. La mateixa cobertura completa està validada en Google Chrome, Firefox, WebKit i Microsoft Edge real; CI i la Fase 9 no s'han iniciat.
+**Estat:** Fases 1–9 validades. Google Chrome, Firefox, WebKit i Microsoft Edge comparteixen suite, i GitHub Actions n'automatitza build, tests, smoke, regressions, artefactes i consolidació serialitzada; la Fase 10 no s'ha iniciat.
 **Principi rector:** Codex construeix i manté la infraestructura; Playwright, invocat des del terminal o CI, executa les tirades llargues de forma autònoma.
 
 Aquest és el document viu de l'automatització E2E. Qualsevol decisió material, canvi d'estructura, navegador incorporat o resultat de validació l'ha d'actualitzar.
@@ -30,7 +30,8 @@ Consultar la documentació no concedeix permisos d'execució, escriptura sobre l
 | Fase 6 — Firefox | PASS | Mateixa suite validada sobre Firefox/Gecko: 172 PASS, 5 SKIP justificats i 0 FAIL/BLOCKED/retries. |
 | Fase 7 — WebKit | PASS | Mateixa suite validada sobre Playwright WebKit 26.4: 172 PASS, 5 SKIP justificats i 0 FAIL/BLOCKED/retries. |
 | Fase 8 — Microsoft Edge | PASS | Mateixa suite validada sobre Microsoft Edge real 153.0.4234.32/Blink: 172 PASS, 5 SKIP justificats i 0 FAIL/BLOCKED/retries. |
-| Fase 9 i CI | NO INICIATS | Queden fora de l'abast i requereixen autorització explícita. |
+| Fase 9 — CI / integració contínua | PASS | GitHub Actions amb gates ràpid, intermedi i complet, artefactes segurs i escriptura Excel única i serialitzada. |
+| Fase 10 | NO INICIADA | Queda fora de l'abast i requereix autorització explícita. |
 
 ---
 
@@ -818,6 +819,49 @@ L'auditoria PostgreSQL posterior dona zero usuaris, rols, menús, països, ciuta
 `npm run runner:test` passa amb 13 grups i 0 FAIL, inclosos l'inventari Edge, les metadades Edge/Blink i l'aïllament respecte dels altres navegadors. No s'ha executat cap altre navegador durant la fase, ni CI, ni s'ha fet commit, push, rebase o modificació de l'historial.
 
 **Estat: PASS — Fase 8 completada el 2026-09-14. No s'autoritza l'inici de la Fase 9.**
+
+## Fase 9 — CI / integració contínua
+
+### Proveïdor, arquitectura i triggers
+
+El proveïdor és **GitHub Actions** perquè el remot canònic del repositori és GitHub i no hi havia configuració d'un altre proveïdor. El workflow `.github/workflows/continuous-integration.yml` té permisos mínims `contents: read`, no fa commit ni push i usa les accions oficials actuals `checkout@v7`, `setup-node@v7`, `setup-dotnet@v5`, `upload-artifact@v7` i `download-artifact@v8`.
+
+Els triggers i nivells són:
+
+- qualsevol `push` o `pull_request`: build .NET/Angular, tests unitaris existents, tests del runner i smoke Chrome;
+- `push` a `main` o a un tag de prerelease/release: tot l'anterior, critical Chrome i full Chrome;
+- planificació nocturna a les 02:17 UTC: tot l'anterior i full Firefox, WebKit i Edge;
+- `workflow_dispatch`: permet triar `smoke`, `critical` o `full`.
+
+Les responsabilitats estan separades en `build`, `unit_tests`, `runner_tests`, `smoke_chrome`, `critical_chrome`, `full_chrome`, la matriu `cross_browser_full`, `consolidate` i `quality_gate`. No hi ha paral·lelisme dins d'un navegador: cada run conserva el worker únic. Firefox, WebKit i Edge només poden córrer en jobs independents, cadascun amb base de dades i serveis efímers propis.
+
+### Suite compartida i entorn reproduïble
+
+`--profile=smoke|critical|full` filtra el mateix inventari i el mateix catàleg, sense especificacions alternatives. Smoke selecciona ZUP-001, ZUP-073 i ZUP-115. Critical selecciona els 59 escenaris que ja tenen risc `HIGH` a les metadades compartides, dels quals 54 són automatitzables i 5 conserven el seu SKIP justificat. Full manté les 177 variants, 172 automatitzables i 5 exclusions compartides.
+
+Cada job E2E aixeca PostgreSQL 17, RabbitMQ 4, API .NET 10 i web Angular amb Docker Compose. Els healthchecks de PostgreSQL i RabbitMQ ja existents es complementen amb healthchecks HTTP d'API i web; `docker compose up --wait` impedeix començar abans que tot l'entorn sigui saludable. L'override `ci/docker-compose.ci.yml` exigeix la clau JWT del secret store i no incorpora cap fallback literal. `ci/run-e2e-job.sh` encapsula aquest cicle reproduïble i sempre desmunta serveis i volums efímers en sortir.
+
+Els quatre comptes són exclusivament `user.e2e@zuppeto.local`, `admin.e2e@zuppeto.local`, `developer.e2e@zuppeto.local` i `viewer.e2e@zuppeto.local`. `ci:accounts` només permet aquests identificadors exactes, aplica hashes PBKDF2 i fa upsert individual; rebutja comptes humans, contrasenyes curtes i qualsevol altre correu. Fixtures, factories, restauració i cleanup continuen sent els compartits de les fases anteriors.
+
+Chrome CI usa el canal real `chrome`; Firefox i WebKit usen els binaris Playwright compatibles; Edge nocturn/manual usa el canal real `msedge` sobre Linux. `windows-latest` no pot aixecar de manera fiable el stack de contenidors Linux actual, per tant Edge Windows no es presenta falsament com a validat en CI. Es podrà afegir quan existeixi un runner Windows autogestionat etiquetat i connectat a un entorn E2E aïllat. macOS i Safari real queden fora de la fase; una incorporació posterior requeriria runner macOS, matriu Excel i validació específica autoritzada.
+
+### Secrets, artefactes i consolidació Excel
+
+La CI necessita set secrets al secret store de GitHub: `E2E_USER_PASSWORD`, `E2E_ADMIN_PASSWORD`, `E2E_DEVELOPER_PASSWORD`, `E2E_VIEWER_PASSWORD`, `CI_POSTGRES_PASSWORD`, `CI_RABBITMQ_PASSWORD` i `CI_JWT_SIGNING_KEY`. Les URLs locals i els correus E2E dedicats no són secrets. Cap credencial s'escriu al YAML, al Git, a `.env.e2e.local`, a l'Excel ni als logs. Els secrets no estan disponibles en pull requests de forks; aquests PR no poden superar el smoke autenticat fins que el canvi s'executi en un context de confiança.
+
+Cada run genera `state.json`, `summary.json`, `executions.jsonl`, la cua `excel-sync.jsonl`, diagnòstics, captures i traces només quan la política segura existent ho permet. També es genera un resum de l'estat dels serveis, no els logs bruts. `ci:artifacts:audit` inspecciona noms, contingut, valors sensibles de l'entorn i ZIP descomprimits abans de publicar. Si detecta `.env`, cookies, storage state o un secret exacte, bloqueja la publicació. Els artefactes per job es retenen 14 dies per smoke/critical i 21 dies per full.
+
+Els jobs E2E tenen `E2E_DEFER_EXCEL_SYNC=true`: mai escriuen l'Excel, ni tan sols sobre còpies concorrents. `DeferredExcelSyncQueue` conserva el payload complet append-only i idempotent. El job únic `consolidate` descarrega les cues, rebutja runId o executionId duplicats, ordena els resultats i reutilitza `ExcelWorkbookSync` per actualitzar serialment una còpia del llibre. Publica `MAIN_PROBES_ZUPETTO-CI.xlsx` i `consolidated-summary.json`; no modifica ni versiona automàticament el llibre canònic. L'adopció posterior d'aquest artefacte continua sota control humà i conserva la protecció MANUAL i l'idempotència.
+
+### Gates, resume, riscos i validació
+
+Un build, test unitari, `runner:test`, smoke o auditoria d'artefactes fallit bloqueja push/PR. A `main` i tags, critical i full Chrome també bloquegen el gate. En nocturn, qualsevol FAIL/BLOCKED o error d'infraestructura deixa el workflow en vermell i el run de GitHub actua com a incidència de qualitat degradada; no modifica retrospectivament commits ni crea incidències externes sense autorització. Els 5 SKIP aprovats no bloquegen.
+
+Un run interromput conserva estat, JSONL i evidències si el job arriba a publicar artefactes, i el runner continua suportant `--resume --run-id`. GitHub hosted crea una màquina nova en cada reexecució i no garanteix restauració transaccional entre jobs; per això no s'ha automatitzat un resume entre runners amb una solució fràgil. El resume fiable entre jobs queda pendent d'emmagatzematge durador i coordinació explícita.
+
+La validació local confirma YAML parsejable, `docker compose config`, sintaxi Bash i compilació TypeScript. El build .NET 10 passa amb 0 errors i 0 warnings; no existeix cap projecte de tests .NET. El build Angular de producció passa després d'ajustar el pressupost d'estil existent de 18 kB a 20 kB, i l'únic fitxer unitari Angular aporta 2 tests PASS. `npm run runner:test` passa amb 14 grups i 0 FAIL; els tests nous cobreixen perfils, configuració CI, comptes exactes, cua idempotent, consolidació temporal, duplicats i filtració d'artefactes. No s'ha executat cap navegador ni s'ha modificat l'Excel durant la Fase 9 local.
+
+**Estat: PASS — Fase 9 completada el 2026-09-14. El workflow requereix configurar els set secrets abans de la primera execució remota. No s'autoritza l'inici de la Fase 10.**
 
 ## Gates
 
