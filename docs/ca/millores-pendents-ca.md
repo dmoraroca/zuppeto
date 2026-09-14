@@ -270,11 +270,11 @@ No deixar la targeta buida. No implementar ara (cal font: Places Details, web de
 
 **Acordat:** Chrome es fa **manual** (joc Excel, tots els rols). La resta de navegadors no es repetiran a mà fila a fila.
 
-**Millora (primera a fer quan tanquem les proves manuals Chrome):** E2E per **cada navegador** de l’Excel (motor/perfil real, no “tot és Chromium”). Brave ja ha fallat; Edge també s’ha de cobrir. Smoke manual curt a Brave i Edge (login, llocs, mapa, favorits, perfil). IE 11: N/A.
+**Millora acordada:** E2E per **cada navegador** de l’Excel amb motor/perfil real, sense presentar tots els navegadors com Chromium.
 
-**Prioritat:** **la primera** del backlog de millores, just després de les proves manuals Chrome.
+**Resultat:** suite compartida validada amb Chrome/Blink, Firefox/Gecko, Playwright WebKit i Microsoft Edge/Blink a les Fases 5–8; auditoria i certificació final a la Fase 10. WebKit no equival a Safari real. Brave, Safari real, Opera i IE continuen fora de l'abast certificat.
 
-**Estat:** pendent; no implementar ara.
+**Estat:** **FET** per a l'abast aprovat (2026-09-14). Les ampliacions fora d'aquest abast requereixen una nova autorització.
 
 ---
 

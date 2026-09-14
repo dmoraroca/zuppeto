@@ -2094,14 +2094,21 @@ Execucio local:
 
 ```bash
 cd e2e
-npm run e2e
+npm ci
+npm run e2e:install
+npm run runner:test
+npm run e2e:chrome
+npm run e2e:firefox
+npm run e2e:webkit
+npm run e2e:edge
 ```
 
-Execucio amb UI:
+Execucio focalitzada i represa:
 
 ```bash
 cd e2e
-npm run e2e:ui
+npm run e2e:chrome -- --scenario=ZUP-001-SENSE-SESSIO-principal --headed
+npm run e2e:chrome:resume -- --run-id=<runId>
 ```
 
 Execucio via Docker:
@@ -2110,14 +2117,17 @@ Execucio via Docker:
 docker compose --profile e2e run --rm e2e
 ```
 
-Historic d'execucions:
+El servei Docker executa WebKit 26.4 amb la imatge oficial Playwright 1.59.1, xarxa del host i les credencials locals ignorades de `e2e/.env.e2e.local`. Preserva íntegrament `Proves` i aplica el gate sobre FAIL/BLOCKED. Chrome i Edge locals usen els launchers Flatpak; Firefox usa el binari compatible instal·lat per Playwright.
 
-- quan diguem "tanquem punt en curs", es llancen els tests del punt
-- si tot va be, es genera un fitxer `YYYYMMDD_HHMM_OK_<punt>_<commit>.md`
-- si falla, es genera un fitxer `YYYYMMDD_HHMM_KO_<punt>_<commit>.md` amb errors
-- ubicacio: `docs/probes-e2e-resultats/`
-- plantilla: `docs/probes-e2e-resultats/template.md`
-- el numero de `commit` correspon al teu format de log (ex.: si l'ultim es `037`, toca `038`)
+Històric d'execucions:
+
+- `e2e/.runs/[<navegador>/]<runId>/state.json`: projecció recuperable;
+- `e2e/.runs/[<navegador>/]<runId>/executions.jsonl`: intents immutables append-only;
+- `e2e/.runs/[<navegador>/]<runId>/summary.json`: resum final;
+- full `Execucions E2E` de `MAIN_PROBES_ZUPETTO.xlsx`: historial tabular idempotent;
+- `e2e/.runs/[<navegador>/]artifacts/<executionId>/`: diagnòstic i captura només davant incidència.
+
+No es genera report HTML. La interpretació de PASS, FAIL, BLOCKED, SKIP i INTERRUPTED, la retenció i el procés de consolidació es documenten a `e2e-automatitzacio-ca.md`.
 
 ## 12. Pagines internes (estat)
 
@@ -2144,8 +2154,9 @@ Proteccio:
 
 E2E:
 
-- suite `internal-pages.e2e.spec.ts`
-- execucio OK documentada a `docs/probes-e2e-resultats/`
+- catàleg compartit a `e2e/scenarios/chrome/`, malgrat el nom històric del directori;
+- runner i composició a `e2e/runner/` i `e2e/infrastructure/`;
+- execucions i informe final documentats a `docs/ca/e2e-automatitzacio-ca.md`.
 
 ### 12.1 Observabilitat i correlació E2E
 
@@ -2158,9 +2169,9 @@ E2E:
 - El registre HTTP inclou mètode, ruta, estat, durada, `TraceId`, `CorrelationId`, codi ZUP, rol de prova i navegador; la query string no es registra per evitar exposar tokens o dades personals.
 - `RequestCorrelationMiddleware` valida les capçaleres de correlació i retorna `X-Correlation-ID` a la resposta.
 - `RequestLogEnrichmentMiddleware`, executat després de l'autenticació, afegeix l'usuari i el rol autenticats al context estructurat de Serilog.
-- Playwright captura globalment excepcions JavaScript, `console.error`, errors de xarxa essencials i HTTP 5xx. En cas d'error adjunta diagnòstic JSON, captura de pantalla i traça.
+- Playwright captura globalment excepcions JavaScript, `console.error`, errors de xarxa essencials i HTTP 5xx. En cas d'error adjunta diagnòstic JSON i captura; només genera traça en escenaris sense sessió declarats segurs, perquè una traça autenticada pot contenir credencials o tokens.
 - `IExternalPlaceCallPolicy` manté l'aplicació independent del transport; l'adaptador HTTP bloqueja crides facturables de Google Places quan la petició prové de Playwright.
-- Els informes Playwright es generen en format JSON i HTML. El JSON és l'entrada prevista del procés únic que actualitzarà l'Excel.
+- El journal JSONL és l'evidència primària del reporter. La sincronització en lot actualitza `Execucions E2E` sota un únic lock i una escriptura atòmica; a CI, els jobs generen cues i un consolidador únic produeix una còpia de l'Excel.
 - Els fitxers locals de log i els artefactes E2E estan exclosos de Git.
 
 Control de consum de Google Places:

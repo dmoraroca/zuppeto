@@ -1,8 +1,12 @@
 import assert from 'node:assert/strict';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test from 'node:test';
 import { redact, safeUrl } from '../../infrastructure/playwright/pilot-redactor.js';
 import { PilotDiagnosticsCollector } from '../../infrastructure/playwright/pilot-diagnostics.js';
 import { pilotScenarios } from '../../scenarios/pilot/pilot-scenarios.js';
+import { PilotArtifactWriter } from '../../infrastructure/playwright/pilot-artifact-writer.js';
 
 test('pilot catalog contains exactly the three approved scenarios with protected Chrome keys', () => {
   assert.deepEqual(pilotScenarios.map((scenario) => scenario.definition.id.value), [
@@ -27,4 +31,18 @@ test('diagnostics can allow an exact expected HTTP status and path', () => {
   collector.start();
   responseListeners.forEach((listener) => listener({ status: () => 401, url: () => 'https://api.test/api/auth/login?token=hidden' }));
   assert.equal(collector.snapshot().networkErrors, '');
+});
+
+test('failure evidence is isolated by the complete executionId', async (context) => {
+  const root = await mkdtemp(join(tmpdir(), 'zuppeto-evidence-'));
+  context.after(async () => rm(root, { recursive: true, force: true }));
+  const writer = new PilotArtifactWriter(root);
+  const diagnostics = { javascriptErrors: '', networkErrors: '', finalUrl: 'https://web.test/' };
+
+  const first = await writer.writeFailure('run-one--ZUP-001-SENSE_SESSIO-principal--a01', undefined, diagnostics, 'first');
+  const second = await writer.writeFailure('run-two--ZUP-001-SENSE_SESSIO-principal--a01', undefined, diagnostics, 'second');
+
+  assert.notEqual(first, second);
+  assert.match(await readFile(join(first, 'diagnostics.json'), 'utf8'), /first/);
+  assert.match(await readFile(join(second, 'diagnostics.json'), 'utf8'), /second/);
 });

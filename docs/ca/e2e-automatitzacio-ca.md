@@ -2,7 +2,7 @@
 
 ## Estat, abast i accés
 
-**Estat:** Fases 1–9 validades. Google Chrome, Firefox, WebKit i Microsoft Edge comparteixen suite, i GitHub Actions n'automatitza build, tests, smoke, regressions, artefactes i consolidació serialitzada; la Fase 10 no s'ha iniciat.
+**Estat:** Fases 0–10 validades. Google Chrome, Firefox, WebKit i Microsoft Edge comparteixen suite; l'auditoria final local queda tancada amb PASS i la CI definida a la Fase 9 resta preparada, però no s'ha executat durant la Fase 10.
 **Principi rector:** Codex construeix i manté la infraestructura; Playwright, invocat des del terminal o CI, executa les tirades llargues de forma autònoma.
 
 Aquest és el document viu de l'automatització E2E. Qualsevol decisió material, canvi d'estructura, navegador incorporat o resultat de validació l'ha d'actualitzar.
@@ -31,7 +31,7 @@ Consultar la documentació no concedeix permisos d'execució, escriptura sobre l
 | Fase 7 — WebKit | PASS | Mateixa suite validada sobre Playwright WebKit 26.4: 172 PASS, 5 SKIP justificats i 0 FAIL/BLOCKED/retries. |
 | Fase 8 — Microsoft Edge | PASS | Mateixa suite validada sobre Microsoft Edge real 153.0.4234.32/Blink: 172 PASS, 5 SKIP justificats i 0 FAIL/BLOCKED/retries. |
 | Fase 9 — CI / integració contínua | PASS | GitHub Actions amb gates ràpid, intermedi i complet, artefactes segurs i escriptura Excel única i serialitzada. |
-| Fase 10 | NO INICIADA | Queda fora de l'abast i requereix autorització explícita. |
+| Fase 10 — Tancament, auditoria i certificació | PASS | Suite, resultats, Excel, documentació, històric, residus, secrets i Git auditats el 2026-09-14. |
 
 ---
 
@@ -97,11 +97,13 @@ Quan s'autoritzi, Codex pot construir i mantenir escenaris, runner, fixtures, fa
 
 El runner és un procés local o de CI. Ha de seleccionar i congelar escenaris, persistir estat, executar-los, registrar resultats, sincronitzar Excel amb seguretat, mostrar progrés i permetre resume.
 
-Ordres previstes:
+Ordres operatives:
 
-    npm run e2e:run -- --browser=chrome --mode=all
-    npm run e2e:run -- --browser=firefox --mode=all
-    npm run e2e:resume -- --run-id=<runId>
+    npm run e2e:chrome
+    npm run e2e:firefox
+    npm run e2e:webkit
+    npm run e2e:edge
+    npm run e2e:<navegador>:resume -- --run-id=<runId>
 
 Les dreceres per navegador deleguen en una única implementació.
 
@@ -190,11 +192,11 @@ Google, LinkedIn i altres integracions externes no són prerequisits implícits.
 
 Cada tirada crea un runId i treballa sota una carpeta ignorada per Git:
 
-    e2e/.runs/<runId>/
+    e2e/.runs/[<navegador>/]<runId>/
       state.json
       executions.jsonl
       summary.json
-      artifacts/<executionId>/
+    e2e/.runs/[<navegador>/]artifacts/<executionId>/
 
 - state.json: projecció de progrés, escrita atòmicament.
 - executions.jsonl: diari immutable append-only d'intents terminalitzats.
@@ -878,17 +880,17 @@ La validació local confirma YAML parsejable, `docker compose config`, sintaxi B
 | Edge | Absència com prerequisit | Absència convertida en KO funcional. |
 | CI | Consolidador únic | Escriptura concurrent o secrets exposats. |
 
-El pilot tindrà tres ZUP reals: un sense sessió, un USER que creï i elimini una dada temporal, i un ADMIN o DEVELOPER que validi un permís protegit. La selecció exacta es farà revisant el catàleg, abans d'implementar.
+El pilot històric va usar tres ZUP reals: ZUP-001 sense sessió, ZUP-073 amb USER i dada temporal, i ZUP-115 amb DEVELOPER i permís protegit. Aquesta selecció continua coberta pel perfil `smoke`.
 
 S'ha d'aturar i replantejar una fase davant corrupció Excel, modificació manual, resume no fiable, secrets exposats, cleanup perillós, flakiness no explicada, acoblament runner-UI o complexitat desproporcionada.
 
-**Recomanació actual: GO AMB CONDICIONS.** Després de completar la Fase 0 es pot començar la Fase 1 simulada. El baseline formal, entorn, comptes/secrets i ZUP pilot són obligatoris abans de la primera execució real, no abans del nucli simulat.
+**Recomanació final:** bloc E2E tancat. Qualsevol ampliació posterior de navegadors, cobertura o infraestructura requereix un nou abast explícit i no forma part de les Fases 0–10.
 
 ---
 
-# Annex A. ADRs necessaris
+# Annex A. Decisions arquitectòniques consolidades
 
-Cal crear ADRs breus per:
+Les decisions següents han quedat aplicades i traçades en aquest document:
 
 1. Runner extern que orquestra Playwright.
 2. runId, executionId i historial immutable.
@@ -900,7 +902,7 @@ Cal crear ADRs breus per:
 
 Cada ADR explica context, decisió, alternatives descartades i conseqüències.
 
-# Annex B. Dependències inicials
+# Annex B. Dependències finals
 
 La infraestructura manté dependències mínimes:
 
@@ -910,3 +912,121 @@ La infraestructura manté dependències mínimes:
 - cap llibreria addicional de CLI, ETA o persistència si Node ja resol el cas.
 
 Qualsevol dependència nova s'ha de justificar pel valor que aporta.
+
+# Informe final E2E
+
+## Objectiu
+
+El bloc E2E valida Zuppeto des de la interfície web fins a l'API i la persistència, incloent autenticació, autorització, navegació, dades i cleanup. La Fase 10 ha auditat la implementació i les evidències de les Fases 0–9, ha executat la validació final i ha tancat formalment l'abast sense afegir funcionalitat de producte.
+
+## Abast
+
+La matriu compartida conté 177 escenaris derivats de 153 casos ZUP. Cobreix autenticació; navegació i seguretat; inici; llocs i detall; favorits; perfil; notificacions; ajuda i contacte; rols, usuaris, permisos, menús, geografia i llocs administratius; documentació interna; i controls d'API. Els rols són Sense sessió, USER, ADMIN, DEVELOPER i VIEWER.
+
+## Arquitectura E2E
+
+Les especificacions funcionals són handlers prims agrupats per domini. El runner compon ports i adapters per a navegador, autenticació, API, sessions, persistència, Excel i artefactes. Cada escenari rep una sessió nova, identitat temporal única, factories i un coordinador de cleanup. `state.json`, `executions.jsonl` i `summary.json` són l'evidència primària recuperable; `Execucions E2E` és l'historial tabular append-only.
+
+La suite és única per als quatre navegadors. `BrowserTarget` i `BrowserLauncher` encapsulen les diferències de motor, executable i directori de runs. No hi ha forks funcionals per navegador ni dependències del domini cap a Playwright, HTTP o Excel.
+
+## Tecnologia
+
+S'han validat Playwright 1.59.1, ExcelJS 4.4.0 i Node.js 22 amb:
+
+- Google Chrome 153.0.8010.36, motor Blink;
+- Firefox Playwright 148.0.2, motor Gecko;
+- Playwright WebKit 26.4 dins la imatge oficial `mcr.microsoft.com/playwright:v1.59.1-noble`;
+- Microsoft Edge 153.0.4234.32, motor Blink.
+
+WebKit és el motor distribuït per Playwright i no certifica Safari real. Chrome i Edge locals s'executen com a Flatpak; els seus launchers eliminen després de `browser.close()` només els perfils temporals creats per aquella instància.
+
+## Metodologia
+
+Les Fases 0–4 van retirar llegat, establir runner, persistència, Excel, pilot, comptes, fixtures, factories, adapters, identitats i cleanup. Les Fases 5–8 van validar incrementalment Chrome, Firefox, WebKit i Edge sobre el mateix inventari. La Fase 9 va definir la CI i la consolidació serialitzada sense executar-la remotament. La Fase 10 ha contrastat codi, journals, summaries, Excel, PostgreSQL, artefactes, secrets, documentació i Git, preservant els FAIL, BLOCKED i INTERRUPTED històrics.
+
+## Cobertura
+
+Cada navegador executa 177 escenaris: 172 automatitzables i 5 exclusions compartides. ZUP-016 és `EXTERNAL`; ZUP-021, ZUP-107, ZUP-109 i ZUP-145 són `SPECIFICATION`. No existeixen SKIP específics de navegador, `.only`, retries configurats, sleeps arbitraris ni tests temporals actius.
+
+## Execucions
+
+La certificació final usa aquestes quatre regressions reals:
+
+| Navegador | runId | Inici UTC | Final UTC | Durada exacta | PASS | FAIL | SKIP | Retries |
+|---|---|---|---|---:|---:|---:|---:|---:|
+| Chrome | `sim-20260914T181821948Z-620702e1` | 2026-09-14T18:18:21.948Z | 2026-09-14T18:28:16.751Z | 593.829 ms | 172 | 0 | 5 | 0 |
+| Firefox | `sim-20260914T161950278Z-0d86d271` | 2026-09-14T16:19:50.278Z | 2026-09-14T16:35:41.849Z | 950.657 ms | 172 | 0 | 5 | 0 |
+| WebKit | `sim-20260914T164854513Z-ac40c01f` | 2026-09-14T16:48:54.513Z | 2026-09-14T16:59:33.397Z | 638.233 ms | 172 | 0 | 5 | 0 |
+| Edge | `sim-20260914T180301419Z-48431569` | 2026-09-14T18:03:01.419Z | 2026-09-14T18:12:58.573Z | 596.218 ms | 172 | 0 | 5 | 0 |
+
+El temps Playwright acumulat de les quatre regressions és 2.778.937 ms, és a dir, 46 min 18,937 s. La matriu final suma 708 resultats: 688 PASS, 0 FAIL, 20 SKIP, 0 BLOCKED, 0 INTERRUPTED i 0 retries.
+
+Durant la Fase 10 es van generar 1.588 intents en 14 runId: 1.176 PASS, 194 FAIL, 173 BLOCKED, 44 SKIP i 1 INTERRUPTED. Aquest total inclou deliberadament els intents de diagnòstic i d'entorn; no es confon amb la matriu final neta.
+
+## Resultats finals
+
+Les quatre regressions definitives estan `completed` i sense FAIL o BLOCKED. Els 20 SKIP agregats són les cinc exclusions justificades repetides als quatre navegadors. `npm run runner:test` passa 14/14 grups, sense tests cancel·lats, omesos o pendents.
+
+## Incidències rellevants
+
+- Chrome no va poder arrencar dins el sandbox Flatpak: 172 BLOCKED i 5 SKIP. Es va classificar `ENVIRONMENT` i es va repetir fora del sandbox.
+- WebKit host no tenia totes les biblioteques del runtime: 172 FAIL i 5 SKIP. Es va classificar `ENVIRONMENT` i es va repetir a la imatge Playwright oficial compatible.
+- Una tirada Edge es va degradar per `ERR_INSUFFICIENT_RESOURCES` i es va interrompre amb 167 intents registrats. `/run/user/1000` estava ple per perfils Playwright Flatpak abandonats.
+- ZUP-146 va fallar i la revalidació va reproduir-ho perquè una interrupció anterior havia impedit restaurar `page.admin.documentation` al rol Developer. No era un defecte de producte.
+- La sincronització Excel fila a fila era correcta però excessivament lenta i podia deixar un lock si el procés extern expirava.
+- Els directoris de diagnòstic antics no incloïen `runId` i una evidència posterior del mateix escenari podia sobreescriure l'anterior.
+
+## Correccions
+
+Les regressions de navegador es van executar en l'entorn compatible sense relaxar assertions. El cleanup Flatpak captura els perfils propietat de cada llançament i n'elimina només les rutes exactes en tancar, inclòs un launch fallit. L'assignació Developer es va restaurar via adapter API a l'estat definit pel seeder i es va verificar abans de repetir ZUP-146.
+
+`ExcelWorkbookSync` disposa de sincronització en lot sota un únic lock i una única escriptura atòmica; l'operació conserva `Proves` quan `E2E_PRESERVE_PROVES=true`. Els reporters només marquen un intent com sincronitzat si el gateway no retorna `NOT_SYNCED`. Les noves evidències usen l'`executionId` complet, inclòs el `runId`, i per tant no col·lideixen entre tirades.
+
+## Regressió
+
+Després del cleanup Flatpak, ZUP-112 va passar focalitzat i Edge va completar una regressió. Després de detectar l'estat Developer residual, ZUP-146 va fallar focalitzat, es va restaurar l'estat exacte, va passar 1/1 i Edge va repetir la suite completa amb 172 PASS i 5 SKIP. Chrome va repetir també la suite completa perquè comparteix el launcher Flatpak. Firefox i WebKit no depenen d'aquesta correcció. Les correccions de reporter i evidències estan cobertes per `runner:test` i no alteren l'execució funcional.
+
+## Prevenció de falsos positius
+
+Els diagnòstics fallen davant errors JavaScript, xarxa o HTTP no permesos explícitament. PASS exigeix les assertions funcionals i cleanup sense incidències; FAIL, BLOCKED, SKIP i INTERRUPTED són estats diferents. Les sessions i contextos són nous per escenari, les dades temporals tenen identitat única i el cleanup treballa amb IDs o claus exactes. No hi ha retries automàtics. Les revalidacions generen executionId nous i mai reescriuen un resultat històric.
+
+## Mètriques finals
+
+- 153 casos ZUP, 177 escenaris per navegador i 708 resultats a la matriu certificada.
+- Matriu final: 688 PASS, 0 FAIL, 20 SKIP, 0 BLOCKED, 0 INTERRUPTED i 0 retries.
+- 165 journals JSONL, 4.177 intents i 4.177 executionId únics, sense línies malformades.
+- 4.167 execucions reals registrades a l'Excel, amb 4.167 executionId únics. Els 10 intents addicionals dels journals són dues simulacions de Fase 1 anteriors a `Execucions E2E`; no són execucions de navegador i no s'han incorporat retroactivament.
+- `Proves`: 1.240 files, 16 columnes, zero claus d'escenari duplicades i model complet idèntic al HEAD inicial de Fase 10. Hash canònic abans/després: `49fe0c7c9b5d1788cffa4a6738e551a3e5ffda13fae48e21f51ecb6d0c9785b3`.
+- 178 resultats MANUAL intactes: 141 OK, 33 KO, 3 N/A i 1 EN CURS.
+- PostgreSQL: zero països, ciutats, llocs, menús, usuaris temporals i favorits sobre llocs E2E residuals; quatre comptes dedicats presents, un per rol autenticat; permís Developer crític restaurat.
+- Secrets: quatre valors locals contrastats contra 737 rutes versionades i 1.784 fitxers totals del worktree —inclòs el fitxer nou no versionat—, `.runs`, logs i artefactes; 30 ZIP/XLSX inspeccionats descomprimits; zero coincidències.
+
+## Limitacions conegudes
+
+Els cinc SKIP justificats no formen part del gate ordinari. No s'han validat Safari real, Brave, Opera ni Internet Explorer. WebKit no equival a Safari. La CI de Fase 9 està definida i provada estàticament, però la Fase 10 no ha executat workflows remots ni ha verificat la configuració efectiva dels set secrets de GitHub.
+
+Els deu intents simulats previs a la migració Excel només viuen als journals. Les evidències antigues anteriors a la correcció de Fase 10 poden haver compartit ruta si coincidien escenari i intent; els journals i missatges append-only continuen preservant el resultat, i totes les evidències noves queden aïllades per runId.
+
+## Riscos residuals
+
+Un `SIGKILL` o la finalització abrupta del host no pot executar blocs `finally`; qualsevol estat mutable capturat s'ha de verificar abans d'una nova certificació, com s'ha fet amb els permisos Developer. Els pull requests de forks no disposen de secrets i no poden completar smokes autenticats. Edge Windows i Safari real requeririen runners i abast específics.
+
+No queda cap incidència bloquejant coneguda dins l'abast E2E definit.
+
+## Conclusions
+
+La suite compartida és coherent amb l'inventari, els resultats finals són reproduïbles als quatre motors/perfils aprovats, l'Excel conserva íntegrament la font funcional i l'historial permet distingir cada intent real. Les incidències de la Fase 10 s'han preservat, classificat, corregit dins la infraestructura E2E i revalidat sense modificar funcionalitat de producte.
+
+## Estat final
+
+E2E — CLOSED / PASS
+
+La suite E2E ha estat auditada, executada, verificada i documentada.
+
+La documentació reflecteix l'estat real final del projecte.
+
+Les evidències, els resultats E2E i l'Excel han estat contrastats.
+
+La fulla "Proves" s'ha preservat intacta.
+
+No existeixen incidències bloquejants conegudes pendents dins de l'abast E2E definit.

@@ -41,4 +41,5 @@ export interface ExcelSyncResult {
 export interface ExcelSyncGateway {
   migrate(): Promise<void>;
   synchronize(execution: ExcelExecution): Promise<ExcelSyncResult>;
+  synchronizeMany?(executions: readonly ExcelExecution[]): Promise<readonly ExcelSyncResult[]>;
 }

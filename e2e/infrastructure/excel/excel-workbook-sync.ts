@@ -6,12 +6,20 @@ import { ExcelRowResolver, headerIndex, stringValue } from './excel-row-resolver
 
 const principalScenarioId = 'principal';
 
+export interface ExcelWorkbookSyncOptions {
+  readonly preserveProves?: boolean;
+}
+
 export class ExcelWorkbookSync implements ExcelSyncGateway {
   private readonly lock: WorkbookWriteLock;
   private readonly write: WorkbookWrite;
   private readonly resolver = new ExcelRowResolver();
 
-  public constructor(private readonly workbookPath: string, writer: WorkbookWrite = (workbook, path) => new AtomicWorkbookWriter().write(workbook, path)) {
+  public constructor(
+    private readonly workbookPath: string,
+    writer: WorkbookWrite = (workbook, path) => new AtomicWorkbookWriter().write(workbook, path),
+    private readonly options: ExcelWorkbookSyncOptions = {}
+  ) {
     this.lock = new WorkbookWriteLock(workbookPath);
     this.write = writer;
   }
@@ -28,29 +36,46 @@ export class ExcelWorkbookSync implements ExcelSyncGateway {
   }
 
   public async synchronize(execution: ExcelExecution): Promise<ExcelSyncResult> {
+    return (await this.synchronizeMany([execution]))[0]!;
+  }
+
+  public async synchronizeMany(executionsToSync: readonly ExcelExecution[]): Promise<readonly ExcelSyncResult[]> {
+    if (executionsToSync.length === 0) return [];
     try {
-      return await this.lock.execute(async () => {
+      return await this.lock.execute(async (): Promise<readonly ExcelSyncResult[]> => {
         const workbook = await this.load();
         const proves = requiredSheet(workbook, 'Proves');
-        const executions = requiredSheet(workbook, 'Execucions E2E');
-        assertMigrated(proves, executions);
-        const executionColumns = headerIndex(executions);
-        const existing = findExecution(executions, executionColumns.get('executionId')!, execution.executionId);
-        if (existing !== undefined) {
-          return { status: 'ALREADY_SYNCED', executionRecorded: false, provesUpdated: false, message: 'executionId ja existent a Execucions E2E.' };
+        const executionsSheet = requiredSheet(workbook, 'Execucions E2E');
+        assertMigrated(proves, executionsSheet);
+        const executionColumns = headerIndex(executionsSheet);
+        const executionIdColumn = executionColumns.get('executionId')!;
+        const existingIds = new Set<string>();
+        for (let row = 2; row <= executionsSheet.rowCount; row += 1) {
+          existingIds.add(stringValue(executionsSheet.getRow(row).getCell(executionIdColumn).value));
         }
-
-        const provesResult = applyProvesResult(proves, execution, this.resolver);
-        const syncStatus = provesResult.status === 'INTEGRITY_ERROR' ? 'INTEGRITY_ERROR' : 'SYNCED';
-        appendExecution(executions, execution, syncStatus);
-        await this.write(workbook, this.workbookPath);
-        return { ...provesResult, executionRecorded: true };
+        let changed = false;
+        const results = executionsToSync.map((execution): ExcelSyncResult => {
+          if (existingIds.has(execution.executionId)) {
+            return { status: 'ALREADY_SYNCED', executionRecorded: false, provesUpdated: false, message: 'executionId ja existent a Execucions E2E.' };
+          }
+          const provesResult = this.options.preserveProves
+            ? { status: 'SYNCED' as const, provesUpdated: false, message: 'Execució registrada preservant íntegrament Proves.' }
+            : applyProvesResult(proves, execution, this.resolver);
+          const syncStatus = provesResult.status === 'INTEGRITY_ERROR' ? 'INTEGRITY_ERROR' : 'SYNCED';
+          appendExecution(executionsSheet, execution, syncStatus);
+          existingIds.add(execution.executionId);
+          changed = true;
+          return { ...provesResult, executionRecorded: true };
+        });
+        if (changed) await this.write(workbook, this.workbookPath);
+        return results;
       });
     } catch (error) {
-      return {
+      const failure: ExcelSyncResult = {
         status: 'NOT_SYNCED', executionRecorded: false, provesUpdated: false,
         message: error instanceof Error ? error.message : 'Error desconegut escrivint l’Excel.'
       };
+      return executionsToSync.map(() => failure);
     }
   }
 
@@ -144,11 +169,4 @@ function requiredSheet(workbook: ExcelJS.Workbook, name: string): ExcelJS.Worksh
   const sheet = workbook.getWorksheet(name);
   if (sheet === undefined) throw new Error('Falta el full requerit: ' + name);
   return sheet;
-}
-
-function findExecution(sheet: ExcelJS.Worksheet, executionIdColumn: number, executionId: string): number | undefined {
-  for (let row = 2; row <= sheet.rowCount; row += 1) {
-    if (stringValue(sheet.getRow(row).getCell(executionIdColumn).value) === executionId) return row;
-  }
-  return undefined;
 }

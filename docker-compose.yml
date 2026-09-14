@@ -123,7 +123,7 @@ services:
       start_period: 60s
 
   e2e:
-    image: mcr.microsoft.com/playwright:v1.53.0-jammy
+    image: mcr.microsoft.com/playwright:v1.59.1-noble
     container_name: zuppeto-e2e
     logging: *default-logging
     working_dir: /app/e2e
@@ -132,13 +132,14 @@ services:
       - ./:/app:cached
       - zuppeto_e2e_node_modules:/app/e2e/node_modules
     entrypoint: ["/bin/bash", "-lc"]
-    command:
-      [
-        "if [ ! -d node_modules ] || [ -z \"$(ls -A node_modules 2>/dev/null)\" ]; then npm ci; fi && npx playwright test"
-      ]
+    command: ["npm ci && npm run e2e:webkit"]
+    network_mode: host
+    env_file:
+      - ./e2e/.env.e2e.local
     environment:
-      E2E_BASE_URL: "http://zuppeto-web:4200"
-      E2E_API_URL: "http://zuppeto-api:5211"
+      CI: "true"
+      E2E_PRESERVE_PROVES: "true"
+      E2E_FAIL_ON_NON_PASS: "true"
     depends_on:
       web:
         condition: service_started

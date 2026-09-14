@@ -77,6 +77,12 @@ async function executionRows(path: string): Promise<readonly string[][]> {
   return values;
 }
 
+async function readProvesModel(path: string): Promise<string> {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.readFile(path);
+  return JSON.stringify(workbook.getWorksheet('Proves')!.model);
+}
+
 function rowValues(sheet: ExcelJS.Worksheet, rowNumber: number): string[] {
   return Array.from({ length: sheet.columnCount }, (_, index) => stringValue(sheet.getRow(rowNumber).getCell(index + 1).value));
 }
@@ -167,6 +173,44 @@ test('BLOCKED, SKIP and INTERRUPTED append technical history but never alter Pro
     const after = await readProvesRows(path);
     assert.deepEqual(after.find((item) => item.rowNumber === row.rowNumber), row);
     assert.equal((await executionRows(path)).length, 3);
+  });
+});
+
+test('history-only synchronization appends the execution and preserves the complete Proves model', async () => {
+  await withMigratedWorkbook(async (path) => {
+    const beforeRows = await readProvesRows(path);
+    const beforeModel = await readProvesModel(path);
+    const row = pick(beforeRows, 'PENDENT');
+    const service = new ExcelWorkbookSync(path, undefined, { preserveProves: true });
+
+    const sync = await service.synchronize(execution(row, 'history-only-pass', 'passed'));
+
+    assert.equal(sync.status, 'SYNCED');
+    assert.equal(sync.executionRecorded, true);
+    assert.equal(sync.provesUpdated, false);
+    assert.deepEqual(await readProvesRows(path), beforeRows);
+    assert.equal(await readProvesModel(path), beforeModel);
+    assert.equal((await executionRows(path)).length, 1);
+  });
+});
+
+test('batch synchronization writes all real executions once and remains idempotent', async () => {
+  await withMigratedWorkbook(async (path) => {
+    const rows = await readProvesRows(path);
+    const row = pick(rows, 'PENDENT');
+    let writes = 0;
+    const service = new ExcelWorkbookSync(path, async (workbook, output) => {
+      writes += 1;
+      await workbook.xlsx.writeFile(output);
+    }, { preserveProves: true });
+    const first = execution(row, 'batch-first', 'passed');
+    const second = execution(row, 'batch-second', 'failed');
+
+    assert.deepEqual((await service.synchronizeMany([first, second])).map((result) => result.status), ['SYNCED', 'SYNCED']);
+    assert.equal(writes, 1);
+    assert.equal((await executionRows(path)).length, 2);
+    assert.deepEqual((await service.synchronizeMany([first, second])).map((result) => result.status), ['ALREADY_SYNCED', 'ALREADY_SYNCED']);
+    assert.equal(writes, 1);
   });
 });
 

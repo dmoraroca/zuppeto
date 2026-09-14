@@ -90,7 +90,7 @@ export class PilotPlaywrightExecutor implements ScenarioExecutor {
       if (cleanup !== undefined) cleanupIssues = await cleanup.run();
       const message = redact(error instanceof Error ? error.message : 'Error desconegut del navegador.');
       const writer = new PilotArtifactWriter(join(this.artifactsRoot, 'artifacts'));
-      const path = await writer.writeFailure(scenario.id.value + '--a' + String(attempt).padStart(2, '0'), page, diagnostics, message).catch(() => '');
+      const path = await writer.writeFailure(`${runId}--${scenario.id.value}--a${String(attempt).padStart(2, '0')}`, page, diagnostics, message).catch(() => '');
       this.evidence.set(key(scenario.id.value, attempt), {
         javascriptErrors: diagnostics.javascriptErrors, networkErrors: diagnostics.networkErrors,
         cleanupErrors: formatCleanup(cleanupIssues), evidencePaths: path

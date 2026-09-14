@@ -46,7 +46,9 @@ export async function runBrowser(target: BrowserTarget, launcher: BrowserLaunche
   const executor = new ChromePlaywrightExecutor(environment, runsDirectory, options.headed, catalog, launcher, target.name);
   const orchestrator = new RunOrchestrator(store, journal, new ExecuteScenario(store, journal, executor, systemClock), new ResumeRun(store, journal, systemClock), new FinalizeRun(store, journal, systemClock), systemClock);
   const deferred = process.env.E2E_DEFER_EXCEL_SYNC === 'true';
-  const excel = deferred ? new DeferredExcelSyncQueue(runsDirectory) : new ExcelWorkbookSync(workbookPath);
+  const excel = deferred
+    ? new DeferredExcelSyncQueue(runsDirectory)
+    : new ExcelWorkbookSync(workbookPath, undefined, { preserveProves: process.env.E2E_PRESERVE_PROVES === 'true' });
   const reporter = new ChromeExcelReporter(excel, executor, catalog, commit(), target, ci ? 'CI' : 'LOCAL', ci ? 'CI' : 'LOCAL');
   const finalState = options.resume
     ? await orchestrator.resume(required(options.runId, '--run-id'), showProgress)

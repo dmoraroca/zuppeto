@@ -116,7 +116,7 @@ export class ChromePlaywrightExecutor implements ScenarioExecutor {
       if (cleanupIssues.length > 0) return { outcome: 'blocked', message: `CLEANUP: ${cleanupIssues.length} incidència(es).` };
       if (diagnostics.javascriptErrors || diagnostics.networkErrors) {
         const message = 'S’han detectat errors JavaScript o HTTP durant l’escenari.';
-        const executionId = `${definition.id.value}--a${String(attempt).padStart(2, '0')}`;
+        const executionId = `${runId}--${definition.id.value}--a${String(attempt).padStart(2, '0')}`;
         const writer = new PilotArtifactWriter(join(this.artifactsRoot, 'artifacts'));
         const artifactPath = await writer.writeFailure(executionId, page, diagnostics, message);
         if (traceStarted) await browserContext.tracing.stop({ path: join(artifactPath, 'trace.zip') });
@@ -128,7 +128,7 @@ export class ChromePlaywrightExecutor implements ScenarioExecutor {
     } catch (error) {
       if (cleanup !== undefined) cleanupIssues = await cleanup.run();
       const message = redact(error instanceof Error ? error.message : `Error desconegut de ${this.browserName}.`);
-      const executionId = `${definition.id.value}--a${String(attempt).padStart(2, '0')}`;
+      const executionId = `${runId}--${definition.id.value}--a${String(attempt).padStart(2, '0')}`;
       const writer = new PilotArtifactWriter(join(this.artifactsRoot, 'artifacts'));
       const artifactPath = await writer.writeFailure(executionId, page, diagnostics, message).catch(() => '');
       if (browserContext !== undefined && traceStarted) await browserContext.tracing.stop({ path: join(artifactPath || join(this.artifactsRoot, 'artifacts', executionId), 'trace.zip') }).catch(() => undefined);
