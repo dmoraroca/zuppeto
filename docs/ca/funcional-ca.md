@@ -18,7 +18,7 @@ El focus funcional actual es:
 - perfil real amb consentiment de manteniment de dades
 - ajuda i contacte com a capes informatives
 
-Aquest document funcional es llegeix conjuntament amb `project-phases.md`, que fixa el criteri oficial d'estat, i amb aquests principis de treball actius:
+Aquest document és la **font funcional principal** de Zuppeto i es llegeix conjuntament amb `project-phases.md`, que manté la seqüència i la traça d'estat. Si hi ha una contradicció funcional amb un document secundari, preval `funcional-ca.md`, excepte quan una decisió posterior explícitament aprovada indiqui el contrari. S'hi apliquen aquests principis de treball actius:
 
 - els punts en negreta dins de cada fase compten com a fets o consolidats
 - una fase es considera acabada quan no queden punts objectiu pendents
@@ -76,8 +76,8 @@ Fora d'abast a data d'aquest document:
 
 Aquest document funcional i el document de fases es mantenen separats expressament:
 
-- `funcional-ca.md` descriu el producte tal com avui es pot fer servir
-- `project-phases.md` descriu l'ordre de treball, el criteri de tancament i l'estat per fases
+- `funcional-ca.md` descriu el producte, fixa el criteri funcional vigent i és la font principal en cas de contradicció
+- `project-phases.md` descriu l'ordre de treball i manté la traça d'estat per fases, subordinat al criteri funcional vigent excepte decisió posterior explícitament aprovada
 
 En l'estat actual:
 
@@ -120,7 +120,7 @@ En l'estat actual:
 - el següent focus funcional passa a ser l'obertura d'autenticació, permisos, àrees internes i accessos restringits propis de la Fase IV
 - el login futur de Fase IV no queda limitat a credencials pròpies: també ha de contemplar `Google`, `LinkedIn`, `Facebook` i altres proveïdors federats
 - `Facebook` queda aparcat funcionalment fins després de publicar la web
-- el punt d'autenticacio queda tancat amb `login propi`, `Google` i `LinkedIn` operatius sobre API real
+- la base d'autenticació disposa de `login propi`, `Google` i `LinkedIn` sobre API real, però això no tanca funcionalment el punt: Google i LinkedIn continuen 🟠 fins que superin la validació real de punta a punta definida a §3.18
 - el nou punt en curs passa a ser `rols i permisos`
 - ja existeixen dos usuaris bootstrap de desenvolupament per provar el nou flux:
   - `admin@admin.adm / Admin123`
@@ -165,7 +165,7 @@ Nota de criteri funcional:
 <pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">flowchart LR</span>
   <span style="color:#93c5fd;">PUB[Usuari public]</span> --&gt; <span style="color:#c4b5fd;">WEB[Web actual]</span>
   <span style="color:#fcd34d;">AUTH[Login propi real]</span> -.-> <span style="color:#c4b5fd;">WEB</span>
-  <span style="color:#f9a8d4;">FED[Google actiu / LinkedIn / Facebook pendents]</span> -.-> <span style="color:#fcd34d;">AUTH</span>
+  <span style="color:#f9a8d4;">FED[Google i LinkedIn implementats, validació real pendent / Facebook aparcat]</span> -.-> <span style="color:#fcd34d;">AUTH</span>
   <span style="color:#86efac;">ROLS[Rols i permisos]</span> -.-> <span style="color:#c4b5fd;">WEB</span>
   <span style="color:#f9a8d4;">INT[Zones internes]</span> -.-> <span style="color:#c4b5fd;">WEB</span>
   <span style="color:#c4b5fd;">WEB</span> --&gt; <span style="color:#67e8f9;">API[API real]</span>
@@ -175,8 +175,8 @@ Resum del diagrama:
 
 - la Fase IV obre el tram de seguretat i govern d'accessos
 - la web continua sent la mateixa base funcional, pero ara passa a requerir autenticació i permisos reals
-- el primer pas executable de la fase ja cobreix login propi contra backend i login Google en desenvolupament
-- el següent proveïdor federat que entra a focus de treball és `LinkedIn`
+- el primer pas executable de la fase ja cobreix login propi contra backend i implementacions federades de Google i LinkedIn
+- Google i LinkedIn encara han de superar la validació real de punta a punta de §3.18; `Facebook` continua aparcat fins després de publicar la web
 - les zones internes i restriccions deixen de ser una idea futura i passen a ser el focus actiu
 - l'entrada d'usuari haurà de poder venir tant de login propi com de proveïdors socials o federats
 - el frontend ja conserva la sessió a navegador i reutilitza el token per a futures crides HTTP
@@ -1259,6 +1259,135 @@ Regla funcional operativa:
 - els favorits també actuen com a senyal de prioritat per refrescar consultes i locals
 - aquest comportament forma part del mateix bloc `llocs -> favorits` de Fase IV
 
+### 3.18 Criteri oficial de tancament funcional de Fase IV
+
+Aquest apartat és el **gate funcional vigent** de Fase IV. Consolida els pendents obligatoris i preval sobre qualsevol frase històrica d'aquest document que pugui interpretar-se com un tancament parcial. Els apartats detallats continuen definint el comportament de cada domini; aquesta secció determina quan el conjunt es pot declarar tancat.
+
+#### 3.18.1 Regla general
+
+Fase IV **no** es considera tancada mentre existeixi cap punt obligatori classificat com a 🔴 **pendent/crític** o 🟠 **parcial, pendent de completar o validar**. Per arribar a `FASE IV — PASS`:
+
+- tots els punts 🔴 i 🟠 han de passar a 🟢 **VALIDAT**;
+- cap funcionalitat obligatòria pot quedar només «implementada» sense validació;
+- s'han de revisar individualment els SKIP E2E vigents;
+- després dels canvis s'han d'executar les proves focalitzades i la regressió E2E corresponent;
+- el refactor arquitectònic global no pot començar abans del tancament funcional de Fase IV.
+
+Quan correspongui al tipus de canvi, el recorregut obligatori és:
+
+`requisit funcional → implementació → prova focalitzada → E2E → documentació → regressió afectada → 🟢 VALIDAT`
+
+#### 3.18.2 Preparació — pas 0
+
+Abans d'iniciar funcionalitat nova, cal auditar els **5 SKIP E2E actuals**, identificar els ZUP afectats, les dependències entre punts i establir el baseline funcional, de dades i d'evidència anterior als canvis. Aquesta preparació no substitueix la revisió definitiva del punt 21: permet planificar correctament els blocs A–F i detectar impactes abans d'implementar.
+
+#### 3.18.3 Matriu vigent de pendents
+
+| # | Bloc | Punt obligatori | Estat vigent |
+|---:|---|---|---|
+| 1 | Identitat i seguretat | Activació de compte per email | 🔴 Pendent / crític |
+| 2 | Identitat i seguretat | Recuperació de compte o contrasenya per email | 🔴 Pendent / crític |
+| 3 | Identitat i seguretat | TOTP / 2FA | 🔴 Pendent / crític |
+| 4 | Identitat i seguretat | Google OAuth real | 🟠 Parcial / pendent de validació real |
+| 5 | Identitat i seguretat | LinkedIn OAuth real | 🟠 Parcial / pendent de validació real |
+| 6 | Territori | Catàleg territorial d'Espanya | 🟠 Parcial / pendent de completar o validar |
+| 7 | Territori | GeoNames + alta lazy | 🔴 Pendent / crític |
+| 8 | Territori | Selector País/Ciutat compartit | 🔴 Pendent / crític |
+| 9 | Core Places | Google Places complet | 🔴 Pendent / crític |
+| 10 | Core Places | Qualitat i governança pet-friendly | 🔴 Pendent / crític |
+| 11 | Core Places | Cobertura de bars | 🟠 Parcial / pendent de completar o validar |
+| 12 | Core Places | Admin Llocs | 🟠 Parcial / pendent de completar o validar |
+| 13 | UX Places | Llistat editorial de Places | 🔴 Pendent / crític |
+| 14 | UX Places | Memòria 20 → 40 → 60 per filtre | 🟠 Parcial / pendent de completar o validar |
+| 15 | UX Places | Flux mapa → detall → tornar | 🟠 Parcial / pendent de completar o validar |
+| 16 | UX Places | Revalidació completa de Favorits | 🟠 Parcial / pendent de completar o validar |
+| 17 | UX transversal | Accés denegat visible i comprensible | 🟠 Parcial / pendent de completar o validar |
+| 18 | UX transversal | Contacte | 🟠 Parcial / pendent de completar o validar |
+| 19 | UX transversal | Ajuda | 🟠 Parcial / pendent de completar o validar |
+| 20 | UX transversal | Rutes internes en anglès | 🟠 Parcial / pendent de completar o validar |
+| 21 | Tancament | Revisió definitiva dels SKIP E2E | 🔴 Pendent / crític |
+
+Per tant, l'estat oficial actual és de **9 punts 🔴 i 12 punts 🟠**; encara no hi ha cap d'aquests 21 punts certificat com a 🟢 dins d'aquest gate.
+
+#### 3.18.4 Bloc A — Identitat i seguretat
+
+**1. Activació de compte per email — 🔴.** El compte nou ha de quedar pendent d'activació; calen token segur i caducable, email, endpoint i flux d'activació, pantalla o missatge, bloqueig del login abans d'activar, reenviament i tractament de tokens invàlids o caducats. Passa quan `alta → email → activació → login` funciona completament.
+
+**2. Recuperació de compte o contrasenya per email — 🔴.** Cal incorporar «He oblidat la contrasenya», petició de recuperació, token temporal segur i caducable, email, pantalla de nova contrasenya, invalidació després de l'ús, resposta que no reveli indegudament si el compte existeix i gestió o invalidació de sessions quan correspongui. Passa quan el flux complet queda validat.
+
+**3. TOTP / 2FA — 🔴.** Forma part de Fase IV i ha d'incloure activació des de perfil/seguretat, secret protegit al backend, QR inicial, verificació del primer codi, codis temporals, segon pas de login, desactivació segura, codis de recuperació, pèrdua del dispositiu i protecció contra bypass. Ha de ser compatible amb autenticadors TOTP estàndard, com Microsoft Authenticator o Google Authenticator, sense dependència d'una aplicació concreta. Passa quan activació, login 2FA, recuperació i desactivació queden validats. Les decisions de canal i credencials són a §3.4.
+
+**4. Google OAuth real — 🟠.** La implementació existent s'ha de validar de punta a punta amb usuari nou i existent, sincronització del compte, rol inicial i permisos, sessió JWT, logout i nou login, cancel·lació del proveïdor, errors del proveïdor o callback, secrets i configuració. També s'ha de delimitar què pot cobrir E2E i què queda necessàriament al boundary extern. Passa quan el flux real complet queda funcionalment validat.
+
+**5. LinkedIn OAuth real — 🟠.** Cal la mateixa validació real sobre autorització, callback, alta i reutilització d'usuari, sincronització, rol i permisos, sessió, cancel·lació, errors, secrets/configuració i cobertura automatitzable. Passa quan el flux complet queda validat. El detall general de login federat és a §8.5. `Facebook` queda fora d'aquest gate mentre es mantingui la decisió d'aparcar-lo fins després de la publicació.
+
+#### 3.18.5 Bloc B — Territori
+
+**6. Catàleg territorial d'Espanya — 🟠.** Cal completar i validar `countries`, `cities`, relació ciutat-país, normalització, unicitat, coordenades, estat actiu/inactiu, autocomplete, filtres, perfils, manteniments, ús als llocs i integració amb GeoNames. Passa quan Espanya funciona de punta a punta sobre catàleg governat. §3.14–§3.16 en contenen el detall. L'expansió general a la UE continua a Fase V, sense impedir el tractament de dades europees que ja estigui previst funcionalment.
+
+**7. GeoNames + alta lazy — 🔴.** S'aplica el flux detallat a §3.15.2: `catàleg Zuppeto primer → GeoNames només si falta cobertura → candidat → selecció/confirmació → alta lazy → persistència → reutilització`. La consulta ha de sortir només del backend, sense exposar secrets, i ha de resoldre normalització, país, ciutat, coordenades, identificador extern quan pertoqui i deduplicació. Passa quan el flux lazy funciona de punta a punta i no repeteix GeoNames per dades ja persistides.
+
+**8. Selector País/Ciutat compartit — 🔴.** Login, Perfil, Admin Usuaris, Places, Admin Llocs i qualsevol altre formulari governat pel catàleg han de compartir funcionalment regles, catàleg, autocomplete i coherència ciutat-país. La reutilització tècnica concreta es decidirà amb criteri arquitectònic; el requisit funcional és que no hi hagi comportaments divergents.
+
+#### 3.18.6 Bloc C — Core Places
+
+**9. Google Places — 🔴.** S'ha de consolidar el patró `catàleg Zuppeto → cache/snapshot → Google Places només si falta cobertura → normalització → deduplicació → persistència → reutilització`. El gate inclou Text Search, Place Details, Photos, `google_place_id`, procedència, TTL, coordenades, refresh, snapshots, deduplicació, protecció de dades manuals, polítiques/atribució i prevenció de crides facturables innecessàries. Passa quan el flux complet queda validat. §3.17 i §12 en fixen les regles detallades.
+
+**10. Qualitat pet-friendly — 🔴.** Zuppeto ha d'aportar valor propi amb `petFriendly`, `petNotes`, nivell o confiança, procedència, dades confirmades, informació útil per decidir, política pet quan existeixi i tractament explícit quan no hi hagi informació fiable. La regla obligatòria és `MANUAL > AUTO`: Google, Gemini o qualsevol procés automàtic no pot sobreescriure silenciosament dades manuals protegides. Passa quan la governança queda implementada i provada.
+
+**11. Cobertura de bars — 🟠.** Cal revisar el tipus real de Google, mapping `Google → PlaceType`, consulta específica, límit i paginació quan pertoqui, qualitat i quantitat dels resultats i deduplicació. Passa quan la cerca de bars aporta cobertura útil i coherent.
+
+**12. Admin Llocs — 🟠.** L'alta i edició han de millorar layout, agrupació, copy, claredat, procedència i integració Google Places, eliminant llenguatge tècnic innecessari per a l'operador. Descripció curta i llarga continuen opcionals; país i ciutat són governats, la tipologia és un desplegable i les dades manuals estan protegides. Passa quan el CRUD és clar, coherent i validat.
+
+#### 3.18.7 Bloc D — UX Places
+
+**13. Llistat editorial de Places — 🔴.** `/places` ha d'evolucionar cap als blocs amplis acordats: foto gran i text, ritme editorial durant l'scroll, sense sensació de graella de targetes petites i amb selecció activa integrada en el mateix llenguatge visual. Ha de conservar mapa, filtres, sincronització mapa/llistat i responsive. Passa quan desktop i mòbil són funcionals i els E2E afectats passen.
+
+**14. Memòria 20 → 40 → 60 per filtre — 🟠.** Cada combinació de filtres comença a 20; si s'amplia a 40, 60 o més, ha de recordar la quantitat. Tornar al mateix filtre la restaura, un filtre nou torna a 20 i «Netejar» recupera el comportament inicial. Passa quan navegació i retorn preserven l'estat correcte.
+
+**15. Flux mapa → detall → tornar — 🟠.** Cal preservar, quan sigui coherent, selecció de pin, popup, filtres, quantitat carregada i context en entrar al detall i tornar; també cal evitar adreces redundants i mantenir coherent «Veure detall». Passa quan l'usuari torna sense perdre innecessàriament el context de descoberta.
+
+**16. Revalidació completa de Favorits — 🟠.** Quan Places quedi tancat, cal revalidar completament persistència, filtres, mapa, llistat, detall, cache, Places Details quan pertoqui, botó Favorit/Treure, context territorial i responsive. Passa quan el flux continua net després dels canvis de Places.
+
+#### 3.18.8 Bloc E — UX transversal
+
+**17. Accés denegat visible — 🟠.** Guards i backend han de continuar impedint accessos sense permís, però la UI ha de mostrar un avís clar i visible en lloc d'una redirecció silenciosa que sembli un error. Passa quan la denegació és segura i comprensible.
+
+**18. Contacte — 🟠.** Cal eliminar dominis `.fake` i copy de prototip o fase; revisar suport, accés, recuperació, col·laboracions, canals reals, coherència amb els enllaços del Login i presentació. Passa quan és una pantalla real de producte.
+
+**19. Ajuda — 🟠.** Cal substituir textos interns, referències a fases i explicacions de desenvolupament per preguntes reals sobre guardar llocs, filtres, mapa, favorits, compte, accés, contacte i altres dubtes funcionals. Passa quan explica el producte vigent.
+
+**20. Rutes internes en anglès — 🟠.** S'han de normalitzar els segments interns del router, links, menús, redirects, guards, documentació i E2E, mantenint la UI visible en l'idioma corresponent i compatibilitat temporal amb URL antigues quan calgui. Passa quan tota la navegació funciona sense regressions.
+
+#### 3.18.9 Bloc F — Tancament
+
+**21. Revisió definitiva dels SKIP E2E — 🔴.** Cada SKIP actual s'ha d'auditar individualment: causa vigent, estabilitat i automatitzabilitat actuals. Si ja es pot automatitzar, s'ha d'eliminar el SKIP i implementar l'E2E; si depèn inevitablement d'un proveïdor extern, se n'ha de documentar exactament el boundary i la justificació. No es conserva cap SKIP només per inèrcia històrica ni es fixa artificialment l'objectiu en `172 PASS + 5 SKIP`.
+
+#### 3.18.10 Gate final de Fase IV
+
+Quan els blocs A–F estiguin completats, cal:
+
+1. actualitzar els casos ZUP afectats;
+2. crear ZUP nous quan les funcionalitats ho requereixin;
+3. executar proves focalitzades;
+4. executar smoke;
+5. executar critical;
+6. executar la regressió E2E completa;
+7. validar cross-browser segons l'abast E2E vigent;
+8. validar cleanup;
+9. validar secrets;
+10. validar absència de dades residuals;
+11. validar CI;
+12. validar documentació i revisar els SKIP restants.
+
+Fase IV només pot passar a `FASE IV — PASS` amb **0 punts 🔴**, **0 punts 🟠 obligatoris**, tots els punts en 🟢 **VALIDAT**, cap FAIL crític obert, SKIP restants justificats pel comportament vigent i regressió final neta.
+
+#### 3.18.11 Refactor i internacionalització posterior
+
+El refactor arquitectònic global **no forma part** d'aquest tancament funcional i no pot començar mentre quedin punts 🔴 o 🟠. Començarà després de `FASE IV — PASS`, precedit d'una auditoria i un pla específics, i utilitzarà els E2E com a xarxa de seguretat.
+
+La internacionalització efectiva correspon a Fase V i contemplarà **Català (CA), Espanyol (ES), Anglès (EN) i Alemany (DE)**. El refactor posterior haurà de preparar l'arquitectura per a i18n, però la traducció completa no s'implementa dins el tancament de Fase IV.
+
 ## 4. Actors
 
 Actors actuals:
@@ -1915,7 +2044,7 @@ Objectiu: al llistat i a la fitxa, dades **útils** (adreça, foto, gos sí/no, 
 
 **Entorn Development:** `GooglePlaces:Enabled=false` → **sense Text Search** (només catàleg BD). Si falta foto (o dades de fitxa) i hi ha `place_id` + `ApiKey`, sí que es crida **Place Details / Photos** als 20 visibles i a la fitxa.
 
-**Estat d’aquest tram (2026-09-01):** **OK**, tancat. Pendent (no ara): recordar, per filtre, quants resultats s’han carregat (20 → 40 → 60) i mostrar el mateix si es torna a aplicar; més una volta lleugera de llistat/detall. Vegeu `millores-pendents-ca.md`.
+**Estat d’aquest tram (2026-09-01):** **OK** com a base funcional d'aquell lliurament, però no equival al tancament global de Places ni de Fase IV. Continuen dins el gate vigent de §3.18 el llistat editorial, la memòria 20 → 40 → 60, el flux mapa → detall → tornar, Admin Llocs, la cobertura de bars i la resta de validacions obligatòries.
 
 **Protecció de dades manuals (2026-09-10):** qualsevol dada introduïda o confirmada des del manteniment preval sobre Google. La sincronització externa només pot completar els grups no protegits i el procés de caducitat no pot eliminar coordenades manuals. La consulta del detall reutilitza primer el catàleg carregat durant la sessió Angular i no provoca per si sola una nova petició facturable; en accés directe, recupera la fitxa persistent del servidor.
 
