@@ -12,7 +12,12 @@ public sealed class DevelopmentPlacesSeeder(ZuppetoDbContext dbContext, IHostEnv
 {
     public async Task SeedAsync(CancellationToken cancellationToken = default)
     {
-        if (!environment.IsDevelopment())
+        var explicitlyEnabled = string.Equals(
+            Environment.GetEnvironmentVariable("ZUPPETO_SEED_DEMO_PLACES"),
+            "true",
+            StringComparison.OrdinalIgnoreCase);
+
+        if (!environment.IsDevelopment() && !explicitlyEnabled)
         {
             return;
         }

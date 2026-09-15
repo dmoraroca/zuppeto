@@ -96,6 +96,15 @@ test('CI account provisioning only upserts exact dedicated accounts and never em
   assert.ok(statements.every((sql) => !/delete\s+from/i.test(sql)));
 });
 
+test('CI opts into the demo place catalog without changing the CI environment', async () => {
+  const compose = await readFile(resolve(process.cwd(), 'ci/docker-compose.ci.yml'), 'utf8');
+  const workflow = await readFile(resolve(process.cwd(), '../.github/workflows/continuous-integration.yml'), 'utf8');
+  const seeder = await readFile(resolve(process.cwd(), '../src/Backend/Infrastructure/Persistence/DevelopmentPlacesSeeder.cs'), 'utf8');
+  assert.match(compose, /ZUPPETO_SEED_DEMO_PLACES:\s*["']true["']/);
+  assert.match(workflow, /ASPNETCORE_ENVIRONMENT:\s*CI/);
+  assert.match(seeder, /ZUPPETO_SEED_DEMO_PLACES/);
+});
+
 function execution(executionId: string): ExcelExecution {
   return {
     runId: 'ci-run', executionId,

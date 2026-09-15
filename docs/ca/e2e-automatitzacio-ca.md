@@ -1030,3 +1030,13 @@ Les evidències, els resultats E2E i l'Excel han estat contrastats.
 La fulla "Proves" s'ha preservat intacta.
 
 No existeixen incidències bloquejants conegudes pendents dins de l'abast E2E definit.
+
+# Fase 11. Validació real de CI a GitHub Actions
+
+La primera execució manual real en mode `smoke` després de configurar els set secrets obligatoris ha validat que GitHub Actions els resol pels noms previstos i n'emmascara els valors. Els jobs de build .NET i Angular, tests Angular, tests del runner, publicació d'artefactes i consolidació serialitzada han funcionat. El quality gate ha rebut correctament el resultat del smoke i ha fallat, sense fals PASS, perquè ZUP-073 no disposava de cap lloc en una base CI efímera nova.
+
+La causa s'ha classificat com a `CI_CONFIGURATION`: `ASPNETCORE_ENVIRONMENT=CI` desactiva deliberadament el catàleg demo, mentre que la fixture de favorits necessita com a mínim un `Place`. La correcció mínima manté l'entorn `CI` i habilita explícitament `DevelopmentPlacesSeeder` només al compose E2E de CI mitjançant `ZUPPETO_SEED_DEMO_PLACES=true`. El volum PostgreSQL continua sent efímer i el trap del job l'elimina també després de FAIL.
+
+Execució diagnosticada: `34899388233`, commit `582edeb204cf5f92d2d041811383d792f4f76d92`, branca `main`, trigger `workflow_dispatch`, perfil `smoke`. Resultat: ZUP-001 PASS, ZUP-073 FAIL i ZUP-115 PASS. Els artefactes han superat l'auditoria de secrets; l'Excel consolidat conserva 178 resultats MANUAL i conté 4.170 `executionId` únics, sense duplicats.
+
+La Fase 11 roman pendent d'una nova execució real després que la correcció sigui autoritzada, versionada i enviada a GitHub. No es declara PASS fins que smoke i quality gate acabin correctament.
