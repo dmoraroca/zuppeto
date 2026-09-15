@@ -1,6 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <PackageReference Include="Otp.NET" Version="1.4.1" />
+    <PackageReference Include="QRCoder" Version="1.7.0" />
     <ProjectReference Include="..\Domain\Domain.csproj" />
     <ProjectReference Include="..\Application\Application.csproj" />
   </ItemGroup>

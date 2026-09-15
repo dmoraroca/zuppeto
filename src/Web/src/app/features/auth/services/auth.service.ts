@@ -71,15 +71,16 @@ export class AuthService {
     return kind === 'admin' || kind === 'user';
   });
 
-  async login(credentials: AuthCredentials): Promise<{ ok: boolean; user?: AuthUser; activationRequired?: boolean }> {
+  async login(credentials: AuthCredentials): Promise<{ ok: boolean; user?: AuthUser; activationRequired?: boolean; twoFactorChallenge?: string }> {
     try {
       const session = await firstValueFrom(
-        this.http.post<AuthSessionApiDto>(`${API_BASE_URL}/auth/login`, {
+        this.http.post<AuthSessionApiDto | { challengeId: string }>(`${API_BASE_URL}/auth/login`, {
           email: credentials.email.trim(),
           password: credentials.password.trim()
         })
       );
 
+      if (!('accessToken' in session)) return { ok: false, twoFactorChallenge: session.challengeId };
       const mappedSession = this.toSession(this.normalizeSession(session));
       this.sessionState.set(mappedSession);
       this.authStore.saveSession(mappedSession);
@@ -91,6 +92,21 @@ export class AuthService {
     } catch (error) {
       return { ok: false, activationRequired: error instanceof HttpErrorResponse && error.status === 403 };
     }
+  }
+
+  async completeTotpLogin(challengeId: string, code: string): Promise<boolean> {
+    try { const session = await firstValueFrom(this.http.post<AuthSessionApiDto>(`${API_BASE_URL}/auth/login/totp`, { challengeId, code })); const mapped = this.toSession(this.normalizeSession(session)); this.sessionState.set(mapped); this.authStore.saveSession(mapped); await this.applyRoleChrome(mapped.user.role); return true; } catch { return false; }
+  }
+  async startTotpSetup(): Promise<{ qrSvg: string; manualEntryKey: string; expiresAtUtc: string }> { return await firstValueFrom(this.http.post<{ qrSvg: string; manualEntryKey: string; expiresAtUtc: string }>(`${API_BASE_URL}/auth/totp/setup`, {})); }
+  async confirmTotpSetup(code: string): Promise<string[] | null> { try { const codes = (await firstValueFrom(this.http.post<{ codes: string[] }>(`${API_BASE_URL}/auth/totp/setup/confirm`, { code }))).codes; this.clearSessionAfterSecurityChange(); return codes; } catch { return null; } }
+  async disableTotp(code: string): Promise<boolean> { try { await firstValueFrom(this.http.post(`${API_BASE_URL}/auth/totp/disable`, { code })); this.clearSessionAfterSecurityChange(); return true; } catch { return false; } }
+  async regenerateTotpRecoveryCodes(code: string): Promise<string[] | null> { try { return (await firstValueFrom(this.http.post<{ codes: string[] }>(`${API_BASE_URL}/auth/totp/recovery-codes/regenerate`, { code }))).codes; } catch { return null; } }
+
+  private clearSessionAfterSecurityChange(): void {
+    this.sessionState.set(null);
+    this.navigationMenuState.set([]);
+    this.authStore.saveSession(null);
+    this.notifications.unload();
   }
 
   async register(input: AccountRegistration): Promise<boolean> {
@@ -134,14 +150,15 @@ export class AuthService {
     } catch { return 'Invalid'; }
   }
 
-  async loginWithGoogle(idToken: string): Promise<{ ok: boolean; user?: AuthUser }> {
+  async loginWithGoogle(idToken: string): Promise<{ ok: boolean; user?: AuthUser; twoFactorChallenge?: string }> {
     try {
       const session = await firstValueFrom(
-        this.http.post<AuthSessionApiDto>(`${API_BASE_URL}/auth/google`, {
+        this.http.post<AuthSessionApiDto | { challengeId: string }>(`${API_BASE_URL}/auth/google`, {
           idToken
         })
       );
 
+      if (!('accessToken' in session)) return { ok: false, twoFactorChallenge: session.challengeId };
       const mappedSession = this.toSession(this.normalizeSession(session));
       this.sessionState.set(mappedSession);
       this.authStore.saveSession(mappedSession);
@@ -461,7 +478,8 @@ export class AuthService {
         avatarUrl: this.readUserField(user, 'avatarUrl', 'AvatarUrl') ?? null,
         privacyAccepted: this.readUserField(user, 'privacyAccepted', 'PrivacyAccepted') ?? false,
         privacyAcceptedAtUtc: this.readUserField(user, 'privacyAcceptedAtUtc', 'PrivacyAcceptedAtUtc') ?? null,
-        hasLocalCredential: this.readUserField(user, 'hasLocalCredential', 'HasLocalCredential') ?? true
+        hasLocalCredential: this.readUserField(user, 'hasLocalCredential', 'HasLocalCredential') ?? true,
+        isTotpEnabled: this.readUserField(user, 'isTotpEnabled', 'IsTotpEnabled') ?? false
       }
     };
   }
@@ -508,7 +526,8 @@ export class AuthService {
       comments: user.comments || user.bio || '',
       avatarUrl: user.avatarUrl,
       privacyAccepted: user.privacyAccepted,
-      hasLocalCredential: user.hasLocalCredential
+      hasLocalCredential: user.hasLocalCredential,
+      isTotpEnabled: user.isTotpEnabled
     };
   }
 
@@ -893,6 +912,7 @@ interface UserApiDto {
   privacyAccepted: boolean;
   privacyAcceptedAtUtc: string | null;
   hasLocalCredential: boolean;
+  isTotpEnabled: boolean;
 }
 
 interface AuthSessionApiDto {
@@ -917,6 +937,7 @@ interface PascalCaseUserApiDto {
   PrivacyAccepted?: boolean;
   PrivacyAcceptedAtUtc?: string | null;
   HasLocalCredential?: boolean;
+  IsTotpEnabled?: boolean;
 }
 
 interface PascalCaseAuthSessionApiDto {

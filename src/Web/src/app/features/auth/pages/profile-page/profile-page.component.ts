@@ -1,7 +1,7 @@
 import { AfterViewInit, Component, computed, effect, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
 
 import { SiteFooterComponent } from '../../../../core/layout/components/site-footer/site-footer.component';
@@ -35,7 +35,8 @@ import { DB_FIELD_MAX } from '../../../../shared/policies/db-field-max-length';
     SiteHeaderComponent,
     SiteFooterComponent,
     SectionHeadingComponent,
-    PasswordFieldComponent
+    PasswordFieldComponent,
+    RouterLink
   ],
   templateUrl: './profile-page.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,

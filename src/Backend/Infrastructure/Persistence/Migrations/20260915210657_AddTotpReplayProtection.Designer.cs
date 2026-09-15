@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Zuppeto.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using Zuppeto.Infrastructure.Persistence;
 namespace Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ZuppetoDbContext))]
-    partial class ZuppetoDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260915210657_AddTotpReplayProtection")]
+    partial class AddTotpReplayProtection
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1248,15 +1251,6 @@ namespace Infrastructure.Persistence.Migrations
                     b.Navigation("Permission");
 
                     b.Navigation("RoleRef");
-                });
-
-            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.TotpRecoveryCodeRecord", b =>
-                {
-                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.UserRecord", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.UserRecord", b =>

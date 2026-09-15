@@ -77,6 +77,8 @@ export const routes: Routes = [
     canActivate: [guestGuard],
     loadComponent: () => import('./features/auth/pages/password-reset-page/password-reset-page.component').then((m) => m.PasswordResetPageComponent)
   },
+  { path: 'verificar-2fa', canActivate: [guestGuard], loadComponent: () => import('./features/auth/pages/totp-challenge-page/totp-challenge-page.component').then((m) => m.TotpChallengePageComponent) },
+  { path: 'seguretat', canActivate: [authGuard], loadComponent: () => import('./features/auth/pages/totp-security-page/totp-security-page.component').then((m) => m.TotpSecurityPageComponent) },
   {
     path: 'auth/callback',
     loadComponent: () =>

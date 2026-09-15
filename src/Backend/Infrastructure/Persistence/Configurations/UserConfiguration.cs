@@ -97,6 +97,11 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<UserRecord>
             .HasColumnName("security_version")
             .HasDefaultValue(1)
             .IsRequired();
+        builder.Property(user => user.TotpSecretProtected).HasColumnName("totp_secret_protected");
+        builder.Property(user => user.PendingTotpSecretProtected).HasColumnName("pending_totp_secret_protected");
+        builder.Property(user => user.PendingTotpExpiresAtUtc).HasColumnName("pending_totp_expires_at_utc");
+        builder.Property(user => user.TotpEnabledAtUtc).HasColumnName("totp_enabled_at_utc");
+        builder.Property(user => user.LastTotpTimeStepUsed).HasColumnName("last_totp_time_step_used");
 
         builder.HasIndex(user => user.Email)
             .IsUnique()

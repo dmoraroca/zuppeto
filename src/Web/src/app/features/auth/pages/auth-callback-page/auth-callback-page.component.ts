@@ -60,6 +60,7 @@ interface UserApiDto {
   privacyAccepted: boolean;
   privacyAcceptedAtUtc: string | null;
   hasLocalCredential: boolean;
+  isTotpEnabled: boolean;
 }
 
 interface AuthSessionApiDto {

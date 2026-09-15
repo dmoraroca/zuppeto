@@ -74,6 +74,46 @@ public sealed class UserEmailActivationTests
         Assert.ThrowsAny<Exception>(() => user.StartPasswordReset("hash", DateTimeOffset.UtcNow.AddHours(1)));
     }
 
+    [Fact]
+    public void Totp_is_not_active_until_setup_is_confirmed_and_disable_invalidates_sessions()
+    {
+        var user = CreateUser();
+        var now = DateTimeOffset.UtcNow;
+        var version = user.SecurityVersion;
+        user.StartTotpSetup("protected-secret", now.AddMinutes(10));
+        Assert.False(user.IsTotpEnabled);
+        user.ConfirmTotpSetup(now);
+        Assert.True(user.IsTotpEnabled);
+        Assert.Equal(version + 1, user.SecurityVersion);
+        user.DisableTotp();
+        Assert.False(user.IsTotpEnabled);
+        Assert.Equal(version + 2, user.SecurityVersion);
+    }
+
+    [Fact]
+    public void Federated_only_user_can_hold_totp_without_a_password()
+    {
+        var user = new User(Guid.NewGuid(), "federated-totp@zuppeto.local", null, "Viewer", new UserProfile("Federated", "", "", "", null), new PrivacyConsent(false, null));
+        user.StartTotpSetup("protected-secret", DateTimeOffset.UtcNow.AddMinutes(10));
+        user.ConfirmTotpSetup(DateTimeOffset.UtcNow);
+        Assert.True(user.IsTotpEnabled);
+        Assert.False(user.HasLocalCredential);
+    }
+
+    [Fact]
+    public void Totp_time_step_cannot_be_replayed()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var user = CreateUser();
+        user.StartTotpSetup("protected-secret", now.AddMinutes(10));
+        user.ConfirmTotpSetup(now);
+
+        Assert.True(user.TryUseTotpTimeStep(100));
+        Assert.False(user.TryUseTotpTimeStep(100));
+        Assert.False(user.TryUseTotpTimeStep(99));
+        Assert.True(user.TryUseTotpTimeStep(101));
+    }
+
     private static User CreateUser() => new(
         Guid.NewGuid(), "activation-test@zuppeto.local", "hash", "User",
         new UserProfile("Activation test", string.Empty, string.Empty, string.Empty, null),

@@ -22,7 +22,12 @@ public sealed class User : AggregateRoot<Guid>
         string? passwordResetTokenHash = null,
         DateTimeOffset? passwordResetTokenExpiresAtUtc = null,
         DateTimeOffset? passwordResetTokenUsedAtUtc = null,
-        int securityVersion = 1) : base(id)
+        int securityVersion = 1,
+        string? totpSecretProtected = null,
+        string? pendingTotpSecretProtected = null,
+        DateTimeOffset? pendingTotpExpiresAtUtc = null,
+        DateTimeOffset? totpEnabledAtUtc = null,
+        long? lastTotpTimeStepUsed = null) : base(id)
     {
         SetEmail(email);
         if (!string.IsNullOrWhiteSpace(passwordHash)) SetPasswordHash(passwordHash);
@@ -39,6 +44,11 @@ public sealed class User : AggregateRoot<Guid>
         PasswordResetTokenExpiresAtUtc = passwordResetTokenExpiresAtUtc;
         PasswordResetTokenUsedAtUtc = passwordResetTokenUsedAtUtc;
         SecurityVersion = Math.Max(1, securityVersion);
+        TotpSecretProtected = totpSecretProtected;
+        PendingTotpSecretProtected = pendingTotpSecretProtected;
+        PendingTotpExpiresAtUtc = pendingTotpExpiresAtUtc;
+        TotpEnabledAtUtc = totpEnabledAtUtc;
+        LastTotpTimeStepUsed = lastTotpTimeStepUsed;
     }
 
     public string Email { get; private set; } = string.Empty;
@@ -73,6 +83,49 @@ public sealed class User : AggregateRoot<Guid>
     public DateTimeOffset? PasswordResetTokenUsedAtUtc { get; private set; }
 
     public int SecurityVersion { get; private set; }
+
+    public string? TotpSecretProtected { get; private set; }
+    public string? PendingTotpSecretProtected { get; private set; }
+    public DateTimeOffset? PendingTotpExpiresAtUtc { get; private set; }
+    public DateTimeOffset? TotpEnabledAtUtc { get; private set; }
+    public long? LastTotpTimeStepUsed { get; private set; }
+    public bool IsTotpEnabled => !string.IsNullOrWhiteSpace(TotpSecretProtected) && TotpEnabledAtUtc is not null;
+
+    public void StartTotpSetup(string protectedSecret, DateTimeOffset expiresAtUtc)
+    {
+        if (string.IsNullOrWhiteSpace(protectedSecret) || expiresAtUtc <= DateTimeOffset.UtcNow) throw new DomainRuleException("La configuració TOTP no és vàlida.");
+        PendingTotpSecretProtected = protectedSecret;
+        PendingTotpExpiresAtUtc = expiresAtUtc;
+    }
+
+    public void ConfirmTotpSetup(DateTimeOffset nowUtc)
+    {
+        if (string.IsNullOrWhiteSpace(PendingTotpSecretProtected) || PendingTotpExpiresAtUtc is null || PendingTotpExpiresAtUtc <= nowUtc)
+            throw new DomainRuleException("La configuració TOTP ha caducat.");
+        TotpSecretProtected = PendingTotpSecretProtected;
+        TotpEnabledAtUtc = nowUtc;
+        LastTotpTimeStepUsed = null;
+        PendingTotpSecretProtected = null;
+        PendingTotpExpiresAtUtc = null;
+        SecurityVersion++;
+    }
+
+    public void DisableTotp()
+    {
+        TotpSecretProtected = null;
+        PendingTotpSecretProtected = null;
+        PendingTotpExpiresAtUtc = null;
+        TotpEnabledAtUtc = null;
+        LastTotpTimeStepUsed = null;
+        SecurityVersion++;
+    }
+
+    public bool TryUseTotpTimeStep(long timeStep)
+    {
+        if (!IsTotpEnabled || timeStep < 0 || (LastTotpTimeStepUsed is not null && timeStep <= LastTotpTimeStepUsed)) return false;
+        LastTotpTimeStepUsed = timeStep;
+        return true;
+    }
 
     public bool IsEmailActivated => EmailActivatedAtUtc is not null;
 

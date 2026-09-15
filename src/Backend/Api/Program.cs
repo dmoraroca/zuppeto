@@ -15,6 +15,8 @@ using Zuppeto.Infrastructure;
 using Zuppeto.Infrastructure.Persistence;
 using Zuppeto.Domain.Abstractions;
 using System.Security.Claims;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
 
 /// <summary>Carpeta <c>logs</c> al costat de <c>Api.csproj</c> (no depèn del ContentRoot).</summary>
 static string ApiProjectLogsDirectory()
@@ -172,6 +174,9 @@ builder.Services
         };
     });
 builder.Services.AddAuthorization();
+builder.Services.AddRateLimiter(options => options.AddPolicy("totp", context =>
+    RateLimitPartition.GetFixedWindowLimiter(context.Connection.RemoteIpAddress?.ToString() ?? "unknown", _ => new FixedWindowRateLimiterOptions
+    { PermitLimit = 8, Window = TimeSpan.FromMinutes(1), QueueLimit = 0, AutoReplenishment = true })));
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -268,6 +273,7 @@ app.UseCors("web");
 app.UseAuthentication();
 app.UseMiddleware<RequestLogEnrichmentMiddleware>();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 var mediaRoot = Path.Combine(app.Environment.ContentRootPath, "storage");
 Directory.CreateDirectory(Path.Combine(mediaRoot, "place-covers"));

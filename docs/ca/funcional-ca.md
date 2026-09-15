@@ -247,8 +247,8 @@ Abast ja implementat al perfil (`/perfil`; detall de pantalles a §3.11):
 - si l’actual és **buida**, es desa la fitxa (i l’email si ha canviat) **sense** tocar la contrasenya
 - compte **Google**: no hi ha contrasenya local coneguda; el canvi de contrasenya del perfil es prova amb **login propi**
 - **Guardar** desactivat en entrar (formulari sense canvis); actiu si l’usuari ha editat, els obligatoris són plens i, per a `USER`, el consentiment està marcat
-- confirmacio o enviament de codi per `email` si el flux ho requereix (**pendent**)
-- estudi o preparacio de `TOTP` com a segon factor compatible (**pendent**)
+- activació i recuperació per `email` amb resposta neutra, tokens caducables, substituïbles i d'un sol ús (**validat**)
+- `TOTP` com a segon factor obert i compatible, amb configuració des de `/seguretat`, QR i clau manual, confirmació del primer codi, challenge de login, codis de recuperació d'un sol ús, regeneració i desactivació (**validat**)
 
 Fora d'abast inicial:
 
@@ -1287,7 +1287,7 @@ Abans d'iniciar funcionalitat nova, cal auditar els **5 SKIP E2E actuals**, iden
 |---:|---|---|---|
 | 1 | Identitat i seguretat | Activació de compte per email | 🟢 VALIDAT |
 | 2 | Identitat i seguretat | Recuperació de compte o contrasenya per email | 🟢 VALIDAT |
-| 3 | Identitat i seguretat | TOTP / 2FA | 🔴 Pendent / crític |
+| 3 | Identitat i seguretat | TOTP / 2FA | 🟢 VALIDAT |
 | 4 | Identitat i seguretat | Google OAuth real | 🟠 Parcial / pendent de validació real |
 | 5 | Identitat i seguretat | LinkedIn OAuth real | 🟠 Parcial / pendent de validació real |
 | 6 | Territori | Catàleg territorial d'Espanya | 🟠 Parcial / pendent de completar o validar |
@@ -1306,8 +1306,9 @@ Abans d'iniciar funcionalitat nova, cal auditar els **5 SKIP E2E actuals**, iden
 | 19 | UX transversal | Ajuda | 🟠 Parcial / pendent de completar o validar |
 | 20 | UX transversal | Rutes internes en anglès | 🟠 Parcial / pendent de completar o validar |
 | 21 | Tancament | Revisió definitiva dels SKIP E2E | 🔴 Pendent / crític |
+| 22 | Tancament | Baixa de compte autogestionada i sol·licitud per correu | 🟠 Parcial / pendent d'implementar i validar |
 
-Per tant, l'estat oficial actual és de **8 punts 🔴, 12 punts 🟠 i 2 punts 🟢 VALIDAT** dins d'aquest gate.
+Per tant, l'estat oficial actual és de **7 punts 🔴, 13 punts 🟠 i 3 punts 🟢 VALIDAT** dins d'aquest gate (punts **1–22**).
 
 #### 3.18.4 Bloc A — Identitat i seguretat
 
@@ -1315,7 +1316,7 @@ Per tant, l'estat oficial actual és de **8 punts 🔴, 12 punts 🟠 i 2 punts 
 
 **2. Recuperació de compte o contrasenya per email — 🟢 VALIDAT.** «He oblidat la contrasenya» sempre respon de manera neutra. Només les credencials locals reben un token de recuperació segur, temporal, amb hash persistent i d'un sol ús; una nova petició invalida l'anterior. El reset consumeix el token, invalida els JWT previs de l'usuari i no inicia sessió automàticament. Un compte federat sense credencial local no rep reset ni en crea cap. La validació focalitzada cobreix token invàlid, caducat, reutilitzat, substituït, contrasenya antiga/nova i JWT anterior; la regressió Chrome `sim-20260915T115853200Z-3f8e1f9a` ha donat 15 PASS, 0 FAIL, 0 BLOCKED i 1 SKIP extern justificat.
 
-**3. TOTP / 2FA — 🔴.** Forma part de Fase IV i ha d'incloure activació des de perfil/seguretat, secret protegit al backend, QR inicial, verificació del primer codi, codis temporals, segon pas de login, desactivació segura, codis de recuperació, pèrdua del dispositiu i protecció contra bypass. Ha de ser compatible amb autenticadors TOTP estàndard, com Microsoft Authenticator o Google Authenticator, sense dependència d'una aplicació concreta. Passa quan activació, login 2FA, recuperació i desactivació queden validats. Les decisions de canal i credencials són a §3.4.
+**3. TOTP / 2FA — 🟢 VALIDAT.** L'usuari activa el segon factor des de Perfil/Seguretat mitjançant QR o clau manual i confirma el primer codi abans que quedi actiu. El secret es persisteix protegit, els recovery codes només es desen amb hash, són d'un sol ús i es poden regenerar; la desactivació exigeix TOTP o recovery code, elimina el material recuperable, revoca challenges pendents i incrementa la versió de seguretat. Cap login propi o federat emet JWT fins a superar el challenge quan TOTP està actiu. Els challenges caduquen, són d'un sol ús i tenen rate limiting; el darrer timestep TOTP acceptat es persisteix per impedir replay. La implementació és compatible amb autenticadors TOTP estàndard i no depèn d'un fabricant. Han passat 12/12 proves persistents .NET, 4/4 proves Angular, l'E2E focalitzat complet (activació, codi correcte/incorrecte, anti-replay, recovery code single-use, desactivació i login posterior) i la regressió Chrome d'autenticació `sim-20260915T213324241Z-ec8207d2` amb 15 PASS, 0 FAIL, 0 BLOCKED i 1 SKIP extern justificat.
 
 **4. Google OAuth real — 🟠.** La implementació existent s'ha de validar de punta a punta amb usuari nou i existent, sincronització del compte, rol inicial i permisos, sessió JWT, logout i nou login, cancel·lació del proveïdor, errors del proveïdor o callback, secrets i configuració. També s'ha de delimitar què pot cobrir E2E i què queda necessàriament al boundary extern. Passa quan el flux real complet queda funcionalment validat.
 
@@ -1363,9 +1364,11 @@ Per tant, l'estat oficial actual és de **8 punts 🔴, 12 punts 🟠 i 2 punts 
 
 **21. Revisió definitiva dels SKIP E2E — 🔴.** Cada SKIP actual s'ha d'auditar individualment: causa vigent, estabilitat i automatitzabilitat actuals. Si ja es pot automatitzar, s'ha d'eliminar el SKIP i implementar l'E2E; si depèn inevitablement d'un proveïdor extern, se n'ha de documentar exactament el boundary i la justificació. No es conserva cap SKIP només per inèrcia històrica ni es fixa artificialment l'objectiu en `172 PASS + 5 SKIP`.
 
+**22. Baixa de compte autogestionada i sol·licitud per correu — 🟠.** L'usuari ha de poder iniciar la baixa des de Perfil/Compte, amb confirmació explícita, protecció contra eliminació accidental i verificació suficient de la seva identitat abans d'executar-la. Contacte/correu ofereix una via alternativa de sol·licitud, però cap missatge de correu pot provocar una eliminació automàtica sense verificar el titular. El flux ha de tractar de forma coherent perfil, favorits, identitats externes, TOTP, recovery codes, tokens i sessions; en executar-se ha d'invalidar immediatament credencials i sessions. Abans d'implementar-lo cal definir la política aplicable d'eliminació, anonimització o conservació de dades, i confirmar el resultat a l'usuari quan correspongui. Passa quan el flux complet, les proves persistents, l'E2E, el cleanup i l'auditoria de seguretat quedin validats.
+
 #### 3.18.10 Gate final de Fase IV
 
-Quan els blocs A–F estiguin completats, cal:
+Quan els punts 1–22 i els blocs A–F estiguin completats, cal:
 
 1. actualitzar els casos ZUP afectats;
 2. crear ZUP nous quan les funcionalitats ho requereixin;

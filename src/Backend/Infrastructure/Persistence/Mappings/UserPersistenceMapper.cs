@@ -30,7 +30,12 @@ internal static class UserPersistenceMapper
             record.PasswordResetTokenHash,
             record.PasswordResetTokenExpiresAtUtc,
             record.PasswordResetTokenUsedAtUtc,
-            record.SecurityVersion);
+            record.SecurityVersion,
+            record.TotpSecretProtected,
+            record.PendingTotpSecretProtected,
+            record.PendingTotpExpiresAtUtc,
+            record.TotpEnabledAtUtc,
+            record.LastTotpTimeStepUsed);
     }
 
     public static UserRecord ToRecord(User user)
@@ -63,5 +68,10 @@ internal static class UserPersistenceMapper
         record.PasswordResetTokenExpiresAtUtc = user.PasswordResetTokenExpiresAtUtc;
         record.PasswordResetTokenUsedAtUtc = user.PasswordResetTokenUsedAtUtc;
         record.SecurityVersion = user.SecurityVersion;
+        record.TotpSecretProtected = user.TotpSecretProtected;
+        record.PendingTotpSecretProtected = user.PendingTotpSecretProtected;
+        record.PendingTotpExpiresAtUtc = user.PendingTotpExpiresAtUtc;
+        record.TotpEnabledAtUtc = user.TotpEnabledAtUtc;
+        record.LastTotpTimeStepUsed = user.LastTotpTimeStepUsed;
     }
 }

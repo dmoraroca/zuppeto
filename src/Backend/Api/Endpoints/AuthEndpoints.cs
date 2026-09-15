@@ -21,10 +21,15 @@ internal static class AuthEndpoints
         var group = app.MapGroup("/api/auth");
 
         group.MapPost("/login", LoginAsync);
+        group.MapPost("/login/totp", CompleteTwoFactorLoginAsync).RequireRateLimiting("totp");
         group.MapPost("/activation", ActivateEmailAsync);
         group.MapPost("/activation/resend", ResendActivationEmailAsync);
         group.MapPost("/password-recovery", RequestPasswordRecoveryAsync);
         group.MapPost("/password-reset", ResetPasswordAsync);
+        group.MapPost("/totp/setup", StartTotpSetupAsync).RequireAuthorization();
+        group.MapPost("/totp/setup/confirm", ConfirmTotpSetupAsync).RequireAuthorization().RequireRateLimiting("totp");
+        group.MapPost("/totp/disable", DisableTotpAsync).RequireAuthorization().RequireRateLimiting("totp");
+        group.MapPost("/totp/recovery-codes/regenerate", RegenerateTotpRecoveryCodesAsync).RequireAuthorization().RequireRateLimiting("totp");
         group.MapPost("/google", GoogleLoginAsync);
         group.MapGet("/linkedin/start", LinkedInStartAsync);
         group.MapGet("/linkedin/callback", LinkedInCallbackAsync);
@@ -36,7 +41,7 @@ internal static class AuthEndpoints
         return app;
     }
 
-    private static async Task<Results<Ok<AuthSessionDto>, UnauthorizedHttpResult, ProblemHttpResult, ValidationProblem>> LoginAsync(
+    private static async Task<IResult> LoginAsync(
         LoginRequest request,
         IValidator<LoginRequest> validator,
         IAuthApplicationService service,
@@ -50,10 +55,18 @@ internal static class AuthEndpoints
 
         var result = await service.LoginWithResultAsync(request, cancellationToken);
         if (result.Session is not null) return TypedResults.Ok(result.Session);
+        if (result.FailureReason == LoginFailureReason.TwoFactorRequired) return TypedResults.Accepted("/api/auth/login/totp", new TwoFactorChallengeResponse(result.ChallengeId!));
         return result.FailureReason == LoginFailureReason.EmailActivationRequired
             ? TypedResults.Problem(statusCode: StatusCodes.Status403Forbidden, title: "Activació de compte necessària", detail: "Activa el compte des del correu abans d'iniciar sessió.")
             : TypedResults.Unauthorized();
     }
+
+    private static async Task<Results<Ok<AuthSessionDto>, UnauthorizedHttpResult>> CompleteTwoFactorLoginAsync(TwoFactorLoginRequest request, IAuthApplicationService service, CancellationToken cancellationToken)
+    {
+        var session = await service.CompleteTwoFactorLoginAsync(request, cancellationToken);
+        return session is null ? TypedResults.Unauthorized() : TypedResults.Ok(session);
+    }
+    private sealed record TwoFactorChallengeResponse(string ChallengeId);
 
     private static async Task<Ok<AccountActivationResult>> ActivateEmailAsync(
         AccountActivationRequest request,
@@ -106,7 +119,31 @@ internal static class AuthEndpoints
     private static async Task<Ok<PasswordResetResult>> ResetPasswordAsync(PasswordResetRequest request, IUserApplicationService service, CancellationToken cancellationToken)
         => TypedResults.Ok(await service.ResetPasswordAsync(request, cancellationToken));
 
-    private static async Task<Results<Ok<AuthSessionDto>, UnauthorizedHttpResult, ValidationProblem>> GoogleLoginAsync(
+    private static async Task<Results<Ok<TotpSetupDto>, UnauthorizedHttpResult>> StartTotpSetupAsync(ClaimsPrincipal principal, IUserApplicationService service, CancellationToken cancellationToken)
+    {
+        var id = principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? principal.FindFirstValue("sub");
+        return Guid.TryParse(id, out var userId) ? TypedResults.Ok(await service.StartTotpSetupAsync(userId, cancellationToken)) : TypedResults.Unauthorized();
+    }
+    private static async Task<Results<Ok<TotpRecoveryCodesDto>, BadRequest>> ConfirmTotpSetupAsync(ClaimsPrincipal principal, TotpCodeRequest request, IUserApplicationService service, CancellationToken cancellationToken)
+    {
+        var id = principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? principal.FindFirstValue("sub");
+        var result = Guid.TryParse(id, out var userId) ? await service.ConfirmTotpSetupAsync(userId, request.Code, cancellationToken) : null;
+        return result is null ? TypedResults.BadRequest() : TypedResults.Ok(result);
+    }
+    private static async Task<Results<NoContent, BadRequest>> DisableTotpAsync(ClaimsPrincipal principal, TotpCodeRequest request, IUserApplicationService service, CancellationToken cancellationToken)
+    {
+        var id = principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? principal.FindFirstValue("sub");
+        return Guid.TryParse(id, out var userId) && await service.DisableTotpAsync(userId, request.Code, cancellationToken) ? TypedResults.NoContent() : TypedResults.BadRequest();
+    }
+    private static async Task<Results<Ok<TotpRecoveryCodesDto>, BadRequest>> RegenerateTotpRecoveryCodesAsync(ClaimsPrincipal principal, TotpCodeRequest request, IUserApplicationService service, CancellationToken cancellationToken)
+    {
+        var id = principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? principal.FindFirstValue("sub");
+        var result = Guid.TryParse(id, out var userId) ? await service.RegenerateTotpRecoveryCodesAsync(userId, request.Code, cancellationToken) : null;
+        return result is null ? TypedResults.BadRequest() : TypedResults.Ok(result);
+    }
+    private sealed record TotpCodeRequest(string Code);
+
+    private static async Task<IResult> GoogleLoginAsync(
         GoogleLoginRequest request,
         IValidator<GoogleLoginRequest> validator,
         IAuthApplicationService service,
@@ -118,8 +155,11 @@ internal static class AuthEndpoints
             return validation.ToValidationProblem();
         }
 
-        var session = await service.LoginWithGoogleAsync(request, cancellationToken);
-        return session is null ? TypedResults.Unauthorized() : TypedResults.Ok(session);
+        var result = await service.LoginWithGoogleAsync(request, cancellationToken);
+        if (result is null) return TypedResults.Unauthorized();
+        return result.Session is not null
+            ? TypedResults.Ok(result.Session)
+            : TypedResults.Accepted("/api/auth/login/totp", new TwoFactorChallengeResponse(result.ChallengeId!));
     }
 
     private static Ok<IReadOnlyCollection<AuthProviderDto>> GetProviders(IAuthApplicationService service)
@@ -164,7 +204,15 @@ internal static class AuthEndpoints
             return TypedResults.Redirect(QueryHelpers.AddQueryString(loginUrl, "federatedError", "linkedin-login-failed"));
         }
 
-        var serializedSession = JsonSerializer.Serialize(result.Session, CallbackJsonOptions);
+        if (result.Login.ChallengeId is not null)
+        {
+            var challengeUrl = QueryHelpers.AddQueryString(
+                $"{frontendBaseUrl.TrimEnd('/')}/verificar-2fa",
+                new Dictionary<string, string?> { ["challenge"] = result.Login.ChallengeId, ["redirectTo"] = result.RedirectTo });
+            return TypedResults.Redirect(challengeUrl);
+        }
+
+        var serializedSession = JsonSerializer.Serialize(result.Login.Session!, CallbackJsonOptions);
         var sessionPayload = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(serializedSession));
         var callbackUrl = QueryHelpers.AddQueryString(
             $"{frontendBaseUrl.TrimEnd('/')}/auth/callback",
@@ -214,7 +262,15 @@ internal static class AuthEndpoints
             return TypedResults.Redirect(QueryHelpers.AddQueryString(loginUrl, "federatedError", "facebook-login-failed"));
         }
 
-        var serializedSession = JsonSerializer.Serialize(result.Session, CallbackJsonOptions);
+        if (result.Login.ChallengeId is not null)
+        {
+            var challengeUrl = QueryHelpers.AddQueryString(
+                $"{frontendBaseUrl.TrimEnd('/')}/verificar-2fa",
+                new Dictionary<string, string?> { ["challenge"] = result.Login.ChallengeId, ["redirectTo"] = result.RedirectTo });
+            return TypedResults.Redirect(challengeUrl);
+        }
+
+        var serializedSession = JsonSerializer.Serialize(result.Login.Session!, CallbackJsonOptions);
         var sessionPayload = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(serializedSession));
         var callbackUrl = QueryHelpers.AddQueryString(
             $"{frontendBaseUrl.TrimEnd('/')}/auth/callback",

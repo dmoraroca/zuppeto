@@ -1682,8 +1682,6 @@ Implementació backend (fitxers):
 La base actual prepara pero no implementa encara:
 
 - refresh tokens o rotació de sessió
-- recuperacio real de contrasenya per email
-- `TOTP` / 2FA
 - login social addicional (LinkedIn, Facebook, Apple, Microsoft)
 ### 2.11.3 Identitat i recuperació de contrasenya — Fase IV, Iteració 2
 
@@ -1692,6 +1690,16 @@ La base actual prepara pero no implementa encara:
 La recuperació reutilitza SMTP o Development Inbox i el patró criptogràfic de l'activació: 256 bits aleatoris, SHA-256 persistent, expiració d'una hora, un sol ús i substitució en una nova petició. Els tokens d'activació i reset tenen camps, repositoris i endpoints diferents, per tant no són intercanviables. La resposta pública és sempre `202 Accepted` i no enumera comptes ni mètodes d'accés.
 
 `security_version` és persistent a `users`; el JWT la incorpora com a claim i cada autenticació Bearer la compara amb la versió vigent. Un reset correcte l'incrementa, invalidant els JWT anteriors sense blacklist, Redis ni infraestructura de revocació global. Els comptes federats sense hash local no poden iniciar login per contrasenya ni generar recuperació; el primer accés federat rep sessió amb perfil pendent i es dirigeix a `/perfil` per completar dades Zuppeto, sense exigir contrasenya local. Afegir una contrasenya voluntària a un compte federat queda fora d'aquesta iteració.
+
+### 2.11.4 TOTP / 2FA — Fase IV, Iteració 3
+
+`User` governa l'estat TOTP, la versió de seguretat i el darrer timestep acceptat. El secret pendent i l'actiu es protegeixen amb ASP.NET Data Protection; el backend no persisteix la clau Base32 en clar. La configuració genera localment un URI `otpauth` i un QR SVG amb Otp.NET i QRCoder. El primer codi s'ha de verificar abans d'activar el factor.
+
+Els recovery codes es generen amb aleatorietat criptogràfica i `totp_recovery_codes` només en conserva SHA-256; el consum és atòmic i d'un sol ús, la regeneració substitueix el conjunt anterior i la desactivació els elimina. Els challenges de login viuen en memòria, caduquen al cap de cinc minuts, es consumeixen en un sol intent i es revoquen en desactivar TOTP. Els endpoints sensibles comparteixen una política de rate limiting per IP. L'anti-replay persistent rebutja un timestep igual o anterior al darrer acceptat.
+
+L'aplicació exposa ports per al servei TOTP, el magatzem de challenges i el repositori de recovery codes. La infraestructura encapsula Data Protection, Otp.NET, QRCoder i EF; el domini no depèn d'aquests detalls. Les migracions `AddTotpTwoFactorAuthentication`, `AddTotpReplayProtection` i `AddTotpRecoveryCodeCascade` creen l'esquema, protegeixen contra replay i garanteixen cleanup relacional; han estat aplicades a la BD local.
+
+Angular incorpora `/seguretat` per a estat, setup, QR, clau manual, confirmació, recovery codes, regeneració i desactivació, i `/verificar-2fa` per al challenge de login. El JWT només s'emet després de superar el segon factor, tant si el primer factor és contrasenya com una identitat federada; el challenge conserva el proveïdor i la necessitat de completar perfil, evitant un bypass per OAuth. Els valors TOTP i recovery codes no s'escriuen en logs, Excel, traces ni artefactes; només es mostren a l'usuari en el moment funcional necessari.
 
 ## 7. Implementacio del mapa
 

@@ -1044,3 +1044,9 @@ La causa s'ha classificat com a `CI_CONFIGURATION`: `ASPNETCORE_ENVIRONMENT=CI` 
 Execució diagnosticada: `34899388233`, commit `582edeb204cf5f92d2d041811383d792f4f76d92`, branca `main`, trigger `workflow_dispatch`, perfil `smoke`. Resultat: ZUP-001 PASS, ZUP-073 FAIL i ZUP-115 PASS. Els artefactes han superat l'auditoria de secrets; l'Excel consolidat conserva 178 resultats MANUAL i conté 4.170 `executionId` únics, sense duplicats.
 
 La Fase 11 roman pendent d'una nova execució real després que la correcció sigui autoritzada, versionada i enviada a GitHub. No es declara PASS fins que smoke i quality gate acabin correctament.
+
+# Fase IV funcional — Iteració 3: TOTP / 2FA
+
+La cobertura focalitzada `npm run e2e:totp` crea un usuari temporal inequívoc, l'activa, inicia el setup TOTP, confirma el primer codi, comprova codi incorrecte, login correcte, anti-replay del mateix timestep, recovery code correcte i single-use, desactivació i login posterior sense segon factor. L'escenari usa només `node:crypto`, manté secret i recovery codes en memòria, no els imprimeix ni genera traces o captures, i elimina per email exacte l'usuari i les relacions en un bloc `finally`; la consulta posterior confirma zero residus.
+
+Resultats de tancament de la iteració: `e2e:totp` PASS, `e2e:activation` PASS, `e2e:password-recovery` PASS i regressió Chrome definitiva del bloc `authentication` `sim-20260915T213324241Z-ec8207d2` completada amb 15 PASS, 0 FAIL, 0 BLOCKED, 1 SKIP extern justificat i 0 retries. La sincronització conserva l'historial append-only amb executionId/runId nous i la fulla MANUAL intacta.

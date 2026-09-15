@@ -46,6 +46,12 @@ public sealed class UserRecord
 
     public int SecurityVersion { get; set; } = 1;
 
+    public string? TotpSecretProtected { get; set; }
+    public string? PendingTotpSecretProtected { get; set; }
+    public DateTimeOffset? PendingTotpExpiresAtUtc { get; set; }
+    public DateTimeOffset? TotpEnabledAtUtc { get; set; }
+    public long? LastTotpTimeStepUsed { get; set; }
+
     public ICollection<ExternalIdentityRecord> ExternalIdentities { get; set; } = [];
 
     public FavoriteListRecord? FavoriteList { get; set; }

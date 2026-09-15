@@ -10,6 +10,9 @@ internal sealed class AuthApplicationService(
     IExternalIdentityRepository externalIdentityRepository,
     IRolePermissionRepository rolePermissionRepository,
     IPasswordHasher passwordHasher,
+    ITotpService totpService,
+    ITotpRecoveryCodeRepository recoveryCodes,
+    ITwoFactorChallengeStore challenges,
     IAccessTokenIssuer accessTokenIssuer,
     IGoogleIdTokenVerifier googleIdTokenVerifier,
     ILinkedInOAuthClient linkedInOAuthClient,
@@ -33,13 +36,28 @@ internal sealed class AuthApplicationService(
         {
             return LoginResult.ActivationRequired();
         }
+        if (user.IsTotpEnabled) return LoginResult.TwoFactorRequired(challenges.Create(user.Id, "password"));
 
         user.RecordAccess(DateTimeOffset.UtcNow);
         await userRepository.UpdateAsync(user, cancellationToken);
         return LoginResult.Success(await CreateSessionAsync(user, cancellationToken: cancellationToken));
     }
 
-    public async Task<AuthSessionDto?> LoginWithGoogleAsync(
+    public async Task<AuthSessionDto?> CompleteTwoFactorLoginAsync(TwoFactorLoginRequest request, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.ChallengeId) || !challenges.TryConsume(request.ChallengeId, out var challenge)) return null;
+        var user = await userRepository.GetByIdAsync(challenge.UserId, cancellationToken);
+        if (user is null || !user.IsTotpEnabled || user.TotpSecretProtected is null) return null;
+        var verification = totpService.Verify(user.TotpSecretProtected, request.Code, DateTimeOffset.UtcNow);
+        var accepted = verification.IsValid
+            ? user.TryUseTotpTimeStep(verification.TimeStepMatched) && challenges.TryUseTotpTimeStep(user.Id, verification.TimeStepMatched)
+            : await recoveryCodes.ConsumeAsync(user.Id, totpService.HashRecoveryCode(request.Code), cancellationToken);
+        if (!accepted) return null;
+        user.RecordAccess(DateTimeOffset.UtcNow); await userRepository.UpdateAsync(user, cancellationToken);
+        return await CreateSessionAsync(user, challenge.Provider, challenge.RequiresProfileCompletion, cancellationToken);
+    }
+
+    public async Task<LoginResult?> LoginWithGoogleAsync(
         GoogleLoginRequest request,
         CancellationToken cancellationToken = default)
     {
@@ -74,14 +92,14 @@ internal sealed class AuthApplicationService(
             return null;
         }
 
-        var session = await LoginWithFederatedIdentityAsync(
+        var login = await LoginWithFederatedIdentityAsync(
             exchange.Value.Identity,
             "linkedin",
             "LinkedIn",
             linkedInOAuthClient.AdminEmails,
             cancellationToken);
 
-        return session is null ? null : new AuthCallbackResult(session, exchange.Value.RedirectTo);
+        return login is null ? null : new AuthCallbackResult(login, exchange.Value.RedirectTo);
     }
 
     public string? GetFacebookAuthorizationUrl(string? redirectTo = null)
@@ -100,14 +118,14 @@ internal sealed class AuthApplicationService(
             return null;
         }
 
-        var session = await LoginWithFederatedIdentityAsync(
+        var login = await LoginWithFederatedIdentityAsync(
             exchange.Value.Identity,
             "facebook",
             "Facebook",
             facebookOAuthClient.AdminEmails,
             cancellationToken);
 
-        return session is null ? null : new AuthCallbackResult(session, exchange.Value.RedirectTo);
+        return login is null ? null : new AuthCallbackResult(login, exchange.Value.RedirectTo);
     }
 
     public async Task<AuthSessionDto?> GetSessionByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
@@ -151,12 +169,13 @@ internal sealed class AuthApplicationService(
                 user.Profile.AvatarUrl,
                 user.PrivacyConsent.Accepted,
                 user.PrivacyConsent.AcceptedAtUtc,
-                user.HasLocalCredential),
+                user.HasLocalCredential,
+                user.IsTotpEnabled),
             permissionKeys,
             requiresProfileCompletion);
     }
 
-    private async Task<AuthSessionDto?> LoginWithFederatedIdentityAsync(
+    private async Task<LoginResult?> LoginWithFederatedIdentityAsync(
         FederatedIdentityPayload identity,
         string providerKey,
         string providerDisplayName,
@@ -232,7 +251,10 @@ internal sealed class AuthApplicationService(
             await userRepository.UpdateAsync(user, cancellationToken);
         }
 
-        return await CreateSessionAsync(user, providerKey, firstFederatedLogin || IsProfileIncomplete(user), cancellationToken);
+        var requiresProfileCompletion = firstFederatedLogin || IsProfileIncomplete(user);
+        return user.IsTotpEnabled
+            ? LoginResult.TwoFactorRequired(challenges.Create(user.Id, providerKey, requiresProfileCompletion))
+            : LoginResult.Success(await CreateSessionAsync(user, providerKey, requiresProfileCompletion, cancellationToken));
     }
 
     private static bool IsAdminEmail(string email, IReadOnlyCollection<string> adminEmails)

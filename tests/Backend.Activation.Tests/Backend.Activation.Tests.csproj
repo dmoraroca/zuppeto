@@ -1,8 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <ProjectReference Include="../../src/Backend/Domain/Domain.csproj" />
+    <ProjectReference Include="../../src/Backend/Application/Application.csproj" />
+    <ProjectReference Include="../../src/Backend/Infrastructure/Infrastructure.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Otp.NET" Version="1.4.1" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4">

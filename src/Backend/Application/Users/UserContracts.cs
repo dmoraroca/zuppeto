@@ -11,7 +11,8 @@ public sealed record UserDto(
     string? AvatarUrl,
     bool PrivacyAccepted,
     DateTimeOffset? PrivacyAcceptedAtUtc,
-    bool HasLocalCredential = true);
+    bool HasLocalCredential = true,
+    bool IsTotpEnabled = false);
 
 public sealed record UserRegistrationRequest(
     string Email,
@@ -40,6 +41,8 @@ public sealed record PasswordResetRequest(string Token, string NewPassword, stri
 public enum PasswordResetStatus { Reset, Invalid, Expired, Used }
 
 public sealed record PasswordResetResult(string Status);
+public sealed record TotpSetupDto(string QrSvg, string ManualEntryKey, DateTimeOffset ExpiresAtUtc);
+public sealed record TotpRecoveryCodesDto(IReadOnlyCollection<string> Codes);
 
 public sealed record UserProfileUpdateRequest(
     Guid Id,

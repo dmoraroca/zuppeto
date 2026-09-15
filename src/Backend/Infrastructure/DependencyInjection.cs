@@ -146,6 +146,8 @@ public static class DependencyInjection
         services.AddSingleton<IPlaceCoverStorage, FilePlaceCoverStorage>();
         services.AddScoped<IPasswordHasher, Pbkdf2PasswordHasher>();
         services.AddScoped<IAccessTokenIssuer, JwtAccessTokenIssuer>();
+        services.AddSingleton<ITotpService, TotpService>();
+        services.AddSingleton<ITwoFactorChallengeStore, MemoryTwoFactorChallengeStore>();
         services.AddScoped<IGoogleIdTokenVerifier, GoogleIdTokenVerifier>();
         services.AddScoped<DevelopmentIdentitySeeder>();
         services.AddScoped<DevelopmentPlacesSeeder>();
@@ -153,6 +155,7 @@ public static class DependencyInjection
         services.AddScoped<IPlaceRepository, PlaceRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IExternalIdentityRepository, ExternalIdentityRepository>();
+        services.AddScoped<ITotpRecoveryCodeRepository, TotpRecoveryCodeRepository>();
         services.AddScoped<IRolePermissionRepository, RolePermissionRepository>();
         services.AddScoped<IFavoriteListRepository, FavoriteListRepository>();
         services.AddScoped<IPlaceReviewRepository, PlaceReviewRepository>();

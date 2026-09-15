@@ -13,7 +13,10 @@ internal sealed class UserApplicationService(
     Auth.IPasswordHasher passwordHasher,
     IUserProfileFactory userProfileFactory,
     IAccountActivationEmailSender activationEmailSender,
-    IPasswordRecoveryEmailSender passwordRecoveryEmailSender) : IUserApplicationService
+    IPasswordRecoveryEmailSender passwordRecoveryEmailSender,
+    Auth.ITotpService totpService,
+    ITotpRecoveryCodeRepository totpRecoveryCodes,
+    Auth.ITwoFactorChallengeStore challenges) : IUserApplicationService
 {
     public async Task<IReadOnlyCollection<UserDto>> ListAsync(CancellationToken cancellationToken = default)
     {
@@ -118,6 +121,50 @@ internal sealed class UserApplicationService(
         }).ToString());
     }
 
+    public async Task<TotpSetupDto> StartTotpSetupAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var user = await userRepository.GetByIdAsync(userId, cancellationToken) ?? throw new InvalidOperationException("No s’ha trobat l’usuari.");
+        var material = totpService.CreateSetup(user.Email);
+        var expires = DateTimeOffset.UtcNow.AddMinutes(10);
+        user.StartTotpSetup(material.ProtectedSecret, expires);
+        await userRepository.UpdateAsync(user, cancellationToken);
+        return new(material.QrSvg, material.ManualEntryKey, expires);
+    }
+
+    public async Task<TotpRecoveryCodesDto?> ConfirmTotpSetupAsync(Guid userId, string code, CancellationToken cancellationToken = default)
+    {
+        var user = await userRepository.GetByIdAsync(userId, cancellationToken);
+        if (user?.PendingTotpSecretProtected is null || !totpService.Verify(user.PendingTotpSecretProtected, code, DateTimeOffset.UtcNow).IsValid) return null;
+        user.ConfirmTotpSetup(DateTimeOffset.UtcNow);
+        var codes = totpService.CreateRecoveryCodes();
+        await totpRecoveryCodes.ReplaceAsync(userId, codes.Select(totpService.HashRecoveryCode).ToArray(), cancellationToken);
+        await userRepository.UpdateAsync(user, cancellationToken);
+        return new(codes);
+    }
+
+    public async Task<bool> DisableTotpAsync(Guid userId, string verificationCode, CancellationToken cancellationToken = default)
+    {
+        var user = await userRepository.GetByIdAsync(userId, cancellationToken);
+        if (user is null || !user.IsTotpEnabled || user.TotpSecretProtected is null) return false;
+        var verified = totpService.Verify(user.TotpSecretProtected, verificationCode, DateTimeOffset.UtcNow).IsValid ||
+            await totpRecoveryCodes.ConsumeAsync(userId, totpService.HashRecoveryCode(verificationCode), cancellationToken);
+        if (!verified) return false;
+        user.DisableTotp();
+        challenges.RevokeForUser(userId);
+        await totpRecoveryCodes.DeleteAsync(userId, cancellationToken);
+        await userRepository.UpdateAsync(user, cancellationToken);
+        return true;
+    }
+
+    public async Task<TotpRecoveryCodesDto?> RegenerateTotpRecoveryCodesAsync(Guid userId, string verificationCode, CancellationToken cancellationToken = default)
+    {
+        var user = await userRepository.GetByIdAsync(userId, cancellationToken);
+        if (user?.TotpSecretProtected is null || !user.IsTotpEnabled || !totpService.Verify(user.TotpSecretProtected, verificationCode, DateTimeOffset.UtcNow).IsValid) return null;
+        var codes = totpService.CreateRecoveryCodes();
+        await totpRecoveryCodes.ReplaceAsync(userId, codes.Select(totpService.HashRecoveryCode).ToArray(), cancellationToken);
+        return new(codes);
+    }
+
     public async Task UpdateProfileAsync(UserProfileUpdateRequest request, CancellationToken cancellationToken = default)
     {
         var user = await userRepository.GetByIdAsync(request.Id, cancellationToken)
@@ -207,7 +254,8 @@ internal sealed class UserApplicationService(
             user.Profile.AvatarUrl,
             user.PrivacyConsent.Accepted,
             user.PrivacyConsent.AcceptedAtUtc,
-            user.HasLocalCredential);
+            user.HasLocalCredential,
+            user.IsTotpEnabled);
     }
 
     private static string CreateRawToken() => Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))

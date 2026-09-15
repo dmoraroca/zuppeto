@@ -1,0 +1,13 @@
+@use '../resend-activation-page/resend-activation-page.component.scss';
+.account-card--wide { width: min(100%, 46rem); }
+.setup-grid { display: grid; grid-template-columns: minmax(11rem, 15rem) 1fr; gap: 1.5rem; align-items: start; }
+.qr { padding: 1rem; border: 1px solid #d9d9d9; border-radius: .75rem; background: #fff; }
+.qr :where(svg) { display: block; width: 100%; height: auto; }
+.manual-key { display: block; padding: .75rem; overflow-wrap: anywhere; border-radius: .5rem; background: #f5f1e7; }
+.security-actions, .recovery { display: grid; gap: 1rem; padding: 1rem; border: 1px solid #ded7c8; border-radius: .75rem; }
+.button-row { display: flex; flex-wrap: wrap; gap: .75rem; }
+.danger { color: #8a1c1c; border-color: #8a1c1c; background: #fff; }
+.success { padding: .75rem; border-radius: .5rem; color: #175c2c; background: #eaf7ed; }
+.error { color: #9d1f1f; }
+.recovery ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem 1rem; margin: 0; padding-left: 1.25rem; }
+@media (max-width: 38rem) { .setup-grid { grid-template-columns: 1fr; } .recovery ul { grid-template-columns: 1fr; } }

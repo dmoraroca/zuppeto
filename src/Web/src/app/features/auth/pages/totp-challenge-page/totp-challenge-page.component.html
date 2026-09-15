@@ -1,0 +1,8 @@
+<main class="account-page"><section class="account-card"><p class="eyebrow">Accés segur</p>
+  <h1>Verifica el segon factor</h1><p>Introdueix el codi temporal de l’autenticador o un codi de recuperació.</p>
+  <form [formGroup]="form" (ngSubmit)="submit()"><label>Codi de verificació
+    <input formControlName="code" inputmode="numeric" autocomplete="one-time-code" autofocus /></label>
+    <button type="submit" [disabled]="form.invalid || busy()">Verificar</button></form>
+  @if (error()) { <p class="error" role="alert">El codi no és vàlid, ja s’ha utilitzat o ha caducat. Torna a iniciar sessió per provar-ho de nou.</p> }
+  <a routerLink="/login">Tornar a iniciar sessió</a>
+</section></main>

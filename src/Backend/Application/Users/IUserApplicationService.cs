@@ -19,6 +19,10 @@ public interface IUserApplicationService
     Task RequestPasswordRecoveryAsync(PasswordRecoveryRequest request, CancellationToken cancellationToken = default);
 
     Task<PasswordResetResult> ResetPasswordAsync(PasswordResetRequest request, CancellationToken cancellationToken = default);
+    Task<TotpSetupDto> StartTotpSetupAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<TotpRecoveryCodesDto?> ConfirmTotpSetupAsync(Guid userId, string code, CancellationToken cancellationToken = default);
+    Task<bool> DisableTotpAsync(Guid userId, string verificationCode, CancellationToken cancellationToken = default);
+    Task<TotpRecoveryCodesDto?> RegenerateTotpRecoveryCodesAsync(Guid userId, string verificationCode, CancellationToken cancellationToken = default);
 
     Task UpdateProfileAsync(UserProfileUpdateRequest request, CancellationToken cancellationToken = default);
 

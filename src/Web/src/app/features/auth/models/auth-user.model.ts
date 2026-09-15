@@ -12,6 +12,7 @@ export interface AuthUser {
   avatarUrl: string | null;
   privacyAccepted: boolean;
   hasLocalCredential: boolean;
+  isTotpEnabled: boolean;
 }
 
 export interface AuthSession {

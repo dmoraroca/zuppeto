@@ -187,6 +187,7 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
     const result = await this.authService.login(this.form.getRawValue());
 
     if (!result.ok) {
+      if (result.twoFactorChallenge) { void this.router.navigate(['/verificar-2fa'], { queryParams: { challenge: result.twoFactorChallenge } }); return; }
       this.notifyUser(
         result.activationRequired ? 'Activa el compte' : 'Credencials incorrectes',
         result.activationRequired
@@ -456,6 +457,13 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
 
   private async handleGoogleCredentialAsync(idToken: string): Promise<void> {
     const result = await this.authService.loginWithGoogle(idToken);
+
+    if (result.twoFactorChallenge) {
+      void this.router.navigate(['/verificar-2fa'], {
+        queryParams: { challenge: result.twoFactorChallenge, redirectTo: this.route.snapshot.queryParamMap.get('redirectTo') }
+      });
+      return;
+    }
 
     if (!result.ok) {
       this.notifyUser(

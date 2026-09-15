@@ -1,0 +1,36 @@
+<main class="account-page">
+  <section class="account-card account-card--wide">
+    <p class="eyebrow">Perfil · Seguretat</p><h1>Verificació en dos passos</h1>
+    @if (!enabled() && !setup()) {
+      <p>Afegeix una segona comprovació al teu compte amb qualsevol aplicació TOTP compatible.</p>
+      <button type="button" [disabled]="busy()" (click)="start()">Activar 2FA</button>
+    }
+    @if (setup(); as item) {
+      <div class="setup-grid">
+        <div class="qr" [innerHTML]="item.qrSvg" aria-label="Codi QR de configuració TOTP"></div>
+        <div><h2>1. Vincula l’autenticador</h2><p>Escaneja el QR. Si no pots, introdueix manualment aquesta clau:</p>
+          <code class="manual-key">{{ item.manualEntryKey }}</code><h2>2. Confirma el primer codi</h2>
+          <form [formGroup]="form" (ngSubmit)="confirm()"><label>Codi temporal de 6 dígits
+            <input formControlName="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" /></label>
+            <button type="submit" [disabled]="form.invalid || busy()">Confirmar i activar</button></form>
+        </div>
+      </div>
+    }
+    @if (enabled()) {
+      <div class="success" role="status">La verificació en dos passos està activada.</div>
+      <form class="security-actions" [formGroup]="form"><label>Codi temporal o de recuperació
+        <input formControlName="code" autocomplete="one-time-code" /></label><div class="button-row">
+        <button type="button" [disabled]="form.invalid || busy()" (click)="regenerate()">Regenerar codis de recuperació</button>
+        <button type="button" class="danger" [disabled]="form.invalid || busy()" (click)="disable()">Desactivar 2FA</button>
+      </div></form>
+    }
+    @if (recoveryCodes(); as values) {
+      <section class="recovery" aria-labelledby="recovery-title"><h2 id="recovery-title">Codis de recuperació</h2>
+        <p>Desa’ls ara en un lloc segur. Cada codi és d’un sol ús i no es tornarà a mostrar. Per seguretat, hauràs de tornar a iniciar sessió.</p><ul>
+          @for (code of values; track code) { <li><code>{{ code }}</code></li> }
+        </ul></section>
+    }
+    @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+    <a [routerLink]="sessionEnded() ? '/login' : '/perfil'">{{ sessionEnded() ? 'Iniciar sessió' : 'Tornar al perfil' }}</a>
+  </section>
+</main>
