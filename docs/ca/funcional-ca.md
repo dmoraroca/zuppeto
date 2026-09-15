@@ -1285,7 +1285,7 @@ Abans d'iniciar funcionalitat nova, cal auditar els **5 SKIP E2E actuals**, iden
 
 | # | Bloc | Punt obligatori | Estat vigent |
 |---:|---|---|---|
-| 1 | Identitat i seguretat | Activació de compte per email | 🔴 Pendent / crític |
+| 1 | Identitat i seguretat | Activació de compte per email | 🟢 VALIDAT |
 | 2 | Identitat i seguretat | Recuperació de compte o contrasenya per email | 🔴 Pendent / crític |
 | 3 | Identitat i seguretat | TOTP / 2FA | 🔴 Pendent / crític |
 | 4 | Identitat i seguretat | Google OAuth real | 🟠 Parcial / pendent de validació real |
@@ -1307,11 +1307,11 @@ Abans d'iniciar funcionalitat nova, cal auditar els **5 SKIP E2E actuals**, iden
 | 20 | UX transversal | Rutes internes en anglès | 🟠 Parcial / pendent de completar o validar |
 | 21 | Tancament | Revisió definitiva dels SKIP E2E | 🔴 Pendent / crític |
 
-Per tant, l'estat oficial actual és de **9 punts 🔴 i 12 punts 🟠**; encara no hi ha cap d'aquests 21 punts certificat com a 🟢 dins d'aquest gate.
+Per tant, l'estat oficial actual és de **8 punts 🔴, 12 punts 🟠 i 1 punt 🟢 VALIDAT** dins d'aquest gate.
 
 #### 3.18.4 Bloc A — Identitat i seguretat
 
-**1. Activació de compte per email — 🔴.** El compte nou ha de quedar pendent d'activació; calen token segur i caducable, email, endpoint i flux d'activació, pantalla o missatge, bloqueig del login abans d'activar, reenviament i tractament de tokens invàlids o caducats. Passa quan `alta → email → activació → login` funciona completament.
+**1. Activació de compte per email — 🟢 VALIDAT.** El compte nou queda pendent d'activació; el token és segur, caducable, d'un sol ús i només se'n persisteix el hash. El reenviament invalida l'anterior, el login es denega abans d'activar i la UX cobreix registre, activació i reenviament. La validació persistent inclou tokens invàlids, caducats, reutilitzats i substituïts, i la regressió Chrome real d'autenticació `sim-20260915T112355285Z-5e5ff2d0` ha donat 15 PASS, 0 FAIL, 0 BLOCKED i 1 SKIP extern justificat.
 
 **2. Recuperació de compte o contrasenya per email — 🔴.** Cal incorporar «He oblidat la contrasenya», petició de recuperació, token temporal segur i caducable, email, pantalla de nova contrasenya, invalidació després de l'ús, resposta que no reveli indegudament si el compte existeix i gestió o invalidació de sessions quan correspongui. Passa quan el flux complet queda validat.
 

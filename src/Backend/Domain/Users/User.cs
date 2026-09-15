@@ -13,7 +13,12 @@ public sealed class User : AggregateRoot<Guid>
         UserProfile profile,
         PrivacyConsent privacyConsent,
         DateTimeOffset? createdAtUtc = null,
-        DateTimeOffset? lastAccessedAtUtc = null) : base(id)
+        DateTimeOffset? lastAccessedAtUtc = null,
+        DateTimeOffset? emailActivatedAtUtc = null,
+        string? activationTokenHash = null,
+        DateTimeOffset? activationTokenExpiresAtUtc = null,
+        DateTimeOffset? activationTokenUsedAtUtc = null,
+        bool emailActivationManaged = false) : base(id)
     {
         SetEmail(email);
         SetPasswordHash(passwordHash);
@@ -22,6 +27,10 @@ public sealed class User : AggregateRoot<Guid>
         PrivacyConsent = privacyConsent;
         CreatedAtUtc = createdAtUtc ?? DateTimeOffset.UtcNow;
         LastAccessedAtUtc = lastAccessedAtUtc;
+        EmailActivatedAtUtc = emailActivationManaged ? emailActivatedAtUtc : emailActivatedAtUtc ?? CreatedAtUtc;
+        ActivationTokenHash = activationTokenHash;
+        ActivationTokenExpiresAtUtc = activationTokenExpiresAtUtc;
+        ActivationTokenUsedAtUtc = activationTokenUsedAtUtc;
     }
 
     public string Email { get; private set; } = string.Empty;
@@ -38,6 +47,41 @@ public sealed class User : AggregateRoot<Guid>
     public DateTimeOffset CreatedAtUtc { get; private set; }
 
     public DateTimeOffset? LastAccessedAtUtc { get; private set; }
+
+    public DateTimeOffset? EmailActivatedAtUtc { get; private set; }
+
+    public string? ActivationTokenHash { get; private set; }
+
+    public DateTimeOffset? ActivationTokenExpiresAtUtc { get; private set; }
+
+    public DateTimeOffset? ActivationTokenUsedAtUtc { get; private set; }
+
+    public bool IsEmailActivated => EmailActivatedAtUtc is not null;
+
+    public void RequireEmailActivation(string tokenHash, DateTimeOffset expiresAtUtc)
+    {
+        if (string.IsNullOrWhiteSpace(tokenHash)) throw new DomainRuleException("El token d'activació és obligatori.");
+        if (expiresAtUtc <= DateTimeOffset.UtcNow) throw new DomainRuleException("El token d'activació ha de caducar en el futur.");
+
+        EmailActivatedAtUtc = null;
+        ActivationTokenHash = tokenHash;
+        ActivationTokenExpiresAtUtc = expiresAtUtc;
+        ActivationTokenUsedAtUtc = null;
+    }
+
+    public ActivationTokenValidationResult ActivateEmail(string tokenHash, DateTimeOffset nowUtc)
+    {
+        if (string.IsNullOrWhiteSpace(ActivationTokenHash) || !string.Equals(ActivationTokenHash, tokenHash, StringComparison.Ordinal))
+            return ActivationTokenValidationResult.Invalid;
+        if (ActivationTokenUsedAtUtc is not null || IsEmailActivated)
+            return ActivationTokenValidationResult.Used;
+        if (ActivationTokenExpiresAtUtc is null || ActivationTokenExpiresAtUtc <= nowUtc)
+            return ActivationTokenValidationResult.Expired;
+
+        EmailActivatedAtUtc = nowUtc;
+        ActivationTokenUsedAtUtc = nowUtc;
+        return ActivationTokenValidationResult.Activated;
+    }
 
     public void UpdateProfile(UserProfile profile)
     {
@@ -125,4 +169,12 @@ public sealed class User : AggregateRoot<Guid>
 
         PasswordHash = passwordHash.Trim();
     }
+}
+
+public enum ActivationTokenValidationResult
+{
+    Activated,
+    Invalid,
+    Expired,
+    Used
 }

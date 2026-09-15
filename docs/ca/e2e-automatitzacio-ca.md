@@ -5,6 +5,8 @@
 **Estat:** Fases 0–10 validades. Google Chrome, Firefox, WebKit i Microsoft Edge comparteixen suite; l'auditoria final local queda tancada amb PASS i la CI definida a la Fase 9 resta preparada, però no s'ha executat durant la Fase 10.
 **Principi rector:** Codex construeix i manté la infraestructura; Playwright, invocat des del terminal o CI, executa les tirades llargues de forma autònoma.
 
+**Fase IV — Iteració 1, activació per email (2026-09-15):** `npm run e2e:activation` és l'E2E focalitzat persistent del flux local: alta pendent, denegació de login, reenviament, token substituït, activació, reutilització, token invàlid i caducat, login final i comprovació dels quatre comptes E2E. Crea només usuaris temporals `e2e-activation-*` i els elimina per email exacte. La regressió Chrome real d'autenticació `sim-20260915T112355285Z-5e5ff2d0` ha validat 15 PASS, 0 FAIL, 0 BLOCKED i 1 SKIP extern justificat. Els runs anteriors fallits de launcher o servei es conserven append-only com a evidència `ENVIRONMENT`.
+
 Aquest és el document viu de l'automatització E2E. Qualsevol decisió material, canvi d'estructura, navegador incorporat o resultat de validació l'ha d'actualitzar.
 
 El document està publicat al catàleg de **Documentació interna** de Zuppeto amb el nom **Automatització E2E**:

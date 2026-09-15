@@ -4,6 +4,15 @@ namespace Zuppeto.Application.Auth;
 
 public sealed record LoginRequest(string Email, string Password);
 
+public enum LoginFailureReason { InvalidCredentials, EmailActivationRequired }
+
+public sealed record LoginResult(AuthSessionDto? Session, LoginFailureReason? FailureReason)
+{
+    public static LoginResult InvalidCredentials() => new(null, LoginFailureReason.InvalidCredentials);
+    public static LoginResult ActivationRequired() => new(null, LoginFailureReason.EmailActivationRequired);
+    public static LoginResult Success(AuthSessionDto session) => new(session, null);
+}
+
 public sealed record GoogleLoginRequest(string IdToken);
 public sealed record FacebookOAuthCallbackRequest(string Code, string State);
 public sealed record LinkedInOAuthCallbackRequest(string Code, string State);

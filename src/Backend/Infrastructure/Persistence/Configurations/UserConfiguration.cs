@@ -71,6 +71,19 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<UserRecord>
         builder.Property(user => user.LastAccessedAtUtc)
             .HasColumnName("last_accessed_at_utc");
 
+        builder.Property(user => user.EmailActivatedAtUtc)
+            .HasColumnName("email_activated_at_utc");
+
+        builder.Property(user => user.ActivationTokenHash)
+            .HasColumnName("activation_token_hash")
+            .HasMaxLength(128);
+
+        builder.Property(user => user.ActivationTokenExpiresAtUtc)
+            .HasColumnName("activation_token_expires_at_utc");
+
+        builder.Property(user => user.ActivationTokenUsedAtUtc)
+            .HasColumnName("activation_token_used_at_utc");
+
         builder.HasIndex(user => user.Email)
             .IsUnique()
             .HasDatabaseName("uq_users_email");

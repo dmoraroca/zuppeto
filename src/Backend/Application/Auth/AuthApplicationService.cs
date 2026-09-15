@@ -16,16 +16,26 @@ internal sealed class AuthApplicationService(
 {
     public async Task<AuthSessionDto?> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
     {
+        return (await LoginWithResultAsync(request, cancellationToken)).Session;
+    }
+
+    public async Task<LoginResult> LoginWithResultAsync(LoginRequest request, CancellationToken cancellationToken = default)
+    {
         var user = await userRepository.GetByEmailAsync(request.Email, cancellationToken);
 
         if (user is null || !passwordHasher.Verify(user.PasswordHash, request.Password))
         {
-            return null;
+            return LoginResult.InvalidCredentials();
+        }
+
+        if (!user.IsEmailActivated)
+        {
+            return LoginResult.ActivationRequired();
         }
 
         user.RecordAccess(DateTimeOffset.UtcNow);
         await userRepository.UpdateAsync(user, cancellationToken);
-        return await CreateSessionAsync(user, cancellationToken: cancellationToken);
+        return LoginResult.Success(await CreateSessionAsync(user, cancellationToken: cancellationToken));
     }
 
     public async Task<AuthSessionDto?> LoginWithGoogleAsync(

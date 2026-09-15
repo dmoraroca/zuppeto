@@ -25,7 +25,8 @@
     "e2e:edge": "npm run runner:build && node .runner-build/runner/edge-cli.js",
     "e2e:edge:resume": "npm run runner:build && node .runner-build/runner/edge-cli.js --resume",
     "e2e:pilot": "npm run runner:build && node .runner-build/runner/pilot-cli.js",
-    "e2e:pilot:resume": "npm run runner:build && node .runner-build/runner/pilot-cli.js --resume"
+    "e2e:pilot:resume": "npm run runner:build && node .runner-build/runner/pilot-cli.js --resume",
+    "e2e:activation": "npm run runner:build && node .runner-build/runner/activation-email-cli.js"
   },
   "devDependencies": {
     "@playwright/test": "^1.53.0",

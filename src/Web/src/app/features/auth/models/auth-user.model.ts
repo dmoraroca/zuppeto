@@ -26,6 +26,12 @@ export interface AuthCredentials {
   password: string;
 }
 
+export interface AccountRegistration {
+  displayName: string;
+  email: string;
+  password: string;
+}
+
 export interface AuthProfileUpdate {
   name: string;
   city: string;

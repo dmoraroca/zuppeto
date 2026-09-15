@@ -1,0 +1,8 @@
+<main class="account-page"><section class="account-card">
+  <p class="eyebrow">Activació de compte</p>
+  @if (status() === 'loading') { <h1>Validant l’enllaç…</h1> }
+  @else if (status() === 'Activated') { <h1>Compte activat</h1><p>Ja pots iniciar sessió a Zuppeto.</p><a routerLink="/login">Iniciar sessió</a> }
+  @else if (status() === 'Expired') { <h1>L’enllaç ha caducat</h1><p>Demana un reenviament d’activació.</p><a routerLink="/reenviar-activacio">Reenviar activació</a> }
+  @else if (status() === 'Used') { <h1>L’enllaç ja s’ha utilitzat</h1><p>El compte ja estava activat.</p><a routerLink="/login">Iniciar sessió</a> }
+  @else { <h1>L’enllaç no és vàlid</h1><p>Pot haver estat substituït per un reenviament.</p><a routerLink="/reenviar-activacio">Reenviar activació</a> }
+</section></main>

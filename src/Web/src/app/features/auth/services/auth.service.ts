@@ -6,7 +6,7 @@ import { Observable, firstValueFrom } from 'rxjs';
 import { API_BASE_URL } from '../../../core/config/api.config';
 import { NavigationMenuItem } from '../../../core/models/navigation-menu.model';
 import { ErrorNotificationsService } from '../../../core/services/error-notifications.service';
-import { AuthAccountUpdate, AuthCredentials, AuthProfileUpdate, AuthProvider, AuthRole, AuthSession, AuthUser } from '../models/auth-user.model';
+import { AccountRegistration, AuthAccountUpdate, AuthCredentials, AuthProfileUpdate, AuthProvider, AuthRole, AuthSession, AuthUser } from '../models/auth-user.model';
 import {
   ROLE_CHROME_POLICY,
   RoleChromeKind,
@@ -71,7 +71,7 @@ export class AuthService {
     return kind === 'admin' || kind === 'user';
   });
 
-  async login(credentials: AuthCredentials): Promise<{ ok: boolean; user?: AuthUser }> {
+  async login(credentials: AuthCredentials): Promise<{ ok: boolean; user?: AuthUser; activationRequired?: boolean }> {
     try {
       const session = await firstValueFrom(
         this.http.post<AuthSessionApiDto>(`${API_BASE_URL}/auth/login`, {
@@ -88,9 +88,37 @@ export class AuthService {
       await this.applyRoleChrome(mappedSession.user.role);
 
       return { ok: true, user: mappedSession.user };
-    } catch {
-      return { ok: false };
+    } catch (error) {
+      return { ok: false, activationRequired: error instanceof HttpErrorResponse && error.status === 403 };
     }
+  }
+
+  async register(input: AccountRegistration): Promise<boolean> {
+    try {
+      await firstValueFrom(this.http.post(`${API_BASE_URL}/users`, {
+        email: input.email.trim(), passwordHash: input.password, role: 'User', displayName: input.displayName.trim(),
+        city: '', country: '', comments: '', avatarUrl: null, privacyAccepted: true,
+        privacyAcceptedAtUtc: new Date().toISOString()
+      }));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async activateEmail(token: string): Promise<'Activated' | 'Invalid' | 'Expired' | 'Used'> {
+    try {
+      const result = await firstValueFrom(this.http.post<{ status: 'Activated' | 'Invalid' | 'Expired' | 'Used' }>(
+        `${API_BASE_URL}/auth/activation`, { token }
+      ));
+      return result.status;
+    } catch {
+      return 'Invalid';
+    }
+  }
+
+  async resendActivationEmail(email: string): Promise<void> {
+    await firstValueFrom(this.http.post(`${API_BASE_URL}/auth/activation/resend`, { email: email.trim() }));
   }
 
   async loginWithGoogle(idToken: string): Promise<{ ok: boolean; user?: AuthUser }> {

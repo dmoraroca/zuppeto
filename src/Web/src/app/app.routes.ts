@@ -45,6 +45,29 @@ export const routes: Routes = [
       )
   },
   {
+    path: 'registre',
+    canActivate: [guestGuard],
+    loadComponent: () =>
+      import('./features/auth/pages/register-page/register-page.component').then(
+        (m) => m.RegisterPageComponent
+      )
+  },
+  {
+    path: 'activar-compte',
+    loadComponent: () =>
+      import('./features/auth/pages/account-activation-page/account-activation-page.component').then(
+        (m) => m.AccountActivationPageComponent
+      )
+  },
+  {
+    path: 'reenviar-activacio',
+    canActivate: [guestGuard],
+    loadComponent: () =>
+      import('./features/auth/pages/resend-activation-page/resend-activation-page.component').then(
+        (m) => m.ResendActivationPageComponent
+      )
+  },
+  {
     path: 'auth/callback',
     loadComponent: () =>
       import('./features/auth/pages/auth-callback-page/auth-callback-page.component').then(

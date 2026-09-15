@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.WebUtilities;
 using Zuppeto.Application.Auth;
 using Zuppeto.Application.Validation;
 using Zuppeto.Api.Validation;
+using Zuppeto.Application.Users;
+using Zuppeto.Infrastructure.Email;
 
 namespace Zuppeto.Api.Endpoints;
 
@@ -19,6 +21,8 @@ internal static class AuthEndpoints
         var group = app.MapGroup("/api/auth");
 
         group.MapPost("/login", LoginAsync);
+        group.MapPost("/activation", ActivateEmailAsync);
+        group.MapPost("/activation/resend", ResendActivationEmailAsync);
         group.MapPost("/google", GoogleLoginAsync);
         group.MapGet("/linkedin/start", LinkedInStartAsync);
         group.MapGet("/linkedin/callback", LinkedInCallbackAsync);
@@ -30,7 +34,7 @@ internal static class AuthEndpoints
         return app;
     }
 
-    private static async Task<Results<Ok<AuthSessionDto>, UnauthorizedHttpResult, ValidationProblem>> LoginAsync(
+    private static async Task<Results<Ok<AuthSessionDto>, UnauthorizedHttpResult, ProblemHttpResult, ValidationProblem>> LoginAsync(
         LoginRequest request,
         IValidator<LoginRequest> validator,
         IAuthApplicationService service,
@@ -42,9 +46,48 @@ internal static class AuthEndpoints
             return validation.ToValidationProblem();
         }
 
-        var session = await service.LoginAsync(request, cancellationToken);
-        return session is null ? TypedResults.Unauthorized() : TypedResults.Ok(session);
+        var result = await service.LoginWithResultAsync(request, cancellationToken);
+        if (result.Session is not null) return TypedResults.Ok(result.Session);
+        return result.FailureReason == LoginFailureReason.EmailActivationRequired
+            ? TypedResults.Problem(statusCode: StatusCodes.Status403Forbidden, title: "Activació de compte necessària", detail: "Activa el compte des del correu abans d'iniciar sessió.")
+            : TypedResults.Unauthorized();
     }
+
+    private static async Task<Ok<AccountActivationResult>> ActivateEmailAsync(
+        AccountActivationRequest request,
+        IUserApplicationService service,
+        CancellationToken cancellationToken)
+    {
+        return TypedResults.Ok(await service.ActivateEmailAsync(request, cancellationToken));
+    }
+
+    private static async Task<Accepted> ResendActivationEmailAsync(
+        ActivationEmailResendRequest request,
+        IUserApplicationService service,
+        CancellationToken cancellationToken)
+    {
+        await service.ResendActivationEmailAsync(request, cancellationToken);
+        return TypedResults.Accepted("/api/auth/activation");
+    }
+
+    /// <summary>Local-only test adapter. No route is registered outside Development.</summary>
+    public static IEndpointRouteBuilder MapDevelopmentActivationTestEndpoints(this IEndpointRouteBuilder app)
+    {
+        if (!app.ServiceProvider.GetRequiredService<IHostEnvironment>().IsDevelopment()) return app;
+        app.MapGet("/api/auth/activation/test-inbox/{email}", GetDevelopmentInboxToken);
+        return app;
+    }
+
+    private static Results<Ok<DevelopmentActivationTokenDto>, NotFound> GetDevelopmentInboxToken(
+        string email,
+        DevelopmentActivationInbox inbox)
+    {
+        return inbox.TryTake(email, out var token)
+            ? TypedResults.Ok(new DevelopmentActivationTokenDto(token))
+            : TypedResults.NotFound();
+    }
+
+    private sealed record DevelopmentActivationTokenDto(string Token);
 
     private static async Task<Results<Ok<AuthSessionDto>, UnauthorizedHttpResult, ValidationProblem>> GoogleLoginAsync(
         GoogleLoginRequest request,

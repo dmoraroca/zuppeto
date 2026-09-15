@@ -12,6 +12,10 @@ public interface IUserApplicationService
 
     Task<Guid> RegisterAsync(UserRegistrationRequest request, CancellationToken cancellationToken = default);
 
+    Task<AccountActivationResult> ActivateEmailAsync(AccountActivationRequest request, CancellationToken cancellationToken = default);
+
+    Task ResendActivationEmailAsync(ActivationEmailResendRequest request, CancellationToken cancellationToken = default);
+
     Task UpdateProfileAsync(UserProfileUpdateRequest request, CancellationToken cancellationToken = default);
 
     Task<ValidationResult> ChangeAccountAsync(

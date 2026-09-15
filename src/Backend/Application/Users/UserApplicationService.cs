@@ -3,13 +3,16 @@ using Zuppeto.Domain.Users;
 using Zuppeto.Domain.Users.ValueObjects;
 using Zuppeto.Application.Factories;
 using Zuppeto.Application.Validation;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Zuppeto.Application.Users;
 
 internal sealed class UserApplicationService(
     IUserRepository userRepository,
     Auth.IPasswordHasher passwordHasher,
-    IUserProfileFactory userProfileFactory) : IUserApplicationService
+    IUserProfileFactory userProfileFactory,
+    IAccountActivationEmailSender activationEmailSender) : IUserApplicationService
 {
     public async Task<IReadOnlyCollection<UserDto>> ListAsync(CancellationToken cancellationToken = default)
     {
@@ -31,6 +34,8 @@ internal sealed class UserApplicationService(
 
     public async Task<Guid> RegisterAsync(UserRegistrationRequest request, CancellationToken cancellationToken = default)
     {
+        var rawToken = CreateRawToken();
+        var expiresAtUtc = DateTimeOffset.UtcNow.AddHours(24);
         var user = new User(
             Guid.NewGuid(),
             request.Email,
@@ -38,9 +43,44 @@ internal sealed class UserApplicationService(
             request.Role.Trim(),
             userProfileFactory.Create(request.DisplayName, request.City, request.Country, request.Comments, request.AvatarUrl),
             new PrivacyConsent(request.PrivacyAccepted, request.PrivacyAcceptedAtUtc));
+        user.RequireEmailActivation(HashToken(rawToken), expiresAtUtc);
 
         await userRepository.AddAsync(user, cancellationToken);
+        await activationEmailSender.SendAsync(new AccountActivationEmail(user.Email, rawToken, expiresAtUtc), cancellationToken);
         return user.Id;
+    }
+
+    public async Task<AccountActivationResult> ActivateEmailAsync(
+        AccountActivationRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.Token)) return new(AccountActivationStatus.Invalid.ToString());
+        var tokenHash = HashToken(request.Token);
+        var user = await userRepository.GetByActivationTokenHashAsync(tokenHash, cancellationToken);
+        if (user is null) return new(AccountActivationStatus.Invalid.ToString());
+
+        var result = user.ActivateEmail(tokenHash, DateTimeOffset.UtcNow);
+        if (result == ActivationTokenValidationResult.Activated) await userRepository.UpdateAsync(user, cancellationToken);
+        return new((result switch
+        {
+            ActivationTokenValidationResult.Activated => AccountActivationStatus.Activated,
+            ActivationTokenValidationResult.Expired => AccountActivationStatus.Expired,
+            ActivationTokenValidationResult.Used => AccountActivationStatus.Used,
+            _ => AccountActivationStatus.Invalid
+        }).ToString());
+    }
+
+    public async Task ResendActivationEmailAsync(ActivationEmailResendRequest request, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.Email)) return;
+        var user = await userRepository.GetByEmailAsync(request.Email, cancellationToken);
+        if (user is null || user.IsEmailActivated) return;
+
+        var rawToken = CreateRawToken();
+        var expiresAtUtc = DateTimeOffset.UtcNow.AddHours(24);
+        user.RequireEmailActivation(HashToken(rawToken), expiresAtUtc);
+        await userRepository.UpdateAsync(user, cancellationToken);
+        await activationEmailSender.SendAsync(new AccountActivationEmail(user.Email, rawToken, expiresAtUtc), cancellationToken);
     }
 
     public async Task UpdateProfileAsync(UserProfileUpdateRequest request, CancellationToken cancellationToken = default)
@@ -133,4 +173,9 @@ internal sealed class UserApplicationService(
             user.PrivacyConsent.Accepted,
             user.PrivacyConsent.AcceptedAtUtc);
     }
+
+    private static string CreateRawToken() => Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))
+        .TrimEnd('=').Replace('+', '-').Replace('/', '_');
+
+    private static string HashToken(string token) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
 }

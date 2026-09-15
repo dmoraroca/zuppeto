@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Zuppeto.Application.Auth;
+using Zuppeto.Application.Users;
 using Zuppeto.Application.Places;
 using Zuppeto.Domain.Abstractions;
 using Zuppeto.Infrastructure.Auth;
@@ -13,6 +14,7 @@ using Zuppeto.Infrastructure.Persistence;
 using Zuppeto.Infrastructure.Persistence.Repositories;
 using Zuppeto.Infrastructure.Places;
 using Zuppeto.Infrastructure.RabbitMq;
+using Zuppeto.Infrastructure.Email;
 
 namespace Zuppeto.Infrastructure;
 
@@ -77,6 +79,17 @@ public static class DependencyInjection
 
         services.AddSingleton(Options.Create(authOptions));
         services.AddRabbitMq(configuration);
+        services.Configure<AccountActivationOptions>(configuration.GetSection(AccountActivationOptions.SectionName));
+        services.AddSingleton<DevelopmentActivationInbox>();
+        var activationDeliveryMode = configuration["AccountActivation:DeliveryMode"] ?? "DevelopmentInbox";
+        if (string.Equals(activationDeliveryMode, "Smtp", StringComparison.OrdinalIgnoreCase))
+        {
+            services.AddScoped<IAccountActivationEmailSender, SmtpAccountActivationEmailSender>();
+        }
+        else
+        {
+            services.AddScoped<IAccountActivationEmailSender, DevelopmentInboxAccountActivationEmailSender>();
+        }
         services.AddMemoryCache();
         services.AddDataProtection();
         services.Configure<GeoNamesOptions>(configuration.GetSection(GeoNamesOptions.SectionName));

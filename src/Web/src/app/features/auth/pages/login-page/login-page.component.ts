@@ -188,8 +188,10 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
 
     if (!result.ok) {
       this.notifyUser(
-        'Credencials incorrectes',
-        'L’usuari o la contrasenya no són correctes. Revisa les dades i torna-ho a provar.',
+        result.activationRequired ? 'Activa el compte' : 'Credencials incorrectes',
+        result.activationRequired
+          ? 'Revisa el correu d’activació abans d’iniciar sessió. Pots demanar-ne un reenviament.'
+          : 'L’usuari o la contrasenya no són correctes. Revisa les dades i torna-ho a provar.',
         'error'
       );
       return;

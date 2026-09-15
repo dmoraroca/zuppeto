@@ -24,6 +24,14 @@ public sealed record UserRegistrationRequest(
     bool PrivacyAccepted,
     DateTimeOffset? PrivacyAcceptedAtUtc);
 
+public sealed record AccountActivationRequest(string Token);
+
+public sealed record ActivationEmailResendRequest(string Email);
+
+public enum AccountActivationStatus { Activated, Invalid, Expired, Used }
+
+public sealed record AccountActivationResult(string Status);
+
 public sealed record UserProfileUpdateRequest(
     Guid Id,
     string DisplayName,

@@ -30,6 +30,14 @@ public sealed class UserRecord
 
     public DateTimeOffset? LastAccessedAtUtc { get; set; }
 
+    public DateTimeOffset? EmailActivatedAtUtc { get; set; }
+
+    public string? ActivationTokenHash { get; set; }
+
+    public DateTimeOffset? ActivationTokenExpiresAtUtc { get; set; }
+
+    public DateTimeOffset? ActivationTokenUsedAtUtc { get; set; }
+
     public FavoriteListRecord? FavoriteList { get; set; }
 
     public ICollection<PlaceReviewRecord> Reviews { get; set; } = [];

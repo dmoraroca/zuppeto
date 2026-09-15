@@ -21,7 +21,12 @@ internal static class UserPersistenceMapper
                 record.AvatarUrl),
             new PrivacyConsent(record.PrivacyAccepted, record.PrivacyAcceptedAtUtc),
             record.CreatedAtUtc,
-            record.LastAccessedAtUtc);
+            record.LastAccessedAtUtc,
+            record.EmailActivatedAtUtc,
+            record.ActivationTokenHash,
+            record.ActivationTokenExpiresAtUtc,
+            record.ActivationTokenUsedAtUtc,
+            true);
     }
 
     public static UserRecord ToRecord(User user)
@@ -46,5 +51,9 @@ internal static class UserPersistenceMapper
         record.PrivacyAcceptedAtUtc = user.PrivacyConsent.AcceptedAtUtc;
         record.CreatedAtUtc = user.CreatedAtUtc;
         record.LastAccessedAtUtc = user.LastAccessedAtUtc;
+        record.EmailActivatedAtUtc = user.EmailActivatedAtUtc;
+        record.ActivationTokenHash = user.ActivationTokenHash;
+        record.ActivationTokenExpiresAtUtc = user.ActivationTokenExpiresAtUtc;
+        record.ActivationTokenUsedAtUtc = user.ActivationTokenUsedAtUtc;
     }
 }

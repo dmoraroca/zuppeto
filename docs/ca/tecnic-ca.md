@@ -901,6 +901,18 @@ Resum del diagrama:
 - el login federat comparteix el mateix model de sessió que el login propi
 - `info@zuppeto.com` queda elevat a `ADMIN` per configuració de desenvolupament quan entra per Google
 
+### 2.11.2 Activació de compte per email — Fase IV, Iteració 1
+
+El registre local crea un `User` pendent d'activació. La migració `AddEmailAccountActivation` afegeix `email_activated_at_utc`, hash, expiració i consum del token; abans deixa explícitament actius els comptes preexistents i E2E/CI, evitant bloquejar-los.
+
+- `User.RequireEmailActivation` desa únicament SHA-256 d'un token aleatori de 256 bits; tots els timestamps són UTC.
+- `ActivateEmail` retorna `Activated`, `Invalid`, `Expired` o `Used`; el reenviament substitueix el hash i invalida el token anterior.
+- `AuthApplicationService` denega login local pendent amb resposta funcional `403`; Google i LinkedIn no es modifiquen.
+- `IAccountActivationEmailSender` és el port d'aplicació. Producció usa SMTP configurat fora de Git; Development usa un inbox efímer, només disponible en aquest entorn, per proves sense lliurament extern. No escriu tokens a persistència, logs, Excel ni artefactes.
+- **RABBITMQ: NO.** El broker és infraestructura opcional i no hi ha outbox/worker de domini actiu. Afegir una cua per un únic email transaccional introduiria reintents i operativa fora d'abast; el port desacoblat permet incorporar-ho posteriorment sense dependre'n ara.
+
+Els endpoints són `POST /api/auth/activation` i `POST /api/auth/activation/resend`; el reenviament sempre respon de manera genèrica per no enumerar comptes. Angular afegeix `/registre`, `/activar-compte` i `/reenviar-activacio`.
+
 ### 3.1 Principis
 
 - arquitectura per `features`
