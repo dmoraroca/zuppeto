@@ -12,7 +12,8 @@ internal sealed class UserApplicationService(
     IUserRepository userRepository,
     Auth.IPasswordHasher passwordHasher,
     IUserProfileFactory userProfileFactory,
-    IAccountActivationEmailSender activationEmailSender) : IUserApplicationService
+    IAccountActivationEmailSender activationEmailSender,
+    IPasswordRecoveryEmailSender passwordRecoveryEmailSender) : IUserApplicationService
 {
     public async Task<IReadOnlyCollection<UserDto>> ListAsync(CancellationToken cancellationToken = default)
     {
@@ -83,6 +84,40 @@ internal sealed class UserApplicationService(
         await activationEmailSender.SendAsync(new AccountActivationEmail(user.Email, rawToken, expiresAtUtc), cancellationToken);
     }
 
+    public async Task RequestPasswordRecoveryAsync(PasswordRecoveryRequest request, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.Email)) return;
+        var user = await userRepository.GetByEmailAsync(request.Email, cancellationToken);
+        if (user is null || !user.HasLocalCredential) return;
+
+        var rawToken = CreateRawToken();
+        var expiresAtUtc = DateTimeOffset.UtcNow.AddHours(1);
+        user.StartPasswordReset(HashToken(rawToken), expiresAtUtc);
+        await userRepository.UpdateAsync(user, cancellationToken);
+        await passwordRecoveryEmailSender.SendAsync(new PasswordRecoveryEmail(user.Email, rawToken, expiresAtUtc), cancellationToken);
+    }
+
+    public async Task<PasswordResetResult> ResetPasswordAsync(PasswordResetRequest request, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.Token)) return new(PasswordResetStatus.Invalid.ToString());
+        if (string.IsNullOrWhiteSpace(request.NewPassword) || request.NewPassword.Trim().Length < 6 ||
+            !string.Equals(request.NewPassword, request.ConfirmNewPassword, StringComparison.Ordinal))
+            return new(PasswordResetStatus.Invalid.ToString());
+
+        var tokenHash = HashToken(request.Token);
+        var user = await userRepository.GetByPasswordResetTokenHashAsync(tokenHash, cancellationToken);
+        if (user is null) return new(PasswordResetStatus.Invalid.ToString());
+        var result = user.ResetPassword(tokenHash, passwordHasher.Hash(request.NewPassword.Trim()), DateTimeOffset.UtcNow);
+        if (result == PasswordResetTokenValidationResult.Reset) await userRepository.UpdateAsync(user, cancellationToken);
+        return new((result switch
+        {
+            PasswordResetTokenValidationResult.Reset => PasswordResetStatus.Reset,
+            PasswordResetTokenValidationResult.Expired => PasswordResetStatus.Expired,
+            PasswordResetTokenValidationResult.Used => PasswordResetStatus.Used,
+            _ => PasswordResetStatus.Invalid
+        }).ToString());
+    }
+
     public async Task UpdateProfileAsync(UserProfileUpdateRequest request, CancellationToken cancellationToken = default)
     {
         var user = await userRepository.GetByIdAsync(request.Id, cancellationToken)
@@ -133,7 +168,7 @@ internal sealed class UserApplicationService(
         var newPassword = request.NewPassword?.Trim() ?? string.Empty;
         if (newPassword.Length > 0)
         {
-            if (!passwordHasher.Verify(user.PasswordHash, request.CurrentPassword))
+            if (!user.HasLocalCredential || !passwordHasher.Verify(user.PasswordHash!, request.CurrentPassword))
             {
                 result.Add(nameof(request.CurrentPassword), "La contrasenya actual no és correcta.");
                 return result;
@@ -156,7 +191,7 @@ internal sealed class UserApplicationService(
         CancellationToken cancellationToken = default)
     {
         var user = await userRepository.GetByIdAsync(userId, cancellationToken);
-        return user is null ? null : new UserPasswordVerifyDto(passwordHasher.Verify(user.PasswordHash, password));
+        return user is null || !user.HasLocalCredential ? null : new UserPasswordVerifyDto(passwordHasher.Verify(user.PasswordHash!, password));
     }
 
     private static UserDto ToDto(User user)
@@ -171,7 +206,8 @@ internal sealed class UserApplicationService(
             user.Profile.Comments,
             user.Profile.AvatarUrl,
             user.PrivacyConsent.Accepted,
-            user.PrivacyConsent.AcceptedAtUtc);
+            user.PrivacyConsent.AcceptedAtUtc,
+            user.HasLocalCredential);
     }
 
     private static string CreateRawToken() => Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))

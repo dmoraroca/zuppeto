@@ -23,6 +23,8 @@ internal static class AuthEndpoints
         group.MapPost("/login", LoginAsync);
         group.MapPost("/activation", ActivateEmailAsync);
         group.MapPost("/activation/resend", ResendActivationEmailAsync);
+        group.MapPost("/password-recovery", RequestPasswordRecoveryAsync);
+        group.MapPost("/password-reset", ResetPasswordAsync);
         group.MapPost("/google", GoogleLoginAsync);
         group.MapGet("/linkedin/start", LinkedInStartAsync);
         group.MapGet("/linkedin/callback", LinkedInCallbackAsync);
@@ -75,6 +77,7 @@ internal static class AuthEndpoints
     {
         if (!app.ServiceProvider.GetRequiredService<IHostEnvironment>().IsDevelopment()) return app;
         app.MapGet("/api/auth/activation/test-inbox/{email}", GetDevelopmentInboxToken);
+        app.MapGet("/api/auth/password-recovery/test-inbox/{email}", GetDevelopmentPasswordRecoveryInboxToken);
         return app;
     }
 
@@ -88,6 +91,20 @@ internal static class AuthEndpoints
     }
 
     private sealed record DevelopmentActivationTokenDto(string Token);
+
+    private static Results<Ok<DevelopmentActivationTokenDto>, NotFound> GetDevelopmentPasswordRecoveryInboxToken(
+        string email, DevelopmentPasswordRecoveryInbox inbox) => inbox.TryTake(email, out var token)
+            ? TypedResults.Ok(new DevelopmentActivationTokenDto(token))
+            : TypedResults.NotFound();
+
+    private static async Task<Accepted> RequestPasswordRecoveryAsync(PasswordRecoveryRequest request, IUserApplicationService service, CancellationToken cancellationToken)
+    {
+        await service.RequestPasswordRecoveryAsync(request, cancellationToken);
+        return TypedResults.Accepted("/api/auth/password-reset");
+    }
+
+    private static async Task<Ok<PasswordResetResult>> ResetPasswordAsync(PasswordResetRequest request, IUserApplicationService service, CancellationToken cancellationToken)
+        => TypedResults.Ok(await service.ResetPasswordAsync(request, cancellationToken));
 
     private static async Task<Results<Ok<AuthSessionDto>, UnauthorizedHttpResult, ValidationProblem>> GoogleLoginAsync(
         GoogleLoginRequest request,

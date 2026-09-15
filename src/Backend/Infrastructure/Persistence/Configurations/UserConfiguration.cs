@@ -23,8 +23,7 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<UserRecord>
 
         builder.Property(user => user.PasswordHash)
             .HasColumnName("password_hash")
-            .HasMaxLength(512)
-            .IsRequired();
+            .HasMaxLength(512);
 
         builder.Property(user => user.Role)
             .HasColumnName("role")
@@ -83,6 +82,21 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<UserRecord>
 
         builder.Property(user => user.ActivationTokenUsedAtUtc)
             .HasColumnName("activation_token_used_at_utc");
+
+        builder.Property(user => user.PasswordResetTokenHash)
+            .HasColumnName("password_reset_token_hash")
+            .HasMaxLength(128);
+
+        builder.Property(user => user.PasswordResetTokenExpiresAtUtc)
+            .HasColumnName("password_reset_token_expires_at_utc");
+
+        builder.Property(user => user.PasswordResetTokenUsedAtUtc)
+            .HasColumnName("password_reset_token_used_at_utc");
+
+        builder.Property(user => user.SecurityVersion)
+            .HasColumnName("security_version")
+            .HasDefaultValue(1)
+            .IsRequired();
 
         builder.HasIndex(user => user.Email)
             .IsUnique()

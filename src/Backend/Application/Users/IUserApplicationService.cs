@@ -16,6 +16,10 @@ public interface IUserApplicationService
 
     Task ResendActivationEmailAsync(ActivationEmailResendRequest request, CancellationToken cancellationToken = default);
 
+    Task RequestPasswordRecoveryAsync(PasswordRecoveryRequest request, CancellationToken cancellationToken = default);
+
+    Task<PasswordResetResult> ResetPasswordAsync(PasswordResetRequest request, CancellationToken cancellationToken = default);
+
     Task UpdateProfileAsync(UserProfileUpdateRequest request, CancellationToken cancellationToken = default);
 
     Task<ValidationResult> ChangeAccountAsync(

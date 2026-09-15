@@ -8,7 +8,7 @@ public sealed class User : AggregateRoot<Guid>
     public User(
         Guid id,
         string email,
-        string passwordHash,
+        string? passwordHash,
         string role,
         UserProfile profile,
         PrivacyConsent privacyConsent,
@@ -18,10 +18,14 @@ public sealed class User : AggregateRoot<Guid>
         string? activationTokenHash = null,
         DateTimeOffset? activationTokenExpiresAtUtc = null,
         DateTimeOffset? activationTokenUsedAtUtc = null,
-        bool emailActivationManaged = false) : base(id)
+        bool emailActivationManaged = false,
+        string? passwordResetTokenHash = null,
+        DateTimeOffset? passwordResetTokenExpiresAtUtc = null,
+        DateTimeOffset? passwordResetTokenUsedAtUtc = null,
+        int securityVersion = 1) : base(id)
     {
         SetEmail(email);
-        SetPasswordHash(passwordHash);
+        if (!string.IsNullOrWhiteSpace(passwordHash)) SetPasswordHash(passwordHash);
         Role = NormalizeRole(role);
         Profile = profile;
         PrivacyConsent = privacyConsent;
@@ -31,11 +35,17 @@ public sealed class User : AggregateRoot<Guid>
         ActivationTokenHash = activationTokenHash;
         ActivationTokenExpiresAtUtc = activationTokenExpiresAtUtc;
         ActivationTokenUsedAtUtc = activationTokenUsedAtUtc;
+        PasswordResetTokenHash = passwordResetTokenHash;
+        PasswordResetTokenExpiresAtUtc = passwordResetTokenExpiresAtUtc;
+        PasswordResetTokenUsedAtUtc = passwordResetTokenUsedAtUtc;
+        SecurityVersion = Math.Max(1, securityVersion);
     }
 
     public string Email { get; private set; } = string.Empty;
 
-    public string PasswordHash { get; private set; } = string.Empty;
+    public string? PasswordHash { get; private set; }
+
+    public bool HasLocalCredential => !string.IsNullOrWhiteSpace(PasswordHash);
 
     /// <summary>Role key matching <c>roles.key</c> (e.g. Admin, User, custom roles).</summary>
     public string Role { get; private set; } = string.Empty;
@@ -55,6 +65,14 @@ public sealed class User : AggregateRoot<Guid>
     public DateTimeOffset? ActivationTokenExpiresAtUtc { get; private set; }
 
     public DateTimeOffset? ActivationTokenUsedAtUtc { get; private set; }
+
+    public string? PasswordResetTokenHash { get; private set; }
+
+    public DateTimeOffset? PasswordResetTokenExpiresAtUtc { get; private set; }
+
+    public DateTimeOffset? PasswordResetTokenUsedAtUtc { get; private set; }
+
+    public int SecurityVersion { get; private set; }
 
     public bool IsEmailActivated => EmailActivatedAtUtc is not null;
 
@@ -129,6 +147,32 @@ public sealed class User : AggregateRoot<Guid>
         SetPasswordHash(passwordHash);
     }
 
+    public void StartPasswordReset(string tokenHash, DateTimeOffset expiresAtUtc)
+    {
+        if (!HasLocalCredential) throw new DomainRuleException("Aquest compte no té credencial local.");
+        if (string.IsNullOrWhiteSpace(tokenHash)) throw new DomainRuleException("El token de recuperació és obligatori.");
+        if (expiresAtUtc <= DateTimeOffset.UtcNow) throw new DomainRuleException("El token de recuperació ha de caducar en el futur.");
+
+        PasswordResetTokenHash = tokenHash;
+        PasswordResetTokenExpiresAtUtc = expiresAtUtc;
+        PasswordResetTokenUsedAtUtc = null;
+    }
+
+    public PasswordResetTokenValidationResult ResetPassword(string tokenHash, string passwordHash, DateTimeOffset nowUtc)
+    {
+        if (string.IsNullOrWhiteSpace(PasswordResetTokenHash) || !string.Equals(PasswordResetTokenHash, tokenHash, StringComparison.Ordinal))
+            return PasswordResetTokenValidationResult.Invalid;
+        if (PasswordResetTokenUsedAtUtc is not null)
+            return PasswordResetTokenValidationResult.Used;
+        if (PasswordResetTokenExpiresAtUtc is null || PasswordResetTokenExpiresAtUtc <= nowUtc)
+            return PasswordResetTokenValidationResult.Expired;
+
+        SetPasswordHash(passwordHash);
+        PasswordResetTokenUsedAtUtc = nowUtc;
+        SecurityVersion++;
+        return PasswordResetTokenValidationResult.Reset;
+    }
+
     public void RecordAccess(DateTimeOffset accessedAtUtc)
     {
         LastAccessedAtUtc = accessedAtUtc;
@@ -174,6 +218,14 @@ public sealed class User : AggregateRoot<Guid>
 public enum ActivationTokenValidationResult
 {
     Activated,
+    Invalid,
+    Expired,
+    Used
+}
+
+public enum PasswordResetTokenValidationResult
+{
+    Reset,
     Invalid,
     Expired,
     Used

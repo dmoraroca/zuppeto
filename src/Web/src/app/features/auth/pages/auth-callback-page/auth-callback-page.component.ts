@@ -59,6 +59,7 @@ interface UserApiDto {
   avatarUrl: string | null;
   privacyAccepted: boolean;
   privacyAcceptedAtUtc: string | null;
+  hasLocalCredential: boolean;
 }
 
 interface AuthSessionApiDto {

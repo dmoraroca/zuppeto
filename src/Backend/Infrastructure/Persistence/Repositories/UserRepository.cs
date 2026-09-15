@@ -49,6 +49,13 @@ internal sealed class UserRepository(ZuppetoDbContext dbContext) : IUserReposito
         return record is null ? null : UserPersistenceMapper.ToDomain(record);
     }
 
+    public async Task<User?> GetByPasswordResetTokenHashAsync(string tokenHash, CancellationToken cancellationToken = default)
+    {
+        var record = await dbContext.Users.AsNoTracking()
+            .FirstOrDefaultAsync(user => user.PasswordResetTokenHash == tokenHash, cancellationToken);
+        return record is null ? null : UserPersistenceMapper.ToDomain(record);
+    }
+
     public Task<bool> ExistsByEmailAsync(string email, CancellationToken cancellationToken = default)
     {
         var normalizedEmail = email.Trim().ToLowerInvariant();

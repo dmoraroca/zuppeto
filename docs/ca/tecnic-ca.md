@@ -1685,6 +1685,14 @@ La base actual prepara pero no implementa encara:
 - recuperacio real de contrasenya per email
 - `TOTP` / 2FA
 - login social addicional (LinkedIn, Facebook, Apple, Microsoft)
+### 2.11.3 Identitat i recuperació de contrasenya — Fase IV, Iteració 2
+
+`User` representa la persona dins Zuppeto, no un proveïdor exclusiu. La credencial local és opcional (`users.password_hash` nullable) i `external_identities` conserva la relació 1→N amb `provider`, `subject` estable i `user_id`, sense tokens OAuth. Una identitat externa nova no es vincula automàticament només per email: si ja existeix un `User` sense aquella identitat, el backend denega el login per evitar account takeover.
+
+La recuperació reutilitza SMTP o Development Inbox i el patró criptogràfic de l'activació: 256 bits aleatoris, SHA-256 persistent, expiració d'una hora, un sol ús i substitució en una nova petició. Els tokens d'activació i reset tenen camps, repositoris i endpoints diferents, per tant no són intercanviables. La resposta pública és sempre `202 Accepted` i no enumera comptes ni mètodes d'accés.
+
+`security_version` és persistent a `users`; el JWT la incorpora com a claim i cada autenticació Bearer la compara amb la versió vigent. Un reset correcte l'incrementa, invalidant els JWT anteriors sense blacklist, Redis ni infraestructura de revocació global. Els comptes federats sense hash local no poden iniciar login per contrasenya ni generar recuperació; el primer accés federat rep sessió amb perfil pendent i es dirigeix a `/perfil` per completar dades Zuppeto, sense exigir contrasenya local. Afegir una contrasenya voluntària a un compte federat queda fora d'aquesta iteració.
+
 ## 7. Implementacio del mapa
 
 ### 7.1 Llibreries utilitzades

@@ -5,6 +5,7 @@ using Zuppeto.Application.Auth;
 using Zuppeto.Application.Users;
 using Zuppeto.Application.Validation;
 using Zuppeto.Api.Validation;
+using Zuppeto.Domain.Abstractions;
 
 namespace Zuppeto.Api.Endpoints;
 
@@ -64,14 +65,17 @@ internal static class UserEndpoints
         UserProfileUpdateRequest request,
         IValidator<UserProfileUpdateRequest> validator,
         IUserApplicationService service,
+        IUserRepository userRepository,
         CancellationToken cancellationToken)
     {
         var userId = principal.GetCurrentUserId();
-        var isViewer = string.Equals(
-            principal.GetCurrentRoleKey(),
-            "Viewer",
-            StringComparison.OrdinalIgnoreCase);
-        if (userId is null || userId.Value != id || isViewer)
+        if (userId is null || userId.Value != id)
+        {
+            return TypedResults.Forbid();
+        }
+
+        var target = await userRepository.GetByIdAsync(id, cancellationToken);
+        if (target is null || (string.Equals(target.Role, "Viewer", StringComparison.OrdinalIgnoreCase) && target.HasLocalCredential))
         {
             return TypedResults.Forbid();
         }

@@ -6,7 +6,7 @@ public sealed class UserRecord
 
     public string Email { get; set; } = string.Empty;
 
-    public string PasswordHash { get; set; } = string.Empty;
+    public string? PasswordHash { get; set; }
 
     public string Role { get; set; } = string.Empty;
 
@@ -37,6 +37,16 @@ public sealed class UserRecord
     public DateTimeOffset? ActivationTokenExpiresAtUtc { get; set; }
 
     public DateTimeOffset? ActivationTokenUsedAtUtc { get; set; }
+
+    public string? PasswordResetTokenHash { get; set; }
+
+    public DateTimeOffset? PasswordResetTokenExpiresAtUtc { get; set; }
+
+    public DateTimeOffset? PasswordResetTokenUsedAtUtc { get; set; }
+
+    public int SecurityVersion { get; set; } = 1;
+
+    public ICollection<ExternalIdentityRecord> ExternalIdentities { get; set; } = [];
 
     public FavoriteListRecord? FavoriteList { get; set; }
 

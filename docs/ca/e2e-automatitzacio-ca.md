@@ -5,6 +5,8 @@
 **Estat:** Fases 0–10 validades. Google Chrome, Firefox, WebKit i Microsoft Edge comparteixen suite; l'auditoria final local queda tancada amb PASS i la CI definida a la Fase 9 resta preparada, però no s'ha executat durant la Fase 10.
 **Principi rector:** Codex construeix i manté la infraestructura; Playwright, invocat des del terminal o CI, executa les tirades llargues de forma autònoma.
 
+**Fase IV — Iteració 2:** `npm run e2e:password-recovery` executa contra l'API Development real una identitat temporal única, activació, sol·licitud neutra, token de Development Inbox, substitució, invàlid, caducat, reutilitzat, canvi de contrasenya, invalidació del JWT previ i cleanup exacte per email. No imprimeix contrasenyes, tokens ni JWT. La regressió Chrome d'autenticació `sim-20260915T115853200Z-3f8e1f9a` ha acabat amb 15 PASS, 0 FAIL, 0 BLOCKED i 1 SKIP extern justificat; els runs previs romanen append-only.
+
 **Fase IV — Iteració 1, activació per email (2026-09-15):** `npm run e2e:activation` és l'E2E focalitzat persistent del flux local: alta pendent, denegació de login, reenviament, token substituït, activació, reutilització, token invàlid i caducat, login final i comprovació dels quatre comptes E2E. Crea només usuaris temporals `e2e-activation-*` i els elimina per email exacte. La regressió Chrome real d'autenticació `sim-20260915T112355285Z-5e5ff2d0` ha validat 15 PASS, 0 FAIL, 0 BLOCKED i 1 SKIP extern justificat. Els runs anteriors fallits de launcher o servei es conserven append-only com a evidència `ENVIRONMENT`.
 
 Aquest és el document viu de l'automatització E2E. Qualsevol decisió material, canvi d'estructura, navegador incorporat o resultat de validació l'ha d'actualitzar.

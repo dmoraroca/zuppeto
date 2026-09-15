@@ -44,11 +44,11 @@
     <section class="profile-form-shell">
       <form
         class="profile-form"
-        [class.profile-form--readonly]="isViewer()"
+        [class.profile-form--readonly]="isReadOnlyViewer()"
         [formGroup]="form"
         (submit)="$event.preventDefault()"
       >
-        @if (isViewer()) {
+        @if (isReadOnlyViewer()) {
           <div class="profile-form__readonly-note" role="status">
             Perfil de només lectura. El rol VIEWER no pot modificar cap dada.
           </div>
@@ -88,6 +88,7 @@
           }
         </label>
 
+        @if (hasLocalCredential()) {
         <div class="profile-form__autofill-trap" aria-hidden="true">
           <input type="text" tabindex="-1" autocomplete="username" />
           <input type="password" tabindex="-1" autocomplete="current-password" />
@@ -129,6 +130,9 @@
           (format: mínim 6, iguals, línia de força). Al guardar es comprova de nou l’actual i la nova passa a ser
           la del compte. El rol no es pot canviar des d’aquí.
         </p>
+        } @else {
+          <p class="profile-form__hint">Aquest compte usa un accés federat. No té ni necessita una contrasenya local de Zuppeto.</p>
+        }
 
         <div class="profile-form__grid">
           <label class="profile-form__field">
@@ -161,7 +165,7 @@
             }
           </div>
 
-          @if (!isViewer()) {
+          @if (!isReadOnlyViewer()) {
             <div class="profile-avatar-editor__controls">
               <input #profileAvatarInput type="file" accept="image/*" hidden (change)="onAvatarSelected($event)" />
               <button type="button" (click)="profileAvatarInput.click()">Afegir imatge</button>
@@ -190,7 +194,7 @@
           </p>
         }
 
-        @if (!isViewer()) {
+        @if (!isReadOnlyViewer()) {
           <div class="profile-form__actions">
             <button type="button" [disabled]="!canSave()" (click)="save()">Guardar canvis</button>
           </div>

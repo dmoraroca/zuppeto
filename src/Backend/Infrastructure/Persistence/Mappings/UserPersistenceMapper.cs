@@ -26,7 +26,11 @@ internal static class UserPersistenceMapper
             record.ActivationTokenHash,
             record.ActivationTokenExpiresAtUtc,
             record.ActivationTokenUsedAtUtc,
-            true);
+            true,
+            record.PasswordResetTokenHash,
+            record.PasswordResetTokenExpiresAtUtc,
+            record.PasswordResetTokenUsedAtUtc,
+            record.SecurityVersion);
     }
 
     public static UserRecord ToRecord(User user)
@@ -55,5 +59,9 @@ internal static class UserPersistenceMapper
         record.ActivationTokenHash = user.ActivationTokenHash;
         record.ActivationTokenExpiresAtUtc = user.ActivationTokenExpiresAtUtc;
         record.ActivationTokenUsedAtUtc = user.ActivationTokenUsedAtUtc;
+        record.PasswordResetTokenHash = user.PasswordResetTokenHash;
+        record.PasswordResetTokenExpiresAtUtc = user.PasswordResetTokenExpiresAtUtc;
+        record.PasswordResetTokenUsedAtUtc = user.PasswordResetTokenUsedAtUtc;
+        record.SecurityVersion = user.SecurityVersion;
     }
 }

@@ -10,7 +10,8 @@ public sealed record UserDto(
     string Comments,
     string? AvatarUrl,
     bool PrivacyAccepted,
-    DateTimeOffset? PrivacyAcceptedAtUtc);
+    DateTimeOffset? PrivacyAcceptedAtUtc,
+    bool HasLocalCredential = true);
 
 public sealed record UserRegistrationRequest(
     string Email,
@@ -31,6 +32,14 @@ public sealed record ActivationEmailResendRequest(string Email);
 public enum AccountActivationStatus { Activated, Invalid, Expired, Used }
 
 public sealed record AccountActivationResult(string Status);
+
+public sealed record PasswordRecoveryRequest(string Email);
+
+public sealed record PasswordResetRequest(string Token, string NewPassword, string ConfirmNewPassword);
+
+public enum PasswordResetStatus { Reset, Invalid, Expired, Used }
+
+public sealed record PasswordResetResult(string Status);
 
 public sealed record UserProfileUpdateRequest(
     Guid Id,

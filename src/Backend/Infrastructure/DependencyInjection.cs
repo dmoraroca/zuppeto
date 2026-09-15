@@ -81,14 +81,17 @@ public static class DependencyInjection
         services.AddRabbitMq(configuration);
         services.Configure<AccountActivationOptions>(configuration.GetSection(AccountActivationOptions.SectionName));
         services.AddSingleton<DevelopmentActivationInbox>();
+        services.AddSingleton<DevelopmentPasswordRecoveryInbox>();
         var activationDeliveryMode = configuration["AccountActivation:DeliveryMode"] ?? "DevelopmentInbox";
         if (string.Equals(activationDeliveryMode, "Smtp", StringComparison.OrdinalIgnoreCase))
         {
             services.AddScoped<IAccountActivationEmailSender, SmtpAccountActivationEmailSender>();
+            services.AddScoped<IPasswordRecoveryEmailSender, SmtpPasswordRecoveryEmailSender>();
         }
         else
         {
             services.AddScoped<IAccountActivationEmailSender, DevelopmentInboxAccountActivationEmailSender>();
+            services.AddScoped<IPasswordRecoveryEmailSender, DevelopmentInboxPasswordRecoveryEmailSender>();
         }
         services.AddMemoryCache();
         services.AddDataProtection();
@@ -149,6 +152,7 @@ public static class DependencyInjection
         services.AddScoped<IMenuRepository, MenuRepository>();
         services.AddScoped<IPlaceRepository, PlaceRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IExternalIdentityRepository, ExternalIdentityRepository>();
         services.AddScoped<IRolePermissionRepository, RolePermissionRepository>();
         services.AddScoped<IFavoriteListRepository, FavoriteListRepository>();
         services.AddScoped<IPlaceReviewRepository, PlaceReviewRepository>();

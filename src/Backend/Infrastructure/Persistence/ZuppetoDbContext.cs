@@ -43,6 +43,8 @@ public sealed class ZuppetoDbContext(DbContextOptions<ZuppetoDbContext> options)
 
     public DbSet<UserRecord> Users => Set<UserRecord>();
 
+    public DbSet<ExternalIdentityRecord> ExternalIdentities => Set<ExternalIdentityRecord>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasPostgresExtension("pgcrypto");

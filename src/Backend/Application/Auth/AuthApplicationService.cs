@@ -7,6 +7,7 @@ namespace Zuppeto.Application.Auth;
 
 internal sealed class AuthApplicationService(
     IUserRepository userRepository,
+    IExternalIdentityRepository externalIdentityRepository,
     IRolePermissionRepository rolePermissionRepository,
     IPasswordHasher passwordHasher,
     IAccessTokenIssuer accessTokenIssuer,
@@ -23,7 +24,7 @@ internal sealed class AuthApplicationService(
     {
         var user = await userRepository.GetByEmailAsync(request.Email, cancellationToken);
 
-        if (user is null || !passwordHasher.Verify(user.PasswordHash, request.Password))
+        if (user is null || !user.HasLocalCredential || !passwordHasher.Verify(user.PasswordHash!, request.Password))
         {
             return LoginResult.InvalidCredentials();
         }
@@ -129,6 +130,7 @@ internal sealed class AuthApplicationService(
     private async Task<AuthSessionDto> CreateSessionAsync(
         User user,
         string provider = "password",
+        bool requiresProfileCompletion = false,
         CancellationToken cancellationToken = default)
     {
         var token = accessTokenIssuer.Issue(user);
@@ -148,8 +150,10 @@ internal sealed class AuthApplicationService(
                 user.Profile.Comments,
                 user.Profile.AvatarUrl,
                 user.PrivacyConsent.Accepted,
-                user.PrivacyConsent.AcceptedAtUtc),
-            permissionKeys);
+                user.PrivacyConsent.AcceptedAtUtc,
+                user.HasLocalCredential),
+            permissionKeys,
+            requiresProfileCompletion);
     }
 
     private async Task<AuthSessionDto?> LoginWithFederatedIdentityAsync(
@@ -159,16 +163,20 @@ internal sealed class AuthApplicationService(
         IReadOnlyCollection<string> adminEmails,
         CancellationToken cancellationToken)
     {
-        var user = await userRepository.GetByEmailAsync(identity.Email, cancellationToken);
+        var externalIdentity = await externalIdentityRepository.GetByProviderAndSubjectAsync(identity.Provider, identity.Subject, cancellationToken);
+        var user = externalIdentity is null
+            ? await userRepository.GetByEmailAsync(identity.Email, cancellationToken)
+            : await userRepository.GetByIdAsync(externalIdentity.UserId, cancellationToken);
         var shouldBeAdmin = IsAdminEmail(identity.Email, adminEmails);
+        var firstFederatedLogin = false;
 
         if (user is null)
         {
             user = new User(
                 Guid.NewGuid(),
                 identity.Email,
-                passwordHasher.Hash(Guid.NewGuid().ToString("N")),
-                shouldBeAdmin ? "Admin" : "Viewer",
+                null,
+                "Viewer",
                 new UserProfile(
                     ResolveDisplayName(identity),
                     string.Empty,
@@ -182,9 +190,13 @@ internal sealed class AuthApplicationService(
                 DateTimeOffset.UtcNow);
 
             await userRepository.AddAsync(user, cancellationToken);
+            await externalIdentityRepository.AddAsync(new ExternalIdentity(Guid.NewGuid(), user.Id, providerKey, identity.Subject, DateTimeOffset.UtcNow), cancellationToken);
+            firstFederatedLogin = true;
         }
         else
         {
+            // Email matching alone never links a new external identity: it could be an account takeover.
+            if (externalIdentity is null) return null;
             var shouldPersist = false;
 
             if (shouldBeAdmin && !string.Equals(user.Role, "Admin", StringComparison.OrdinalIgnoreCase))
@@ -220,7 +232,7 @@ internal sealed class AuthApplicationService(
             await userRepository.UpdateAsync(user, cancellationToken);
         }
 
-        return await CreateSessionAsync(user, providerKey, cancellationToken);
+        return await CreateSessionAsync(user, providerKey, firstFederatedLogin || IsProfileIncomplete(user), cancellationToken);
     }
 
     private static bool IsAdminEmail(string email, IReadOnlyCollection<string> adminEmails)
@@ -249,4 +261,10 @@ internal sealed class AuthApplicationService(
         return !string.Equals(user.Profile.DisplayName, nextDisplayName, StringComparison.Ordinal) ||
                !string.Equals(user.Profile.AvatarUrl, nextAvatarUrl, StringComparison.Ordinal);
     }
+
+    private static bool IsProfileIncomplete(User user) =>
+        string.IsNullOrWhiteSpace(user.Profile.DisplayName) ||
+        string.IsNullOrWhiteSpace(user.Profile.City) ||
+        string.IsNullOrWhiteSpace(user.Profile.Country) ||
+        (!string.Equals(user.Role, "Admin", StringComparison.OrdinalIgnoreCase) && !user.PrivacyConsent.Accepted);
 }

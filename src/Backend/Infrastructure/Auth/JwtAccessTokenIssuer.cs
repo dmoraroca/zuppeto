@@ -26,7 +26,8 @@ internal sealed class JwtAccessTokenIssuer(IOptions<AuthOptions> options) : IAcc
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
                 new Claim(JwtRegisteredClaimNames.Email, user.Email),
                 new Claim(ClaimTypes.Role, user.Role),
-                new Claim(ClaimTypes.Name, user.Profile.DisplayName)
+                new Claim(ClaimTypes.Name, user.Profile.DisplayName),
+                new Claim("security_version", user.SecurityVersion.ToString(System.Globalization.CultureInfo.InvariantCulture))
             ],
             notBefore: DateTime.UtcNow,
             expires: expiresAtUtc.UtcDateTime,

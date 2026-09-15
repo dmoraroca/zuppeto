@@ -1286,7 +1286,7 @@ Abans d'iniciar funcionalitat nova, cal auditar els **5 SKIP E2E actuals**, iden
 | # | Bloc | Punt obligatori | Estat vigent |
 |---:|---|---|---|
 | 1 | Identitat i seguretat | Activació de compte per email | 🟢 VALIDAT |
-| 2 | Identitat i seguretat | Recuperació de compte o contrasenya per email | 🔴 Pendent / crític |
+| 2 | Identitat i seguretat | Recuperació de compte o contrasenya per email | 🟢 VALIDAT |
 | 3 | Identitat i seguretat | TOTP / 2FA | 🔴 Pendent / crític |
 | 4 | Identitat i seguretat | Google OAuth real | 🟠 Parcial / pendent de validació real |
 | 5 | Identitat i seguretat | LinkedIn OAuth real | 🟠 Parcial / pendent de validació real |
@@ -1307,13 +1307,13 @@ Abans d'iniciar funcionalitat nova, cal auditar els **5 SKIP E2E actuals**, iden
 | 20 | UX transversal | Rutes internes en anglès | 🟠 Parcial / pendent de completar o validar |
 | 21 | Tancament | Revisió definitiva dels SKIP E2E | 🔴 Pendent / crític |
 
-Per tant, l'estat oficial actual és de **8 punts 🔴, 12 punts 🟠 i 1 punt 🟢 VALIDAT** dins d'aquest gate.
+Per tant, l'estat oficial actual és de **8 punts 🔴, 12 punts 🟠 i 2 punts 🟢 VALIDAT** dins d'aquest gate.
 
 #### 3.18.4 Bloc A — Identitat i seguretat
 
 **1. Activació de compte per email — 🟢 VALIDAT.** El compte nou queda pendent d'activació; el token és segur, caducable, d'un sol ús i només se'n persisteix el hash. El reenviament invalida l'anterior, el login es denega abans d'activar i la UX cobreix registre, activació i reenviament. La validació persistent inclou tokens invàlids, caducats, reutilitzats i substituïts, i la regressió Chrome real d'autenticació `sim-20260915T112355285Z-5e5ff2d0` ha donat 15 PASS, 0 FAIL, 0 BLOCKED i 1 SKIP extern justificat.
 
-**2. Recuperació de compte o contrasenya per email — 🔴.** Cal incorporar «He oblidat la contrasenya», petició de recuperació, token temporal segur i caducable, email, pantalla de nova contrasenya, invalidació després de l'ús, resposta que no reveli indegudament si el compte existeix i gestió o invalidació de sessions quan correspongui. Passa quan el flux complet queda validat.
+**2. Recuperació de compte o contrasenya per email — 🟢 VALIDAT.** «He oblidat la contrasenya» sempre respon de manera neutra. Només les credencials locals reben un token de recuperació segur, temporal, amb hash persistent i d'un sol ús; una nova petició invalida l'anterior. El reset consumeix el token, invalida els JWT previs de l'usuari i no inicia sessió automàticament. Un compte federat sense credencial local no rep reset ni en crea cap. La validació focalitzada cobreix token invàlid, caducat, reutilitzat, substituït, contrasenya antiga/nova i JWT anterior; la regressió Chrome `sim-20260915T115853200Z-3f8e1f9a` ha donat 15 PASS, 0 FAIL, 0 BLOCKED i 1 SKIP extern justificat.
 
 **3. TOTP / 2FA — 🔴.** Forma part de Fase IV i ha d'incloure activació des de perfil/seguretat, secret protegit al backend, QR inicial, verificació del primer codi, codis temporals, segon pas de login, desactivació segura, codis de recuperació, pèrdua del dispositiu i protecció contra bypass. Ha de ser compatible amb autenticadors TOTP estàndard, com Microsoft Authenticator o Google Authenticator, sense dependència d'una aplicació concreta. Passa quan activació, login 2FA, recuperació i desactivació queden validats. Les decisions de canal i credencials són a §3.4.
 

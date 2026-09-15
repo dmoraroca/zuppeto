@@ -121,6 +121,19 @@ export class AuthService {
     await firstValueFrom(this.http.post(`${API_BASE_URL}/auth/activation/resend`, { email: email.trim() }));
   }
 
+  async requestPasswordRecovery(email: string): Promise<void> {
+    await firstValueFrom(this.http.post(`${API_BASE_URL}/auth/password-recovery`, { email: email.trim() }));
+  }
+
+  async resetPassword(token: string, newPassword: string, confirmNewPassword: string): Promise<'Reset' | 'Invalid' | 'Expired' | 'Used'> {
+    try {
+      const result = await firstValueFrom(this.http.post<{ status: 'Reset' | 'Invalid' | 'Expired' | 'Used' }>(
+        `${API_BASE_URL}/auth/password-reset`, { token, newPassword, confirmNewPassword }
+      ));
+      return result.status;
+    } catch { return 'Invalid'; }
+  }
+
   async loginWithGoogle(idToken: string): Promise<{ ok: boolean; user?: AuthUser }> {
     try {
       const session = await firstValueFrom(
@@ -416,6 +429,7 @@ export class AuthService {
       provider: session.provider,
       user: this.toAuthUser(session.user),
       permissionKeys: session.permissionKeys ?? []
+      ,requiresProfileCompletion: session.requiresProfileCompletion ?? false
     };
   }
 
@@ -432,6 +446,7 @@ export class AuthService {
       expiresAtUtc: candidate.expiresAtUtc ?? candidate.ExpiresAtUtc ?? '',
       provider: candidate.provider ?? candidate.Provider ?? '',
       permissionKeys: candidate.permissionKeys ?? candidate.PermissionKeys ?? [],
+      requiresProfileCompletion: candidate.requiresProfileCompletion ?? candidate.RequiresProfileCompletion ?? false,
       user: {
         id: this.readUserField(user, 'id', 'Id') ?? '',
         email: this.readUserField(user, 'email', 'Email') ?? '',
@@ -445,7 +460,8 @@ export class AuthService {
           ?? '',
         avatarUrl: this.readUserField(user, 'avatarUrl', 'AvatarUrl') ?? null,
         privacyAccepted: this.readUserField(user, 'privacyAccepted', 'PrivacyAccepted') ?? false,
-        privacyAcceptedAtUtc: this.readUserField(user, 'privacyAcceptedAtUtc', 'PrivacyAcceptedAtUtc') ?? null
+        privacyAcceptedAtUtc: this.readUserField(user, 'privacyAcceptedAtUtc', 'PrivacyAcceptedAtUtc') ?? null,
+        hasLocalCredential: this.readUserField(user, 'hasLocalCredential', 'HasLocalCredential') ?? true
       }
     };
   }
@@ -491,7 +507,8 @@ export class AuthService {
       country: user.country,
       comments: user.comments || user.bio || '',
       avatarUrl: user.avatarUrl,
-      privacyAccepted: user.privacyAccepted
+      privacyAccepted: user.privacyAccepted,
+      hasLocalCredential: user.hasLocalCredential
     };
   }
 
@@ -875,6 +892,7 @@ interface UserApiDto {
   avatarUrl: string | null;
   privacyAccepted: boolean;
   privacyAcceptedAtUtc: string | null;
+  hasLocalCredential: boolean;
 }
 
 interface AuthSessionApiDto {
@@ -882,6 +900,7 @@ interface AuthSessionApiDto {
   expiresAtUtc: string;
   provider: string;
   permissionKeys?: string[];
+  requiresProfileCompletion?: boolean;
   user: UserApiDto;
 }
 
@@ -897,6 +916,7 @@ interface PascalCaseUserApiDto {
   AvatarUrl?: string | null;
   PrivacyAccepted?: boolean;
   PrivacyAcceptedAtUtc?: string | null;
+  HasLocalCredential?: boolean;
 }
 
 interface PascalCaseAuthSessionApiDto {
@@ -905,6 +925,7 @@ interface PascalCaseAuthSessionApiDto {
   Provider?: string;
   PermissionKeys?: string[];
   permissionKeys?: string[];
+  RequiresProfileCompletion?: boolean;
   User?: PascalCaseUserApiDto;
 }
 

@@ -59,6 +59,8 @@ export class ProfilePageComponent implements AfterViewInit {
   protected readonly isViewer = computed(
     () => this.authService.role()?.toLowerCase() === 'viewer'
   );
+  protected readonly hasLocalCredential = computed(() => this.user()?.hasLocalCredential ?? true);
+  protected readonly isReadOnlyViewer = computed(() => this.isViewer() && this.hasLocalCredential());
   protected readonly avatarPreview = signal<string | null>(this.currentUser?.avatarUrl ?? null);
 
   protected readonly form = this.formBuilder.nonNullable.group({
@@ -115,7 +117,7 @@ export class ProfilePageComponent implements AfterViewInit {
     });
 
     effect(() => {
-      if (this.isViewer()) {
+      if (this.isReadOnlyViewer()) {
         this.form.disable({ emitEvent: false });
       }
     });
@@ -165,7 +167,7 @@ export class ProfilePageComponent implements AfterViewInit {
   protected readonly canSave = computed(() => this.savePolicy.canSave(this.snapshot()));
 
   protected async onAvatarSelected(event: Event): Promise<void> {
-    if (this.isViewer()) {
+    if (this.isReadOnlyViewer()) {
       return;
     }
 
@@ -182,7 +184,7 @@ export class ProfilePageComponent implements AfterViewInit {
 
   protected async onAvatarDropped(event: DragEvent): Promise<void> {
     event.preventDefault();
-    if (this.isViewer()) {
+    if (this.isReadOnlyViewer()) {
       return;
     }
 
@@ -200,7 +202,7 @@ export class ProfilePageComponent implements AfterViewInit {
   }
 
   protected removeAvatar(): void {
-    if (this.isViewer()) {
+    if (this.isReadOnlyViewer()) {
       return;
     }
 
@@ -209,7 +211,7 @@ export class ProfilePageComponent implements AfterViewInit {
   }
 
   protected async save(): Promise<void> {
-    if (this.isViewer()) {
+    if (this.isReadOnlyViewer()) {
       return;
     }
 

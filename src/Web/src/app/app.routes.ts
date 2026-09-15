@@ -68,6 +68,16 @@ export const routes: Routes = [
       )
   },
   {
+    path: 'recuperar-contrasenya',
+    canActivate: [guestGuard],
+    loadComponent: () => import('./features/auth/pages/password-recovery-page/password-recovery-page.component').then((m) => m.PasswordRecoveryPageComponent)
+  },
+  {
+    path: 'restablir-contrasenya',
+    canActivate: [guestGuard],
+    loadComponent: () => import('./features/auth/pages/password-reset-page/password-reset-page.component').then((m) => m.PasswordResetPageComponent)
+  },
+  {
     path: 'auth/callback',
     loadComponent: () =>
       import('./features/auth/pages/auth-callback-page/auth-callback-page.component').then(

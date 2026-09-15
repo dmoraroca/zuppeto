@@ -11,6 +11,7 @@ export interface AuthUser {
   comments: string;
   avatarUrl: string | null;
   privacyAccepted: boolean;
+  hasLocalCredential: boolean;
 }
 
 export interface AuthSession {
@@ -19,6 +20,7 @@ export interface AuthSession {
   provider: string;
   user: AuthUser;
   permissionKeys: string[];
+  requiresProfileCompletion?: boolean;
 }
 
 export interface AuthCredentials {

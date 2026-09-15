@@ -22,7 +22,8 @@ public sealed record AuthSessionDto(
     DateTimeOffset ExpiresAtUtc,
     string Provider,
     UserDto User,
-    IReadOnlyCollection<string> PermissionKeys);
+    IReadOnlyCollection<string> PermissionKeys,
+    bool RequiresProfileCompletion = false);
 
 public sealed record AuthCallbackResult(
     AuthSessionDto Session,

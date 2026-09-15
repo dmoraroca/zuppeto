@@ -13,6 +13,8 @@ using Zuppeto.Api.Endpoints;
 using Zuppeto.Api.Observability;
 using Zuppeto.Infrastructure;
 using Zuppeto.Infrastructure.Persistence;
+using Zuppeto.Domain.Abstractions;
+using System.Security.Claims;
 
 /// <summary>Carpeta <c>logs</c> al costat de <c>Api.csproj</c> (no depèn del ContentRoot).</summary>
 static string ApiProjectLogsDirectory()
@@ -148,6 +150,20 @@ builder.Services
         };
         options.Events = new JwtBearerEvents
         {
+            OnTokenValidated = async context =>
+            {
+                var subject = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier)
+                    ?? context.Principal?.FindFirstValue("sub");
+                var tokenVersion = context.Principal?.FindFirstValue("security_version");
+                if (!Guid.TryParse(subject, out var userId) || !int.TryParse(tokenVersion, out var version))
+                {
+                    context.Fail("JWT de sessió invàlid.");
+                    return;
+                }
+                var users = context.HttpContext.RequestServices.GetRequiredService<IUserRepository>();
+                var user = await users.GetByIdAsync(userId, context.HttpContext.RequestAborted);
+                if (user is null || user.SecurityVersion != version) context.Fail("La sessió ja no és vigent.");
+            },
             OnAuthenticationFailed = context =>
             {
                 Log.Warning(context.Exception, "JWT: autenticació fallida");
