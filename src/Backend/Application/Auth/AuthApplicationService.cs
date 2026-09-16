@@ -195,7 +195,7 @@ internal sealed class AuthApplicationService(
                 Guid.NewGuid(),
                 identity.Email,
                 null,
-                "Viewer",
+                shouldBeAdmin ? "Admin" : "Viewer",
                 new UserProfile(
                     ResolveDisplayName(identity),
                     string.Empty,

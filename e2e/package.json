@@ -28,7 +28,8 @@
     "e2e:pilot:resume": "npm run runner:build && node .runner-build/runner/pilot-cli.js --resume",
     "e2e:activation": "npm run runner:build && node .runner-build/runner/activation-email-cli.js",
     "e2e:password-recovery": "npm run runner:build && node .runner-build/runner/password-recovery-cli.js",
-    "e2e:totp": "npm run runner:build && node .runner-build/runner/totp-cli.js"
+    "e2e:totp": "npm run runner:build && node .runner-build/runner/totp-cli.js",
+    "e2e:google-oauth": "npm run runner:build && node .runner-build/runner/google-oauth-cli.js"
   },
   "devDependencies": {
     "@playwright/test": "^1.53.0",

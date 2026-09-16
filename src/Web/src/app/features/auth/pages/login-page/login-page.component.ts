@@ -113,9 +113,6 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
   private previewMarkersLayer?: import('leaflet').LayerGroup;
   private leafletModule?: typeof import('leaflet');
   private previewReloadTimer: ReturnType<typeof setTimeout> | null = null;
-  private readonly isLocalhost =
-    typeof window !== 'undefined' &&
-    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 
   constructor() {
     effect(() => {
@@ -278,9 +275,7 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
       const google = providers.find((provider) => provider.key === 'google' && provider.configured && provider.clientId);
       const linkedIn = providers.find((provider) => provider.key === 'linkedin' && provider.configured);
       const facebook = providers.find((provider) => provider.key === 'facebook' && provider.configured);
-      this.googleProvider.set(
-        this.isLocalhost || !google?.clientId ? null : { clientId: google.clientId }
-      );
+      this.googleProvider.set(google?.clientId ? { clientId: google.clientId } : null);
       this.linkedInProvider.set(Boolean(linkedIn));
       this.facebookProvider.set(Boolean(facebook));
       void this.tryRenderGoogleButtonAsync();
