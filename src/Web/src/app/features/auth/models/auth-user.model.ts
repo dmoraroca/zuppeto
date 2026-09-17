@@ -58,3 +58,11 @@ export interface AuthProvider {
   configured: boolean;
   clientId?: string | null;
 }
+
+export interface AccessMethod {
+  provider: 'password' | 'google' | 'linkedin' | 'facebook' | string;
+  displayName: string;
+  linked: boolean;
+  available: boolean;
+  status: 'linked' | 'linkable' | 'pending' | 'unavailable' | string;
+}

@@ -33,35 +33,11 @@
   background: rgba(241, 245, 249, 0.9);
 }
 
-.place-card__image-wrap img {
+.place-card__cover {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  object-position: center;
-  display: block;
-}
-
-.place-card__image-placeholder {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(
-    145deg,
-    rgba(45, 212, 191, 0.12) 0%,
-    rgba(226, 232, 240, 0.85) 55%,
-    rgba(241, 245, 249, 0.95) 100%
-  );
-  color: rgba(45, 90, 72, 0.42);
-}
-
-.place-card__image-placeholder-icon {
-  width: 3rem;
-  height: 3rem;
-  opacity: 0.75;
 }
 
 .place-card__content {

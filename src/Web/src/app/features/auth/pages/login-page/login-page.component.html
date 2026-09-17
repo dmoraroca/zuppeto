@@ -35,9 +35,8 @@
                 #googleButtonHost
                 class="login-page__google-button"
                 [class.login-page__google-button--hidden]="!googleButtonVisible()"
+                aria-label="Iniciar sessió amb Google"
               ></div>
-              <span class="login-page__provider-icon login-page__provider-icon--google" aria-hidden="true">G</span>
-              <span>Google</span>
             </div>
           } @else {
             <div class="login-page__provider login-page__provider--pending">
@@ -67,11 +66,6 @@
           </button>
         </section>
 
-        <p class="login-page__providers-note">
-          En entorn local, els accessos federats es mostren com a «pendent» fins que el proveïdor estigui
-          configurat al servidor.
-        </p>
-
         <p class="login-page__support">
           Necessites accés?
           <a routerLink="/registre">Crea un compte</a>, <a routerLink="/reenviar-activacio">reenviar activació</a>, <a routerLink="/recuperar-contrasenya">He oblidat la contrasenya</a> o <a routerLink="/contacte">Demana usuari o recuperació de contrasenya</a>.
@@ -93,7 +87,6 @@
         <div class="login-page__explorer-head">
           <div>
             <strong>Explora llocs ara mateix</strong>
-            <p>Cerca o ciutat (≥ 2): a Development, Google Places primer; si no n’hi ha, catàleg BD.</p>
           </div>
           <div class="login-page__explorer-pill">Vista pública</div>
         </div>
@@ -150,21 +143,11 @@
           <section class="login-page__map-preview" aria-label="Mapa de llocs del preview públic">
             <div class="login-page__map-copy">
               <strong>Mapa</strong>
-              <p>{{ mapPreviewCopy() }}</p>
             </div>
             <div #previewMapContainer class="login-page__map-frame" aria-label="Mapa interactiu de llocs"></div>
           </section>
 
           <div class="login-page__mosaic">
-            @if (previewLoading()) {
-              <p class="login-page__mosaic-empty">Carregant llocs…</p>
-            } @else if (!previewHasDiscoveryQuery()) {
-              <p class="login-page__mosaic-empty">
-                Escriu almenys 2 caràcters a cerca o ciutat (Google Places primer en proves; si no, catàleg BD).
-              </p>
-            } @else if (samplePlaces().length === 0) {
-              <p class="login-page__mosaic-empty">Cap lloc coincideix amb aquesta cerca.</p>
-            }
             @for (place of samplePlaces(); track place.id) {
               <article class="login-page__place-card">
                 <div class="login-page__place-card-top">

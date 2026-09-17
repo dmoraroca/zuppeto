@@ -1,6 +1,30 @@
 <main class="account-page">
   <section class="account-card account-card--wide">
-    <p class="eyebrow">Perfil · Seguretat</p><h1>Verificació en dos passos</h1>
+    <p class="eyebrow">Perfil · Seguretat</p><h1>Seguretat i mètodes d’accés</h1>
+    <section class="access-methods" aria-labelledby="access-methods-title">
+      <div>
+        <h2 id="access-methods-title">Mètodes d’accés</h2>
+        <p>Gestiona les credencials que poden iniciar sessió al mateix compte Petiloc.</p>
+      </div>
+      @if (accessMethodsLoading()) {
+        <p>Carregant mètodes d’accés…</p>
+      } @else {
+        <ul>
+          @for (method of accessMethods(); track method.provider) {
+            <li>
+              <span>{{ method.displayName }}</span>
+              <strong [class.linked]="method.linked">{{ accessMethodLabel(method) }}</strong>
+              @if (method.provider === 'google') {
+                <div #googleLinkHost class="google-link-host" [hidden]="method.linked" aria-label="Vincular Google"></div>
+              }
+            </li>
+          }
+        </ul>
+      }
+      @if (linkMessage()) { <p class="success" role="status">{{ linkMessage() }}</p> }
+    </section>
+    <hr />
+    <h2>Verificació en dos passos</h2>
     @if (!enabled() && !setup()) {
       <p>Afegeix una segona comprovació al teu compte amb qualsevol aplicació TOTP compatible.</p>
       <button type="button" [disabled]="busy()" (click)="start()">Activar 2FA</button>

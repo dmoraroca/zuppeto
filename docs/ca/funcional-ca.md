@@ -120,7 +120,7 @@ En l'estat actual:
 - el següent focus funcional passa a ser l'obertura d'autenticació, permisos, àrees internes i accessos restringits propis de la Fase IV
 - el login futur de Fase IV no queda limitat a credencials pròpies: també ha de contemplar `Google`, `LinkedIn`, `Facebook` i altres proveïdors federats
 - `Facebook` queda aparcat funcionalment fins després de publicar la web
-- la base d'autenticació disposa de `login propi`, `Google` i `LinkedIn` sobre API real, però això no tanca funcionalment el punt: Google i LinkedIn continuen 🟠 fins que superin la validació real de punta a punta definida a §3.18
+- la base d'autenticació disposa de login propi i Google sobre API real; Google ja ha superat la validació de punta a punta de la Iteració 4, mentre que LinkedIn continua 🟠 fins al punt 5
 - el nou punt en curs passa a ser `rols i permisos`
 - ja existeixen dos usuaris bootstrap de desenvolupament per provar el nou flux:
   - `admin@admin.adm / Admin123`
@@ -144,7 +144,7 @@ La decisió funcional acordada per al nou punt en curs és:
 - `ADMIN` també pot veure informació funcional i documentació interna oficial
 - `ADMIN` compartirà l'opció `Documentació` i més endavant hi sumarà altres opcions pròpies
 - `ADMIN` assignarà permisos i perfils
-- qualsevol usuari nou creat per login propi o federat entrarà per defecte com a `VIEWER` fins que `ADMIN` li assigni un altre rol
+- qualsevol usuari nou creat pel flux propi conserva el rol inicial definit per aquell cas d'ús; l'alta federada nova de Google, validada a la Iteració 4, crea explícitament el rol `USER`
 - hi haurà un manteniment intern dins `ADMIN` per gestionar `usuaris`, `rols` i `permisos`
 - el cataleg de `paisos` i `ciutats` queda definit funcionalment als apartats 3.14 i 3.15 i es preveuen com a futurs manteniments dins la zona d'administració quan s'implementin
 - els `permisos` definiran què es pot veure o fer a nivell de menú, pàgina i acció
@@ -165,7 +165,7 @@ Nota de criteri funcional:
 <pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">flowchart LR</span>
   <span style="color:#93c5fd;">PUB[Usuari public]</span> --&gt; <span style="color:#c4b5fd;">WEB[Web actual]</span>
   <span style="color:#fcd34d;">AUTH[Login propi real]</span> -.-> <span style="color:#c4b5fd;">WEB</span>
-  <span style="color:#f9a8d4;">FED[Google i LinkedIn implementats, validació real pendent / Facebook aparcat]</span> -.-> <span style="color:#fcd34d;">AUTH</span>
+  <span style="color:#f9a8d4;">FED[Google validat / LinkedIn pendent / Facebook aparcat]</span> -.-> <span style="color:#fcd34d;">AUTH</span>
   <span style="color:#86efac;">ROLS[Rols i permisos]</span> -.-> <span style="color:#c4b5fd;">WEB</span>
   <span style="color:#f9a8d4;">INT[Zones internes]</span> -.-> <span style="color:#c4b5fd;">WEB</span>
   <span style="color:#c4b5fd;">WEB</span> --&gt; <span style="color:#67e8f9;">API[API real]</span>
@@ -175,8 +175,8 @@ Resum del diagrama:
 
 - la Fase IV obre el tram de seguretat i govern d'accessos
 - la web continua sent la mateixa base funcional, pero ara passa a requerir autenticació i permisos reals
-- el primer pas executable de la fase ja cobreix login propi contra backend i implementacions federades de Google i LinkedIn
-- Google i LinkedIn encara han de superar la validació real de punta a punta de §3.18; `Facebook` continua aparcat fins després de publicar la web
+- el login propi contra backend i Google OAuth real ja estan validats de punta a punta
+- `LinkedIn` continua pendent del punt 5 i `Facebook` continua aparcat fins després de publicar la web
 - les zones internes i restriccions deixen de ser una idea futura i passen a ser el focus actiu
 - l'entrada d'usuari haurà de poder venir tant de login propi com de proveïdors socials o federats
 - el frontend ja conserva la sessió a navegador i reutilitza el token per a futures crides HTTP
@@ -436,10 +436,13 @@ El punt d'autenticacio pròpia i federada queda funcionalment entès aixi:
 - la sessio es representa amb `JWT`
 - el frontend desa i reutilitza el token per a futures crides HTTP
 - `Google` queda configurat en desenvolupament amb `ClientId` local i botó visible a `login`
-- l'entrada per Google pot crear usuari nou o sincronitzar-ne un d'existent
+- una credencial Google vàlida sense `User` ni `ExternalIdentity` previs crea exactament un `User` amb rol `USER`, sense contrasenya local, i una `ExternalIdentity` Google; comença amb perfil incomplet i es dirigeix a `/perfil`
+- un login Google repetit reutilitza la `ExternalIdentity` ja vinculada; si Google valida una identitat amb email verificat que coincideix amb un compte local activat encara sense Google, Petiloc crea automàticament només l'`ExternalIdentity`, conserva el `User` i la contrasenya i inicia sessió
+- el JWT s'emet després de validar la identitat i, si TOTP està actiu, només després de superar el challenge 2FA; la federació no evita TOTP
+- els errors diferencien proveïdor no disponible, identitat federada rebutjada i conflicte amb una identitat ja assignada; un 401 federat no genera també l'avís global de sessió no autoritzada
 - la credencial local de Google queda fora de versionat
 - `info@zuppeto.com` queda reservat com a administrador federat de desenvolupament
-- `LinkedIn` queda ja validat dins el mateix patró federat
+- `LinkedIn` reutilitza la base federada, però la seva validació real queda pendent del punt 5
 - `Facebook` queda expressament aparcat fins després de publicacio
 
 La decisio funcional de rols i permisos queda fixada així:
@@ -745,7 +748,7 @@ Criteri funcional de camps:
 - `nom visible` és editable (mínim 3 caràcters)
 - `email` és editable; no pot coincidir amb un altre compte
 - `comentaris` és editable i **opcional** (perfil i edició admin): el camp **entra buit** si a la BD no n’hi ha; si n’hi ha uns de desats, es carreguen d’allà. El seed de Development i l’alta per Google **no** fabriquen textos de comentaris. UI: «Comentaris». Columna BD: `users.comments`.
-- `url de foto` és opcional; sense foto es mostra el placeholder `NONE`
+- `url de foto` és opcional; sense foto pròpia els dos espais grans del perfil mostren el mateix placeholder amb silueta, contorn discontinu i «NO DISPONIBLE» diagonal. Les sigles només s'usen a l'avatar rodó de navegació
 - `consentiment` no porta `*`; per a `USER`, el check marcat és condició per activar **Guardar** (junt amb la resta)
 - `rol` només es veu; el canvia `ADMIN`
 
@@ -764,7 +767,7 @@ Criteri funcional de camps:
 - Format: mínim **6** caràcters; les dues han de ser **iguals**. Si la nova té text i la confirmació és buida (o no coincideix), es mostra **«Les contrasenyes no coincideixen.»** Línia de força sota la nova: **dèbil** (text però &lt; 6), **mitjana** (≥6 incompleta), **forta** (≥6 + majúscula + minúscula + número + especial). Cada camp té **ull** per mostrar o amagar.
 - Si l’**actual és buida**, es pot **guardar** el perfil (nom, ciutat, comentaris, foto, email, etc.); nova i confirmació resten **desactivades** i **no** es toca la contrasenya del compte.
 - Al **Guardar**, si l’actual té text, es **comprova de nou** contra el compte. Si no coincideix: notificació **«Contrasenya incorrecta»**, no es desa el canvi de contrasenya ni es continua el guardat de compte.
-- Una sessió **Google** no té una contrasenya local coneguda (el hash inicial és aleatori): l’actual no coincidirà amb la de Gmail. El canvi de contrasenya del perfil es prova amb **login propi**.
+- Una sessió **Google** no té credencial local (`password_hash = null`) ni contrasenya fictícia. El canvi de contrasenya del perfil es prova amb **login propi**.
 
 **Guardar** (decisió de producte):
 
@@ -1288,7 +1291,7 @@ Abans d'iniciar funcionalitat nova, cal auditar els **5 SKIP E2E actuals**, iden
 | 1 | Identitat i seguretat | Activació de compte per email | 🟢 VALIDAT |
 | 2 | Identitat i seguretat | Recuperació de compte o contrasenya per email | 🟢 VALIDAT |
 | 3 | Identitat i seguretat | TOTP / 2FA | 🟢 VALIDAT |
-| 4 | Identitat i seguretat | Google OAuth real | 🟠 Parcial / pendent de validació real |
+| 4 | Identitat i seguretat | Google OAuth real | 🟢 VALIDAT |
 | 5 | Identitat i seguretat | LinkedIn OAuth real | 🟠 Parcial / pendent de validació real |
 | 6 | Territori | Catàleg territorial d'Espanya | 🟠 Parcial / pendent de completar o validar |
 | 7 | Territori | GeoNames + alta lazy | 🔴 Pendent / crític |
@@ -1308,7 +1311,7 @@ Abans d'iniciar funcionalitat nova, cal auditar els **5 SKIP E2E actuals**, iden
 | 21 | Tancament | Revisió definitiva dels SKIP E2E | 🔴 Pendent / crític |
 | 22 | Tancament | Baixa de compte autogestionada i sol·licitud per correu | 🟠 Parcial / pendent d'implementar i validar |
 
-Per tant, l'estat oficial actual és de **7 punts 🔴, 13 punts 🟠 i 3 punts 🟢 VALIDAT** dins d'aquest gate (punts **1–22**).
+Per tant, l'estat oficial actual és de **6 punts 🔴, 12 punts 🟠 i 4 punts 🟢 VALIDAT** dins d'aquest gate (punts **1–22**).
 
 #### 3.18.4 Bloc A — Identitat i seguretat
 
@@ -1318,7 +1321,7 @@ Per tant, l'estat oficial actual és de **7 punts 🔴, 13 punts 🟠 i 3 punts 
 
 **3. TOTP / 2FA — 🟢 VALIDAT.** L'usuari activa el segon factor des de Perfil/Seguretat mitjançant QR o clau manual i confirma el primer codi abans que quedi actiu. El secret es persisteix protegit, els recovery codes només es desen amb hash, són d'un sol ús i es poden regenerar; la desactivació exigeix TOTP o recovery code, elimina el material recuperable, revoca challenges pendents i incrementa la versió de seguretat. Cap login propi o federat emet JWT fins a superar el challenge quan TOTP està actiu. Els challenges caduquen, són d'un sol ús i tenen rate limiting; el darrer timestep TOTP acceptat es persisteix per impedir replay. La implementació és compatible amb autenticadors TOTP estàndard i no depèn d'un fabricant. Han passat 12/12 proves persistents .NET, 4/4 proves Angular, l'E2E focalitzat complet (activació, codi correcte/incorrecte, anti-replay, recovery code single-use, desactivació i login posterior) i la regressió Chrome d'autenticació `sim-20260915T213324241Z-ec8207d2` amb 15 PASS, 0 FAIL, 0 BLOCKED i 1 SKIP extern justificat.
 
-**4. Google OAuth real — 🟠.** La implementació existent s'ha de validar de punta a punta amb usuari nou i existent, sincronització del compte, rol inicial i permisos, sessió JWT, logout i nou login, cancel·lació del proveïdor, errors del proveïdor o callback, secrets i configuració. També s'ha de delimitar què pot cobrir E2E i què queda necessàriament al boundary extern. Passa quan el flux real complet queda funcionalment validat.
+**4. Google OAuth real — 🟢 VALIDAT (2026-09-17).** S'ha validat el botó oficial sense error d'origen, l'arribada i validació de la credencial real, i l'alta d'un compte nou amb un `User`, una `ExternalIdentity` Google, rol `USER`, permisos de `USER`, `password_hash = null`, perfil incomplet i navegació a `/perfil`. També s'ha validat el login d'un User local existent: una credencial Google amb email verificat crea automàticament només l'`ExternalIdentity`, conserva User, contrasenya i rol, i entra a Inici sense duplicats. La persistència final queda en 10 usuaris, 1 identitat Google operativa i 0 orfes després d'eliminar l'usuari temporal. TOTP federat manté el challenge abans del JWT segons regressió; 24/24 proves backend, 43/43 Angular, builds API/Web i Google OAuth boundary E2E passen. La revisió de secrets és neta i l'Excel registra `ZUP-006` i `ZUP-016` Chrome com `OK / MANUAL`. El monograma `picture` de Google no es tracta com una foto pròpia del perfil.
 
 **5. LinkedIn OAuth real — 🟠.** Cal la mateixa validació real sobre autorització, callback, alta i reutilització d'usuari, sincronització, rol i permisos, sessió, cancel·lació, errors, secrets/configuració i cobertura automatitzable. Passa quan el flux complet queda validat. El detall general de login federat és a §8.5. `Facebook` queda fora d'aquest gate mentre es mantingui la decisió d'aparcar-lo fins després de la publicació.
 
@@ -1633,7 +1636,7 @@ Flux principal:
 2. consulta descripcio, adreca, notes pet-friendly i tags
 3. veu la ubicacio aproximada en el mapa
 
-Si el lloc no té imatge de portada (o la URL falla), la fitxa mostra un placeholder «Imatge no disponible» en lloc d'una imatge trencada.
+Si el lloc no té imatge de portada (URL nul·la, buida o només amb espais) o la càrrega falla, la fitxa mostra el fallback compartit: una rodona amb les sigles del lloc i el text diagonal «NO DISPONIBLE». Mai no queda visible la icona nativa d'imatge trencada ni el text alternatiu accidental.
 
 ### UC-04 Guardar favorits
 
@@ -1685,7 +1688,7 @@ Actor:
 Flux principal:
 
 1. l'usuari entra a `Perfil` (sessió real; dades de BD / sessió)
-2. veu nom, email, ciutat, país, comentaris (buits si no n’hi ha a la BD), foto o placeholder `NONE`, rol (només lectura) i consentiment
+2. veu nom, email, ciutat, país, comentaris (buits si no n’hi ha a la BD), foto pròpia o el mateix placeholder «NO DISPONIBLE» als dos espais grans, rol (només lectura) i consentiment; les sigles queden reservades a l’avatar rodó de navegació
 3. **Guardar** entra desactivat; la contrasenya actual entra buida; nova i confirmació desactivades
 4. edita la fitxa (nom, ciutat, país, comentaris opcionals, foto) i/o l’email
 5. si l’email té format incorrecte, veu sempre el missatge sota el camp i no pot guardar
@@ -1695,10 +1698,11 @@ Flux principal:
    - actual **buida** → desa fitxa; si l’email ha canviat, també desa el compte; no toca la contrasenya
    - actual **amb text** → revalida; si no coincideix, notificació «Contrasenya incorrecta» i no desa; si coincideix i la nova és vàlida, substitueix la contrasenya i desa fitxa + compte
 9. el sistema desa sobre backend real i, si ha canviat email o contrasenya, reemet la sessió
+10. si la sessió prové dels botons federats Google, LinkedIn o Facebook, un guardat correcte tanca el flux de perfil i navega a **Inici**; el perfil de login propi es manté a la pantalla després de guardar
 
 Fluxos alternatius:
 
-- sessió Google: l’actual no coincideix amb Gmail; el canvi de contrasenya es fa amb login propi
+- sessió Google: no hi ha credencial local ni es mostra el bloc de canvi de contrasenya; no es crea cap hash fictici
 - email ja usat per un altre compte: no es desa
 - ciutat fora del catàleg: no es pot guardar
 
@@ -1713,7 +1717,7 @@ Flux principal:
 1. l'usuari intenta entrar a una ruta protegida
 2. el sistema el redirigeix a `Login`
 3. introdueix email i password
-4. el sistema valida les credencials fake
+4. el sistema valida les credencials reals contra l’API
 5. s'obre sessio i es carrega el rol
 6. el sistema redirigeix a la ruta demanada (`redirectTo`) o a **Inici** (`/`); si el perfil està incomplet, a `/perfil`. Les pantalles d'administració no són el destí per defecte del login (ZUP-004)
 
@@ -1745,6 +1749,7 @@ Flux principal:
 - actual buida al guardar: desa la fitxa (i l’email si ha canviat) sense tocar la contrasenya
 - actual incorrecta al guardar: notificació «Contrasenya incorrecta» i no es canvia la contrasenya
 - comentaris opcionals; si no n’hi ha a la BD, el camp entra buit
+- després de guardar correctament un perfil obert des de Google, LinkedIn o Facebook, el sistema surt del flux de compleció i navega a **Inici**
 
 ## 8. Login i perfil · Estat actual i futur immediat
 
@@ -1759,7 +1764,9 @@ No es planteja encara com a seguretat final de produccio, sino com a base de pro
 Punts funcionals ja implementats:
 
 - login estandard amb email
-- explorador públic al login: cerca o ciutat amb **≥ 2 caràcters**; en **Development** (`GooglePlaces:PreferExternalSearchFirst`) es consulta **Google Places primer** i els resultats es **persisteixen** al catàleg (cache); si Google no retorna res, catàleg BD; el combobox de ciutat fa typeahead remot a partir de 2 caràcters
+- explorador públic al login: cerca o ciutat amb **≥ 2 caràcters**; abans del llindar, el panell resta net i no repeteix missatges d'instrucció; en superar-lo es mostren directament els resultats. En **Development** (`GooglePlaces:PreferExternalSearchFirst`) es consulta **Google Places primer** i els resultats es **persisteixen** al catàleg (cache); si Google no retorna res, catàleg BD; el combobox de ciutat fa typeahead remot a partir de 2 caràcters
+- el mapa del preview ocupa tota l'amplada útil del contenidor respectant els marges laterals; les targetes de resultats, quan existeixen, es mostren en una fila inferior i no reserven una columna buida ni estrenyen el mapa
+- els accessos Google, LinkedIn i Facebook mantenen una presentació coherent d'amplada, alçada, forma de píndola i separació; Google conserva obligatòriament el control oficial visible i clicable. No es mostra cap nota genèrica que afirmi que tots els proveïdors estan pendents quan Google ja està configurat
 - rols `USER` i `ADMIN`
 - sessio d'usuari
 - logout
@@ -1769,7 +1776,7 @@ Punts funcionals ja implementats:
 - canvi de contrasenya: actual buida, nova/confirmació bloquejades fins que l’actual coincideix; al guardar es revalida i es notifica si és incorrecta
 - **Guardar** desactivat en pristine; resum **Falten: …**; consentiment `USER` sense `*` però obligatori per activar el botó
 - foto de perfil opcional
-- placeholder si no hi ha foto
+- placeholder «NO DISPONIBLE» als espais grans del perfil si no hi ha una foto pròpia; les sigles es reserven per a l’avatar rodó de navegació. El monograma que Google pot publicar com a `picture` no substitueix la foto gestionada a Petiloc
 - redireccio automatica a `Login` des de rutes protegides
 - redireccio a la ruta demanada despres del login
 - visibilitat de `Del desenvolupador` nomes per a `ADMIN`
@@ -1812,7 +1819,7 @@ Resum del diagrama:
 Resum del diagrama:
 
 - el primer pas ja es un login estandard, no social
-- el sistema valida credencials fake, obre sessio i carrega rol i perfil
+- el sistema valida credencials reals, obre sessio i carrega rol i perfil
 - la redireccio depen del context i del rol de l'usuari
 
 ### 8.3 Flux funcional de manteniment de perfil
@@ -1835,7 +1842,7 @@ Resum del diagrama:
 
 Resum del diagrama:
 
-- el perfil carrega dades reals; comentaris buits si no n’hi ha; foto o placeholder `NONE`
+- el perfil carrega dades reals; comentaris buits si no n’hi ha; foto pròpia o placeholder compartit «NO DISPONIBLE» als dos espais grans
 - nova i confirmació només s’activen quan l’actual coincideix amb el compte
 - **Guardar** amb actual buida desa fitxa (i email si ha canviat) sense tocar la contrasenya
 - **Guardar** amb actual plena revalida; si falla, notificació i no desa; si passa, substitueix la contrasenya
@@ -1857,8 +1864,9 @@ Resum del diagrama:
 - el check de `USER` no porta `*`, però **Guardar** no s’activa si no està marcat
 - `ADMIN` queda exempt segons el criteri actual acordat
 - la resta d'usuaris no podran desar canvis sense acceptacio valida
+- en acceptar per primera vegada, l'estat actual es desa a `users` i s'insereix un esdeveniment nou a `privacy_consent_events`; no s'intenta actualitzar un esdeveniment inexistent
 
-### 8.5 Flux funcional futur de login social
+### 8.5 Flux funcional de login social (Google operatiu; altres proveïdors segons roadmap)
 
 <pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">flowchart LR</span>
   <span style="color:#93c5fd;">A[Usuari public]</span> --&gt; <span style="color:#c4b5fd;">B[Escollir proveidor social]</span>
@@ -1877,9 +1885,19 @@ Resum del diagrama:
 
 Resum del diagrama:
 
-- el login social queda previst, pero no es el primer pas d'implementacio
-- abans de crear o actualitzar perfil s'hauran de controlar permisos i dades rebudes del proveidor
-- aquesta capa encaixara despres sobre la base del login estandard
+- Google ja implementa aquest flux amb validació real de la credencial i de l'email verificat
+- abans de crear o actualitzar perfil es controlen les dades rebudes, la unicitat de la identitat i els permisos del rol
+- LinkedIn, Facebook i els altres proveïdors del diagrama continuen com a extensió futura
+
+#### 8.5.1 Vinculació segura d'un compte local amb Google
+
+Durant el login Google, una identitat validada amb email verificat que coincideix amb un `User` local activat es vincula automàticament: Petiloc crea l'`ExternalIdentity` i continua el login al mateix `User`. No cal un pas previ a `Perfil · Seguretat`. La vinculació es denega si el `User` ja té un Google diferent o si el subject seleccionat pertany a un altre `User`.
+
+La vinculació conserva la contrasenya local, no crea un segon `User`, no crea contrasenyes fictícies i no permet substituir silenciosament una altra identitat Google. Repetir la mateixa vinculació és idempotent. Després del logout, el login Google resol el mateix usuari; si té TOTP actiu, cal superar el challenge abans de rebre JWT i arribar a Inici. LinkedIn i Facebook es mostren com a pendents i no s'implementen en aquest punt.
+
+El flux principal validat és: `login públic Google → credencial i email verificats → User local activat coincident → crear només ExternalIdentity → mateix User → TOTP si escau → JWT → Inici`.
+
+Com a gestió addicional, un usuari amb sessió local també pot anar a `Perfil → Seguretat → Mètodes d'accés → Vincular Google`. Aquest flux explícit usa l'endpoint autenticat de linking, conserva la sessió i aplica les mateixes regles d'unicitat; no és un prerequisit del login públic Google.
 ## 9. Criteris d'acceptacio actuals
 
 - es pot iniciar sessio amb usuaris fake
@@ -1944,7 +1962,7 @@ Part de la informacio de fitxa i del contingut visual dels locals pot provenir d
 ### 12.3 Regles funcionals per a imatges de locals
 
 - font prioritaria: fotos oficials obtingudes via API oficial (`Google Places Photo`) o fonts propies verificades.
-- si un local no té imatge, la fitxa de detall mostra un placeholder «Imatge no disponible» (no un `img` buit o trencat).
+- si un local no té imatge o la càrrega falla, targetes, favorits, detall i relacionats mostren una rodona amb les sigles calculades de manera compartida i «NO DISPONIBLE» en diagonal (mai un `img` buit o trencat).
 - no es considera valid reutilitzar imatges extretes directament de cercadors sense marc legal clar.
 - per cada imatge s'ha de conservar traca minima de font i atribucio per poder auditar origen i condicions d'us.
 

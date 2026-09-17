@@ -16,6 +16,7 @@ public sealed class ExternalIdentityConfiguration : IEntityTypeConfiguration<Ext
         builder.Property(identity => identity.Subject).HasColumnName("subject").HasMaxLength(512).IsRequired();
         builder.Property(identity => identity.LinkedAtUtc).HasColumnName("linked_at_utc").IsRequired();
         builder.HasIndex(identity => new { identity.Provider, identity.Subject }).IsUnique().HasDatabaseName("uq_external_identities_provider_subject");
+        builder.HasIndex(identity => new { identity.UserId, identity.Provider }).IsUnique().HasDatabaseName("uq_external_identities_user_provider");
         builder.HasOne(identity => identity.User).WithMany(user => user.ExternalIdentities).HasForeignKey(identity => identity.UserId).OnDelete(DeleteBehavior.Cascade);
     }
 }

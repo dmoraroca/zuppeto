@@ -7,7 +7,14 @@ public interface IAuthApplicationService
     Task<LoginResult> LoginWithResultAsync(LoginRequest request, CancellationToken cancellationToken = default);
     Task<AuthSessionDto?> CompleteTwoFactorLoginAsync(TwoFactorLoginRequest request, CancellationToken cancellationToken = default);
 
-    Task<LoginResult?> LoginWithGoogleAsync(GoogleLoginRequest request, CancellationToken cancellationToken = default);
+    Task<LoginResult> LoginWithGoogleAsync(GoogleLoginRequest request, CancellationToken cancellationToken = default);
+
+    Task<AccessMethodsDto?> GetAccessMethodsAsync(Guid userId, CancellationToken cancellationToken = default);
+
+    Task<ExternalIdentityLinkResult> LinkGoogleAsync(
+        Guid userId,
+        GoogleLoginRequest request,
+        CancellationToken cancellationToken = default);
 
     string? GetLinkedInAuthorizationUrl(string? redirectTo = null);
 

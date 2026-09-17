@@ -524,7 +524,7 @@ La decisió de base per al model de rols queda fixada així:
 - `ADMIN`: també pot consultar documentació funcional i fitxers `.md` de documentació interna
 - `ADMIN`: compartirà l'opció `Documentació` i sumarà la resta d'opcions administratives quan s'implementin
 - `ADMIN`: assigna rols i permisos als usuaris
-- qualsevol usuari nou creat per login propi o federat entrarà per defecte com a `VIEWER` fins que `ADMIN` li assigni un altre rol
+- el rol inicial depèn del cas d'ús d'alta; concretament, l'alta federada nova de Google crea el rol `User`, mentre que la resta de fluxos conserven la seva política pròpia
 - existirà un manteniment intern dins `ADMIN` per gestionar `usuaris`, `rols` i `permisos`
 - el catàleg de `permisos` definirà accés a `menu`, `page` i `action`
 - els `usuaris` treballaran principalment amb assignació de `rol`, no amb permisos directes per defecte
@@ -548,10 +548,10 @@ Resum del diagrama:
 - el control d'accessos s'haurà de recolzar en `Api` i `Application`, no només en la web
 - la Fase IV ja no és pendent conceptual, sinó línia activa de treball
 - el punt d'autenticació ja inclou des del principi la possibilitat de login federat via proveïdors `OAuth/OIDC`
-- el punt d'autenticació queda tancat amb `Google` i `LinkedIn` operatius
+- el login propi i Google queden operatius i validats; LinkedIn resta pendent del punt 5
 - el següent tram d'implementació dins la fase passa a `rols i permisos`
 - `Facebook` queda aparcat a nivell de roadmap fins després de publicar la web, tot i que la base tècnica federada es manté oberta
-- el primer pas implementable ja cobreix emissió i consum de token per al login propi i deixa `Google` i `LinkedIn` operatius en desenvolupament
+- la base cobreix emissió i consum de token per al login propi i Google; LinkedIn conserva infraestructura preparatòria sense donar per validat el flux real
 
 ### Catàleg territorial i cerca de ciutats (Espanya i UE)
 
@@ -584,7 +584,7 @@ Sobre la base anterior, la implementació ja incorpora aquestes peces tècniques
 
 Estat actual del flux (referència ràpida):
 
-- el grup **`/api/places`** exigeix **JWT** per defecte; `GET /api/places`, `GET /api/places/cities` i `GET /api/places/cities/search` són anònims per al preview públic del login; amb `GooglePlaces:PreferExternalSearchFirst` (actiu a Development) la cerca amb `searchText`/`city` ≥ 2 consulta **Google Places abans** del catàleg; sense aquesta opció l’ordre és catàleg (snapshot/BD) i **fallback Google** si el catàleg està buit; en ambdós casos els candidats Google vàlids es **persisteixen** a `places` (upsert per `google_place_id`) amb caché de coordenades ≤ `CoordinateCacheRetentionDays` i timestamps `created_at_utc` / `updated_at_utc`; el login **no** crida el llistat sense consulta de descobriment; el combobox de ciutat del login usa typeahead remot amb **2** caràcters
+- el grup **`/api/places`** exigeix **JWT** per defecte; `GET /api/places`, `GET /api/places/cities` i `GET /api/places/cities/search` són anònims per al preview públic del login; amb `GooglePlaces:PreferExternalSearchFirst` (actiu a Development) la cerca amb `searchText`/`city` ≥ 2 consulta **Google Places abans** del catàleg; sense aquesta opció l’ordre és catàleg (snapshot/BD) i **fallback Google** si el catàleg està buit; en ambdós casos els candidats Google vàlids es **persisteixen** a `places` (upsert per `google_place_id`) amb caché de coordenades ≤ `CoordinateCacheRetentionDays` i timestamps `created_at_utc` / `updated_at_utc`; el login **no** crida el llistat sense consulta de descobriment ni mostra textos instructius duplicats abans del llindar; el combobox de ciutat del login usa typeahead remot amb **2** caràcters
 - **Compliment / retenció**: `GooglePlacesComplianceRetentionHostedService` pot **purgar** snapshots caducats (`place_search_queries`) i, si `GooglePlacesCompliance:Enabled`, **redactar** coordenades de files `places` amb procedència Google/Mixed quan `google_coordinates_cached_until < now` (detall a **§2.11.4**)
 - sense `GooglePlaces:ApiKey`, el preview extern i el fallback de cerca Google retornen llista buida (comportament esperat)
 - si Google Places respon `REQUEST_DENIED` (p. ex. facturació del projecte Cloud desactivada), el connector registra un warning i la cerca continua amb el catàleg BD quan n’hi ha
@@ -858,6 +858,7 @@ La primera entrega tècnica real de Fase IV ja incorpora:
 - `GoogleIdTokenVerifier`
 - `DevelopmentIdentitySeeder`
 - endpoints `auth/login`, `auth/google`, `auth/providers` i `auth/me`
+- endpoints autenticats `GET auth/access-methods` i `POST auth/access-methods/google/link`
 - `authInterceptor` al frontend per propagar el `Bearer token`
 - `LoginPage` amb càrrega de `Google Identity Services` i renderitzat del botó federat
 - segon intent de render del botó federat a `ngAfterViewInit` per no dependre de l'ordre entre `ViewChild` i càrrega del catàleg de proveïdors
@@ -1376,7 +1377,7 @@ Decisions tecniques rellevants:
 - filtre intern de noms prohibits (**Factory**): `IProhibitedPlaceTermsCatalog` per idioma (`CatalanProhibitedPlaceTermsCatalog` ara); `ProhibitedPlaceTermsCatalogFactory.Create` / `CreateAll`; `ProhibitedPlaceNameFilter` al llistat i a l’ingest Google. Un idioma nou = una classe nova registrada a DI. Web: el mateix a `prohibited-place-terms/`
 - `place-map` es reutilitzable i parametritzable; el popup del llistat és nom + ciutat
 - `place-card` es reutilitza a llistat i favorits; **a les dues pantalles** és una fila ampla (foto esquerra), no una graella de 3 columnes.
-- `place-cover-image` pinta la portada o un placeholder («Imatge no disponible») si no hi ha URL o si la càrrega falla; el fan servir el detall i els llocs relacionats
+- `place-cover-image` centralitza la portada per a targetes, favorits, detall i llocs relacionats. Davant URL nul·la/buida/whitespace o error de càrrega elimina l'`img` i pinta el fallback estable: rodona, sigles calculades per `placeInitials` i «NO DISPONIBLE» en diagonal.
 - `place-detail-page` carrega `GET /api/places/{id}` (`loadById`) per enriquir; els apartats van en fila (`auto-fit`); **Context ràpid** s’amaga si no hi ha editorial ni tags útils (no es pinta «tipus a ciutat»); copy tècnic Google no es pinta (vegeu §2.11.3.1)
 
 ### 5.3 Favorites
@@ -1635,7 +1636,7 @@ La pagina `Perfil` desa sobre API real. Els tres endpoints d’usuari exigeixen 
 
 - nom, ciutat, país, avatar, consentiment
 - comentaris **opcionals** al perfil: el formulari carrega el valor de sessió/`GET` (BD); si és buit, el camp es veu buit; `UserProfileUpdateRequestValidator` no obliga `comments`
-- foto opcional; placeholder `NONE`
+- foto opcional; placeholder compartit «NO DISPONIBLE» als espais grans del perfil i sigles només a l’avatar rodó de navegació
 - consentiment: `USER` l’ha de tenir marcat per `canSave`; `ADMIN` exempt (`isAdmin` a l’snapshot)
 
 #### Compte (`account`)
@@ -1659,8 +1660,8 @@ La pagina `Perfil` desa sobre API real. Els tres endpoints d’usuari exigeixen 
 
 #### Alta Google vs login propi
 
-- Google crea hash aleatori: `verify` amb la contrasenya de Gmail no coincidirà
-- proves de canvi de contrasenya: compte amb login propi (seed Development)
+- Google crea el `User` amb `password_hash = null`; no hi ha contrasenya fictícia ni recuperació local
+- el bloc de contrasenya no es mostra al perfil federat; les proves de canvi de contrasenya usen un compte amb login propi (seed Development)
 
 Implementació backend (fitxers):
 
@@ -1683,15 +1684,17 @@ La base actual prepara pero no implementa encara:
 
 - refresh tokens o rotació de sessió
 - login social addicional (LinkedIn, Facebook, Apple, Microsoft)
-### 2.11.3 Identitat i recuperació de contrasenya — Fase IV, Iteració 2
+### 2.11.6 Identitat i recuperació de contrasenya — Fase IV, Iteració 2
 
-`User` representa la persona dins Zuppeto, no un proveïdor exclusiu. La credencial local és opcional (`users.password_hash` nullable) i `external_identities` conserva la relació 1→N amb `provider`, `subject` estable i `user_id`, sense tokens OAuth. Una identitat externa nova no es vincula automàticament només per email: si ja existeix un `User` sense aquella identitat, el backend denega el login per evitar account takeover.
+`User` representa la persona dins Zuppeto, no un proveïdor exclusiu. La credencial local és opcional (`users.password_hash` nullable) i `external_identities` conserva la relació 1→N amb `provider`, `subject` estable i `user_id`, sense tokens OAuth. Per a Google, la regla funcional vigent permet que una identitat realment validada i amb email verificat es vinculi automàticament a un `User` local activat amb el mateix email. Només es crea l'`ExternalIdentity`; no es modifica `password_hash`, rol ni perfil local complet.
+
+`ExternalIdentityLinkingService` conserva també l'endpoint explícit autenticat per a gestió de mètodes d'accés, però el login Google ordinari ja no exigeix aquest pas previ. Tant el flux automàtic com l'explícit deneguen una identitat d'un altre usuari o un segon Google diferent. La base reforça les curses amb unicitat `(provider, subject)` i `(user_id, provider)`; la migració és `AddUniqueExternalIdentityPerProvider`. LinkedIn i Facebook no adopten encara l'autovinculació.
 
 La recuperació reutilitza SMTP o Development Inbox i el patró criptogràfic de l'activació: 256 bits aleatoris, SHA-256 persistent, expiració d'una hora, un sol ús i substitució en una nova petició. Els tokens d'activació i reset tenen camps, repositoris i endpoints diferents, per tant no són intercanviables. La resposta pública és sempre `202 Accepted` i no enumera comptes ni mètodes d'accés.
 
 `security_version` és persistent a `users`; el JWT la incorpora com a claim i cada autenticació Bearer la compara amb la versió vigent. Un reset correcte l'incrementa, invalidant els JWT anteriors sense blacklist, Redis ni infraestructura de revocació global. Els comptes federats sense hash local no poden iniciar login per contrasenya ni generar recuperació; el primer accés federat rep sessió amb perfil pendent i es dirigeix a `/perfil` per completar dades Zuppeto, sense exigir contrasenya local. Afegir una contrasenya voluntària a un compte federat queda fora d'aquesta iteració.
 
-### 2.11.4 TOTP / 2FA — Fase IV, Iteració 3
+### 2.11.7 TOTP / 2FA — Fase IV, Iteració 3
 
 `User` governa l'estat TOTP, la versió de seguretat i el darrer timestep acceptat. El secret pendent i l'actiu es protegeixen amb ASP.NET Data Protection; el backend no persisteix la clau Base32 en clar. La configuració genera localment un URI `otpauth` i un QR SVG amb Otp.NET i QRCoder. El primer codi s'ha de verificar abans d'activar el factor.
 
@@ -1700,6 +1703,28 @@ Els recovery codes es generen amb aleatorietat criptogràfica i `totp_recovery_c
 L'aplicació exposa ports per al servei TOTP, el magatzem de challenges i el repositori de recovery codes. La infraestructura encapsula Data Protection, Otp.NET, QRCoder i EF; el domini no depèn d'aquests detalls. Les migracions `AddTotpTwoFactorAuthentication`, `AddTotpReplayProtection` i `AddTotpRecoveryCodeCascade` creen l'esquema, protegeixen contra replay i garanteixen cleanup relacional; han estat aplicades a la BD local.
 
 Angular incorpora `/seguretat` per a estat, setup, QR, clau manual, confirmació, recovery codes, regeneració i desactivació, i `/verificar-2fa` per al challenge de login. El JWT només s'emet després de superar el segon factor, tant si el primer factor és contrasenya com una identitat federada; el challenge conserva el proveïdor i la necessitat de completar perfil, evitant un bypass per OAuth. Els valors TOTP i recovery codes no s'escriuen en logs, Excel, traces ni artefactes; només es mostren a l'usuari en el moment funcional necessari.
+
+### 2.11.8 Google OAuth real i correccions de perfil — Fase IV, Iteració 4
+
+La pantalla `/seguretat` agrupa ara «Mètodes d'accés» i TOTP. Mostra contrasenya, Google, LinkedIn i Facebook sense exposar subjects ni tokens; LinkedIn/Facebook resten pendents. El botó oficial de Google es renderitza mitjançant `GoogleIdentityService`, compartit amb login, i envia la credencial a l'endpoint autenticat de linking. Un error 401 d'aquesta validació federada no elimina la sessió local ni genera el missatge global de sessió caducada; la pantalla presenta l'error funcional específic.
+
+Google Identity Services crea una configuració global per pàgina i `initialize()` no és un constructor de clients independents. Per això `GoogleIdentityService` l'executa una sola vegada i conserva un únic callback dispatcher. Cada render declara `mode = LOGIN | LINK`, registra el control que està muntat a la ruta Angular i retorna una funció de cleanup. La ruta activa és l'única que pot consumir la credencial: quan es munta LINK substitueix qualsevol registre LOGIN anterior, i en destruir el component s'elimina el registre. No s'intercepta el clic del botó oficial de GIS ni es confia en un `state` retingut pel proveïdor. Això cobreix la navegació SPA login → perfil → seguretat sense impedir que Google obri el selector.
+
+El botó de login és també el control oficial visible de GIS. No s'oculta l'iframe amb opacitat zero ni es presenta una capa Petiloc que simuli el botó: la interacció de l'usuari arriba directament al document de Google, evitant que les proteccions del navegador/proveïdor la tractin com un overlay transparent o un possible clickjacking.
+
+El login Google posterior continua pel flux ordinari: resol `ExternalIdentity`, recupera el mateix `User` i, si TOTP està actiu, crea challenge abans d'emetre JWT. El linking mai emet una sessió alternativa ni evita TOTP.
+
+`GoogleIdTokenVerifier` valida el token contra el `ClientId` efectiu del backend. `AuthApplicationService` resol primer `ExternalIdentity(provider, subject)`; si no existeix i troba un `User` local activat amb el mateix email verificat, intenta afegir la identitat Google amb `TryAddAsync` i continua sobre el mateix usuari. La unicitat impedeix que un subject pertanyi a dos usuaris o que un usuari acumuli dos Google diferents; aquests conflictes mantenen `409 external_identity_link_required`. Una credencial invàlida o no verificada retorna `401 federated_identity_rejected`; una configuració/proveïdor no disponible retorna `503 federated_provider_unavailable`.
+
+Una identitat Google nova crea un únic `User` amb rol `User`, `password_hash = null`, perfil inicial incomplet i un únic registre a `external_identities`; després emet JWT amb els permisos resolts pel rol. Un compte amb TOTP no rep JWT en aquest punt: rep challenge i completa el mateix gate 2FA que el login local. El login repetit reutilitza la identitat vinculada.
+
+La imatge `picture` de Google pot ser un monograma generat i no es considera una foto gestionada per Petiloc. El backend no la importa ni sobreescriu una foto pròpia existent. Al web, `normalizePetilocAvatarUrl` també descarta URLs `googleusercontent.com` que puguin romandre en una sessió anterior. La capçalera rodona usa sigles; els dos espais grans del perfil comparteixen CSS i mostren silueta, contorn discontinu i «NO DISPONIBLE» diagonal quan falta foto o la càrrega falla.
+
+El guardat del perfil manté `comments` opcional i exigeix nom, email vàlid, ciutat, país i, per a `USER`, consentiment. El primer consentiment actualitza `users` i afegeix un registre append-only a `privacy_consent_events`. `UserRepository` força el nou esdeveniment a `EntityState.Added`; això evita que una clau GUID generada al client sigui interpretada com una entitat existent i provoqui un `UPDATE` de zero files amb `DbUpdateConcurrencyException`.
+
+Després d'un `updateProfile` correcte, `shouldNavigateHomeAfterProfileSave` tanca el flux de compleció per a sessions `google`, `linkedin` i `facebook` navegant a `/` amb reemplaçament d'historial; `password` conserva el comportament normal del perfil.
+
+Cobertura incorporada: proves .NET per alta/reús Google, autovinculació d'un User local activat, rol, JWT, unicitat, TOTP i persistència del consentiment; proves Angular per classificació d'errors, política de guardat, navegació postguardat federat, callback GIS, avatar Google i fallback de Places. El tancament de la Iteració 4 acaba amb 24/24 proves backend, 43/43 proves Angular, builds API/Web i Google OAuth boundary E2E correctes; secrets revisats, Excel consolidat i cleanup final sense orfes. Gate Google real: `PASS` el 2026-09-17.
 
 ## 7. Implementacio del mapa
 

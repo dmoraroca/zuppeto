@@ -15,6 +15,7 @@ export interface ProfileFormSnapshot {
   confirmNewPassword: string;
   city: string;
   country: string;
+  comments: string;
   privacyAccepted: boolean;
   isAdmin: boolean;
   isPristine: boolean;
@@ -65,6 +66,10 @@ const PROFILE_REQUIRED_FIELD_RULES: readonly ProfileRequiredFieldRule[] = [
   {
     label: 'País',
     isMissing: (snapshot) => !snapshot.country.trim()
+  },
+  {
+    label: 'Consentiment de privacitat',
+    isMissing: (snapshot) => !snapshot.isAdmin && !snapshot.privacyAccepted
   }
 ];
 
@@ -84,9 +89,7 @@ export class CatalogProfileSavePolicy implements ProfileSavePolicy {
   canSave(snapshot: ProfileFormSnapshot): boolean {
     return this.commit.canCommit({
       hasChanges: !snapshot.isPristine,
-      rulesSatisfied:
-        this.missingRequiredLabels(snapshot).length === 0 &&
-        (snapshot.isAdmin || snapshot.privacyAccepted)
+      rulesSatisfied: this.missingRequiredLabels(snapshot).length === 0
     });
   }
 }
@@ -126,6 +129,7 @@ export function readProfileFormSnapshot(
     confirmNewPassword: read('confirmNewPassword'),
     city: read('city'),
     country: read('country'),
+    comments: read('comments'),
     privacyAccepted: !!form.controls['privacyAccepted']?.value,
     isAdmin,
     isPristine: form.pristine

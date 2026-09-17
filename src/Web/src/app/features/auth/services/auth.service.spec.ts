@@ -54,9 +54,67 @@ describe('AuthService Google OAuth', () => {
 
   it('does not create a browser session when Google verification is rejected', async () => {
     const promise = service.loginWithGoogle('invalid-token');
-    http.expectOne('http://localhost:5211/api/auth/google').flush(null, { status: 401, statusText: 'Unauthorized' });
+    http.expectOne('http://localhost:5211/api/auth/google').flush(
+      { code: 'federated_identity_rejected' },
+      { status: 401, statusText: 'Unauthorized' }
+    );
 
-    await expect(promise).resolves.toEqual({ ok: false });
+    await expect(promise).resolves.toEqual({ ok: false, failure: 'identity-rejected' });
     expect(store.saveSession).not.toHaveBeenCalled();
+  });
+
+  it('distinguishes an existing local account that is not linked to Google', async () => {
+    const promise = service.loginWithGoogle('google-id-token');
+    http.expectOne('http://localhost:5211/api/auth/google').flush(
+      { code: 'external_identity_link_required' },
+      { status: 409, statusText: 'Conflict' }
+    );
+
+    await expect(promise).resolves.toEqual({ ok: false, failure: 'account-link-required' });
+    expect(store.saveSession).not.toHaveBeenCalled();
+  });
+
+  it('classifies provider and transport failures as Google unavailable', async () => {
+    const promise = service.loginWithGoogle('google-id-token');
+    http.expectOne('http://localhost:5211/api/auth/google').flush(
+      { code: 'federated_provider_unavailable' },
+      { status: 503, statusText: 'Service Unavailable' }
+    );
+
+    await expect(promise).resolves.toEqual({ ok: false, failure: 'provider-unavailable' });
+    expect(store.saveSession).not.toHaveBeenCalled();
+  });
+
+  it('loads access methods and links Google without replacing the current session', async () => {
+    const methodsPromise = service.getAccessMethods();
+    http.expectOne('http://localhost:5211/api/auth/access-methods').flush({
+      methods: [
+        { provider: 'password', displayName: 'Contrasenya', linked: true, available: true, status: 'linked' },
+        { provider: 'google', displayName: 'Google', linked: false, available: true, status: 'linkable' }
+      ]
+    });
+    expect((await methodsPromise)[1].status).toBe('linkable');
+
+    const linkPromise = service.linkGoogle('verified-google-token');
+    const request = http.expectOne('http://localhost:5211/api/auth/access-methods/google/link');
+    expect(request.request.body).toEqual({ idToken: 'verified-google-token' });
+    request.flush({ provider: 'google', linked: true, alreadyLinked: false });
+
+    await expect(linkPromise).resolves.toEqual({ ok: true, alreadyLinked: false });
+    expect(store.saveSession).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['external_identity_email_mismatch', 'email-mismatch'],
+    ['external_identity_linked_elsewhere', 'linked-elsewhere'],
+    ['provider_already_linked', 'provider-already-linked'],
+    ['federated_identity_rejected', 'identity-rejected']
+  ] as const)('maps secure Google linking error %s', async (code, failure) => {
+    const promise = service.linkGoogle('google-token');
+    http.expectOne('http://localhost:5211/api/auth/access-methods/google/link').flush(
+      { code },
+      { status: code === 'federated_identity_rejected' ? 401 : 409, statusText: 'Error' }
+    );
+    await expect(promise).resolves.toEqual({ ok: false, failure });
   });
 });

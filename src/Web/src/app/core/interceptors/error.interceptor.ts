@@ -15,7 +15,8 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   return next(req).pipe(
     catchError((error: unknown) => {
       if (error instanceof HttpErrorResponse) {
-        if (error.status === 401 && req.url.startsWith(API_BASE_URL)) {
+        const isExternalIdentityLinkRequest = req.url.includes('/auth/access-methods/') && req.url.endsWith('/link');
+        if (error.status === 401 && req.url.startsWith(API_BASE_URL) && !isExternalIdentityLinkRequest) {
           store.saveSession(null);
 
           const currentUrl = router.url;
@@ -40,11 +41,14 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
           (req.url.includes('/admin/countries') || req.url.includes('/admin/cities'));
 
         const isLoginRequest = req.url.includes('/auth/login');
+        const isGoogleLoginRequest = req.method === 'POST' && req.url === `${API_BASE_URL}/auth/google`;
 
         if (
           !isNavigationMenuRequest &&
           !isGeographicCatalogNotFound &&
-          !(error.status === 401 && isLoginRequest)
+          !(error.status === 401 && isLoginRequest) &&
+          !isGoogleLoginRequest &&
+          !isExternalIdentityLinkRequest
         ) {
           notifications.pushHttpError(error);
         }

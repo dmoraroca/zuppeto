@@ -103,6 +103,7 @@
                 class="site-header__account-avatar"
                 [src]="$safeNavigationMigration(currentUser()?.avatarUrl)"
                 [alt]="currentUser()?.name ?? 'Usuari'"
+                (error)="onAvatarError()"
               />
             } @else {
               <span class="site-header__account-avatar site-header__account-avatar--fallback">

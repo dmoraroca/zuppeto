@@ -171,7 +171,8 @@
 
 .login-page__explorer-results {
   display: grid;
-  grid-template-columns: minmax(0, 1.45fr) minmax(15rem, 0.85fr);
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
   gap: 0.85rem;
   min-height: 0;
   height: 100%;
@@ -246,13 +247,18 @@
 
 .login-page__mosaic {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
   gap: 0.65rem;
   overflow: auto;
   min-height: 0;
-  height: 100%;
+  height: auto;
+  max-height: 11rem;
   align-content: start;
   padding-right: 0.15rem;
+}
+
+.login-page__mosaic:empty {
+  display: none;
 }
 
 .login-page__place-card {
@@ -370,16 +376,6 @@
   gap: 0.85rem;
 }
 
-.login-page__mosaic-empty {
-  margin: 0;
-  padding: 1rem;
-  border-radius: 1rem;
-  grid-column: 1 / -1;
-  background: rgba(15, 118, 110, 0.08);
-  color: #0f766e;
-  font-size: 0.9rem;
-}
-
 .login-page__separator {
   position: relative;
   text-align: center;
@@ -409,13 +405,14 @@
 .login-page__provider {
   position: relative;
   width: 100%;
-  min-height: 3.05rem;
+  height: 2.75rem;
+  padding: 0 0.9rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.7rem;
   border: 1px solid rgba(203, 213, 225, 0.86);
-  border-radius: 1rem;
+  border-radius: 999px;
   background: rgba(255, 255, 255, 0.98);
   color: #1e293b;
   font-weight: 700;
@@ -425,6 +422,17 @@
 
 .login-page__provider--pending {
   background: rgba(248, 250, 252, 0.96);
+}
+
+.login-page__provider--google {
+  height: 2.75rem;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  // GIS adds a transparent 10 px interaction gutter around its visible pill.
+  // Clip only that gutter so the official button aligns with the other rows.
+  overflow: hidden;
 }
 
 .login-page__provider--hidden {
@@ -464,21 +472,16 @@
 }
 
 .login-page__google-button {
-  position: absolute;
-  inset: 0;
+  position: static;
+  display: flex;
+  justify-content: center;
   width: 100%;
-  opacity: 0;
+  min-height: 2.75rem;
+  opacity: 1;
 }
 
 .login-page__google-button--hidden {
   display: none;
-}
-
-.login-page__providers-note {
-  margin: 0.35rem 0 0;
-  font-size: 0.78rem;
-  line-height: 1.45;
-  color: #64748b;
 }
 
 .login-page__support {

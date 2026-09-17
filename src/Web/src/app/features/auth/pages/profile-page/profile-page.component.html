@@ -15,11 +15,11 @@
   <section class="profile-layout">
     <aside class="profile-card">
       <div class="profile-card__avatar">
-        @if (previewAvatarUrl()) {
-          <img [src]="previewAvatarUrl()" [alt]="user()?.name || 'Avatar de perfil'" />
+        @if (showAvatarPreview()) {
+          <img [src]="previewAvatarUrl()" [alt]="user()?.name || 'Avatar de perfil'" (error)="onAvatarError()" />
         } @else {
-          <div class="profile-card__avatar-placeholder" aria-label="Sense foto">
-            <span class="profile-card__avatar-none">NONE</span>
+          <div class="profile-card__avatar-placeholder" aria-label="Imatge de perfil no disponible">
+            <span class="profile-card__avatar-none">NO DISPONIBLE</span>
           </div>
         }
       </div>
@@ -158,11 +158,11 @@
             (dragover)="allowAvatarDrop($event)"
             (drop)="onAvatarDropped($event)"
           >
-            @if (previewAvatarUrl()) {
-              <img [src]="previewAvatarUrl()" [alt]="user()?.name || 'Avatar de perfil'" />
+            @if (showAvatarPreview()) {
+              <img [src]="previewAvatarUrl()" [alt]="user()?.name || 'Avatar de perfil'" (error)="onAvatarError()" />
             } @else {
-              <div class="profile-avatar-editor__placeholder" aria-label="Sense foto">
-                <span class="profile-avatar-editor__none">NONE</span>
+              <div class="profile-avatar-editor__placeholder" aria-label="Imatge de perfil no disponible">
+                <span class="profile-avatar-editor__none">NO DISPONIBLE</span>
               </div>
             }
           </div>
@@ -178,7 +178,7 @@
         </section>
 
         <label class="profile-form__field">
-          <span>Comentaris</span>
+          <span>Comentaris (opcional)</span>
           <textarea rows="5" formControlName="comments"></textarea>
         </label>
 

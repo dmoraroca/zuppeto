@@ -39,6 +39,28 @@ Resum del diagrama:
 
 ## Rutes disponibles
 
+### Auth
+
+- `POST /api/auth/login` — login local
+- `POST /api/auth/google` — valida una credencial de Google Identity Services
+- `GET /api/auth/providers` — estat públic dels proveïdors configurats
+- `GET /api/auth/me` — sessió actual; requereix JWT
+- `GET /api/auth/access-methods` — mètodes d'accés del `User`; requereix JWT
+- `POST /api/auth/access-methods/google/link` — vinculació Google explícita des d'una sessió local; requereix JWT
+
+Contracte vigent de `POST /api/auth/google`:
+
+- una identitat Google nova crea exactament un `User` amb rol `USER` i una `ExternalIdentity`, amb `password_hash = null` i perfil incomplet
+- una `ExternalIdentity` existent recupera el mateix `User`
+- un email Google verificat que coincideix amb un `User` local activat crea només l'`ExternalIdentity`, conserva la contrasenya, el rol i el perfil, i continua sobre el mateix usuari
+- la repetició és idempotent i les restriccions úniques impedeixen compartir una identitat o afegir un segon Google diferent al mateix usuari
+- si TOTP està actiu, la resposta és un challenge i no conté JWT fins que se supera el segon factor
+- credencial invàlida o email no verificat: `401 federated_identity_rejected`
+- conflicte d'identitat: `409 external_identity_link_required`
+- proveïdor no configurat o no disponible: `503 federated_provider_unavailable`
+
+Cap endpoint desa tokens Google, subjects en logs o contrasenyes fictícies. L'endpoint explícit de linking es manté com a gestió addicional, però no és un prerequisit per al login Google coincident.
+
 ### Places
 
 El grup **`/api/places`** exigeix **`Authorization: Bearer <JWT>`** per defecte. Per al preview públic del login, aquestes lectures són anònimes: `GET /api/places`, `GET /api/places/cities` i `GET /api/places/cities/search`. La resta (inclòs detall per id, cerques externes i escrits) segueix amb JWT; els escrits **`POST` / `PUT`** també requereixen permís **`action.places.manage`**.
@@ -102,4 +124,4 @@ La Fase III queda completada perquè aquesta API ja no només existeix i respon,
 - `favorites`
 - manteniment de `perfil`
 
-L'autenticacio real amb backend continua fora d'aquest document i passa a la Fase IV.
+L'autenticació real pertany a la Fase IV. El login propi i Google OAuth real estan integrats; el gate de Google de la Iteració 4 va quedar validat el 2026-09-17. LinkedIn continua pendent del punt 5 i Facebook no forma part d'aquesta iteració.

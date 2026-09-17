@@ -11,6 +11,7 @@ import { Place, PlaceFilters } from '../../../places/models/place.model';
 import { CitySuggestion, PlaceService } from '../../../places/services/place.service';
 import { formatCityDisplayLabel, mergeCityLabelsDistinct } from '../../../places/utils/city-typeahead.utils';
 import { AuthService } from '../../services/auth.service';
+import { GoogleIdentityService } from '../../services/google-identity.service';
 
 @Component({
   selector: 'app-login-page',
@@ -27,6 +28,7 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly notifications = inject(ErrorNotificationsService);
   private readonly placeService = inject(PlaceService);
+  private readonly googleIdentity = inject(GoogleIdentityService);
   private readonly previewFiltersState = signal<PlaceFilters>({
     search: '',
     country: '',
@@ -36,10 +38,8 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
   });
   private readonly previewPlacesState = signal<Place[]>([]);
   private readonly previewCitySuggestionsState = signal<CitySuggestion[]>([]);
-  private readonly previewLoadingState = signal(false);
 
   protected readonly previewFilters = this.previewFiltersState.asReadonly();
-  protected readonly previewLoading = this.previewLoadingState.asReadonly();
   protected readonly authProviders = signal<string[]>([]);
   protected readonly googleProvider = signal<{ clientId: string } | null>(null);
   protected readonly linkedInProvider = signal<boolean>(false);
@@ -65,23 +65,6 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
   protected readonly samplePlaces = computed(() => this.previewPlacesState().slice(0, 8));
   /** Map markers: full API result set for the current public filters. */
   protected readonly mapPlaces = computed(() => this.previewPlacesState());
-  /** Login explorer only searches after search/city have enough text (BD → Google fallback). */
-  protected readonly previewHasDiscoveryQuery = computed(() =>
-    this.hasPublicDiscoveryQuery(this.previewFilters())
-  );
-  protected readonly mapPreviewCopy = computed(() => {
-    const count = this.mapPlaces().length;
-    if (this.previewLoading()) {
-      return 'Carregant llocs…';
-    }
-    if (!this.previewHasDiscoveryQuery()) {
-      return 'Escriu cerca o ciutat (≥ 2 caràcters). Google Places (proves); si no n’hi ha, catàleg BD.';
-    }
-    if (count === 0) {
-      return 'Cap lloc amb aquesta cerca (Google Places ni catàleg).';
-    }
-    return count === 1 ? '1 lloc visible al mapa.' : `${count} llocs visibles al mapa.`;
-  });
   protected readonly loginPreviewRoute = computed(() => {
     const filters = this.previewFilters();
     const queryParams = {
@@ -108,7 +91,8 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
   @ViewChild('googleButtonHost') private googleButtonHost?: ElementRef<HTMLDivElement>;
   @ViewChild('previewMapContainer') private previewMapContainer?: ElementRef<HTMLDivElement>;
   private googleButtonRendered = false;
-  private googleScriptPromise: Promise<void> | null = null;
+  private googleButtonCleanup?: () => void;
+  private destroyed = false;
   private previewMap?: import('leaflet').Map;
   private previewMarkersLayer?: import('leaflet').LayerGroup;
   private leafletModule?: typeof import('leaflet');
@@ -160,6 +144,8 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.destroyed = true;
+    this.googleButtonCleanup?.();
     this.previewMap?.remove();
     this.previewMap = undefined;
     this.previewMarkersLayer = undefined;
@@ -386,68 +372,27 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
       return;
     }
 
-    await this.loadGoogleScriptAsync();
-
-    if (!window.google?.accounts?.id) {
-      return;
-    }
-
-    host.innerHTML = '';
     const submitWidth = this.loginSubmitButton?.nativeElement.getBoundingClientRect().width ?? 0;
     const fallbackWidth =
       host.parentElement?.getBoundingClientRect().width ?? host.getBoundingClientRect().width ?? host.clientWidth ?? 320;
-    const width = Math.max(280, Math.round(submitWidth || fallbackWidth));
+    const width = Math.max(200, Math.round(submitWidth || fallbackWidth));
 
-    window.google.accounts.id.initialize({
-      client_id: provider.clientId,
-      callback: ({ credential }) => {
-        void this.handleGoogleCredentialAsync(credential);
-      }
-    });
-
-    window.google.accounts.id.renderButton(host, {
-      theme: 'outline',
-      size: 'large',
-      shape: 'pill',
+    const cleanup = await this.googleIdentity.renderButton(host, provider.clientId, 'LOGIN', (credential) => {
+      void this.handleGoogleCredentialAsync(credential);
+    }, {
       text: 'signin_with',
       width
     });
 
+    if (this.destroyed) {
+      cleanup();
+      return;
+    }
+    this.googleButtonCleanup?.();
+    this.googleButtonCleanup = cleanup;
+
     this.googleButtonRendered = true;
     this.googleButtonVisible.set(true);
-  }
-
-  private loadGoogleScriptAsync(): Promise<void> {
-    if (window.google?.accounts?.id) {
-      return Promise.resolve();
-    }
-
-    if (this.googleScriptPromise) {
-      return this.googleScriptPromise;
-    }
-
-    this.googleScriptPromise = new Promise<void>((resolve, reject) => {
-      const existing = document.querySelector<HTMLScriptElement>('script[data-google-identity]');
-
-      if (existing) {
-        existing.addEventListener('load', () => resolve(), { once: true });
-        existing.addEventListener('error', () => reject(new Error('No s’ha pogut carregar Google Identity Services.')), {
-          once: true
-        });
-        return;
-      }
-
-      const script = document.createElement('script');
-      script.src = 'https://accounts.google.com/gsi/client';
-      script.async = true;
-      script.defer = true;
-      script.setAttribute('data-google-identity', 'true');
-      script.onload = () => resolve();
-      script.onerror = () => reject(new Error('No s’ha pogut carregar Google Identity Services.'));
-      document.head.appendChild(script);
-    });
-
-    return this.googleScriptPromise;
   }
 
   private async handleGoogleCredentialAsync(idToken: string): Promise<void> {
@@ -461,11 +406,25 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
     }
 
     if (!result.ok) {
-      this.notifyUser(
-        'Google no disponible',
-        'Configura un Google Client ID vàlid i verifica la federació per activar aquest accés.',
-        'error'
-      );
+      if (result.failure === 'account-link-required') {
+        this.notifyUser(
+          'Identitat Google en conflicte',
+          'Aquest compte ja té una identitat Google diferent o la identitat seleccionada pertany a un altre compte.',
+          'error'
+        );
+      } else if (result.failure === 'identity-rejected') {
+        this.notifyUser(
+          'Autenticació Google rebutjada',
+          'No s’ha pogut validar la identitat retornada per Google. Torna-ho a provar.',
+          'error'
+        );
+      } else {
+        this.notifyUser(
+          'Google no disponible',
+          'El servei de Google no està disponible o no està configurat correctament.',
+          'error'
+        );
+      }
       return;
     }
 
@@ -496,7 +455,6 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
   }
 
   private async loadPublicPreviewAsync(): Promise<void> {
-    this.previewLoadingState.set(true);
     try {
       const suggestions = await this.placeService.fetchPublicCitySuggestions();
       this.previewCitySuggestionsState.set(suggestions);
@@ -512,8 +470,6 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
     } catch {
       this.previewPlacesState.set([]);
       this.previewCitySuggestionsState.set([]);
-    } finally {
-      this.previewLoadingState.set(false);
     }
   }
 }

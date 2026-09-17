@@ -14,6 +14,7 @@ internal sealed class AuthApplicationService(
     ITotpRecoveryCodeRepository recoveryCodes,
     ITwoFactorChallengeStore challenges,
     IAccessTokenIssuer accessTokenIssuer,
+    IExternalIdentityLinkingService externalIdentityLinkingService,
     IGoogleIdTokenVerifier googleIdTokenVerifier,
     ILinkedInOAuthClient linkedInOAuthClient,
     IFacebookOAuthClient facebookOAuthClient) : IAuthApplicationService
@@ -57,15 +58,20 @@ internal sealed class AuthApplicationService(
         return await CreateSessionAsync(user, challenge.Provider, challenge.RequiresProfileCompletion, cancellationToken);
     }
 
-    public async Task<LoginResult?> LoginWithGoogleAsync(
+    public async Task<LoginResult> LoginWithGoogleAsync(
         GoogleLoginRequest request,
         CancellationToken cancellationToken = default)
     {
+        if (!googleIdTokenVerifier.IsConfigured)
+        {
+            return LoginResult.FederatedProviderUnavailable();
+        }
+
         var identity = await googleIdTokenVerifier.VerifyAsync(request.IdToken, cancellationToken);
 
         if (identity is null || !identity.EmailVerified)
         {
-            return null;
+            return LoginResult.FederatedIdentityRejected();
         }
 
         return await LoginWithFederatedIdentityAsync(
@@ -73,7 +79,32 @@ internal sealed class AuthApplicationService(
             "google",
             "Google",
             googleIdTokenVerifier.AdminEmails,
+            linkExistingUserByVerifiedEmail: true,
             cancellationToken);
+    }
+
+    public Task<AccessMethodsDto?> GetAccessMethodsAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        return externalIdentityLinkingService.GetAccessMethodsAsync(userId, cancellationToken);
+    }
+
+    public async Task<ExternalIdentityLinkResult> LinkGoogleAsync(
+        Guid userId,
+        GoogleLoginRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (!googleIdTokenVerifier.IsConfigured)
+        {
+            return ExternalIdentityLinkResult.Failure(ExternalIdentityLinkFailureReason.ProviderUnavailable);
+        }
+
+        var identity = await googleIdTokenVerifier.VerifyAsync(request.IdToken, cancellationToken);
+        if (identity is null || !identity.EmailVerified || !string.Equals(identity.Provider, "google", StringComparison.OrdinalIgnoreCase))
+        {
+            return ExternalIdentityLinkResult.Failure(ExternalIdentityLinkFailureReason.IdentityRejected);
+        }
+
+        return await externalIdentityLinkingService.LinkAsync(userId, identity, cancellationToken);
     }
 
     public string? GetLinkedInAuthorizationUrl(string? redirectTo = null)
@@ -97,6 +128,7 @@ internal sealed class AuthApplicationService(
             "linkedin",
             "LinkedIn",
             linkedInOAuthClient.AdminEmails,
+            linkExistingUserByVerifiedEmail: false,
             cancellationToken);
 
         return login is null ? null : new AuthCallbackResult(login, exchange.Value.RedirectTo);
@@ -123,6 +155,7 @@ internal sealed class AuthApplicationService(
             "facebook",
             "Facebook",
             facebookOAuthClient.AdminEmails,
+            linkExistingUserByVerifiedEmail: false,
             cancellationToken);
 
         return login is null ? null : new AuthCallbackResult(login, exchange.Value.RedirectTo);
@@ -175,11 +208,12 @@ internal sealed class AuthApplicationService(
             requiresProfileCompletion);
     }
 
-    private async Task<LoginResult?> LoginWithFederatedIdentityAsync(
+    private async Task<LoginResult> LoginWithFederatedIdentityAsync(
         FederatedIdentityPayload identity,
         string providerKey,
         string providerDisplayName,
         IReadOnlyCollection<string> adminEmails,
+        bool linkExistingUserByVerifiedEmail,
         CancellationToken cancellationToken)
     {
         var externalIdentity = await externalIdentityRepository.GetByProviderAndSubjectAsync(identity.Provider, identity.Subject, cancellationToken);
@@ -195,13 +229,13 @@ internal sealed class AuthApplicationService(
                 Guid.NewGuid(),
                 identity.Email,
                 null,
-                shouldBeAdmin ? "Admin" : "Viewer",
+                shouldBeAdmin ? "Admin" : "User",
                 new UserProfile(
                     ResolveDisplayName(identity),
                     string.Empty,
                     string.Empty,
                     string.Empty,
-                    identity.AvatarUrl),
+                    ResolveFederatedAvatarUrl(providerKey, identity.AvatarUrl, null)),
                 shouldBeAdmin
                     ? new PrivacyConsent(true, DateTimeOffset.UtcNow)
                     : new PrivacyConsent(false, null),
@@ -214,8 +248,33 @@ internal sealed class AuthApplicationService(
         }
         else
         {
-            // Email matching alone never links a new external identity: it could be an account takeover.
-            if (externalIdentity is null) return null;
+            if (externalIdentity is null)
+            {
+                if (!linkExistingUserByVerifiedEmail || !identity.EmailVerified || !user.IsEmailActivated)
+                {
+                    return LoginResult.ExternalIdentityLinkRequired();
+                }
+
+                var providerIdentity = await externalIdentityRepository.GetByUserAndProviderAsync(
+                    user.Id, providerKey, cancellationToken);
+                if (providerIdentity is not null)
+                {
+                    return LoginResult.ExternalIdentityLinkRequired();
+                }
+
+                var linked = await externalIdentityRepository.TryAddAsync(
+                    new ExternalIdentity(Guid.NewGuid(), user.Id, providerKey, identity.Subject, DateTimeOffset.UtcNow),
+                    cancellationToken);
+                if (!linked)
+                {
+                    var racedIdentity = await externalIdentityRepository.GetByProviderAndSubjectAsync(
+                        providerKey, identity.Subject, cancellationToken);
+                    if (racedIdentity?.UserId != user.Id)
+                    {
+                        return LoginResult.ExternalIdentityLinkRequired();
+                    }
+                }
+            }
             var shouldPersist = false;
 
             if (shouldBeAdmin && !string.Equals(user.Role, "Admin", StringComparison.OrdinalIgnoreCase))
@@ -230,7 +289,7 @@ internal sealed class AuthApplicationService(
                 shouldPersist = true;
             }
 
-            if (CanSynchronizeProfile(user) && ShouldSynchronizeProfile(user, identity))
+            if (CanSynchronizeProfile(user) && ShouldSynchronizeProfile(user, identity, providerKey))
             {
                 user.UpdateProfile(
                     new UserProfile(
@@ -238,7 +297,7 @@ internal sealed class AuthApplicationService(
                         user.Profile.City,
                         user.Profile.Country,
                         user.Profile.Comments,
-                        string.IsNullOrWhiteSpace(identity.AvatarUrl) ? user.Profile.AvatarUrl : identity.AvatarUrl));
+                        ResolveFederatedAvatarUrl(providerKey, identity.AvatarUrl, user.Profile.AvatarUrl)));
                 shouldPersist = true;
             }
 
@@ -275,13 +334,29 @@ internal sealed class AuthApplicationService(
             || user.PrivacyConsent.Accepted;
     }
 
-    private static bool ShouldSynchronizeProfile(User user, FederatedIdentityPayload identity)
+    private static bool ShouldSynchronizeProfile(User user, FederatedIdentityPayload identity, string providerKey)
     {
         var nextDisplayName = ResolveDisplayName(identity);
-        var nextAvatarUrl = string.IsNullOrWhiteSpace(identity.AvatarUrl) ? user.Profile.AvatarUrl : identity.AvatarUrl;
+        var nextAvatarUrl = ResolveFederatedAvatarUrl(providerKey, identity.AvatarUrl, user.Profile.AvatarUrl);
 
         return !string.Equals(user.Profile.DisplayName, nextDisplayName, StringComparison.Ordinal) ||
                !string.Equals(user.Profile.AvatarUrl, nextAvatarUrl, StringComparison.Ordinal);
+    }
+
+    private static string? ResolveFederatedAvatarUrl(
+        string providerKey,
+        string? providerAvatarUrl,
+        string? currentAvatarUrl)
+    {
+        // Google can expose its generated letter monogram through the same `picture`
+        // claim as a real photo. Keep avatar ownership in Petiloc so that an absent
+        // user-uploaded photo is represented consistently as unavailable.
+        if (string.Equals(providerKey, "google", StringComparison.OrdinalIgnoreCase))
+        {
+            return currentAvatarUrl;
+        }
+
+        return string.IsNullOrWhiteSpace(providerAvatarUrl) ? currentAvatarUrl : providerAvatarUrl;
     }
 
     private static bool IsProfileIncomplete(User user) =>

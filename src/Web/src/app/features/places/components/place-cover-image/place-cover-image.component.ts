@@ -1,6 +1,7 @@
 import { Component, computed, effect, input, signal, ChangeDetectionStrategy } from '@angular/core';
+import { placeInitials } from '../../utils/place-initials';
 
-export type PlaceCoverImageVariant = 'hero' | 'related';
+export type PlaceCoverImageVariant = 'hero' | 'related' | 'card';
 
 @Component({
   selector: 'app-place-cover-image',
@@ -9,9 +10,10 @@ export type PlaceCoverImageVariant = 'hero' | 'related';
   styleUrl: './place-cover-image.component.scss'
 })
 export class PlaceCoverImageComponent {
-  readonly imageUrl = input('');
+  readonly imageUrl = input<string | null | undefined>('');
+  readonly placeName = input('');
   readonly alt = input('');
-  readonly caption = input('Imatge no disponible');
+  readonly caption = input('NO DISPONIBLE');
   readonly variant = input<PlaceCoverImageVariant>('hero');
 
   private readonly loadFailed = signal(false);
@@ -28,6 +30,8 @@ export class PlaceCoverImageComponent {
     const url = this.imageUrl()?.trim();
     return Boolean(url) && !this.loadFailed();
   });
+
+  protected readonly initials = computed(() => placeInitials(this.placeName() || this.alt()));
 
   protected onImageError(): void {
     this.loadFailed.set(true);

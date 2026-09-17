@@ -1,9 +1,10 @@
-import { Component, ElementRef, HostListener, ViewChild, computed, inject, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ElementRef, HostListener, ViewChild, computed, effect, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 
 import { NavigationMenuItem } from '../../../models/navigation-menu.model';
 import { AuthService } from '../../../../features/auth/services/auth.service';
 import { ErrorNotificationsService } from '../../../services/error-notifications.service';
+import { hasPetilocAvatar } from '../../../../shared/utils/user-avatar-url.util';
 
 @Component({
   selector: 'app-site-header',
@@ -31,6 +32,17 @@ export class SiteHeaderComponent {
   protected readonly unreadNotifications = computed(() => this.notifications.unreadCount());
   protected readonly hasUnreadNotifications = computed(() => this.notifications.hasUnread());
   protected readonly hasNotifications = computed(() => this.notifications.notifications().length > 0);
+  private readonly avatarLoadFailed = signal(false);
+  protected readonly hasAvatar = computed(() =>
+    hasPetilocAvatar(this.currentUser()?.avatarUrl) && !this.avatarLoadFailed()
+  );
+
+  constructor() {
+    effect(() => {
+      this.currentUser()?.avatarUrl;
+      this.avatarLoadFailed.set(false);
+    });
+  }
 
   protected logout(): void {
     this.authService.logout();
@@ -53,8 +65,8 @@ export class SiteHeaderComponent {
     return !item.route?.trim();
   }
 
-  protected hasAvatar(): boolean {
-    return !!this.currentUser()?.avatarUrl;
+  protected onAvatarError(): void {
+    this.avatarLoadFailed.set(true);
   }
 
   protected accountInitials(): string {

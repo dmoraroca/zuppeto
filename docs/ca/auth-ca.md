@@ -2,18 +2,18 @@
 
 ## Objectiu
 
-Aquest document recull la base real d'autenticació de la Fase IV i el tancament del punt d'autenticació pròpia i federada amb `Google` i `LinkedIn` operatius en desenvolupament.
+Aquest document recull la base real d'autenticació de la Fase IV. El login propi i la base federada estan implementats; el gate real de Google de la Iteració 4 està validat i tancat.
 
 ## Estat
 
 - punt de fase: `autenticació pròpia i federada`
-- estat: `(**FET**)`
-- següent punt de fase: `rols i permisos`
+- estat de Google real: `PASS — Iteració 4 validada el 2026-09-17`
+- el punt 5 no s'ha iniciat
 
 ## Base actual implementada
 
 - login propi real contra backend
-- login federat amb `Google` i `LinkedIn` en desenvolupament
+- login federat Google real validat; LinkedIn continua en desenvolupament i pendent del punt 5
 - emissió de `JWT`
 - persistència de sessió al navegador
 - endpoint de sessió actual via `GET /api/auth/me`
@@ -29,6 +29,17 @@ Aquest document recull la base real d'autenticació de la Fase IV i el tancament
 - el text del control oficial es fixa en mode d'inici de sessió (`Iniciar amb Google`)
 - el contenidor visible de Google s'estira al 100% per evitar que el botó quedi més curt que el CTA principal
 - l'amplada final del control federat es calcula prenent com a referència directa el botó `Iniciar sessió`
+- una alta Google nova crea rol `USER`, una sola `ExternalIdentity`, `password_hash = null` i perfil incomplet; no crea credencial local fictícia
+- una identitat Google validada amb email verificat vincula automàticament un compte local activat amb el mateix email i continua el login al mateix `User`
+- l'autovinculació conserva la contrasenya local, rol i dades, no crea cap `User`, és idempotent i denega identitats d'un altre usuari o un segon Google diferent
+- `Perfil · Seguretat` conserva la consulta i vinculació explícita com a gestió addicional, però no és un pas obligatori abans del primer login Google coincident
+- `ExternalIdentityLinkingService` manté el cas d'ús comú per a futurs proveïdors; en aquesta iteració només Google exposa linking
+- `GoogleIdentityService` inicialitza Google Identity Services una sola vegada per pàgina i despatxa el callback global mitjançant una intenció explícita `LOGIN` o `LINK`; el control muntat a la ruta activa substitueix qualsevol registre anterior i elimina el handler en destruir la pantalla
+- el dispatcher no intercepta el clic del botó oficial ni depèn del `state` de GIS: només la pantalla Angular activa pot consumir la credencial
+- el login mostra directament l'iframe oficial de GIS; no l'oculta amb `opacity: 0` ni hi superposa una imitació visual, perquè Google pugui validar la interacció real i obrir el selector sense proteccions de clickjacking
+- TOTP s'aplica també al login federat abans d'emetre JWT
+- els errors de proveïdor no disponible, identitat rebutjada i vinculació necessària tenen status/codi i missatge diferenciats, sense duplicar l'avís global de sessió
+- el monograma `picture` de Google no s'importa com a foto pròpia; al perfil sense foto es mostra «NO DISPONIBLE» i les sigles només apareixen a la rodona de navegació
 
 ## Usuaris de desenvolupament
 
@@ -41,6 +52,8 @@ Aquest document recull la base real d'autenticació de la Fase IV i el tancament
 - `POST /api/auth/google`
 - `GET /api/auth/providers`
 - `GET /api/auth/me`
+- `GET /api/auth/access-methods` (requereix JWT)
+- `POST /api/auth/access-methods/google/link` (requereix JWT)
 
 ## Credencial local de desenvolupament
 
@@ -72,3 +85,25 @@ Aquest document recull la base real d'autenticació de la Fase IV i el tancament
 - `POST /api/auth/login` correcte
 - `GET /api/auth/me` correcte amb `Bearer token`
 - `GET /api/auth/providers` valida `Google` com a `configured: true` en entorn `Development`
+- credencial Google real rebuda i validada pel backend
+- alta real nova comprovada amb exactament un `User` i una `ExternalIdentity`, rol `USER`, permisos coherents, perfil incomplet i sense contrasenya local
+- cleanup del compte temporal i de la identitat associada verificat sense orfes
+- proves automatitzades de col·lisió segura per email, reús d'identitat, errors federats i TOTP sense bypass
+- proves automatitzades de linking autenticat, idempotència, preservació de contrasenya, email diferent, identitat aliena, segon Google i no-duplicació
+- regressió Angular de navegació login → seguretat: una credencial retornada pel botó `LINK` només invoca linking i mai `loginWithGoogle`
+- regressió Angular específica de navegació LOGIN → LINK: només s'invoca el handler del control actiu, i un control destruït no consumeix credencials
+- prova de l'interceptor Angular: el request autenticat de linking inclou el JWT de la sessió local
+
+## Tancament del gate Google real
+
+- alta Google nova, perfil incomplet i persistència: validats
+- compte local existent amb autovinculació i entrada al mateix `User`: validat
+- contrasenya local, rol i permisos: preservats
+- ExternalIdentity única, sense duplicats ni orfes: validada
+- logout/relogin, JWT i navegació: acceptats en la validació funcional
+- TOTP federat sense bypass: cobert per regressió backend
+- regressions finals: 24/24 backend i 43/43 Angular
+- Google OAuth boundary E2E: PASS
+- secrets: cap secret Google requerit ni exposat; secrets futurs LinkedIn/Facebook només amb placeholders
+- Excel: `ZUP-006` i `ZUP-016` Chrome marcats `OK / MANUAL`
+- cleanup: usuari federat temporal eliminat; baseline final de 10 usuaris, 1 identitat Google operativa i 0 orfes

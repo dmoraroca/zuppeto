@@ -63,11 +63,36 @@ Format recomanat d'execucio:
 - prerequisit: `ClientId` Google configurat
 - passos:
   - obrir `/login`
-  - clicar `Iniciar amb Google`
-  - completar login federat
+  - usar el control oficial de Google
+  - seleccionar un compte Google real
 - resultat esperat:
-  - es crea sessio valida
-  - es recupera l'usuari correcte
+  - Google valida la credencial i Petiloc no mostra errors d'origen
+  - si la `ExternalIdentity` ja existeix, es recupera el mateix `User`
+  - si és una identitat nova sense `User`, es creen exactament un `User` amb rol `USER` i una `ExternalIdentity`, sense contrasenya fictícia, i es navega a `/perfil`
+  - si l'email verificat coincideix amb un `User` local activat, es crea només l'`ExternalIdentity`, es conserva la contrasenya i s'entra amb el mateix `User`
+  - si hi ha TOTP actiu, es demana el challenge abans d'emetre el JWT
+
+#### JP-003A · Conflictes de vinculació Google
+
+- prerequisit: `ClientId` Google configurat i dades preparades per provocar el conflicte
+- passos:
+  - obrir `/login`
+  - autenticar una identitat Google ja vinculada a un altre usuari, o intentar afegir un segon Google diferent al mateix usuari
+- resultat esperat:
+  - la petició es denega amb conflicte funcional
+  - no es crea ni es duplica cap `User` o `ExternalIdentity`
+  - no es modifica cap contrasenya, rol ni sessió aliena
+
+#### JP-003B · Vinculació Google explícita des de Seguretat
+
+- prerequisit: sessió local autenticada
+- passos:
+  - obrir `Perfil → Seguretat → Mètodes d'accés`
+  - prémer `Vincular Google` i completar el selector oficial
+- resultat esperat:
+  - el request autenticat conserva el JWT local i crea l'`ExternalIdentity` del mateix `User`
+  - no es crea cap segon `User` ni s'elimina la contrasenya local
+  - la sessió local continua oberta i Google queda marcat com a vinculat
 
 #### JP-004 · Login LinkedIn
 
@@ -91,13 +116,14 @@ Format recomanat d'execucio:
 
 ### 4.2 Rols i permisos
 
-#### JP-010 · Usuari nou per defecte
+#### JP-010 · Rol inicial segons el flux d'alta
 
-- prerequisit: login nou via propi o federat
+- prerequisit: alta nova mitjançant el flux que es vol validar
 - passos:
   - crear o fer entrar un usuari que no existeixi encara
 - resultat esperat:
-  - el rol inicial queda com `VIEWER`
+  - una alta Google nova queda amb rol `USER` i els permisos corresponents
+  - els altres fluxos apliquen la seva política de rol sense alterar la regla específica de Google
 
 #### JP-011 · `ADMIN` continua sent administrador
 

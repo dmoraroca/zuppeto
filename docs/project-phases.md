@@ -118,7 +118,7 @@ Separar clarament les zones públiques de les zones internes o controlades per p
 
 ### Què entra dins la fase IV
 
-- autenticació pròpia i federada (`Google`, `LinkedIn`, `Facebook` i altres proveïdors OAuth/OIDC) (**FET**)
+- autenticació pròpia i Google OAuth real (**FET**); `LinkedIn` continua pendent del punt 5 i `Facebook`/altres proveïdors queden fora del punt 4
 - rols i permisos (**FET**)
 - pàgines internes (**FET**): punt tancat amb el criteri definit per direcció de projecte, incloent base d'accés intern i manteniments d'administració ja operatius.
 - gestió de contingut o dades (**EN CURS**): `llocs` i després `favorits`; catàleg territorial (**prioritat Espanya**): detall a `docs/ca/funcional-ca.md` (§3.15.1).
@@ -133,6 +133,7 @@ La plataforma ja diferencia entre usuaris públics, usuaris autenticats i àrees
 ### Què s'ha fet en aquest tram de la Fase IV
 
 - `pàgines internes` queda **FET** (accés intern i manteniments principals operatius)
+- Fase IV, Iteració 4 — Google OAuth real: **VALIDADA el 2026-09-17**. Inclou alta Google nova amb rol `USER`, autovinculació segura d'un compte local activat per email verificat, `ExternalIdentity` única, TOTP sense bypass, logout/relogin, regressions, secrets, cleanup i registre Excel. El punt 5 no s'ha iniciat.
 - login: destí per defecte **Inici** per a tots els rols (ZUP-004); ADMIN obre permisos des del menú, no a la primera pantalla
 - `gestió de contingut o dades` continua **EN CURS**: focus actual en `llocs` (cerca lazy + base de proveïdor extern) i `favorits` (Cercar/Netejar sobre BD + caducitat Google 30 dies via Details). Tram llistat/fitxa 2026-09-01: **OK** (foto, paginació, Cercar, tres apartats). Pendent (no ara): recordar take per filtre (20/40/60) si es torna a aplicar; llistat scroll editorial (foto+text, seleccionat a encaixar); Ajuda «Dubtes habituals» amb textos i format diferents. Vegeu `docs/ca/millores-pendents-ca.md`.
 - detall funcional i tècnic del tram actual: `docs/ca/funcional-ca.md` (§3.17, §3.12, §12.5, §12.7) i `docs/ca/tecnic-ca.md` (§2.11.3, §2.11.3.1, §2.11.4 procedència `places`, §2.11.5 menús admin, §2.10.3 permisos de build local)

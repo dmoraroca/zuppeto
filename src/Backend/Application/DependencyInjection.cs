@@ -25,6 +25,7 @@ public static class DependencyInjection
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
         services.AddScoped<IAuthApplicationService, AuthApplicationService>();
+        services.AddScoped<IExternalIdentityLinkingService, ExternalIdentityLinkingService>();
         services.AddScoped<IAdminApplicationService, AdminApplicationService>();
         services.AddScoped<IGeographicAdminAppService, GeographicAdminAppService>();
         services.AddScoped<INavigationApplicationService, NavigationApplicationService>();

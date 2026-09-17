@@ -31,6 +31,8 @@ internal static class AuthEndpoints
         group.MapPost("/totp/disable", DisableTotpAsync).RequireAuthorization().RequireRateLimiting("totp");
         group.MapPost("/totp/recovery-codes/regenerate", RegenerateTotpRecoveryCodesAsync).RequireAuthorization().RequireRateLimiting("totp");
         group.MapPost("/google", GoogleLoginAsync);
+        group.MapGet("/access-methods", GetAccessMethodsAsync).RequireAuthorization();
+        group.MapPost("/access-methods/google/link", LinkGoogleAsync).RequireAuthorization();
         group.MapGet("/linkedin/start", LinkedInStartAsync);
         group.MapGet("/linkedin/callback", LinkedInCallbackAsync);
         group.MapGet("/facebook/start", FacebookStartAsync);
@@ -156,7 +158,30 @@ internal static class AuthEndpoints
         }
 
         var result = await service.LoginWithGoogleAsync(request, cancellationToken);
-        if (result is null) return TypedResults.Unauthorized();
+        if (result.FailureReason == LoginFailureReason.FederatedProviderUnavailable)
+        {
+            return TypedResults.Problem(
+                statusCode: StatusCodes.Status503ServiceUnavailable,
+                title: "Google no disponible",
+                detail: "El proveïdor Google no està configurat.",
+                extensions: new Dictionary<string, object?> { ["code"] = "federated_provider_unavailable" });
+        }
+        if (result.FailureReason == LoginFailureReason.ExternalIdentityLinkRequired)
+        {
+            return TypedResults.Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: "Compte local existent",
+                detail: "Ja existeix un compte local amb aquesta adreça, però no està vinculat a Google.",
+                extensions: new Dictionary<string, object?> { ["code"] = "external_identity_link_required" });
+        }
+        if (result.FailureReason == LoginFailureReason.FederatedIdentityRejected)
+        {
+            return TypedResults.Problem(
+                statusCode: StatusCodes.Status401Unauthorized,
+                title: "Autenticació Google rebutjada",
+                detail: "Google no ha pogut validar aquesta autenticació.",
+                extensions: new Dictionary<string, object?> { ["code"] = "federated_identity_rejected" });
+        }
         return result.Session is not null
             ? TypedResults.Ok(result.Session)
             : TypedResults.Accepted("/api/auth/login/totp", new TwoFactorChallengeResponse(result.ChallengeId!));
@@ -166,6 +191,58 @@ internal static class AuthEndpoints
     {
         return TypedResults.Ok(service.GetProviders());
     }
+
+    private static async Task<IResult> GetAccessMethodsAsync(
+        ClaimsPrincipal principal,
+        IAuthApplicationService service,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetUserId(principal, out var userId)) return TypedResults.Unauthorized();
+        var methods = await service.GetAccessMethodsAsync(userId, cancellationToken);
+        return methods is null ? TypedResults.NotFound() : TypedResults.Ok(methods);
+    }
+
+    private static async Task<IResult> LinkGoogleAsync(
+        ClaimsPrincipal principal,
+        GoogleLoginRequest request,
+        IValidator<GoogleLoginRequest> validator,
+        IAuthApplicationService service,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetUserId(principal, out var userId)) return TypedResults.Unauthorized();
+        var validation = validator.Validate(request);
+        if (!validation.IsValid) return validation.ToValidationProblem();
+
+        var result = await service.LinkGoogleAsync(userId, request, cancellationToken);
+        if (result.Linked)
+        {
+            return TypedResults.Ok(new { provider = "google", linked = true, alreadyLinked = result.AlreadyLinked });
+        }
+
+        return result.FailureReason switch
+        {
+            ExternalIdentityLinkFailureReason.ProviderUnavailable => LinkProblem(
+                StatusCodes.Status503ServiceUnavailable, "Google no disponible", "El proveïdor Google no està configurat.", "federated_provider_unavailable"),
+            ExternalIdentityLinkFailureReason.IdentityRejected => LinkProblem(
+                StatusCodes.Status401Unauthorized, "Autenticació Google rebutjada", "Google no ha pogut validar aquesta autenticació.", "federated_identity_rejected"),
+            ExternalIdentityLinkFailureReason.EmailMismatch => LinkProblem(
+                StatusCodes.Status409Conflict, "Compte Google diferent", "El compte Google autenticat no correspon al compte Petiloc actual.", "external_identity_email_mismatch"),
+            ExternalIdentityLinkFailureReason.IdentityLinkedToAnotherUser => LinkProblem(
+                StatusCodes.Status409Conflict, "Identitat ja vinculada", "Aquesta identitat Google ja està vinculada a un altre compte.", "external_identity_linked_elsewhere"),
+            ExternalIdentityLinkFailureReason.ProviderAlreadyLinkedToDifferentIdentity => LinkProblem(
+                StatusCodes.Status409Conflict, "Google ja vinculat", "Aquest compte Petiloc ja té una altra identitat Google vinculada.", "provider_already_linked"),
+            ExternalIdentityLinkFailureReason.UserNotFound => TypedResults.NotFound(),
+            _ => LinkProblem(
+                StatusCodes.Status409Conflict, "No s’ha pogut vincular", "La vinculació ha entrat en conflicte. Torna-ho a provar.", "external_identity_link_conflict")
+        };
+    }
+
+    private static IResult LinkProblem(int status, string title, string detail, string code) =>
+        TypedResults.Problem(
+            statusCode: status,
+            title: title,
+            detail: detail,
+            extensions: new Dictionary<string, object?> { ["code"] = code });
 
     private static Results<RedirectHttpResult, NotFound> LinkedInStartAsync(
         IAuthApplicationService service,
@@ -299,5 +376,11 @@ internal static class AuthEndpoints
 
         var session = await service.GetSessionByUserIdAsync(userId, cancellationToken);
         return session is null ? TypedResults.NotFound() : TypedResults.Ok(session);
+    }
+
+    private static bool TryGetUserId(ClaimsPrincipal principal, out Guid userId)
+    {
+        var subject = principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? principal.FindFirstValue("sub");
+        return Guid.TryParse(subject, out userId);
     }
 }

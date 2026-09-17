@@ -9,5 +9,13 @@
 .danger { color: #8a1c1c; border-color: #8a1c1c; background: #fff; }
 .success { padding: .75rem; border-radius: .5rem; color: #175c2c; background: #eaf7ed; }
 .error { color: #9d1f1f; }
+.access-methods { display: grid; gap: .75rem; }
+.access-methods h2, .access-methods p { margin: 0; }
+.access-methods ul { display: grid; gap: .65rem; margin: 0; padding: 0; list-style: none; }
+.access-methods li { display: grid; grid-template-columns: minmax(8rem, 1fr) auto minmax(0, 18rem); gap: 1rem; align-items: center; padding: .8rem 1rem; border: 1px solid #ded7c8; border-radius: .75rem; }
+.access-methods strong { color: #68707d; }
+.access-methods strong.linked { color: #175c2c; }
+.google-link-host { min-height: 2.5rem; justify-self: end; }
+hr { width: 100%; margin: 1rem 0; border: 0; border-top: 1px solid #ded7c8; }
 .recovery ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem 1rem; margin: 0; padding-left: 1.25rem; }
-@media (max-width: 38rem) { .setup-grid { grid-template-columns: 1fr; } .recovery ul { grid-template-columns: 1fr; } }
+@media (max-width: 38rem) { .setup-grid { grid-template-columns: 1fr; } .recovery ul { grid-template-columns: 1fr; } .access-methods li { grid-template-columns: 1fr auto; } .google-link-host { grid-column: 1 / -1; justify-self: start; width: 100%; } }

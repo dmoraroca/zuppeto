@@ -47,14 +47,15 @@
 .profile-card__avatar-placeholder {
   width: 100%;
   height: 100%;
-  border-radius: 1.4rem;
+  border-radius: 1.2rem;
 }
 
 .profile-card__avatar img {
   object-fit: cover;
 }
 
-.profile-card__avatar-placeholder {
+.profile-card__avatar-placeholder,
+.profile-avatar-editor__placeholder {
   position: relative;
   display: grid;
   place-items: center;
@@ -65,10 +66,14 @@
     linear-gradient(180deg, rgba(248, 250, 252, 0.96), rgba(241, 245, 249, 0.92));
 }
 
-.profile-card__avatar-none {
-  color: #dc2626;
+.profile-card__avatar-none,
+.profile-avatar-editor__none {
+  transform: rotate(-24deg);
+  color: rgba(15, 23, 42, 0.34);
+  font-size: 1.3rem;
   font-weight: 900;
   letter-spacing: 0.18em;
+  text-align: center;
 }
 
 .profile-card__meta {
@@ -244,24 +249,6 @@
 .profile-avatar-editor__dropzone img {
   object-fit: cover;
   border: 1px solid rgba(209, 213, 219, 0.84);
-}
-
-.profile-avatar-editor__placeholder {
-  position: relative;
-  display: grid;
-  place-items: center;
-  border: 1px dashed rgba(148, 163, 184, 0.7);
-  background:
-    linear-gradient(135deg, rgba(236, 253, 245, 0.9), rgba(239, 246, 255, 0.9)),
-    #fff;
-}
-
-.profile-avatar-editor__none {
-  transform: rotate(-24deg);
-  color: rgba(15, 23, 42, 0.34);
-  font-size: 1.3rem;
-  font-weight: 900;
-  letter-spacing: 0.18em;
 }
 
 .profile-avatar-editor__controls {

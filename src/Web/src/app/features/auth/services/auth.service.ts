@@ -6,7 +6,7 @@ import { Observable, firstValueFrom } from 'rxjs';
 import { API_BASE_URL } from '../../../core/config/api.config';
 import { NavigationMenuItem } from '../../../core/models/navigation-menu.model';
 import { ErrorNotificationsService } from '../../../core/services/error-notifications.service';
-import { AccountRegistration, AuthAccountUpdate, AuthCredentials, AuthProfileUpdate, AuthProvider, AuthRole, AuthSession, AuthUser } from '../models/auth-user.model';
+import { AccessMethod, AccountRegistration, AuthAccountUpdate, AuthCredentials, AuthProfileUpdate, AuthProvider, AuthRole, AuthSession, AuthUser } from '../models/auth-user.model';
 import {
   ROLE_CHROME_POLICY,
   RoleChromeKind,
@@ -150,7 +150,12 @@ export class AuthService {
     } catch { return 'Invalid'; }
   }
 
-  async loginWithGoogle(idToken: string): Promise<{ ok: boolean; user?: AuthUser; twoFactorChallenge?: string }> {
+  async loginWithGoogle(idToken: string): Promise<{
+    ok: boolean;
+    user?: AuthUser;
+    twoFactorChallenge?: string;
+    failure?: 'provider-unavailable' | 'account-link-required' | 'identity-rejected';
+  }> {
     try {
       const session = await firstValueFrom(
         this.http.post<AuthSessionApiDto | { challengeId: string }>(`${API_BASE_URL}/auth/google`, {
@@ -167,8 +172,47 @@ export class AuthService {
       await this.applyRoleChrome(mappedSession.user.role);
 
       return { ok: true, user: mappedSession.user };
-    } catch {
-      return { ok: false };
+    } catch (error) {
+      if (error instanceof HttpErrorResponse) {
+        if (error.status === 409 && readProblemCode(error) === 'external_identity_link_required') {
+          return { ok: false, failure: 'account-link-required' };
+        }
+        if (error.status === 401) {
+          return { ok: false, failure: 'identity-rejected' };
+        }
+      }
+      return { ok: false, failure: 'provider-unavailable' };
+    }
+  }
+
+  async getAccessMethods(): Promise<AccessMethod[]> {
+    const response = await firstValueFrom(
+      this.http.get<{ methods: AccessMethod[] }>(`${API_BASE_URL}/auth/access-methods`)
+    );
+    return response.methods;
+  }
+
+  async linkGoogle(idToken: string): Promise<{
+    ok: boolean;
+    alreadyLinked?: boolean;
+    failure?: 'provider-unavailable' | 'identity-rejected' | 'email-mismatch' | 'linked-elsewhere' | 'provider-already-linked' | 'conflict';
+  }> {
+    try {
+      const response = await firstValueFrom(
+        this.http.post<{ linked: boolean; alreadyLinked: boolean }>(
+          `${API_BASE_URL}/auth/access-methods/google/link`,
+          { idToken }
+        )
+      );
+      return { ok: response.linked, alreadyLinked: response.alreadyLinked };
+    } catch (error) {
+      const code = error instanceof HttpErrorResponse ? readProblemCode(error) : null;
+      if (code === 'federated_provider_unavailable') return { ok: false, failure: 'provider-unavailable' };
+      if (code === 'federated_identity_rejected') return { ok: false, failure: 'identity-rejected' };
+      if (code === 'external_identity_email_mismatch') return { ok: false, failure: 'email-mismatch' };
+      if (code === 'external_identity_linked_elsewhere') return { ok: false, failure: 'linked-elsewhere' };
+      if (code === 'provider_already_linked') return { ok: false, failure: 'provider-already-linked' };
+      return { ok: false, failure: 'conflict' };
     }
   }
 
@@ -875,6 +919,13 @@ export class AuthService {
     this.chromeRoleState.set(null);
     writeStoredChromeRole(null);
   }
+}
+
+function readProblemCode(error: HttpErrorResponse): string | null {
+  const body = error.error;
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return null;
+  const code = (body as Record<string, unknown>)['code'];
+  return typeof code === 'string' ? code : null;
 }
 
 function readStoredChromeRole(): string | null {

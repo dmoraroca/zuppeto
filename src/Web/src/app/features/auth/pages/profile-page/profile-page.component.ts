@@ -9,6 +9,7 @@ import { SiteHeaderComponent } from '../../../../core/layout/components/site-hea
 import { ErrorNotificationsService } from '../../../../core/services/error-notifications.service';
 import { SectionHeadingComponent } from '../../../../shared/components/section-heading/section-heading.component';
 import { fileToAvatarDataUrl } from '../../../../shared/utils/avatar-image.util';
+import { normalizePetilocAvatarUrl } from '../../../../shared/utils/user-avatar-url.util';
 import { PasswordFieldComponent } from '../../components/password-field/password-field.component';
 import {
   PASSWORD_STRENGTH_POLICY,
@@ -25,6 +26,7 @@ import {
   wantsEmailChange,
   wantsPasswordChange
 } from '../../policies/profile-save.policy';
+import { shouldNavigateHomeAfterProfileSave } from '../../policies/federated-profile-navigation.policy';
 import { AuthService } from '../../services/auth.service';
 import { DB_FIELD_MAX } from '../../../../shared/policies/db-field-max-length';
 
@@ -62,7 +64,13 @@ export class ProfilePageComponent implements AfterViewInit {
   );
   protected readonly hasLocalCredential = computed(() => this.user()?.hasLocalCredential ?? true);
   protected readonly isReadOnlyViewer = computed(() => this.isViewer() && this.hasLocalCredential());
-  protected readonly avatarPreview = signal<string | null>(this.currentUser?.avatarUrl ?? null);
+  protected readonly avatarPreview = signal<string | null>(
+    normalizePetilocAvatarUrl(this.currentUser?.avatarUrl)
+  );
+  private readonly avatarLoadFailed = signal(false);
+  protected readonly showAvatarPreview = computed(() =>
+    Boolean(this.avatarPreview()?.trim()) && !this.avatarLoadFailed()
+  );
 
   protected readonly form = this.formBuilder.nonNullable.group({
     name: [this.currentUser?.name ?? '', [Validators.required, Validators.minLength(3)]],
@@ -73,7 +81,7 @@ export class ProfilePageComponent implements AfterViewInit {
     city: [this.currentUser?.city ?? '', Validators.required],
     country: [this.currentUser?.country ?? '', Validators.required],
     comments: [this.currentUser?.comments ?? ''],
-    avatarUrl: [this.currentUser?.avatarUrl ?? ''],
+    avatarUrl: [normalizePetilocAvatarUrl(this.currentUser?.avatarUrl) ?? ''],
     privacyAccepted: [this.currentUser?.privacyAccepted ?? false]
   });
 
@@ -83,6 +91,11 @@ export class ProfilePageComponent implements AfterViewInit {
   private currentEditedByUser = false;
 
   constructor() {
+    effect(() => {
+      this.avatarPreview();
+      this.avatarLoadFailed.set(false);
+    });
+
     this.form.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => this.refreshFormState());
 
     this.form.controls.currentPassword.valueChanges
@@ -109,12 +122,12 @@ export class ProfilePageComponent implements AfterViewInit {
           city: sessionUser.city ?? '',
           country: sessionUser.country ?? '',
           comments: sessionUser.comments ?? '',
-          avatarUrl: sessionUser.avatarUrl ?? '',
+          avatarUrl: normalizePetilocAvatarUrl(sessionUser.avatarUrl) ?? '',
           privacyAccepted: sessionUser.privacyAccepted ?? false
         },
         { emitEvent: false }
       );
-      this.avatarPreview.set(sessionUser.avatarUrl ?? null);
+      this.avatarPreview.set(normalizePetilocAvatarUrl(sessionUser.avatarUrl));
     });
 
     effect(() => {
@@ -211,6 +224,10 @@ export class ProfilePageComponent implements AfterViewInit {
     this.form.controls.avatarUrl.setValue('');
   }
 
+  protected onAvatarError(): void {
+    this.avatarLoadFailed.set(true);
+  }
+
   protected async save(): Promise<void> {
     if (this.isReadOnlyViewer()) {
       return;
@@ -286,6 +303,10 @@ export class ProfilePageComponent implements AfterViewInit {
     this.form.markAsPristine();
 
     this.notifications.notify('Perfil actualitzat', 'Els canvis s’han guardat correctament sobre backend real.', 'success');
+
+    if (shouldNavigateHomeAfterProfileSave(this.authService.provider())) {
+      await this.router.navigate(['/'], { replaceUrl: true });
+    }
   }
 
   protected logout(): void {

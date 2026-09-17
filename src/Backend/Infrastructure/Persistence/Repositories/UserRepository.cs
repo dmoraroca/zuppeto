@@ -107,7 +107,7 @@ internal sealed class UserRepository(ZuppetoDbContext dbContext) : IUserReposito
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
-    private void AppendConsentEventIfNeeded(
+    internal void AppendConsentEventIfNeeded(
         UserRecord record,
         (bool accepted, DateTimeOffset? acceptedAtUtc)? previousState)
     {
@@ -118,13 +118,21 @@ internal sealed class UserRepository(ZuppetoDbContext dbContext) : IUserReposito
             return;
         }
 
-        record.PrivacyConsentEvents.Add(new PrivacyConsentEventRecord
+        var consentEvent = new PrivacyConsentEventRecord
         {
             Id = Guid.NewGuid(),
             UserId = record.Id,
             Accepted = record.PrivacyAccepted,
             RegisteredAtUtc = record.PrivacyAcceptedAtUtc ?? DateTimeOffset.UtcNow,
             Source = previousState is null ? "repository-add" : "repository-update"
-        });
+        };
+
+        record.PrivacyConsentEvents.Add(consentEvent);
+
+        // The key is generated client-side while the model also has a database default.
+        // When the parent is already tracked EF can infer Modified for this new child,
+        // which issues an UPDATE against a row that does not exist. Make the append-only
+        // audit event state explicit so profile consent is persisted with INSERT.
+        dbContext.Entry(consentEvent).State = EntityState.Added;
     }
 }

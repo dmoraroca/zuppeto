@@ -5,7 +5,7 @@ declare global {
         id: {
           initialize(options: {
             client_id: string;
-            callback: (response: { credential: string }) => void;
+            callback: (response: { credential: string; state?: string; select_by?: string }) => void;
           }): void;
           renderButton(
             parent: HTMLElement,
@@ -19,6 +19,8 @@ declare global {
                 | 'continue_with'
                 | 'signin';
               width?: number;
+              state?: string;
+              click_listener?: () => void;
             }
           ): void;
         };
