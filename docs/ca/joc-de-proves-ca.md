@@ -36,6 +36,8 @@ Format recomanat d'execucio:
 
 ### 4.1 Autenticacio
 
+Estat del bloc: email/contrasenya i Google formen l'accés actual; Google conserva el tancament 🟢 de la Iteració 4. LinkedIn és `N/A` per decisió funcional, no un resultat fallit. Facebook continua pendent i Microsoft/Apple/Samsung/LG no tenen encara casos executables.
+
 #### JP-001 · Login propi correcte
 
 - prerequisit: usuari existent
@@ -94,16 +96,11 @@ Format recomanat d'execucio:
   - no es crea cap segon `User` ni s'elimina la contrasenya local
   - la sessió local continua oberta i Google queda marcat com a vinculat
 
-#### JP-004 · Login LinkedIn
+#### JP-004 · Login LinkedIn — N/A
 
-- prerequisit: `ClientId` i `ClientSecret` LinkedIn configurats
-- passos:
-  - obrir `/login`
-  - clicar `Iniciar amb LinkedIn`
-  - completar login federat
-- resultat esperat:
-  - es crea sessio valida
-  - l'usuari torna a Zuppeto sense error federat
+- estat: descartada per decisió funcional de producte el 2026-09-18
+- comprovació de regressió: `/login` i `Perfil → Seguretat` no mostren botó, text ni estat de LinkedIn
+- l'històric anterior es conserva a l'Excel; no s'executa cap flux OAuth LinkedIn nou
 
 #### JP-005 · Logout
 

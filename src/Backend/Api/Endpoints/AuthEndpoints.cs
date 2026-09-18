@@ -21,6 +21,7 @@ internal static class AuthEndpoints
         var group = app.MapGroup("/api/auth");
 
         group.MapPost("/login", LoginAsync);
+        group.MapPost("/logout", LogoutAsync).RequireAuthorization();
         group.MapPost("/login/totp", CompleteTwoFactorLoginAsync).RequireRateLimiting("totp");
         group.MapPost("/activation", ActivateEmailAsync);
         group.MapPost("/activation/resend", ResendActivationEmailAsync);
@@ -33,14 +34,27 @@ internal static class AuthEndpoints
         group.MapPost("/google", GoogleLoginAsync);
         group.MapGet("/access-methods", GetAccessMethodsAsync).RequireAuthorization();
         group.MapPost("/access-methods/google/link", LinkGoogleAsync).RequireAuthorization();
-        group.MapGet("/linkedin/start", LinkedInStartAsync);
-        group.MapGet("/linkedin/callback", LinkedInCallbackAsync);
         group.MapGet("/facebook/start", FacebookStartAsync);
         group.MapGet("/facebook/callback", FacebookCallbackAsync);
         group.MapGet("/providers", GetProviders);
         group.MapGet("/me", GetCurrentSessionAsync).RequireAuthorization();
 
         return app;
+    }
+
+    private static async Task<Results<NoContent, UnauthorizedHttpResult>> LogoutAsync(
+        ClaimsPrincipal principal,
+        IAuthApplicationService service,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetUserId(principal, out var userId)) return TypedResults.Unauthorized();
+        var tokenId = principal.FindFirstValue(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Jti);
+        var expirationClaim = principal.FindFirstValue(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Exp);
+        DateTimeOffset? expiresAtUtc = long.TryParse(expirationClaim, out var expirationUnixSeconds)
+            ? DateTimeOffset.FromUnixTimeSeconds(expirationUnixSeconds)
+            : null;
+        await service.EndSessionAsync(userId, tokenId, expiresAtUtc, cancellationToken);
+        return TypedResults.NoContent();
     }
 
     private static async Task<IResult> LoginAsync(
@@ -244,64 +258,6 @@ internal static class AuthEndpoints
             detail: detail,
             extensions: new Dictionary<string, object?> { ["code"] = code });
 
-    private static Results<RedirectHttpResult, NotFound> LinkedInStartAsync(
-        IAuthApplicationService service,
-        string? redirectTo = null)
-    {
-        var authorizationUrl = service.GetLinkedInAuthorizationUrl(redirectTo);
-        return string.IsNullOrWhiteSpace(authorizationUrl)
-            ? TypedResults.NotFound()
-            : TypedResults.Redirect(authorizationUrl);
-    }
-
-    private static async Task<RedirectHttpResult> LinkedInCallbackAsync(
-        IAuthApplicationService service,
-        IConfiguration configuration,
-        string? code = null,
-        string? state = null,
-        string? error = null,
-        string? error_description = null,
-        CancellationToken cancellationToken = default)
-    {
-        var frontendBaseUrl = configuration["Auth:FrontendBaseUrl"] ?? "http://localhost:4200";
-        var loginUrl = $"{frontendBaseUrl.TrimEnd('/')}/login";
-
-        if (!string.IsNullOrWhiteSpace(error) || string.IsNullOrWhiteSpace(code) || string.IsNullOrWhiteSpace(state))
-        {
-            return TypedResults.Redirect(
-                QueryHelpers.AddQueryString(
-                    loginUrl,
-                    "federatedError",
-                    string.IsNullOrWhiteSpace(error_description) ? "linkedin-login-failed" : error_description));
-        }
-
-        var result = await service.LoginWithLinkedInAsync(new LinkedInOAuthCallbackRequest(code, state), cancellationToken);
-        if (result is null)
-        {
-            return TypedResults.Redirect(QueryHelpers.AddQueryString(loginUrl, "federatedError", "linkedin-login-failed"));
-        }
-
-        if (result.Login.ChallengeId is not null)
-        {
-            var challengeUrl = QueryHelpers.AddQueryString(
-                $"{frontendBaseUrl.TrimEnd('/')}/verificar-2fa",
-                new Dictionary<string, string?> { ["challenge"] = result.Login.ChallengeId, ["redirectTo"] = result.RedirectTo });
-            return TypedResults.Redirect(challengeUrl);
-        }
-
-        var serializedSession = JsonSerializer.Serialize(result.Login.Session!, CallbackJsonOptions);
-        var sessionPayload = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(serializedSession));
-        var callbackUrl = QueryHelpers.AddQueryString(
-            $"{frontendBaseUrl.TrimEnd('/')}/auth/callback",
-            new Dictionary<string, string?>()
-            {
-                ["session"] = sessionPayload,
-                ["redirectTo"] = result.RedirectTo
-            });
-
-        return TypedResults.Redirect(callbackUrl);
-    }
-
     private static Results<RedirectHttpResult, NotFound> FacebookStartAsync(
         IAuthApplicationService service,
         string? redirectTo = null)
@@ -383,4 +339,5 @@ internal static class AuthEndpoints
         var subject = principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? principal.FindFirstValue("sub");
         return Guid.TryParse(subject, out userId);
     }
+
 }

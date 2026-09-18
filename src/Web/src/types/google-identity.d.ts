@@ -23,6 +23,7 @@ declare global {
               click_listener?: () => void;
             }
           ): void;
+          disableAutoSelect(): void;
         };
       };
     };

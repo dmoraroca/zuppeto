@@ -16,12 +16,6 @@ public interface IAuthApplicationService
         GoogleLoginRequest request,
         CancellationToken cancellationToken = default);
 
-    string? GetLinkedInAuthorizationUrl(string? redirectTo = null);
-
-    Task<AuthCallbackResult?> LoginWithLinkedInAsync(
-        LinkedInOAuthCallbackRequest request,
-        CancellationToken cancellationToken = default);
-
     string? GetFacebookAuthorizationUrl(string? redirectTo = null);
 
     Task<AuthCallbackResult?> LoginWithFacebookAsync(
@@ -29,6 +23,12 @@ public interface IAuthApplicationService
         CancellationToken cancellationToken = default);
 
     Task<AuthSessionDto?> GetSessionByUserIdAsync(Guid userId, CancellationToken cancellationToken = default);
+
+    Task EndSessionAsync(
+        Guid userId,
+        string? tokenId,
+        DateTimeOffset? tokenExpiresAtUtc,
+        CancellationToken cancellationToken = default);
 
     IReadOnlyCollection<AuthProviderDto> GetProviders();
 }

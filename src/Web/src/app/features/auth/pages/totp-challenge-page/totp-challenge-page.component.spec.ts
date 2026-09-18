@@ -12,7 +12,15 @@ describe('TotpChallengePageComponent', () => {
       imports: [TotpChallengePageComponent],
       providers: [
         { provide: AuthService, useValue: auth }, { provide: Router, useValue: router },
-        { provide: ActivatedRoute, useValue: { snapshot: { queryParamMap: { get: (key: string) => key === 'challenge' ? 'challenge-id' : null } } } }
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: {
+              fragment: 'challenge=challenge-id',
+              queryParamMap: { get: () => null }
+            }
+          }
+        }
       ]
     }).compileComponents();
   });

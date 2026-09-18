@@ -42,7 +42,6 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
   protected readonly previewFilters = this.previewFiltersState.asReadonly();
   protected readonly authProviders = signal<string[]>([]);
   protected readonly googleProvider = signal<{ clientId: string } | null>(null);
-  protected readonly linkedInProvider = signal<boolean>(false);
   protected readonly facebookProvider = signal<boolean>(false);
   protected readonly googleButtonVisible = signal(false);
   protected readonly previewPinCities = computed(() =>
@@ -117,7 +116,7 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
     if (federatedError) {
       this.notifyUser(
         'Login federat incomplet',
-        'LinkedIn no ha retornat una sessió vàlida al backend.',
+        'El proveïdor no ha retornat una sessió vàlida al backend.',
         'error'
       );
       void this.router.navigate([], {
@@ -247,11 +246,6 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
     window.location.href = this.authService.getFacebookStartUrl(redirectTo);
   }
 
-  protected startLinkedInLogin(): void {
-    const redirectTo = this.route.snapshot.queryParamMap.get('redirectTo');
-    window.location.href = this.authService.getLinkedInStartUrl(redirectTo);
-  }
-
   private async loadProvidersAsync(): Promise<void> {
     try {
       const providers = await this.authService.getProviders();
@@ -259,16 +253,13 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
         providers.filter((provider) => provider.key !== 'password').map((provider) => provider.displayName)
       );
       const google = providers.find((provider) => provider.key === 'google' && provider.configured && provider.clientId);
-      const linkedIn = providers.find((provider) => provider.key === 'linkedin' && provider.configured);
       const facebook = providers.find((provider) => provider.key === 'facebook' && provider.configured);
       this.googleProvider.set(google?.clientId ? { clientId: google.clientId } : null);
-      this.linkedInProvider.set(Boolean(linkedIn));
       this.facebookProvider.set(Boolean(facebook));
       void this.tryRenderGoogleButtonAsync();
     } catch {
-      this.authProviders.set(['Google', 'LinkedIn', 'Facebook']);
+      this.authProviders.set(['Google', 'Facebook']);
       this.googleProvider.set(null);
-      this.linkedInProvider.set(false);
       this.facebookProvider.set(false);
     }
   }

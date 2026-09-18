@@ -20,7 +20,6 @@
 !.env.example
 config/google/*.json
 config/facebook/*.json
-config/linkedin/*.json
 config/data-protection/
 src/Backend/Application/obj/Debug/net10.0/Application.AssemblyInfo.cs
 src/Backend/Application/obj/Debug/net10.0/Application.AssemblyInfoInputs.cache

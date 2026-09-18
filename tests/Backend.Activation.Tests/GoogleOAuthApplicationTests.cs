@@ -114,6 +114,20 @@ public sealed class GoogleOAuthApplicationTests
     }
 
     [Fact]
+    public async Task Logout_revokes_pending_totp_challenges_and_the_current_access_token()
+    {
+        var fixture = new Fixture(null);
+        var user = fixture.AddUser("logout@petiloc.local", "User", true, "Logout User");
+        fixture.Challenges.Create(user.Id, "google");
+        var expiresAtUtc = DateTimeOffset.UtcNow.AddHours(1);
+
+        await fixture.Service.EndSessionAsync(user.Id, "token-id", expiresAtUtc);
+
+        Assert.Equal(user.Id, fixture.Challenges.RevokedUserId);
+        Assert.Equal((user.Id, "token-id", expiresAtUtc), fixture.Revocations.LastRevocation);
+    }
+
+    [Fact]
     public async Task Configured_admin_email_receives_admin_role_and_permissions()
     {
         var fixture = new Fixture(new FederatedIdentityPayload("google", "admin-subject", "admin@zuppeto.local", "Admin", null, true), ["admin@zuppeto.local"]);
@@ -222,15 +236,19 @@ public sealed class GoogleOAuthApplicationTests
         private readonly IdentityRepository identities = new();
         public IReadOnlyDictionary<Guid, User> Users => users.Values;
         public IReadOnlyDictionary<string, ExternalIdentity> Identities => identities.Values;
+        public ChallengeStore Challenges { get; } = new();
+        public RevocationStore Revocations { get; } = new();
         public AuthApplicationService Service { get; }
 
         public Fixture(FederatedIdentityPayload? payload, IReadOnlyCollection<string>? adminEmails = null)
         {
+            var sessionFactory = new AuthSessionFactory(new PermissionRepository(), new TokenIssuer());
             Service = new AuthApplicationService(
-                users, identities, new PermissionRepository(), new PasswordHasher(), new TotpService(),
-                new RecoveryRepository(), new ChallengeStore(), new TokenIssuer(),
+                users, new PasswordHasher(), new TotpService(), new RecoveryRepository(), Challenges,
+                Revocations,
+                sessionFactory, new FederatedAuthenticationService(users, identities, Challenges, sessionFactory),
                 new ExternalIdentityLinkingService(users, identities),
-                new GoogleVerifier(payload, adminEmails ?? []), new LinkedInClient(), new FacebookClient());
+                new GoogleVerifier(payload, adminEmails ?? []), new FacebookClient());
         }
 
         public User AddUser(
@@ -295,10 +313,10 @@ public sealed class GoogleOAuthApplicationTests
     private sealed class GoogleVerifier(FederatedIdentityPayload? payload, IReadOnlyCollection<string> admins) : IGoogleIdTokenVerifier
     { public bool IsConfigured => true; public string? ClientId => "public-client-id"; public IReadOnlyCollection<string> AdminEmails => admins; public Task<FederatedIdentityPayload?> VerifyAsync(string idToken, CancellationToken cancellationToken = default) => Task.FromResult(payload); }
     private sealed class TokenIssuer : IAccessTokenIssuer { public AccessTokenResult Issue(User user) => new("jwt-token", DateTimeOffset.UtcNow.AddHours(1)); }
+    public sealed class RevocationStore : IAccessTokenRevocationStore { public (Guid UserId, string TokenId, DateTimeOffset ExpiresAtUtc)? LastRevocation { get; private set; } public Task RevokeAsync(Guid userId, string tokenId, DateTimeOffset expiresAtUtc, CancellationToken cancellationToken = default) { LastRevocation = (userId, tokenId, expiresAtUtc); return Task.CompletedTask; } public Task<bool> IsRevokedAsync(string tokenId, CancellationToken cancellationToken = default) => Task.FromResult(false); }
     private sealed class PasswordHasher : IPasswordHasher { public string Hash(string password) => password; public bool Verify(string hashedPassword, string providedPassword) => false; }
     private sealed class TotpService : ITotpService { public TotpSetupMaterial CreateSetup(string accountEmail) => throw new NotSupportedException(); public TotpVerification Verify(string protectedSecret, string code, DateTimeOffset nowUtc) => TotpVerification.Invalid; public IReadOnlyCollection<string> CreateRecoveryCodes() => []; public string HashRecoveryCode(string code) => code; }
     private sealed class RecoveryRepository : ITotpRecoveryCodeRepository { public Task ReplaceAsync(Guid userId, IReadOnlyCollection<string> hashes, CancellationToken cancellationToken = default) => Task.CompletedTask; public Task<bool> ConsumeAsync(Guid userId, string hash, CancellationToken cancellationToken = default) => Task.FromResult(false); public Task DeleteAsync(Guid userId, CancellationToken cancellationToken = default) => Task.CompletedTask; }
-    private sealed class ChallengeStore : ITwoFactorChallengeStore { public string Create(Guid userId, string provider, bool requiresProfileCompletion = false) => "challenge"; public bool TryConsume(string challengeId, out TwoFactorChallenge challenge) { challenge = null!; return false; } public bool TryUseTotpTimeStep(Guid userId, long timeStep) => false; public void RevokeForUser(Guid userId) { } }
-    private sealed class LinkedInClient : ILinkedInOAuthClient { public bool IsConfigured => false; public string? ClientId => null; public IReadOnlyCollection<string> AdminEmails => []; public string? BuildAuthorizationUrl(string? redirectTo = null) => null; public Task<(FederatedIdentityPayload Identity, string? RedirectTo)?> ExchangeCodeAsync(string code, string state, CancellationToken cancellationToken = default) => Task.FromResult<(FederatedIdentityPayload, string?)?>(null); }
+    public sealed class ChallengeStore : ITwoFactorChallengeStore { public Guid? RevokedUserId { get; private set; } public string Create(Guid userId, string provider, bool requiresProfileCompletion = false) => "challenge"; public bool TryConsume(string challengeId, out TwoFactorChallenge challenge) { challenge = null!; return false; } public bool TryUseTotpTimeStep(Guid userId, long timeStep) => false; public void RevokeForUser(Guid userId) => RevokedUserId = userId; }
     private sealed class FacebookClient : IFacebookOAuthClient { public bool IsConfigured => false; public string? AppId => null; public IReadOnlyCollection<string> AdminEmails => []; public string? BuildAuthorizationUrl(string? redirectTo = null) => null; public Task<(FederatedIdentityPayload Identity, string? RedirectTo)?> ExchangeCodeAsync(string code, string state, CancellationToken cancellationToken = default) => Task.FromResult<(FederatedIdentityPayload, string?)?>(null); }
 }

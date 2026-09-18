@@ -7,7 +7,6 @@ public sealed class AuthOptions
     public JwtOptions Jwt { get; init; } = new();
     public string FrontendBaseUrl { get; init; } = "http://localhost:4200";
     public GoogleOptions Google { get; init; } = new();
-    public LinkedInOptions LinkedIn { get; init; } = new();
     public FacebookOptions Facebook { get; init; } = new();
 
     public sealed class JwtOptions
@@ -24,17 +23,6 @@ public sealed class AuthOptions
     public sealed class GoogleOptions
     {
         public string ClientId { get; init; } = string.Empty;
-
-        public string[] AdminEmails { get; init; } = [];
-    }
-
-    public sealed class LinkedInOptions
-    {
-        public string ClientId { get; init; } = string.Empty;
-
-        public string ClientSecret { get; init; } = string.Empty;
-
-        public string RedirectUri { get; init; } = string.Empty;
 
         public string[] AdminEmails { get; init; } = [];
     }

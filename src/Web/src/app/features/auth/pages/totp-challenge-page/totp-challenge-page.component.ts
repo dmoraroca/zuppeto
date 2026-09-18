@@ -21,9 +21,12 @@ export class TotpChallengePageComponent {
   protected async submit(): Promise<void> {
     if (this.form.invalid || this.busy()) return;
     this.error.set(false); this.busy.set(true);
-    const ok = await this.auth.completeTotpLogin(this.route.snapshot.queryParamMap.get('challenge') ?? '', this.form.getRawValue().code);
+    const fragment = new URLSearchParams(this.route.snapshot.fragment ?? '');
+    const challenge = fragment.get('challenge') ?? this.route.snapshot.queryParamMap.get('challenge') ?? '';
+    const redirectTo = fragment.get('redirectTo') ?? this.route.snapshot.queryParamMap.get('redirectTo');
+    const ok = await this.auth.completeTotpLogin(challenge, this.form.getRawValue().code);
     this.busy.set(false);
-    if (ok) void this.router.navigateByUrl(this.route.snapshot.queryParamMap.get('redirectTo') || this.auth.getPostLoginRoute());
+    if (ok) void this.router.navigateByUrl(redirectTo || this.auth.getPostLoginRoute());
     else this.error.set(true);
   }
 }

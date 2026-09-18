@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { shouldNavigateHomeAfterProfileSave } from './federated-profile-navigation.policy';
 
 describe('federated profile navigation policy', () => {
-  it.each(['google', 'linkedin', 'facebook', ' Google '])(
+  it.each(['google', 'facebook', ' Google '])(
     'navigates home after a successful %s profile save',
     (provider) => {
       expect(shouldNavigateHomeAfterProfileSave(provider)).toBe(true);

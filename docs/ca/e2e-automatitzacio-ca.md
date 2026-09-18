@@ -5,9 +5,23 @@
 **Estat:** Fases 0–10 validades. Google Chrome, Firefox, WebKit i Microsoft Edge comparteixen suite; l'auditoria final local queda tancada amb PASS i la CI definida a la Fase 9 resta preparada, però no s'ha executat durant la Fase 10.
 **Principi rector:** Codex construeix i manté la infraestructura; Playwright, invocat des del terminal o CI, executa les tirades llargues de forma autònoma.
 
+**Fase IV — Iteració 5, LinkedIn OAuth real — DESCARTADA PER DECISIÓ FUNCIONAL DE PRODUCTE (2026-09-18):** LinkedIn deixa de ser un proveïdor d'accés de Petiloc. S'han retirat botó i textos, endpoints, adaptador OIDC, configuració local, `state`, handoff, runner i proves exclusives. L'Excel marca `ZUP-007` com `N/A` i conserva l'històric d'execucions; `ZUP-016` queda dedicat a Google. No s'ha iniciat cap implementació de Facebook.
+
+**Traça històrica de la Iteració 5:** el 2026-09-17 la implementació de LinkedIn va arribar a superar els gates automàtics i va originar millores compartides de seguretat. Aquest resultat no equival a validació funcional de producte. Es conserven `IFederatedAuthenticationService`, `IAuthSessionFactory`, la unicitat d'`ExternalIdentity`, TOTP i la revocació persistent del JWT amb `jti`; s'han eliminat tots els artefactes que només servien LinkedIn.
+
+**Logout federat vigent:** `POST /api/auth/logout` revoca el JWT Petiloc concret, els challenges TOTP pendents i elimina sessió, rol visual, menú i caches autenticades al navegador. Una ruta protegida passa de `200` a `401` amb el mateix JWT i la revocació persisteix a `revoked_access_tokens`. Google conserva el `disableAutoSelect()` oficial quan GIS està disponible. Petiloc no afirma ni intenta tancar les sessions externes dels proveïdors.
+
+**Gates de retirada (2026-09-18):** build backend PASS amb 0 errors; 25/25 proves backend, 46/46 proves Angular i 14/14 suites del runner en PASS; build Angular PASS; E2E d'activació, recuperació de contrasenya, TOTP i boundary Google OAuth en PASS. API i Web s'han reiniciat i estan saludables; `/api/auth/providers` només publica credencials pròpies, Google i Facebook pendent, i la ruta LinkedIn ja no existeix. Cleanup: cap usuari E2E temporal i cap `ExternalIdentity` òrfena. `git diff --check` i l'auditoria de configuració privada passen.
+
+| Traçabilitat | Estat vigent | Tractament de l'històric |
+|---|---|---|
+| Iteració 4 / `ZUP-006` i `ZUP-016` | Google 🟢 VALIDADA I TANCADA | Es conserven resultats manuals i E2E. `ZUP-016` descriu només Google. |
+| Iteració 5 / `ZUP-007` | LinkedIn ➖ DESCARTADA / `N/A` | Les files de la matriu passen a `N/A`; les execucions anteriors romanen append-only i no es converteixen en PASS nou. |
+| Facebook | Pendent | Sense proves noves ni implementació en aquesta iteració. |
+
 **Fase IV — Iteració 4, Google OAuth real — PASS (2026-09-17):** no es desa ni es registra cap token, cookie, subject, secret o dada personal. La validació real confirma el botó oficial, credencial validada, alta nova amb `User` + `ExternalIdentity`, rol `USER`, `password_hash = null`, permisos i redirecció a `/perfil`. També queda acceptat el login d'un User local existent mitjançant autovinculació de l'email Google verificat: conserva contrasenya i rol, no duplica User i entra a Inici. La unicitat bloqueja identitats alienes o un segon Google. TOTP federat manté el challenge abans del JWT segons regressió. Cleanup final: 10 usuaris, 1 identitat Google operativa i 0 orfes. Gates: 24/24 backend, 43/43 Angular, builds API/Web, Google OAuth boundary E2E, secrets i Excel PASS.
 
-**Correccions dins la mateixa iteració (2026-09-16/17):** el fallback compartit de Places s'ha validat en Chrome forçant un error real de `<img>`: desapareix la imatge trencada, es mostren les sigles centralitzades i «NO DISPONIBLE» diagonal. Al perfil, les URLs de monograma Google es tracten com a absència de foto; els dos espais grans comparteixen el mateix fallback amb silueta i «NO DISPONIBLE», mentre les sigles es reserven a l'avatar rodó de navegació. Un guardat correcte d'un perfil procedent de Google, LinkedIn o Facebook surt del flux de compleció i navega a Inici; el login propi roman al perfil. El callback GIS és únic i només la ruta activa consumeix la credencial; no s'intercepta el clic ni s'oculta l'iframe oficial. El control Google visible és clicable i comparteix caixa de 44 px amb LinkedIn/Facebook. Resultats finals: 24/24 proves backend, 43/43 proves Angular, build API i build Angular PASS.
+**Correccions dins la mateixa iteració (2026-09-16/17):** el fallback compartit de Places s'ha validat en Chrome forçant un error real de `<img>`: desapareix la imatge trencada, es mostren les sigles centralitzades i «NO DISPONIBLE» diagonal. Al perfil, les URLs de monograma Google es tracten com a absència de foto; els dos espais grans comparteixen el mateix fallback amb silueta i «NO DISPONIBLE», mentre les sigles es reserven a l'avatar rodó de navegació. Un guardat correcte d'un perfil federat admès surt del flux de compleció i navega a Inici; el login propi roman al perfil. El callback GIS és únic i només la ruta activa consumeix la credencial; no s'intercepta el clic ni s'oculta l'iframe oficial. Resultats finals d'aquell gate: 24/24 proves backend, 43/43 proves Angular, build API i build Angular PASS.
 
 **I4-GOOGLE-BUTTON-01 — PASS manual (2026-09-17):** Chrome mostra el control oficial amb el compte Google, el selector retorna una credencial i el frontend arriba a `POST /api/auth/google`. El `409` observat va confirmar l'antiga regla de vinculació explícita; posteriorment aquesta regla ha estat substituïda per autovinculació Google d'email verificat a User local activat. Els avisos COOP de `postMessage` i el bloqueig de `play.google.com/log` no impedeixen que la credencial arribi a l'API.
 
@@ -15,7 +29,7 @@
 
 El mapa del mateix preview deixa de reservar una columna lateral buida: ocupa tota l'amplada interior respectant els marges del contenidor. Quan la cerca retorna llocs, les targetes es disposen en una fila inferior amb scroll propi i no redueixen l'amplada del mapa.
 
-**Coherència dels accessos federats (2026-09-17):** el control oficial Google i les files LinkedIn/Facebook comparteixen amplada, alçada de 44 px, forma de píndola i alineació horitzontal. GIS afegeix un marge transparent de 10 px a cada costat de l'iframe; el contenidor retalla exclusivament aquest marge, mantenint visible i clicable el control oficial, perquè la píndola visible coincideixi amb les altres dues. S'ha eliminat la nota genèrica de proveïdors pendents, incorrecta quan Google ja està configurat.
+**Coherència dels accessos federats (2026-09-18):** el control oficial Google es manté visible i clicable; Facebook conserva l'estat pendent. LinkedIn no apareix al login ni a Seguretat.
 
 **Autovinculació Google vigent (2026-09-17):** per decisió funcional posterior, el primer login Google amb email verificat coincident amb un `User` local activat crea automàticament l'`ExternalIdentity` i inicia sessió al mateix usuari. Les proves confirmen preservació de `password_hash`, rol i recompte d'usuaris, idempotència del relogin i manteniment del challenge TOTP. Resultats després del canvi: 24/24 proves backend, 43/43 proves Angular, builds API/Angular PASS i serveis saludables.
 
@@ -202,7 +216,7 @@ El cleanup s'executa també si falla l'escenari, i només elimina recursos E2E i
 
 S'inicia amb un worker. El paral·lelisme només s'estudiarà després de demostrar aïllament real de dades, comptes i cleanup.
 
-Google, LinkedIn i altres integracions externes no són prerequisits implícits. La suite ordinària usa adapters o entorns controlats. La integració real va en una suite opt-in, sandbox i etiquetada external.
+Google i altres integracions externes admeses no són prerequisits implícits. La suite ordinària usa adapters o entorns controlats. La integració real va en una suite opt-in, sandbox i etiquetada external.
 
 ---
 

@@ -19,7 +19,6 @@ internal sealed class ExternalIdentityLinkingService(
         [
             new("password", "Contrasenya", user.HasLocalCredential, true, user.HasLocalCredential ? "linked" : "unavailable"),
             new("google", "Google", providers.Contains("google"), true, providers.Contains("google") ? "linked" : "linkable"),
-            new("linkedin", "LinkedIn", providers.Contains("linkedin"), false, providers.Contains("linkedin") ? "linked" : "pending"),
             new("facebook", "Facebook", providers.Contains("facebook"), false, providers.Contains("facebook") ? "linked" : "pending")
         ]);
     }

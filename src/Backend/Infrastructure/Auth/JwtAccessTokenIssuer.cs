@@ -24,6 +24,7 @@ internal sealed class JwtAccessTokenIssuer(IOptions<AuthOptions> options) : IAcc
             claims:
             [
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),
                 new Claim(JwtRegisteredClaimNames.Email, user.Email),
                 new Claim(ClaimTypes.Role, user.Role),
                 new Claim(ClaimTypes.Name, user.Profile.DisplayName),

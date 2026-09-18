@@ -535,7 +535,7 @@ La decisió de base per al model de rols queda fixada així:
 <pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">flowchart LR</span>
   <span style="color:#93c5fd;">WEB[Frontend Angular]</span> --&gt; <span style="color:#c4b5fd;">API[Backend API]</span>
   <span style="color:#fcd34d;">AUTH[Login propi + JWT]</span> -.-> <span style="color:#c4b5fd;">API</span>
-  <span style="color:#f9a8d4;">SOC[Google actiu / LinkedIn / Facebook pendents]</span> -.-> <span style="color:#fcd34d;">AUTH</span>
+  <span style="color:#f9a8d4;">SOC[Google actiu / Facebook pendent]</span> -.-> <span style="color:#fcd34d;">AUTH</span>
   <span style="color:#86efac;">RBAC[Rols i permisos]</span> -.-> <span style="color:#c4b5fd;">API</span>
   <span style="color:#f9a8d4;">INTERNAL[Àrees internes]</span> -.-> <span style="color:#93c5fd;">WEB</span>
   <span style="color:#c4b5fd;">API</span> --&gt; <span style="color:#67e8f9;">APP[Application]</span>
@@ -548,10 +548,10 @@ Resum del diagrama:
 - el control d'accessos s'haurà de recolzar en `Api` i `Application`, no només en la web
 - la Fase IV ja no és pendent conceptual, sinó línia activa de treball
 - el punt d'autenticació ja inclou des del principi la possibilitat de login federat via proveïdors `OAuth/OIDC`
-- el login propi i Google queden operatius i validats; LinkedIn resta pendent del punt 5
+- el login propi i Google queden operatius i validats; LinkedIn s'ha descartat per decisió funcional de producte
 - el següent tram d'implementació dins la fase passa a `rols i permisos`
 - `Facebook` queda aparcat a nivell de roadmap fins després de publicar la web, tot i que la base tècnica federada es manté oberta
-- la base cobreix emissió i consum de token per al login propi i Google; LinkedIn conserva infraestructura preparatòria sense donar per validat el flux real
+- la base cobreix emissió i consum de token per al login propi i Google; Facebook continua pendent
 
 ### Catàleg territorial i cerca de ciutats (Espanya i UE)
 
@@ -908,7 +908,7 @@ El registre local crea un `User` pendent d'activació. La migració `AddEmailAcc
 
 - `User.RequireEmailActivation` desa únicament SHA-256 d'un token aleatori de 256 bits; tots els timestamps són UTC.
 - `ActivateEmail` retorna `Activated`, `Invalid`, `Expired` o `Used`; el reenviament substitueix el hash i invalida el token anterior.
-- `AuthApplicationService` denega login local pendent amb resposta funcional `403`; Google i LinkedIn no es modifiquen.
+- `AuthApplicationService` denega login local pendent amb resposta funcional `403`; Google no es modifica.
 - `IAccountActivationEmailSender` és el port d'aplicació. Producció usa SMTP configurat fora de Git; Development usa un inbox efímer, només disponible en aquest entorn, per proves sense lliurament extern. No escriu tokens a persistència, logs, Excel ni artefactes.
 - **RABBITMQ: NO.** El broker és infraestructura opcional i no hi ha outbox/worker de domini actiu. Afegir una cua per un únic email transaccional introduiria reintents i operativa fora d'abast; el port desacoblat permet incorporar-ho posteriorment sense dependre'n ara.
 
@@ -1493,7 +1493,7 @@ Responsabilitats:
 Notes tecniques:
 
 - `login` / `loginWithGoogle` consumeixen `/api/auth/*` i desen token + fitxa
-- `logout` esborra la sessio local
+- `logout` elimina immediatament la sessió i les caches locals i crida `POST /api/auth/logout` per revocar el JWT Petiloc i els challenges TOTP pendents; el handoff exclusiu de LinkedIn ja no existeix
 - `updateProfile` → `PUT /api/users/{id}/profile`
 - `updateAccount` → `PUT /api/users/{id}/account` (email i/o nova; si la resposta porta sessió, substitueix el JWT)
 - `verifyCurrentPassword` → `POST /api/users/{id}/password/verify` `{ password }` → `{ matches }`
@@ -1683,12 +1683,15 @@ Implementació backend (fitxers):
 La base actual prepara pero no implementa encara:
 
 - refresh tokens o rotació de sessió
-- login social addicional (LinkedIn, Facebook, Apple, Microsoft)
+- Facebook OAuth/OIDC, només quan comenci la seva iteració, reutilitzant el pipeline federat comú
+- Microsoft OAuth/OIDC i Sign in with Apple com a millores futures
+- Samsung/LG com a estudi futur de viabilitat, sense assumir que disposin d'un proveïdor d'identitat adequat
+- LinkedIn OAuth/OIDC descartat per decisió funcional; la seva traça tècnica es conserva a §2.11.9
 ### 2.11.6 Identitat i recuperació de contrasenya — Fase IV, Iteració 2
 
 `User` representa la persona dins Zuppeto, no un proveïdor exclusiu. La credencial local és opcional (`users.password_hash` nullable) i `external_identities` conserva la relació 1→N amb `provider`, `subject` estable i `user_id`, sense tokens OAuth. Per a Google, la regla funcional vigent permet que una identitat realment validada i amb email verificat es vinculi automàticament a un `User` local activat amb el mateix email. Només es crea l'`ExternalIdentity`; no es modifica `password_hash`, rol ni perfil local complet.
 
-`ExternalIdentityLinkingService` conserva també l'endpoint explícit autenticat per a gestió de mètodes d'accés, però el login Google ordinari ja no exigeix aquest pas previ. Tant el flux automàtic com l'explícit deneguen una identitat d'un altre usuari o un segon Google diferent. La base reforça les curses amb unicitat `(provider, subject)` i `(user_id, provider)`; la migració és `AddUniqueExternalIdentityPerProvider`. LinkedIn i Facebook no adopten encara l'autovinculació.
+`ExternalIdentityLinkingService` conserva també l'endpoint explícit autenticat per a gestió de mètodes d'accés, però el login ordinari de Google no exigeix aquest pas previ. Tant el flux automàtic com l'explícit deneguen una identitat d'un altre usuari o una segona identitat diferent del mateix proveïdor. La base reforça les curses amb unicitat `(provider, subject)` i `(user_id, provider)`; la migració és `AddUniqueExternalIdentityPerProvider`. Facebook no adopta encara l'autovinculació.
 
 La recuperació reutilitza SMTP o Development Inbox i el patró criptogràfic de l'activació: 256 bits aleatoris, SHA-256 persistent, expiració d'una hora, un sol ús i substitució en una nova petició. Els tokens d'activació i reset tenen camps, repositoris i endpoints diferents, per tant no són intercanviables. La resposta pública és sempre `202 Accepted` i no enumera comptes ni mètodes d'accés.
 
@@ -1706,7 +1709,7 @@ Angular incorpora `/seguretat` per a estat, setup, QR, clau manual, confirmació
 
 ### 2.11.8 Google OAuth real i correccions de perfil — Fase IV, Iteració 4
 
-La pantalla `/seguretat` agrupa ara «Mètodes d'accés» i TOTP. Mostra contrasenya, Google, LinkedIn i Facebook sense exposar subjects ni tokens; LinkedIn/Facebook resten pendents. El botó oficial de Google es renderitza mitjançant `GoogleIdentityService`, compartit amb login, i envia la credencial a l'endpoint autenticat de linking. Un error 401 d'aquesta validació federada no elimina la sessió local ni genera el missatge global de sessió caducada; la pantalla presenta l'error funcional específic.
+La pantalla `/seguretat` agrupa ara «Mètodes d'accés» i TOTP. Mostra contrasenya, Google i Facebook sense exposar subjects ni tokens; Facebook resta pendent. El botó oficial de Google es renderitza mitjançant `GoogleIdentityService`, compartit amb login, i envia la credencial a l'endpoint autenticat de linking. Un error 401 d'aquesta validació federada no elimina la sessió local ni genera el missatge global de sessió caducada; la pantalla presenta l'error funcional específic.
 
 Google Identity Services crea una configuració global per pàgina i `initialize()` no és un constructor de clients independents. Per això `GoogleIdentityService` l'executa una sola vegada i conserva un únic callback dispatcher. Cada render declara `mode = LOGIN | LINK`, registra el control que està muntat a la ruta Angular i retorna una funció de cleanup. La ruta activa és l'única que pot consumir la credencial: quan es munta LINK substitueix qualsevol registre LOGIN anterior, i en destruir el component s'elimina el registre. No s'intercepta el clic del botó oficial de GIS ni es confia en un `state` retingut pel proveïdor. Això cobreix la navegació SPA login → perfil → seguretat sense impedir que Google obri el selector.
 
@@ -1722,9 +1725,37 @@ La imatge `picture` de Google pot ser un monograma generat i no es considera una
 
 El guardat del perfil manté `comments` opcional i exigeix nom, email vàlid, ciutat, país i, per a `USER`, consentiment. El primer consentiment actualitza `users` i afegeix un registre append-only a `privacy_consent_events`. `UserRepository` força el nou esdeveniment a `EntityState.Added`; això evita que una clau GUID generada al client sigui interpretada com una entitat existent i provoqui un `UPDATE` de zero files amb `DbUpdateConcurrencyException`.
 
-Després d'un `updateProfile` correcte, `shouldNavigateHomeAfterProfileSave` tanca el flux de compleció per a sessions `google`, `linkedin` i `facebook` navegant a `/` amb reemplaçament d'historial; `password` conserva el comportament normal del perfil.
+Després d'un `updateProfile` correcte, `shouldNavigateHomeAfterProfileSave` tanca el flux de compleció per a sessions `google` i futurs proveïdors admesos navegant a `/` amb reemplaçament d'historial; `password` conserva el comportament normal del perfil.
 
 Cobertura incorporada: proves .NET per alta/reús Google, autovinculació d'un User local activat, rol, JWT, unicitat, TOTP i persistència del consentiment; proves Angular per classificació d'errors, política de guardat, navegació postguardat federat, callback GIS, avatar Google i fallback de Places. El tancament de la Iteració 4 acaba amb 24/24 proves backend, 43/43 proves Angular, builds API/Web i Google OAuth boundary E2E correctes; secrets revisats, Excel consolidat i cleanup final sense orfes. Gate Google real: `PASS` el 2026-09-17.
+
+### 2.11.9 LinkedIn OAuth real — Fase IV, Iteració 5 descartada
+
+La implementació de LinkedIn va arribar a superar els gates automàtics el 2026-09-17, però el 2026-09-18 es va descartar com a proveïdor per decisió funcional de producte abans del tancament funcional de la iteració. Per tant, l'estat correcte és **DESCARTADA PER DECISIÓ FUNCIONAL DE PRODUCTE**, no `FAIL`, `PENDENT` ni `NO VALIDADA`. La LinkedIn Page i l'app corporativa són actius externs conservats; no formen part del login ni d'aquesta retirada tècnica.
+
+#### A) Infraestructura genèrica que es conserva
+
+- `IFederatedAuthenticationService` rep una `FederatedIdentityPayload` normalitzada i concentra la resolució d'un `User` existent o la creació d'un `User` nou, perfil incomplet, rol inicial, consentiment i accés posterior.
+- `IAuthSessionFactory` centralitza l'emissió de la sessió i dels permisos. El pipeline crea un challenge TOTP, i no un JWT final, quan el segon factor està actiu.
+- `ExternalIdentity` continua sent el model independent del proveïdor. Les restriccions úniques `(provider, subject)` i `(user_id, provider)` i `TryAddAsync` protegeixen tant de col·lisions com de curses.
+- Google reutilitza aquesta orquestració després que `GoogleIdTokenVerifier` validi la credencial. Les polítiques per proveïdor permeten preservar les regles Google i incorporar Facebook o altres proveïdors sense duplicar el cas d'ús.
+- El logout Petiloc és propi i autenticat. Angular inicia `POST /api/auth/logout` amb el JWT vigent i elimina `zuppeto-auth-session`, rol visual, estat reactiu, menú i cache de notificacions encara que falli la xarxa. Cada JWT conté `jti`; `AccessTokenRevocationStore` persisteix la revocació a `revoked_access_tokens`, la validació Bearer rebutja el mateix JWT després del logout i el backend revoca challenges TOTP pendents. En Google, `GoogleIdentityService` invoca `google.accounts.id.disableAutoSelect()` quan GIS està disponible.
+
+#### B) Implementació específica LinkedIn retirada
+
+La integració utilitzava el producte **Sign In with LinkedIn using OpenID Connect**, Authorization Code Flow i els scopes `openid`, `profile` i `email`. L'inici generava un `state` criptogràfic signat, caducable i d'un sol ús per protegir CSRF; el callback era exclusivament backend, intercanviava l'authorization code amb el `Client ID` i el `Client Secret` i consultava `/v2/userinfo`. Els valors de les credencials no es van versionar ni documentar. La identitat només s'acceptava amb subject, email i `email_verified=true`; no es confiava en email proporcionat pel frontend ni es persistien access tokens o ID tokens.
+
+El resultat normalitzat entrava al mateix pipeline federat que Google: podia crear un únic `User` amb `password_hash = null` i rol `USER`, reutilitzar un `User` existent segons la política vigent, recuperar una identitat ja vinculada, aplicar unicitat i exigir TOTP abans del JWT. Errors, cancel·lació, `state` invàlid o reutilitzat, error de token i resposta OIDC incompleta tornaven un error funcional sense registrar codes, tokens, subjects ni secrets.
+
+Per evitar transportar el JWT final a la query es va crear un handoff opac, curt i d'un sol ús, lliurat al fragment del navegador i bescanviat per `POST`. Aquesta peça no tenia cap consumidor després de retirar LinkedIn i s'ha eliminat juntament amb `ILinkedInOAuthClient`, `LinkedInOAuthClient`, `LinkedInOAuthStateStore`, endpoints `/api/auth/linkedin/*`, `/api/auth/federated/session`, configuració `Auth:LinkedIn`, fitxer local privat, botó, callback Angular específic, runner i proves exclusives.
+
+#### C) Coneixement i decisions tècniques conservades com a històric
+
+La investigació oficial va separar quatre conceptes diferents: consentiment, reautenticació, selecció de compte i tancament de la sessió externa. OIDC Core defineix paràmetres com `prompt=login`, `prompt=select_account`, `max_age` i `login_hint`, però LinkedIn no els documentava com a contracte suportat del seu endpoint d'autorització, no publicava un `end_session_endpoint` aplicable i podia reutilitzar una sessió o autorització vigent. En conseqüència, Petiloc no podia garantir que reaparegués el formulari de credencials ni un selector de compte, i no havia d'intentar eliminar cookies de `linkedin.com`.
+
+La conclusió arquitectònica reutilitzable és que el logout local i el logout del proveïdor són boundaries separats. Petiloc només afirma i prova allò que controla: purga local, revocació del JWT, denegació posterior de rutes protegides i revocació dels challenges interns. Qualsevol provider futur haurà de documentar explícitament si admet reautenticació, selecció o logout extern, sense assumir que totes les opcions d'OIDC Core estan implementades.
+
+Cobertura històrica LinkedIn: alta i relogin, `User` existent/nou, `ExternalIdentity`, email verificat, unicitat, gestió d'errors, `state`/CSRF, TOTP i recovery code abans del JWT, handoff d'un sol ús, logout Petiloc i absència de secrets als logs. Cobertura vigent després de la retirada: 25/25 proves backend, 46/46 Angular, 14/14 suites del runner, builds API/Web, E2E d'activació, recuperació, TOTP i boundary Google OAuth en PASS.
 
 ## 7. Implementacio del mapa
 
@@ -2052,7 +2083,7 @@ Ubicacio:
 
 `ErrorNotificationsService` manté una llista reactiva de notificacions mitjançant `signal` i la persisteix a `localStorage` (`zuppeto-notifications`) per `userId`.
 
-`AuthService.login` / `loginWithGoogle` / `hydrateFederatedSession` criden `loadForUser`; `logout` crida `unload` (desa i buida la memòria de la pàgina de login). El títol «Sessió tancada» no s’emmagatzema. Màxim 50 avisos per compte. No és persistència de servidor.
+`AuthService.login` / `loginWithGoogle` / `hydrateFederatedSession` criden `loadForUser`. Els canvis de seguretat interns poden cridar `unload` per desar i descarregar la bústia, però el `logout` explícit crida `purgeCurrentUser`: elimina la cache de l'usuari que surt i buida la memòria sense tocar altres comptes del navegador. El títol «Sessió tancada» no s’emmagatzema. Màxim 50 avisos per compte. No és persistència de servidor.
 
 Responsabilitats:
 
@@ -2110,7 +2141,7 @@ Patrons aplicats amb exemples reals:
 - Dependency Injection: serveis registrats a `Application` i `Infrastructure`.
   - Exemple: `DependencyInjection.cs` a `src/Backend/Application`.
 - Strategy: clients OAuth/IdToken intercanviables; polítiques de perfil al web.
-  - Exemple: `IGoogleIdTokenVerifier`, `ILinkedInOAuthClient`, `IFacebookOAuthClient`.
+  - Exemple: `IGoogleIdTokenVerifier`, `IFacebookOAuthClient` i l'orquestració federada compartida.
   - Exemple web: `PASSWORD_STRENGTH_POLICY`, `PROFILE_SAVE_POLICY` (`CatalogProfileSavePolicy`), `PROFILE_PASSWORD_CHANGE_POLICY` (`DefaultProfilePasswordChangePolicy`).
 - Validator: validació explícita a la capa d'entrada (API).
   - Exemple: `CreateAdminUserRequestValidator`, `LoginRequestValidator`, `UserAccountUpdateRequestValidator`.

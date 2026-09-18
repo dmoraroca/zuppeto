@@ -42,6 +42,11 @@ Resum del diagrama:
 ### Auth
 
 - `POST /api/auth/login` — login local
+- `POST /api/auth/logout` — tanca la sessió Petiloc, revoca el JWT concret i els challenges TOTP; requereix JWT
+- `POST /api/auth/login/totp` — completa el challenge de segon factor
+- `POST /api/auth/activation` i `POST /api/auth/activation/resend` — activació del compte local
+- `POST /api/auth/password-recovery` i `POST /api/auth/password-reset` — recuperació de contrasenya local
+- `POST /api/auth/totp/setup`, `/totp/setup/confirm`, `/totp/disable` i `/totp/recovery-codes/regenerate` — gestió TOTP autenticada
 - `POST /api/auth/google` — valida una credencial de Google Identity Services
 - `GET /api/auth/providers` — estat públic dels proveïdors configurats
 - `GET /api/auth/me` — sessió actual; requereix JWT
@@ -60,6 +65,14 @@ Contracte vigent de `POST /api/auth/google`:
 - proveïdor no configurat o no disponible: `503 federated_provider_unavailable`
 
 Cap endpoint desa tokens Google, subjects en logs o contrasenyes fictícies. L'endpoint explícit de linking es manté com a gestió addicional, però no és un prerequisit per al login Google coincident.
+
+Les rutes `/api/auth/facebook/start` i `/api/auth/facebook/callback` són una reserva tècnica preexistent i no converteixen Facebook en funcionalitat disponible: el proveïdor continua pendent i sense configuració efectiva. No existeixen rutes `/api/auth/linkedin/start`, `/api/auth/linkedin/callback` ni `/api/auth/federated/session`.
+
+### Històric de l'API LinkedIn — Iteració 5 descartada
+
+Durant la Iteració 5 es van arribar a implementar endpoints d'inici i callback al backend per `Sign In with LinkedIn using OpenID Connect`, Authorization Code Flow, scopes `openid profile email`, validació `state`/CSRF, intercanvi de codi i consulta autenticada de `userinfo`. El callback no confiava en emails del frontend, exigia identitat i email verificats, passava pel pipeline compartit de `User`/`ExternalIdentity`/TOTP/JWT i evitava persistir tokens del proveïdor.
+
+La decisió funcional posterior va retirar aquestes rutes i el handoff d'un sol ús que només consumia LinkedIn. El coneixement tècnic queda registrat, però cap endpoint LinkedIn es documenta com a actiu. Es mantenen l'orquestració federada comuna, la factoria de sessions, les restriccions d'unicitat, TOTP i `POST /api/auth/logout`, que continuen tenint ús real amb Google i el login local.
 
 ### Places
 
@@ -124,4 +137,4 @@ La Fase III queda completada perquè aquesta API ja no només existeix i respon,
 - `favorites`
 - manteniment de `perfil`
 
-L'autenticació real pertany a la Fase IV. El login propi i Google OAuth real estan integrats; el gate de Google de la Iteració 4 va quedar validat el 2026-09-17. LinkedIn continua pendent del punt 5 i Facebook no forma part d'aquesta iteració.
+L'autenticació real pertany a la Fase IV. El login propi i Google OAuth real estan integrats; el gate de Google de la Iteració 4 va quedar validat el 2026-09-17. LinkedIn es va descartar per decisió funcional de producte i no forma part de l'API pública; Facebook continua pendent.

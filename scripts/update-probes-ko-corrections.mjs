@@ -35,10 +35,10 @@ const correctionsByCode = {
       "Què s'ha fet: S'ha verificat que en localhost/dev el botó Google es mostra com a «Google pendent» (comportament esperat). S'ha afegit text d'ajuda sota els proveïdors OAuth per aclarir-ho a la prova manual. Fitxers: login-page.component.html, .scss."
   },
   'ZUP-007': {
-    result: 'OK',
+    result: 'N/A',
     roles: ['USER'],
     description:
-      "Què s'ha fet: S'ha verificat que LinkedIn queda «LinkedIn pendent» i desactivat si el backend no té ClientId/Secret. S'ha afegit el mateix text d'ajuda OAuth al login. No cal canvi de backend en aquesta fase. Fitxers: login-page.component.html, .scss."
+      "Descartada per decisió funcional de producte. LinkedIn no forma part dels proveïdors d'accés de Petiloc."
   },
   'ZUP-008': {
     result: 'OK',
@@ -74,7 +74,7 @@ const correctionsByCode = {
     result: 'N/A',
     roles: ['USER'],
     description:
-      "Què s'ha fet: S'ha marcat la prova com a N/A. El flux OAuth complet (Google/LinkedIn) requereix compte real del proveïdor i configuració al backend; no és un defecte del producte en dev local. No s'ha implementat automatització d'aquesta prova manual."
+      "El flux OAuth real de Google es conserva i està validat. LinkedIn s'ha retirat d'aquest cas per decisió funcional de producte."
   },
   'ZUP-024': {
     result: 'OK',

@@ -45,7 +45,7 @@ export class SiteHeaderComponent {
   }
 
   protected logout(): void {
-    this.authService.logout();
+    void this.authService.logout();
     void this.router.navigate(['/login'], {
       replaceUrl: true
     });

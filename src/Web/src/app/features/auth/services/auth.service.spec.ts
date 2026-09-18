@@ -6,11 +6,11 @@ import { ROLE_CHROME_POLICY } from '../policies/role-chrome.policy';
 import { AUTH_STORE, AuthStore } from './auth-store.token';
 import { AuthService } from './auth.service';
 
-describe('AuthService Google OAuth', () => {
+describe('AuthService federated OAuth', () => {
   let service: AuthService;
   let http: HttpTestingController;
   const store: AuthStore = { loadSession: () => null, saveSession: vi.fn() };
-  const notifications = { loadForUser: vi.fn(), unload: vi.fn() };
+  const notifications = { loadForUser: vi.fn(), unload: vi.fn(), purgeCurrentUser: vi.fn() };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -27,6 +27,27 @@ describe('AuthService Google OAuth', () => {
   });
 
   afterEach(() => http.verify());
+
+  it('clears the complete local session and requests backend termination on logout', async () => {
+    service.hydrateFederatedSession({
+      accessToken: 'jwt', expiresAtUtc: new Date(Date.now() + 60_000).toISOString(), provider: 'password',
+      permissionKeys: ['profile.read'], requiresProfileCompletion: false,
+      user: { id: 'local-user', email: 'user@petiloc.local', role: 'User', displayName: 'Local User', city: 'Barcelona', country: 'ES', comments: '', avatarUrl: null, privacyAccepted: true, privacyAcceptedAtUtc: new Date().toISOString(), hasLocalCredential: true, isTotpEnabled: false }
+    });
+    vi.clearAllMocks();
+
+    const promise = service.logout();
+    const request = http.expectOne('http://localhost:5211/api/auth/logout');
+
+    expect(request.request.method).toBe('POST');
+    expect(service.isAuthenticated()).toBe(false);
+    expect(service.navigationMenu()).toEqual([]);
+    expect(store.saveSession).toHaveBeenCalledWith(null);
+    expect(notifications.purgeCurrentUser).toHaveBeenCalledOnce();
+
+    request.flush(null, { status: 204, statusText: 'No Content' });
+    await expect(promise).resolves.toBeUndefined();
+  });
 
   it('persists a real Google session returned by the backend', async () => {
     const promise = service.loginWithGoogle('google-id-token');

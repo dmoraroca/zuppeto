@@ -130,9 +130,12 @@
 <h3>Punts oficials de la fase</h3>
 <table>
   <tr><th class="fet">✅ FET</th><td>Autenticació pròpia (login + JWT)</td></tr>
-  <tr><th class="fet">✅ FET</th><td>Autenticació federada Google</td></tr>
-  <tr><th class="fet">✅ FET</th><td>Autenticació federada LinkedIn</td></tr>
+  <tr><th class="fet">✅ VALIDADA I TANCADA</th><td>Iteració 4 — Autenticació federada Google</td></tr>
+  <tr><th>➖ N/A</th><td>Autenticació federada LinkedIn — descartada per decisió funcional de producte</td></tr>
   <tr><th class="nofet">❌ NO FET</th><td>Autenticació federada Facebook (aparcada fins després de publicar)</td></tr>
+  <tr><th>💡 FUTUR</th><td>Microsoft OAuth/OIDC i Sign in with Apple</td></tr>
+  <tr><th>🔎 ESTUDI</th><td>Samsung/LG — viabilitat d'identitat pendent d'analitzar</td></tr>
+  <tr><th>🏢 CANAL</th><td>LinkedIn Page Petiloc conservada com a canal corporatiu, no com a login</td></tr>
   <tr><th class="fet">✅ FET</th><td>Rols i permisos (VIEWER, USER, DEVELOPER, ADMIN)</td></tr>
   <tr><th class="fet">✅ FET</th><td>Pàgines internes i base d'accés admin</td></tr>
   <tr><th class="nocurs">⏳ EN CURS</th><td>Gestió de contingut o dades (llocs → després favorits; catàleg territorial)</td></tr>
@@ -144,7 +147,7 @@
 
 <h3>Detall fet dins la Fase IV</h3>
 <table>
-  <tr><th class="fet">✅ FET</th><td>Endpoints d'auth (/api/auth/login, /providers, /me, /google, LinkedIn)</td></tr>
+  <tr><th class="fet">✅ FET</th><td>Endpoints d'auth actius (/login, /logout, /providers, /me, /google, TOTP, activació i recuperació)</td></tr>
   <tr><th class="fet">✅ FET</th><td>JWT Bearer a la web i als endpoints protegits</td></tr>
   <tr><th class="fet">✅ FET</th><td>Manteniment usuaris (admin/usuaris: alta, edició, baixa, rol, avatar…)</td></tr>
   <tr><th class="fet">✅ FET</th><td>Manteniment permisos (admin/permisos)</td></tr>

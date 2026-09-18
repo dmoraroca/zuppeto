@@ -3,7 +3,7 @@ import type { ChromeBlock, ChromeScenarioInventoryItem } from '../../domain/chro
 import type { E2ERole } from '../../domain/e2e-role.js';
 
 const specificationExclusions = new Map<string, string>([
-  ['ZUP-016:USER', 'EXTERNAL: requereix completar un OAuth real de Google o LinkedIn fora de l’entorn controlat.'],
+  ['ZUP-016:USER', 'EXTERNAL: requereix completar un OAuth real de Google fora de l’entorn controlat.'],
   ['ZUP-021:USER', 'SPECIFICATION: el rol USER no disposa del menú «Del administrador» indicat al pas.'],
   ['ZUP-107:VIEWER', 'SPECIFICATION: VIEWER no pot accedir a Administració per crear usuaris.'],
   ['ZUP-109:DEVELOPER', 'SPECIFICATION: DEVELOPER no té permís de gestió d’usuaris.'],

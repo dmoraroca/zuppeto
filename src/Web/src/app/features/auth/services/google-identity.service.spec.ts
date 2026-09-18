@@ -6,6 +6,7 @@ describe('GoogleIdentityService', () => {
   type RenderButton = GoogleIdApi['renderButton'];
   let initialize: ReturnType<typeof vi.fn<Initialize>>;
   let renderButton: ReturnType<typeof vi.fn<RenderButton>>;
+  let disableAutoSelect: ReturnType<typeof vi.fn<GoogleIdApi['disableAutoSelect']>>;
   let globalCallback: ((response: { credential: string; state?: string }) => void) | undefined;
 
   beforeEach(() => {
@@ -13,11 +14,13 @@ describe('GoogleIdentityService', () => {
       globalCallback = options.callback;
     });
     renderButton = vi.fn();
+    disableAutoSelect = vi.fn();
     window.google = {
       accounts: {
         id: {
           initialize: (options) => initialize(options),
-          renderButton: (parent, options) => renderButton(parent, options)
+          renderButton: (parent, options) => renderButton(parent, options),
+          disableAutoSelect: () => disableAutoSelect()
         }
       }
     };
@@ -76,5 +79,13 @@ describe('GoogleIdentityService', () => {
 
     expect(renderButton.mock.calls[0][1]).not.toHaveProperty('click_listener');
     expect(renderButton.mock.calls[0][1]).not.toHaveProperty('state');
+  });
+
+  it('uses the official GIS sign-out control when available', async () => {
+    const service = new GoogleIdentityService();
+
+    await service.disableAutoSelect();
+
+    expect(disableAutoSelect).toHaveBeenCalledOnce();
   });
 });

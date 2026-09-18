@@ -1,3 +1,4 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Reflection;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -8,6 +9,7 @@ using Serilog;
 using Serilog.Events;
 using Zuppeto.Infrastructure.Auth;
 using Zuppeto.Application;
+using Zuppeto.Application.Auth;
 using Zuppeto.Application.Places;
 using Zuppeto.Api.Endpoints;
 using Zuppeto.Api.Observability;
@@ -66,12 +68,9 @@ static void AddApiFileSink(LoggerConfiguration loggerConfiguration, string logsD
 }
 
 var builder = WebApplication.CreateBuilder(args);
-var linkedInLocalConfig = Path.GetFullPath(
-    Path.Combine(builder.Environment.ContentRootPath, "..", "..", "..", "config", "linkedin", "zuppeto-dev.json"));
 var facebookLocalConfig = Path.GetFullPath(
     Path.Combine(builder.Environment.ContentRootPath, "..", "..", "..", "config", "facebook", "zuppeto-dev.json"));
 
-builder.Configuration.AddJsonFile(linkedInLocalConfig, optional: true, reloadOnChange: true);
 builder.Configuration.AddJsonFile(facebookLocalConfig, optional: true, reloadOnChange: true);
 
 builder.Host.UseSerilog((context, services, loggerConfiguration) =>
@@ -164,7 +163,19 @@ builder.Services
                 }
                 var users = context.HttpContext.RequestServices.GetRequiredService<IUserRepository>();
                 var user = await users.GetByIdAsync(userId, context.HttpContext.RequestAborted);
-                if (user is null || user.SecurityVersion != version) context.Fail("La sessió ja no és vigent.");
+                if (user is null || user.SecurityVersion != version)
+                {
+                    context.Fail("La sessió ja no és vigent.");
+                    return;
+                }
+
+                var tokenId = context.Principal?.FindFirstValue(JwtRegisteredClaimNames.Jti);
+                if (string.IsNullOrWhiteSpace(tokenId)) return;
+                var revocations = context.HttpContext.RequestServices.GetRequiredService<IAccessTokenRevocationStore>();
+                if (await revocations.IsRevokedAsync(tokenId, context.HttpContext.RequestAborted))
+                {
+                    context.Fail("La sessió ha estat tancada.");
+                }
             },
             OnAuthenticationFailed = context =>
             {

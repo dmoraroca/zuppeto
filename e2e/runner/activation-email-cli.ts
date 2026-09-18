@@ -45,7 +45,8 @@ async function main(): Promise<void> {
   }
   const providers = await request<Array<{ key: string }>>('/api/auth/providers');
   assert.ok(providers.some((provider) => provider.key === 'google'));
-  assert.ok(providers.some((provider) => provider.key === 'linkedin'));
+  assert.ok(providers.some((provider) => provider.key === 'facebook'));
+  assert.ok(!providers.some((provider) => provider.key === 'linkedin'));
   console.log('Activation email E2E: PASS');
   } finally {
     cleanup(email);

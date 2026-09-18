@@ -48,16 +48,6 @@
           <button
             type="button"
             class="login-page__provider"
-            [disabled]="!linkedInProvider()"
-            (click)="startLinkedInLogin()"
-          >
-            <span class="login-page__provider-icon login-page__provider-icon--linkedin" aria-hidden="true">in</span>
-            <span>{{ linkedInProvider() ? 'LinkedIn' : 'LinkedIn pendent' }}</span>
-          </button>
-
-          <button
-            type="button"
-            class="login-page__provider"
             [disabled]="!facebookProvider()"
             (click)="startFacebookLogin()"
           >

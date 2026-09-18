@@ -24,8 +24,7 @@ export class AuthCallbackPageComponent {
     const redirectTo = this.route.snapshot.queryParamMap.get('redirectTo');
 
     if (!sessionPayload) {
-      this.notifications.notify('Login social incomplet', 'No s’ha rebut la sessió del proveïdor federat.', 'error');
-      void this.router.navigateByUrl('/login');
+      this.notifyIncompleteSession();
       return;
     }
 
@@ -34,9 +33,13 @@ export class AuthCallbackPageComponent {
       this.authService.hydrateFederatedSession(JSON.parse(json) as AuthSessionApiDto);
       void this.router.navigateByUrl(redirectTo || this.authService.getPostLoginRoute());
     } catch {
-      this.notifications.notify('Login social incomplet', 'No s’ha pogut recuperar la sessió federada.', 'error');
-      void this.router.navigateByUrl('/login');
+      this.notifyIncompleteSession();
     }
+  }
+
+  private notifyIncompleteSession(): void {
+    this.notifications.notify('Login social incomplet', 'No s’ha pogut recuperar la sessió federada.', 'error');
+    void this.router.navigateByUrl('/login');
   }
 
   private decodeBase64Url(value: string): string {

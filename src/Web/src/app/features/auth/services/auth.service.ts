@@ -13,6 +13,7 @@ import {
   RoleChromePolicy
 } from '../policies/role-chrome.policy';
 import { AUTH_STORE, AuthStore } from './auth-store.token';
+import { GoogleIdentityService } from './google-identity.service';
 
 const ROLE_CHROME_STORAGE_KEY = 'zuppeto-role-chrome';
 
@@ -22,6 +23,7 @@ const ROLE_CHROME_STORAGE_KEY = 'zuppeto-role-chrome';
 export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly notifications = inject(ErrorNotificationsService);
+  private readonly googleIdentity = inject(GoogleIdentityService);
   private readonly roleChrome = inject<RoleChromePolicy>(ROLE_CHROME_POLICY);
   private readonly sessionState: ReturnType<typeof signal<AuthSession | null>>;
   private readonly navigationMenuState = signal<NavigationMenuItem[]>([]);
@@ -226,12 +228,20 @@ export class AuthService {
     return mappedSession.user;
   }
 
-  logout(): void {
+  async logout(): Promise<void> {
+    const backendTermination = this.sessionState()
+      ? firstValueFrom(this.http.post<void>(`${API_BASE_URL}/auth/logout`, {})).catch(() => undefined)
+      : Promise.resolve();
+    const providerTermination = this.provider() === 'google'
+      ? this.googleIdentity.disableAutoSelect()
+      : Promise.resolve();
+
     this.clearStoredChromeRole();
-    this.notifications.unload();
+    this.notifications.purgeCurrentUser();
     this.sessionState.set(null);
     this.navigationMenuState.set([]);
     this.authStore.saveSession(null);
+    await Promise.all([backendTermination, providerTermination]);
   }
 
   async updateProfile(update: AuthProfileUpdate): Promise<AuthUser | null> {
@@ -467,13 +477,6 @@ export class AuthService {
 
   canManageRoles(): boolean {
     return this.hasPermission('page.admin.roles');
-  }
-
-  getLinkedInStartUrl(redirectTo?: string | null): string {
-    const target = redirectTo?.trim();
-    return target
-      ? `${API_BASE_URL}/auth/linkedin/start?redirectTo=${encodeURIComponent(target)}`
-      : `${API_BASE_URL}/auth/linkedin/start`;
   }
 
   getFacebookStartUrl(redirectTo?: string | null): string {

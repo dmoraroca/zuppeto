@@ -114,6 +114,27 @@ export class ErrorNotificationsService {
     this.notificationState.set([]);
   }
 
+  purgeCurrentUser(): void {
+    if (this.ownerUserId && typeof localStorage !== 'undefined') {
+      const store = this.readStore();
+      delete store[this.ownerUserId];
+
+      try {
+        if (Object.keys(store).length === 0) {
+          localStorage.removeItem(STORAGE_KEY);
+        } else {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+        }
+      } catch {
+        // Ignore private-mode failures; the in-memory session is still cleared.
+      }
+    }
+
+    this.ownerUserId = null;
+    this.nextId = 1;
+    this.notificationState.set([]);
+  }
+
   private push(title: string, message: string, tone: NotificationTone = 'error'): void {
     if (title === SESSION_CLOSED_TITLE) {
       return;

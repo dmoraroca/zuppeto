@@ -60,7 +60,7 @@ export interface AuthProvider {
 }
 
 export interface AccessMethod {
-  provider: 'password' | 'google' | 'linkedin' | 'facebook' | string;
+  provider: 'password' | 'google' | 'facebook' | string;
   displayName: string;
   linked: boolean;
   available: boolean;

@@ -310,7 +310,7 @@ export class ProfilePageComponent implements AfterViewInit {
   }
 
   protected logout(): void {
-    this.authService.logout();
+    void this.authService.logout();
     void this.router.navigate(['/login'], {
       replaceUrl: true
     });

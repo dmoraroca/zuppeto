@@ -27,7 +27,6 @@ describe('TotpSecurityPageComponent', () => {
     auth.getAccessMethods.mockResolvedValue([
       { provider: 'password', displayName: 'Contrasenya', linked: true, available: true, status: 'linked' },
       { provider: 'google', displayName: 'Google', linked: false, available: true, status: 'linkable' },
-      { provider: 'linkedin', displayName: 'LinkedIn', linked: false, available: false, status: 'pending' },
       { provider: 'facebook', displayName: 'Facebook', linked: false, available: false, status: 'pending' }
     ]);
     auth.getProviders.mockResolvedValue([{ key: 'google', configured: true, clientId: 'client-id' }]);
@@ -67,7 +66,6 @@ describe('TotpSecurityPageComponent', () => {
     });
 
     expect(fixture.nativeElement.textContent).toContain('Google');
-    expect(fixture.nativeElement.textContent).toContain('LinkedIn');
     expect(fixture.nativeElement.textContent).toContain('Facebook');
     await vi.waitFor(() => {
       fixture.detectChanges();

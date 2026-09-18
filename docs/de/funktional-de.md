@@ -407,21 +407,20 @@ Zusammenfassung des Diagramms:
 <pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">flowchart LR</span>
   <span style="color:#93c5fd;">A[Oeffentlicher Benutzer]</span> --&gt; <span style="color:#c4b5fd;">B[Social Provider auswaehlen]</span>
   <span style="color:#c4b5fd;">B</span> --&gt; <span style="color:#86efac;">G[Google]</span>
-  <span style="color:#c4b5fd;">B</span> --&gt; <span style="color:#86efac;">L[LinkedIn]</span>
-  <span style="color:#c4b5fd;">B</span> --&gt; <span style="color:#86efac;">F[Facebook]</span>
-  <span style="color:#c4b5fd;">B</span> --&gt; <span style="color:#86efac;">A2[Apple]</span>
-  <span style="color:#c4b5fd;">B</span> --&gt; <span style="color:#86efac;">M[Microsoft]</span>
+  <span style="color:#c4b5fd;">B</span> -. Roadmap .-&gt; <span style="color:#fcd34d;">F[Facebook ausstehend]</span>
+  <span style="color:#c4b5fd;">B</span> -. Zukunft .-&gt; <span style="color:#fcd34d;">A2[Apple zukuenftig]</span>
+  <span style="color:#c4b5fd;">B</span> -. Zukunft .-&gt; <span style="color:#fcd34d;">M[Microsoft zukuenftig]</span>
   <span style="color:#86efac;">G</span> --&gt; <span style="color:#67e8f9;">P[Erlaubte Profildaten uebernehmen]</span>
-  <span style="color:#86efac;">L</span> --&gt; <span style="color:#67e8f9;">P</span>
-  <span style="color:#86efac;">F</span> --&gt; <span style="color:#67e8f9;">P</span>
-  <span style="color:#86efac;">A2</span> --&gt; <span style="color:#67e8f9;">P</span>
-  <span style="color:#86efac;">M</span> --&gt; <span style="color:#67e8f9;">P</span>
+  <span style="color:#fcd34d;">F</span> -. nach Implementierung .-&gt; <span style="color:#67e8f9;">P</span>
+  <span style="color:#fcd34d;">A2</span> -. nach Freigabe .-&gt; <span style="color:#67e8f9;">P</span>
+  <span style="color:#fcd34d;">M</span> -. nach Freigabe .-&gt; <span style="color:#67e8f9;">P</span>
   <span style="color:#67e8f9;">P</span> --&gt; <span style="color:#fcd34d;">C[Noetige Einwilligungen einholen]</span>
   <span style="color:#fcd34d;">C</span> --&gt; <span style="color:#f9a8d4;">D[Profil erstellen oder aktualisieren]</span></code></pre>
 
 Zusammenfassung des Diagramms:
 
-- Social Login ist vorgesehen, aber nicht der erste Implementierungsschritt
+- Google ist der validierte föderierte Login. LinkedIn wurde durch eine Produktentscheidung verworfen; die Petiloc LinkedIn Page bleibt ein unabhängiger Unternehmenskanal
+- Facebook bleibt ausstehend; Microsoft und Apple sind zukünftige Verbesserungen, Samsung/LG eine spätere Machbarkeitsstudie
 - vor dem Erstellen oder Aktualisieren des Profils muessen Rechte und eingehende Daten kontrolliert werden
 - diese Ebene baut spaeter auf der Standard-Login-Basis auf
 ## 9. Aktuelle Abnahmekriterien

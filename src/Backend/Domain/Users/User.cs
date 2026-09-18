@@ -231,6 +231,11 @@ public sealed class User : AggregateRoot<Guid>
         LastAccessedAtUtc = accessedAtUtc;
     }
 
+    public void RevokeSessions()
+    {
+        SecurityVersion++;
+    }
+
     /// <summary>Standard app users subject to privacy gating (role key "User", any casing).</summary>
     private bool IsStandardUserRole()
     {

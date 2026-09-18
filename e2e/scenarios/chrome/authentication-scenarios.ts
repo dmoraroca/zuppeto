@@ -36,8 +36,12 @@ export async function executeAuthenticationScenario(code: number, context: Chrom
     await expect(page.locator('.login-page__providers').getByText(/Google(?: pendent)?/, { exact: true })).toBeVisible();
     return;
   }
-  if (code === 7 || code === 8) {
-    const provider = code === 7 ? 'LinkedIn' : 'Facebook';
+  if (code === 7) {
+    await expect(page.locator('.login-page__providers').getByText('LinkedIn', { exact: true })).toHaveCount(0);
+    return;
+  }
+  if (code === 8) {
+    const provider = 'Facebook';
     const button = page.locator('.login-page__providers').getByRole('button', { name: new RegExp(`^${provider}(?: pendent)?$`) });
     await expect(button).toBeVisible();
     if (await button.isDisabled()) await expect(button).toContainText('pendent');

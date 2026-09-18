@@ -205,7 +205,7 @@ PostgreSQL</div>
   <li><strong>EF Core</strong> amb models de persistència propis (*Record), separats del domini</li>
   <li><strong>Mappers manuals</strong> per agregat (PlacePersistenceMapper, etc.)</li>
   <li><strong>Repositoris EF</strong> que implementen els contractes del domini</li>
-  <li><strong>Auth</strong>: JWT, OAuth (Google, LinkedIn)</li>
+  <li><strong>Auth</strong>: JWT i OAuth Google; pipeline federat genèric conservat; LinkedIn descartat per decisió funcional de producte</li>
   <li><strong>Integracions externes</strong>: Google Places, GeoNames</li>
   <li>Migracions EF com a font de veritat de l'esquema</li>
 </ul>
@@ -260,7 +260,8 @@ PostgreSQL</div>
 </table>
 
 <ul>
-  <li>Login propi amb <strong>JWT</strong> + federació <strong>Google</strong> i <strong>LinkedIn</strong></li>
+  <li>Login propi amb <strong>JWT</strong> + federació <strong>Google</strong>; Facebook pendent</li>
+  <li>Roadmap d'identitat: Microsoft OAuth/OIDC i Apple com a millores futures; Samsung/LG subjectes a estudi de viabilitat</li>
   <li>Catàleg de permisos per menu, page i action</li>
   <li>El control s'aplica tant a <strong>Web</strong> (guards + permissionGuard) com a <strong>API</strong> (RequireAuthorization)</li>
 </ul>

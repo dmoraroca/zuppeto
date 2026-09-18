@@ -13,6 +13,15 @@ export class GoogleIdentityService {
   } | null = null;
   private renderSequence = 0;
 
+  async disableAutoSelect(): Promise<void> {
+    try {
+      await this.loadScript();
+      window.google?.accounts.id.disableAutoSelect();
+    } catch {
+      // Petiloc logout must still complete if the external GIS script is unavailable.
+    }
+  }
+
   async renderButton(
     host: HTMLElement,
     clientId: string,

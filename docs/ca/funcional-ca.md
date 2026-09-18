@@ -118,9 +118,9 @@ En l'estat actual:
 - el perfil `Docker: Stack completa (Attach)` tracta la base de dades com a dependència del stack i centra la depuració real en `api` i `web`
 - `Docker: API + Swagger (Attach)` ja manté el debugger de l'API mentre obre `Swagger`
 - el següent focus funcional passa a ser l'obertura d'autenticació, permisos, àrees internes i accessos restringits propis de la Fase IV
-- el login futur de Fase IV no queda limitat a credencials pròpies: també ha de contemplar `Google`, `LinkedIn`, `Facebook` i altres proveïdors federats
+- el login de Fase IV no queda limitat a credencials pròpies: inclou `Google`; `Facebook` continua pendent i `LinkedIn` s'ha descartat per decisió funcional de producte
 - `Facebook` queda aparcat funcionalment fins després de publicar la web
-- la base d'autenticació disposa de login propi i Google sobre API real; Google ja ha superat la validació de punta a punta de la Iteració 4, mentre que LinkedIn continua 🟠 fins al punt 5
+- la base d'autenticació disposa de login propi i Google sobre API real; Google ja ha superat la validació de punta a punta de la Iteració 4 i la Iteració 5 de LinkedIn queda descartada per decisió funcional de producte
 - el nou punt en curs passa a ser `rols i permisos`
 - ja existeixen dos usuaris bootstrap de desenvolupament per provar el nou flux:
   - `admin@admin.adm / Admin123`
@@ -165,7 +165,7 @@ Nota de criteri funcional:
 <pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">flowchart LR</span>
   <span style="color:#93c5fd;">PUB[Usuari public]</span> --&gt; <span style="color:#c4b5fd;">WEB[Web actual]</span>
   <span style="color:#fcd34d;">AUTH[Login propi real]</span> -.-> <span style="color:#c4b5fd;">WEB</span>
-  <span style="color:#f9a8d4;">FED[Google validat / LinkedIn pendent / Facebook aparcat]</span> -.-> <span style="color:#fcd34d;">AUTH</span>
+  <span style="color:#f9a8d4;">FED[Google validat / Facebook pendent]</span> -.-> <span style="color:#fcd34d;">AUTH</span>
   <span style="color:#86efac;">ROLS[Rols i permisos]</span> -.-> <span style="color:#c4b5fd;">WEB</span>
   <span style="color:#f9a8d4;">INT[Zones internes]</span> -.-> <span style="color:#c4b5fd;">WEB</span>
   <span style="color:#c4b5fd;">WEB</span> --&gt; <span style="color:#67e8f9;">API[API real]</span>
@@ -176,7 +176,7 @@ Resum del diagrama:
 - la Fase IV obre el tram de seguretat i govern d'accessos
 - la web continua sent la mateixa base funcional, pero ara passa a requerir autenticació i permisos reals
 - el login propi contra backend i Google OAuth real ja estan validats de punta a punta
-- `LinkedIn` continua pendent del punt 5 i `Facebook` continua aparcat fins després de publicar la web
+- `LinkedIn` s'ha retirat del producte per decisió funcional; `Facebook` continua aparcat fins després de publicar la web
 - les zones internes i restriccions deixen de ser una idea futura i passen a ser el focus actiu
 - l'entrada d'usuari haurà de poder venir tant de login propi com de proveïdors socials o federats
 - el frontend ja conserva la sessió a navegador i reutilitza el token per a futures crides HTTP
@@ -442,7 +442,7 @@ El punt d'autenticacio pròpia i federada queda funcionalment entès aixi:
 - els errors diferencien proveïdor no disponible, identitat federada rebutjada i conflicte amb una identitat ja assignada; un 401 federat no genera també l'avís global de sessió no autoritzada
 - la credencial local de Google queda fora de versionat
 - `info@zuppeto.com` queda reservat com a administrador federat de desenvolupament
-- `LinkedIn` reutilitza la base federada, però la seva validació real queda pendent del punt 5
+- la infraestructura federada compartida conserva OIDC, autovinculació segura i TOTP per a Google i futurs proveïdors; l'adaptador LinkedIn s'ha retirat
 - `Facebook` queda expressament aparcat fins després de publicacio
 
 La decisio funcional de rols i permisos queda fixada així:
@@ -821,7 +821,7 @@ Origen funcional de les notificacions:
 
 Abast actual:
 
-- notificacions de la sessió d’usuari, desades al navegador (per compte): un **F5** o tornar a entrar **no** buida la llista
+- notificacions de la sessió d’usuari, desades al navegador (per compte): un **F5** no buida la llista; el logout explícit elimina la bústia local del compte que surt
 - **«Sessió tancada»** no es desa ni es mostra un cop tornes a estar autenticat
 - lectura simple de data, titol i missatge
 - suport a seguiment basic de l'activitat recent de l'usuari
@@ -1292,7 +1292,7 @@ Abans d'iniciar funcionalitat nova, cal auditar els **5 SKIP E2E actuals**, iden
 | 2 | Identitat i seguretat | Recuperació de compte o contrasenya per email | 🟢 VALIDAT |
 | 3 | Identitat i seguretat | TOTP / 2FA | 🟢 VALIDAT |
 | 4 | Identitat i seguretat | Google OAuth real | 🟢 VALIDAT |
-| 5 | Identitat i seguretat | LinkedIn OAuth real | 🟠 Parcial / pendent de validació real |
+| 5 | Identitat i seguretat | LinkedIn OAuth real | ➖ DESCARTADA — decisió funcional de producte |
 | 6 | Territori | Catàleg territorial d'Espanya | 🟠 Parcial / pendent de completar o validar |
 | 7 | Territori | GeoNames + alta lazy | 🔴 Pendent / crític |
 | 8 | Territori | Selector País/Ciutat compartit | 🔴 Pendent / crític |
@@ -1311,7 +1311,7 @@ Abans d'iniciar funcionalitat nova, cal auditar els **5 SKIP E2E actuals**, iden
 | 21 | Tancament | Revisió definitiva dels SKIP E2E | 🔴 Pendent / crític |
 | 22 | Tancament | Baixa de compte autogestionada i sol·licitud per correu | 🟠 Parcial / pendent d'implementar i validar |
 
-Per tant, l'estat oficial actual és de **6 punts 🔴, 12 punts 🟠 i 4 punts 🟢 VALIDAT** dins d'aquest gate (punts **1–22**).
+Per tant, l'estat oficial actual és de **6 punts 🔴, 11 punts 🟠, 4 punts 🟢 VALIDAT i 1 punt ➖ DESCARTAT** dins d'aquest gate (punts **1–22**). El punt descartat no computa com a pendent, fallit ni no validat.
 
 #### 3.18.4 Bloc A — Identitat i seguretat
 
@@ -1321,9 +1321,9 @@ Per tant, l'estat oficial actual és de **6 punts 🔴, 12 punts 🟠 i 4 punts 
 
 **3. TOTP / 2FA — 🟢 VALIDAT.** L'usuari activa el segon factor des de Perfil/Seguretat mitjançant QR o clau manual i confirma el primer codi abans que quedi actiu. El secret es persisteix protegit, els recovery codes només es desen amb hash, són d'un sol ús i es poden regenerar; la desactivació exigeix TOTP o recovery code, elimina el material recuperable, revoca challenges pendents i incrementa la versió de seguretat. Cap login propi o federat emet JWT fins a superar el challenge quan TOTP està actiu. Els challenges caduquen, són d'un sol ús i tenen rate limiting; el darrer timestep TOTP acceptat es persisteix per impedir replay. La implementació és compatible amb autenticadors TOTP estàndard i no depèn d'un fabricant. Han passat 12/12 proves persistents .NET, 4/4 proves Angular, l'E2E focalitzat complet (activació, codi correcte/incorrecte, anti-replay, recovery code single-use, desactivació i login posterior) i la regressió Chrome d'autenticació `sim-20260915T213324241Z-ec8207d2` amb 15 PASS, 0 FAIL, 0 BLOCKED i 1 SKIP extern justificat.
 
-**4. Google OAuth real — 🟢 VALIDAT (2026-09-17).** S'ha validat el botó oficial sense error d'origen, l'arribada i validació de la credencial real, i l'alta d'un compte nou amb un `User`, una `ExternalIdentity` Google, rol `USER`, permisos de `USER`, `password_hash = null`, perfil incomplet i navegació a `/perfil`. També s'ha validat el login d'un User local existent: una credencial Google amb email verificat crea automàticament només l'`ExternalIdentity`, conserva User, contrasenya i rol, i entra a Inici sense duplicats. La persistència final queda en 10 usuaris, 1 identitat Google operativa i 0 orfes després d'eliminar l'usuari temporal. TOTP federat manté el challenge abans del JWT segons regressió; 24/24 proves backend, 43/43 Angular, builds API/Web i Google OAuth boundary E2E passen. La revisió de secrets és neta i l'Excel registra `ZUP-006` i `ZUP-016` Chrome com `OK / MANUAL`. El monograma `picture` de Google no es tracta com una foto pròpia del perfil.
+**4. Google OAuth real — 🟢 VALIDAT I TANCAT (2026-09-17).** S'ha validat el botó oficial sense error d'origen, l'arribada i validació de la credencial real, i l'alta d'un compte nou amb un `User`, una `ExternalIdentity` Google, rol `USER`, permisos de `USER`, `password_hash = null`, perfil incomplet i navegació a `/perfil`. També s'ha validat el login d'un User local existent: una credencial Google amb email verificat crea automàticament només l'`ExternalIdentity`, conserva User, contrasenya i rol, i entra a Inici sense duplicats. La persistència final queda en 10 usuaris, 1 identitat Google operativa i 0 orfes després d'eliminar l'usuari temporal. TOTP federat manté el challenge abans del JWT segons regressió; 24/24 proves backend, 43/43 Angular, builds API/Web i Google OAuth boundary E2E passen. La revisió de secrets és neta i l'Excel registra `ZUP-006` i `ZUP-016` Chrome com `OK / MANUAL`. El monograma `picture` de Google no es tracta com una foto pròpia del perfil.
 
-**5. LinkedIn OAuth real — 🟠.** Cal la mateixa validació real sobre autorització, callback, alta i reutilització d'usuari, sincronització, rol i permisos, sessió, cancel·lació, errors, secrets/configuració i cobertura automatitzable. Passa quan el flux complet queda validat. El detall general de login federat és a §8.5. `Facebook` queda fora d'aquest gate mentre es mantingui la decisió d'aparcar-lo fins després de la publicació.
+**5. LinkedIn OAuth real — ➖ DESCARTADA PER DECISIÓ FUNCIONAL DE PRODUCTE (2026-09-18).** Històricament la implementació va arribar a superar els gates automàtics el 2026-09-17, però no es va tancar com a proveïdor validat de producte. S'han retirat UI, endpoints, adaptador OIDC, configuració, `state`, handoff i proves exclusives de LinkedIn. Es conserven la infraestructura federada compartida, la unicitat d'`ExternalIdentity`, TOTP, la revocació de JWT i el logout intern perquè són necessaris per Google i reutilitzables per futurs proveïdors. Facebook continua pendent i no s'ha implementat en aquesta iteració.
 
 #### 3.18.5 Bloc B — Territori
 
@@ -1698,7 +1698,7 @@ Flux principal:
    - actual **buida** → desa fitxa; si l’email ha canviat, també desa el compte; no toca la contrasenya
    - actual **amb text** → revalida; si no coincideix, notificació «Contrasenya incorrecta» i no desa; si coincideix i la nova és vàlida, substitueix la contrasenya i desa fitxa + compte
 9. el sistema desa sobre backend real i, si ha canviat email o contrasenya, reemet la sessió
-10. si la sessió prové dels botons federats Google, LinkedIn o Facebook, un guardat correcte tanca el flux de perfil i navega a **Inici**; el perfil de login propi es manté a la pantalla després de guardar
+10. si la sessió prové d'un proveïdor federat admès, actualment Google, un guardat correcte tanca el flux de perfil i navega a **Inici**; el perfil de login propi es manté a la pantalla després de guardar
 
 Fluxos alternatius:
 
@@ -1749,7 +1749,7 @@ Flux principal:
 - actual buida al guardar: desa la fitxa (i l’email si ha canviat) sense tocar la contrasenya
 - actual incorrecta al guardar: notificació «Contrasenya incorrecta» i no es canvia la contrasenya
 - comentaris opcionals; si no n’hi ha a la BD, el camp entra buit
-- després de guardar correctament un perfil obert des de Google, LinkedIn o Facebook, el sistema surt del flux de compleció i navega a **Inici**
+- després de guardar correctament un perfil obert des de Google, o d'un futur proveïdor admès, el sistema surt del flux de compleció i navega a **Inici**
 
 ## 8. Login i perfil · Estat actual i futur immediat
 
@@ -1766,10 +1766,10 @@ Punts funcionals ja implementats:
 - login estandard amb email
 - explorador públic al login: cerca o ciutat amb **≥ 2 caràcters**; abans del llindar, el panell resta net i no repeteix missatges d'instrucció; en superar-lo es mostren directament els resultats. En **Development** (`GooglePlaces:PreferExternalSearchFirst`) es consulta **Google Places primer** i els resultats es **persisteixen** al catàleg (cache); si Google no retorna res, catàleg BD; el combobox de ciutat fa typeahead remot a partir de 2 caràcters
 - el mapa del preview ocupa tota l'amplada útil del contenidor respectant els marges laterals; les targetes de resultats, quan existeixen, es mostren en una fila inferior i no reserven una columna buida ni estrenyen el mapa
-- els accessos Google, LinkedIn i Facebook mantenen una presentació coherent d'amplada, alçada, forma de píndola i separació; Google conserva obligatòriament el control oficial visible i clicable. No es mostra cap nota genèrica que afirmi que tots els proveïdors estan pendents quan Google ja està configurat
+- Google conserva obligatòriament el control oficial visible i clicable; Facebook es mostra com a pendent i LinkedIn no apareix al login
 - rols `USER` i `ADMIN`
 - sessio d'usuari
-- logout
+- logout complet de Petiloc: elimina la sessió i la cache local, revoca el JWT Petiloc concret i els challenges TOTP pendents, i no manipula la sessió externa del proveïdor
 - pagina de perfil sobre backend real
 - manteniment de perfil (nom, email, ciutat, país, comentaris opcionals, foto)
 - canvi d’email des del perfil (format sota el camp; unicitat; sessió reemesa)
@@ -1782,11 +1782,20 @@ Punts funcionals ja implementats:
 - visibilitat de `Del desenvolupador` nomes per a `ADMIN`
 - consentiments LGPD/GDPR en updates o insercions de perfil, excepte `ADMIN`
 
-Punts encara previstos:
+Roadmap de proveïdors d'identitat:
 
-- confirmació o recuperació de compte per `email`
-- `TOTP` com a segon factor
-- login social addicional (LinkedIn, Facebook, Apple, Microsoft); Google ja és al login
+| Proveïdor o canal | Estat funcional | Decisió vigent |
+|---|---|---|
+| Email + contrasenya | 🟢 Actiu | Mètode propi de Petiloc. |
+| Google OAuth/OIDC | 🟢 Iteració 4 validada i tancada | Proveïdor federat actiu. |
+| Facebook | Pendent | Manté l'estat actual fins a la seva iteració; no s'implementa encara. |
+| LinkedIn OAuth/OIDC | ➖ Iteració 5 descartada | No és un mètode de login; decisió funcional de producte. |
+| Microsoft OAuth/OIDC | Millora futura | Candidat futur, sense implementació ni data compromesa. |
+| Sign in with Apple | Millora futura | Candidat futur, sense implementació ni data compromesa. |
+| Samsung / LG | Estudi futur de viabilitat | Cal determinar si existeix una opció d'identitat útil, estable i adequada al producte abans d'incorporar-la al roadmap. |
+| LinkedIn Page Petiloc | Canal corporatiu conservat | Comunicació i presència corporativa, independent del sistema d'autenticació. |
+
+La compatibilitat de Samsung Pass amb codis TOTP descrita a l'apartat de doble factor és només l'ús d'una app autenticadora; no implica que existeixi o estigui previst un proveïdor de login Samsung.
 
 ### 8.1 Actors i accessos de login
 
@@ -1871,15 +1880,13 @@ Resum del diagrama:
 <pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">flowchart LR</span>
   <span style="color:#93c5fd;">A[Usuari public]</span> --&gt; <span style="color:#c4b5fd;">B[Escollir proveidor social]</span>
   <span style="color:#c4b5fd;">B</span> --&gt; <span style="color:#86efac;">G[Google]</span>
-  <span style="color:#c4b5fd;">B</span> --&gt; <span style="color:#86efac;">L[LinkedIn]</span>
-  <span style="color:#c4b5fd;">B</span> --&gt; <span style="color:#86efac;">F[Facebook]</span>
-  <span style="color:#c4b5fd;">B</span> --&gt; <span style="color:#86efac;">A2[Apple]</span>
-  <span style="color:#c4b5fd;">B</span> --&gt; <span style="color:#86efac;">M[Microsoft]</span>
+  <span style="color:#c4b5fd;">B</span> -. roadmap .-&gt; <span style="color:#fcd34d;">F[Facebook pendent]</span>
+  <span style="color:#c4b5fd;">B</span> -. futur .-&gt; <span style="color:#fcd34d;">A2[Apple futur]</span>
+  <span style="color:#c4b5fd;">B</span> -. futur .-&gt; <span style="color:#fcd34d;">M[Microsoft futur]</span>
   <span style="color:#86efac;">G</span> --&gt; <span style="color:#67e8f9;">P[Recollir dades permeses]</span>
-  <span style="color:#86efac;">L</span> --&gt; <span style="color:#67e8f9;">P</span>
-  <span style="color:#86efac;">F</span> --&gt; <span style="color:#67e8f9;">P</span>
-  <span style="color:#86efac;">A2</span> --&gt; <span style="color:#67e8f9;">P</span>
-  <span style="color:#86efac;">M</span> --&gt; <span style="color:#67e8f9;">P</span>
+  <span style="color:#fcd34d;">F</span> -. quan s'implementi .-&gt; <span style="color:#67e8f9;">P</span>
+  <span style="color:#fcd34d;">A2</span> -. si s'aprova .-&gt; <span style="color:#67e8f9;">P</span>
+  <span style="color:#fcd34d;">M</span> -. si s'aprova .-&gt; <span style="color:#67e8f9;">P</span>
   <span style="color:#67e8f9;">P</span> --&gt; <span style="color:#fcd34d;">C[Demana consentiments necessaris]</span>
   <span style="color:#fcd34d;">C</span> --&gt; <span style="color:#f9a8d4;">D[Crear o actualitzar perfil]</span></code></pre>
 
@@ -1887,20 +1894,23 @@ Resum del diagrama:
 
 - Google ja implementa aquest flux amb validació real de la credencial i de l'email verificat
 - abans de crear o actualitzar perfil es controlen les dades rebudes, la unicitat de la identitat i els permisos del rol
-- LinkedIn, Facebook i els altres proveïdors del diagrama continuen com a extensió futura
+- LinkedIn està descartat per decisió funcional de producte; la LinkedIn Page Petiloc es conserva només com a canal corporatiu
+- Facebook continua pendent; Microsoft OAuth/OIDC i Sign in with Apple són millores futures, i Samsung/LG queden subjectes a estudi de viabilitat
 
 #### 8.5.1 Vinculació segura d'un compte local amb Google
 
 Durant el login Google, una identitat validada amb email verificat que coincideix amb un `User` local activat es vincula automàticament: Petiloc crea l'`ExternalIdentity` i continua el login al mateix `User`. No cal un pas previ a `Perfil · Seguretat`. La vinculació es denega si el `User` ja té un Google diferent o si el subject seleccionat pertany a un altre `User`.
 
-La vinculació conserva la contrasenya local, no crea un segon `User`, no crea contrasenyes fictícies i no permet substituir silenciosament una altra identitat Google. Repetir la mateixa vinculació és idempotent. Després del logout, el login Google resol el mateix usuari; si té TOTP actiu, cal superar el challenge abans de rebre JWT i arribar a Inici. LinkedIn i Facebook es mostren com a pendents i no s'implementen en aquest punt.
+La vinculació conserva la contrasenya local, no crea un segon `User`, no crea contrasenyes fictícies i no permet substituir silenciosament una altra identitat del mateix proveïdor. Repetir la mateixa vinculació és idempotent. El logout elimina íntegrament la sessió Petiloc, revoca el JWT concret i els artefactes interns pendents, però no tanca ni manipula la sessió externa del proveïdor. Google desactiva l'autoselecció amb el mecanisme oficial GIS quan està disponible. Facebook continua pendent i LinkedIn ja no és un proveïdor del producte.
 
 El flux principal validat és: `login públic Google → credencial i email verificats → User local activat coincident → crear només ExternalIdentity → mateix User → TOTP si escau → JWT → Inici`.
 
 Com a gestió addicional, un usuari amb sessió local també pot anar a `Perfil → Seguretat → Mètodes d'accés → Vincular Google`. Aquest flux explícit usa l'endpoint autenticat de linking, conserva la sessió i aplica les mateixes regles d'unicitat; no és un prerequisit del login públic Google.
 ## 9. Criteris d'acceptacio actuals
 
-- es pot iniciar sessio amb usuaris fake
+- es pot iniciar sessió amb email/contrasenya contra el backend real
+- es pot iniciar sessió amb Google segons el contracte validat de la Iteració 4
+- no apareixen botons, textos ni fluxos de login LinkedIn
 - si no hi ha sessio, les rutes protegides redirigeixen a `Login`
 - si hi ha `redirectTo`, despres del login es torna a la ruta demanada
 - el `USER` pot entrar a `Perfil` i mantenir les seves dades

@@ -45,6 +45,7 @@ public sealed class ZuppetoDbContext(DbContextOptions<ZuppetoDbContext> options)
 
     public DbSet<ExternalIdentityRecord> ExternalIdentities => Set<ExternalIdentityRecord>();
     public DbSet<TotpRecoveryCodeRecord> TotpRecoveryCodes => Set<TotpRecoveryCodeRecord>();
+    public DbSet<RevokedAccessTokenRecord> RevokedAccessTokens => Set<RevokedAccessTokenRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

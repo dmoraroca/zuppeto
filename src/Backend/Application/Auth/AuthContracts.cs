@@ -28,7 +28,6 @@ public sealed record TwoFactorLoginRequest(string ChallengeId, string Code);
 
 public sealed record GoogleLoginRequest(string IdToken);
 public sealed record FacebookOAuthCallbackRequest(string Code, string State);
-public sealed record LinkedInOAuthCallbackRequest(string Code, string State);
 
 public sealed record AuthSessionDto(
     string AccessToken,

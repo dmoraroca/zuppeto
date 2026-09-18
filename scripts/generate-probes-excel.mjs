@@ -19,7 +19,7 @@ function plainLanguageForTesters(input) {
   let t = input.replace(/\/auth\/callback/g, '<<<AUTHCB>>>');
   const pairs = [
     [/Auth callback \(\/auth\/callback\)/gi, 'Retorn del login (/auth/callback)'],
-    [/Callback OAuth Google\/LinkedIn \(flux complet\)/gi, 'Retorn del login amb Google o LinkedIn (flux complet)'],
+    [/Callback OAuth Google \(flux complet\)/gi, 'Retorn del login amb Google (flux complet)'],
     [/Callback OAuth sense paràmetres/gi, 'Retorn del login sense dades del proveïdor'],
     [/Guest guard:\s*/gi, "Control d'accés: "],
     [/Hero principal/gi, 'Franja principal de la portada'],
@@ -58,7 +58,7 @@ function plainLanguageForTesters(input) {
     [/Mapa Leaflet/gi, 'Mapa'],
     [/mapa Leaflet/gi, 'mapa'],
     [/Redirecció OAuth o/gi, 'Redirecció al proveïdor de login o'],
-    [/Completar login federat des del proveïdor/gi, 'Completar el login amb Google o LinkedIn'],
+    [/Completar login federat des del proveïdor/gi, 'Completar el login amb Google'],
     [/flux de places \(guest\/login segons estat\)/gi, "cerca de llocs (amb o sense sessió, segons l'estat)"],
     [/sense trencar la UI/gi, 'sense trencar la pantalla'],
     [/query params de filtre/gi, "filtres aplicats a l'adreça de la pàgina"],
@@ -132,7 +132,7 @@ const rawTests = [
   { screen: 'Login (/login)', priority: 'Alta', description: 'Login ADMIN correcte', steps: 'admin@admin.adm / Admin123 → Iniciar sessió', expected: 'Redirecció a home i sessió ADMIN activa' },
   { screen: 'Login (/login)', priority: 'Alta', description: 'Login USER correcte', steps: 'Usuari USER vàlid → Iniciar sessió', expected: 'Accés al producte sense opcions d\'admin' },
   { screen: 'Login (/login)', priority: 'Mitja', description: 'Proveïdor Google', steps: 'Revisar botó Google a la secció «o continua amb»', expected: 'Botó actiu si configurat; «Google pendent» si no' },
-  { screen: 'Login (/login)', priority: 'Mitja', description: 'Proveïdor LinkedIn', steps: 'Clic LinkedIn si disponible', expected: 'Redirecció OAuth o botó desactivat si pendent' },
+  { screen: 'Login (/login)', priority: 'Mitja', description: 'Proveïdor LinkedIn descartat', steps: 'Revisar que LinkedIn no apareix al login', expected: 'Cap botó ni text de LinkedIn; proveïdor descartat per decisió de producte' },
   { screen: 'Login (/login)', priority: 'Baixa', description: 'Proveïdor Facebook', steps: 'Revisar estat del botó Facebook', expected: 'Desactivat / «Facebook pendent» (no implementat encara)' },
   { screen: 'Login (/login)', priority: 'Mitja', description: 'Explorador públic al login — filtres', steps: 'Provar filtres cerca, ciutat, tipus, mascota', expected: 'Filtres responen; mosaic de llocs mostra dades' },
   { screen: 'Login (/login)', priority: 'Mitja', description: 'Explorador públic al login — mapa', steps: 'Revisar bloc «Mapa inicial»', expected: 'Mapa Leaflet centrat a Espanya sense dades carregades' },
@@ -143,7 +143,7 @@ const rawTests = [
 
   // ── 2. Auth callback (error → flux complet) ──
   { screen: 'Auth callback (/auth/callback)', priority: 'Mitja', description: 'Callback OAuth sense paràmetres', steps: 'Anar a /auth/callback directament', expected: 'Gestió d\'error o redirecció segura; no pantalla trencada' },
-  { screen: 'Auth callback (/auth/callback)', priority: 'Alta', description: 'Callback OAuth Google/LinkedIn (flux complet)', steps: 'Completar login federat des del proveïdor', expected: 'Sessió creada i redirecció al producte' },
+  { screen: 'Auth callback (/auth/callback)', priority: 'Alta', description: 'Callback OAuth Google (flux complet)', steps: 'Completar login federat des del proveïdor', expected: 'Sessió creada i redirecció al producte' },
 
   // ── 3. Capçalera (menú → compte → navegació → logout) ──
   { screen: 'Capçalera / Navegació', priority: 'Alta', description: 'Menú principal visible (USER)', steps: 'Login com USER → revisar barra superior', expected: 'Es veuen Inici, Llocs, Favorits i Ajuda segons permisos' },
