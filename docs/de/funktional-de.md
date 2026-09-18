@@ -407,13 +407,13 @@ Zusammenfassung des Diagramms:
 <pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">flowchart LR</span>
   <span style="color:#93c5fd;">A[Oeffentlicher Benutzer]</span> --&gt; <span style="color:#c4b5fd;">B[Social Provider auswaehlen]</span>
   <span style="color:#c4b5fd;">B</span> --&gt; <span style="color:#86efac;">G[Google]</span>
-  <span style="color:#c4b5fd;">B</span> -. Roadmap .-&gt; <span style="color:#fcd34d;">F[Facebook ausstehend]</span>
   <span style="color:#c4b5fd;">B</span> -. Zukunft .-&gt; <span style="color:#fcd34d;">A2[Apple zukuenftig]</span>
   <span style="color:#c4b5fd;">B</span> -. Zukunft .-&gt; <span style="color:#fcd34d;">M[Microsoft zukuenftig]</span>
+  <span style="color:#c4b5fd;">B</span> -. Roadmap .-&gt; <span style="color:#fcd34d;">F[Facebook ausstehend]</span>
   <span style="color:#86efac;">G</span> --&gt; <span style="color:#67e8f9;">P[Erlaubte Profildaten uebernehmen]</span>
-  <span style="color:#fcd34d;">F</span> -. nach Implementierung .-&gt; <span style="color:#67e8f9;">P</span>
   <span style="color:#fcd34d;">A2</span> -. nach Freigabe .-&gt; <span style="color:#67e8f9;">P</span>
   <span style="color:#fcd34d;">M</span> -. nach Freigabe .-&gt; <span style="color:#67e8f9;">P</span>
+  <span style="color:#fcd34d;">F</span> -. nach Implementierung .-&gt; <span style="color:#67e8f9;">P</span>
   <span style="color:#67e8f9;">P</span> --&gt; <span style="color:#fcd34d;">C[Noetige Einwilligungen einholen]</span>
   <span style="color:#fcd34d;">C</span> --&gt; <span style="color:#f9a8d4;">D[Profil erstellen oder aktualisieren]</span></code></pre>
 

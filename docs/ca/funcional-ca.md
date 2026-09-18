@@ -1788,11 +1788,11 @@ Roadmap de proveïdors d'identitat:
 |---|---|---|
 | Email + contrasenya | 🟢 Actiu | Mètode propi de Petiloc. |
 | Google OAuth/OIDC | 🟢 Iteració 4 validada i tancada | Proveïdor federat actiu. |
-| Facebook | Pendent | Manté l'estat actual fins a la seva iteració; no s'implementa encara. |
 | LinkedIn OAuth/OIDC | ➖ Iteració 5 descartada | No és un mètode de login; decisió funcional de producte. |
 | Microsoft OAuth/OIDC | Millora futura | Candidat futur, sense implementació ni data compromesa. |
 | Sign in with Apple | Millora futura | Candidat futur, sense implementació ni data compromesa. |
 | Samsung / LG | Estudi futur de viabilitat | Cal determinar si existeix una opció d'identitat útil, estable i adequada al producte abans d'incorporar-la al roadmap. |
+| Facebook | Pendent | Manté l'estat actual fins a la seva iteració; no s'implementa encara. |
 | LinkedIn Page Petiloc | Canal corporatiu conservat | Comunicació i presència corporativa, independent del sistema d'autenticació. |
 
 La compatibilitat de Samsung Pass amb codis TOTP descrita a l'apartat de doble factor és només l'ús d'una app autenticadora; no implica que existeixi o estigui previst un proveïdor de login Samsung.
@@ -1880,13 +1880,13 @@ Resum del diagrama:
 <pre style="background:#020617; color:#e5eef7; border:1px solid #1e293b; border-radius:16px; padding:20px; margin:16px 0; overflow:auto; line-height:1.65;"><code><span style="color:#5eead4; font-weight:700;">flowchart LR</span>
   <span style="color:#93c5fd;">A[Usuari public]</span> --&gt; <span style="color:#c4b5fd;">B[Escollir proveidor social]</span>
   <span style="color:#c4b5fd;">B</span> --&gt; <span style="color:#86efac;">G[Google]</span>
-  <span style="color:#c4b5fd;">B</span> -. roadmap .-&gt; <span style="color:#fcd34d;">F[Facebook pendent]</span>
   <span style="color:#c4b5fd;">B</span> -. futur .-&gt; <span style="color:#fcd34d;">A2[Apple futur]</span>
   <span style="color:#c4b5fd;">B</span> -. futur .-&gt; <span style="color:#fcd34d;">M[Microsoft futur]</span>
+  <span style="color:#c4b5fd;">B</span> -. roadmap .-&gt; <span style="color:#fcd34d;">F[Facebook pendent]</span>
   <span style="color:#86efac;">G</span> --&gt; <span style="color:#67e8f9;">P[Recollir dades permeses]</span>
-  <span style="color:#fcd34d;">F</span> -. quan s'implementi .-&gt; <span style="color:#67e8f9;">P</span>
   <span style="color:#fcd34d;">A2</span> -. si s'aprova .-&gt; <span style="color:#67e8f9;">P</span>
   <span style="color:#fcd34d;">M</span> -. si s'aprova .-&gt; <span style="color:#67e8f9;">P</span>
+  <span style="color:#fcd34d;">F</span> -. quan s'implementi .-&gt; <span style="color:#67e8f9;">P</span>
   <span style="color:#67e8f9;">P</span> --&gt; <span style="color:#fcd34d;">C[Demana consentiments necessaris]</span>
   <span style="color:#fcd34d;">C</span> --&gt; <span style="color:#f9a8d4;">D[Crear o actualitzar perfil]</span></code></pre>
 
@@ -1895,7 +1895,7 @@ Resum del diagrama:
 - Google ja implementa aquest flux amb validació real de la credencial i de l'email verificat
 - abans de crear o actualitzar perfil es controlen les dades rebudes, la unicitat de la identitat i els permisos del rol
 - LinkedIn està descartat per decisió funcional de producte; la LinkedIn Page Petiloc es conserva només com a canal corporatiu
-- Facebook continua pendent; Microsoft OAuth/OIDC i Sign in with Apple són millores futures, i Samsung/LG queden subjectes a estudi de viabilitat
+- Microsoft OAuth/OIDC i Sign in with Apple són millores futures, Samsung/LG queden subjectes a estudi de viabilitat i Facebook continua pendent al final del roadmap de proveïdors
 
 #### 8.5.1 Vinculació segura d'un compte local amb Google
 

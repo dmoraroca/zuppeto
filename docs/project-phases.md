@@ -144,11 +144,11 @@ La plataforma ja diferencia entre usuaris públics, usuaris autenticats i àrees
 
 - `Email + contrasenya`: **ACTIU**.
 - `Google OAuth/OIDC`: **🟢 ITERACIÓ 4 VALIDADA I TANCADA**.
-- `Facebook`: **PENDENT** fins a la seva iteració; no s'ha implementat en la Iteració 5.
 - `LinkedIn OAuth/OIDC`: **➖ DESCARTAT PER DECISIÓ FUNCIONAL DE PRODUCTE**.
 - `Microsoft OAuth/OIDC`: **MILLORA FUTURA**.
 - `Sign in with Apple`: **MILLORA FUTURA**.
 - `Samsung / LG`: **ESTUDI FUTUR DE VIABILITAT**, sense compromís d'implementació.
+- `Facebook`: **PENDENT** fins a la seva iteració; no s'ha implementat en la Iteració 5.
 
 ## Fase V · Internacionalització (**PENDENT**)
 

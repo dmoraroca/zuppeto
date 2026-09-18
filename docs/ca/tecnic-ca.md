@@ -1683,9 +1683,9 @@ Implementació backend (fitxers):
 La base actual prepara pero no implementa encara:
 
 - refresh tokens o rotació de sessió
-- Facebook OAuth/OIDC, només quan comenci la seva iteració, reutilitzant el pipeline federat comú
 - Microsoft OAuth/OIDC i Sign in with Apple com a millores futures
 - Samsung/LG com a estudi futur de viabilitat, sense assumir que disposin d'un proveïdor d'identitat adequat
+- Facebook OAuth/OIDC, pendent al final del roadmap i només quan comenci la seva iteració, reutilitzant el pipeline federat comú
 - LinkedIn OAuth/OIDC descartat per decisió funcional; la seva traça tècnica es conserva a §2.11.9
 ### 2.11.6 Identitat i recuperació de contrasenya — Fase IV, Iteració 2
 

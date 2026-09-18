@@ -36,7 +36,7 @@ Format recomanat d'execucio:
 
 ### 4.1 Autenticacio
 
-Estat del bloc: email/contrasenya i Google formen l'accés actual; Google conserva el tancament 🟢 de la Iteració 4. LinkedIn és `N/A` per decisió funcional, no un resultat fallit. Facebook continua pendent i Microsoft/Apple/Samsung/LG no tenen encara casos executables.
+Estat del bloc: email/contrasenya i Google formen l'accés actual; Google conserva el tancament 🟢 de la Iteració 4. LinkedIn és `N/A` per decisió funcional, no un resultat fallit. Microsoft/Apple/Samsung/LG no tenen encara casos executables i Facebook continua pendent al final del roadmap de proveïdors.
 
 #### JP-001 · Login propi correcte
 
