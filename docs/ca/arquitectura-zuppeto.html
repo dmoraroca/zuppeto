@@ -206,7 +206,7 @@ PostgreSQL</div>
   <li><strong>Mappers manuals</strong> per agregat (PlacePersistenceMapper, etc.)</li>
   <li><strong>Repositoris EF</strong> que implementen els contractes del domini</li>
   <li><strong>Auth</strong>: JWT i OAuth Google; pipeline federat genèric conservat; LinkedIn descartat per decisió funcional de producte</li>
-  <li><strong>Integracions externes</strong>: Google Places, GeoNames</li>
+  <li><strong>Integracions externes actuals</strong>: Google Places i GeoNames; la dependència territorial GeoNames queda en revisió a la Iteració 6</li>
   <li>Migracions EF com a font de veritat de l'esquema</li>
 </ul>
 
@@ -278,7 +278,8 @@ PostgreSQL</div>
   <li><strong>Arquitectura per features</strong> al frontend</li>
   <li><strong>DDD + SOLID</strong> al backend: domini net, inversió de dependències, repositoris com a ports</li>
   <li><strong>Mapping manual</strong> domini ↔ persistència (sense AutoMapper)</li>
-  <li><strong>Integracions externes només al backend</strong> (Google Places, GeoNames)</li>
+  <li><strong>Integracions externes</strong>: Google Places es concentra al backend; GeoNames té backend i crides directes preexistents des de l'Admin Angular, incidència arquitectònica auditada i pendent de retirada/redefinició</li>
+  <li><strong>Objectiu territorial pendent</strong>: catàleg europeu multicultural/multilingüe propi, futura API territorial sobre PostgreSQL i selector compartit; encara sense model nou ni migracions</li>
   <li><strong>Internacionalització</strong> prevista per al final (Fase V)</li>
 </ol>
 

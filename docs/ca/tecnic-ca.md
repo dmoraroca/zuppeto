@@ -553,11 +553,155 @@ Resum del diagrama:
 - `Facebook` queda aparcat a nivell de roadmap fins després de publicar la web, tot i que la base tècnica federada es manté oberta
 - la base cobreix emissió i consum de token per al login propi i Google; Facebook continua pendent
 
-### Catàleg territorial i cerca de ciutats (Espanya i UE)
+### Auditoria territorial i disseny objectiu europeu — Fase IV, Iteració 6
 
-El **criteri de producte i el roadmap per fases** (Fase IV / V, prioritat Espanya, extensió UE, **GeoNames** i llicències) està descrit a `docs/ca/funcional-ca.md` (**§3.15.1**), amb remissió breu a `docs/project-phases.md`.
+**Estat global:** **EN CURS / PREPARACIÓ**. La subfase 0, auditoria del sistema actual, i la subfase I, definició funcional i model d'auditoria europea, estan **COMPLETADES**. La subfase II, auditoria real dels 35 països, és la **SEGÜENT**; les subfases III–IX continuen **PENDENTS**. Encara no s'han creat entitats, migracions, importadors ni datasets territorials, no s'han modificat dades i GeoNames no s'ha eliminat. El pla funcional complet de subfases consta a `funcional-ca.md` §3.15.7.
 
-Implementació tècnica (resum): consultes de cerca sobre el **catàleg propi** a base de dades; crides a proveïdors externs (p. ex. GeoNames) **només des del backend**; identificadors externs opcionals per traçabilitat; en tancar el disseny, detall d’URLs, claus per entorn, llicències i política de caché en aquest document.
+#### A. Model territorial actual
+
+| Element actual | Persistència i contracte | Relacions i proteccions | Dependències |
+|---|---|---|---|
+| `CountryRow` / `CountryRecord` | `countries`: UUID, `code` varchar(20), `name` varchar(200), actiu, ordre i timestamps | PK UUID; `code` únic; el codi admet 2–20 caràcters alfanumèrics, no exigeix ISO | Admin geogràfic i `CityRecord` |
+| `CityRow` / `CityRecord` | `cities`: UUID, `country_id`, nom oficial únic actual, `normalized_name`, lat/lon opcionals, actiu, ordre i timestamps | FK obligatòria a `countries`, `ON DELETE RESTRICT`; unicitat `(country_id, normalized_name)` | Admin geogràfic i suggeriments de Places |
+| `UserProfile` / `UserRecord` | `users.city` i `users.country`, varchar(120), text lliure | Sense FK, índex o codi oficial territorial | registre/alta, perfil, auth, Admin Usuaris, seeds i E2E |
+| `PostalAddress` / `PlaceRecord` | `places.city`, `places.country` i `neighborhood`, varchar(120); coordenades pròpies del lloc | Sense FK territorial; només `ix_places_city`; no existeix una entitat `Address` separada | cerca, filtres, mapa, Google Places, Admin Llocs, Favorits i detall |
+
+La normalització actual de ciutat és `Trim().ToUpperInvariant()`. Preserva el text de `name`, però no modela idiomes o noms alternatius ni garanteix cerca tolerant a diacrítics. `Country → City` és una jerarquia rígida i no representa divisions administratives intermèdies.
+
+#### B. Estat real de PostgreSQL auditat el 2026-09-18
+
+- PostgreSQL `17.10`; servidor, client i base en `UTF8`.
+- La base `zuppeto` usa provider de locale libc (`datlocprovider = c`) i `en_US.utf8` per `LC_COLLATE`/`LC_CTYPE`. Hi ha 871 collations ICU disponibles al servidor, però cap collation ICU explícita aplicada a aquestes columnes.
+- Extensions instal·lades: `plpgsql` i `pgcrypto`. `citext`, `pg_trgm` i `unaccent` estan disponibles però no instal·lades. No s'ha decidit ni aplicat cap d'aquestes opcions.
+- Dades locals: 2 països, 4 ciutats, 11 usuaris i 108 llocs. No hi ha ciutats òrfenes ni duplicats exactes segons `country_id + lower(trim(name))`; 2 ciutats no tenen el parell complet de coordenades.
+- Els 11 usuaris tenen ciutat/país en text lliure i els 108 llocs formen 29 parells textuals. Amb la correspondència literal actual, cap usuari ni lloc queda vinculat de manera fiable a una fila `countries/cities`; són dades que no es poden perdre ni reinterpretar silenciosament.
+- El catàleg local conté dades manuals/de desenvolupament que no poden considerar-se un dataset oficial. La futura migració ha de preservar-les, classificar-les i resoldre-les mitjançant una cua d'excepcions.
+- L'única FK territorial actual és `cities.country_id → countries.id`. `users` i `places` no depenen relacionalment del catàleg.
+
+Conclusió Unicode: UTF‑8 permet persistir `München`, `Łódź`, `Αθήνα` i `České Budějovice` sense transliteració. En canvi, l'estratègia de comparació, accent folding, locale i índexs encara no està resolta. S'ha de provar amb dades reals abans d'escollir ICU, `unaccent`, `pg_trgm`, columnes normalitzades o una combinació; el nom oficial mai s'ha de substituir pel valor de cerca.
+
+#### C. Mapa de dependències backend
+
+- API administrativa: `GeographicAdminEndpoints` exposa CRUD de `/api/admin/countries` i `/api/admin/cities` sota `action.geographic.manage`.
+- Aplicació: `GeographicAdminAppService`, DTOs i validators de país/ciutat assumeixen una ciutat directament vinculada a un país.
+- Domini/ports: `IGeographicCatalogRepository`, `CountryRow`, `CityRow`, `CountryCodeRules` i `EuropeanCountryCodes`.
+- Infraestructura: `CountryRecord`, `CityRecord`, configuracions EF, `GeographicCatalogRepository`, `ZuppetoDbContext` i migració històrica `AddCountriesAndCities`.
+- Places: `PlaceApplicationService` combina catàleg, ciutats textuals de `places` i `IExternalCitySuggestionProvider`; `PlaceRepository` usa `ILIKE`; `PlaceSearchSpecification` filtra ciutat/país textuals.
+- GeoNames backend: `GeoNamesCitySuggestionProvider` consulta `continentCode=EU`, demana `lang=ca`, manté cache en memòria i retorna candidats, però no els importa al catàleg.
+- Google Places: importació i sincronització mantenen `PostalAddress` textual i coordenades del lloc; no creen FK territorial.
+- Seeds i proves: `DevelopmentIdentitySeeder`, `DevelopmentPlacesSeeder`, factories E2E i escenaris d'Admin Geografia fixen `Barcelona`, `Madrid`, `Espanya` o estructures `Country/City`.
+
+#### D. Mapa de dependències Angular
+
+- `AuthUser` i `AuthProfileUpdate` transporten `city`/`country` com strings. Perfil i Admin Usuaris els editen amb inputs lliures.
+- `Place`, filtres, query params, targetes, detall, mapa, Favorits i Admin Llocs consumeixen ciutat/país textuals.
+- `PlaceService` duplica una llista de codis europeus, usa `Intl.DisplayNames`, consulta `/api/places/cities*` i continua treballant amb labels.
+- `CityComboboxComponent` barreja pins, valors de Places, catàleg i candidats GeoNames; la deduplicació és `lowercase(city|country)` i no és una identitat territorial estable.
+- `AdminService` gestiona CRUD de `Country/City` i, a més, fa crides directes des del navegador a `secure.geonames.org` per països i ciutats amb un username per defecte. Això contradiu l'objectiu anterior de concentrar integracions territorials al backend i és una dependència a retirar/redefinir, no una funcionalitat que es modifiqui ara.
+- `AdminConsolePageComponent` concentra formularis d'usuaris, països, ciutats i llocs, resol valors `geo:<code>` i barreja catàleg intern amb GeoNames.
+
+#### E. Arquitectura objectiu proposada — pendent d'aprovació
+
+Es proposa mantenir `Country` com a arrel territorial estable i introduir una unitat territorial jeràrquica genèrica, en lloc d'una taula per tipus nacional:
+
+| Concepte proposat | Responsabilitat |
+|---|---|
+| `Country` | ISO/codis oficials, estat i metadades bàsiques del país |
+| `TerritorialUnit` | Divisió administrativa, municipi o localitat; `country_id`, `parent_unit_id` opcional, tipus/nivell, codi oficial, estat i centre geogràfic opcional |
+| noms localitzats | Nom, idioma, tipus (`official`, `short`, `alternative`, `historic`, etc.) i valor normalitzat només per cerca; es valoraran taules separades per país/unitat si això preserva millor les FK |
+| `TerritorialDataSource` / dataset | Organisme, país, dataset, URL, versió/data, format, llicència, ús comercial, atribució i restriccions |
+| `TerritorialImport` | Execució, checksum, versió, estat, comptadors, errors, timestamps i actor/job |
+| referència externa | Relació entre una unitat i el codi estable de la font, sense contaminar el domini amb GeoNames o un proveïdor concret |
+
+`User` i `Place` haurien de convergir cap a una FK de localitat/unitat, mantenint temporalment els textos originals com a snapshot i compatibilitat. El model ha de permetre zero o múltiples nivells intermedis, evitar camps específics d'Espanya i impedir dependències del domini cap a HTTP, datasets o PostgreSQL.
+
+Índexs candidats —encara no aprovats—: codis oficials per font, `(country_id, parent_unit_id, type)`, noms per idioma/tipus i estratègia de cerca accent/case-insensitive. L'elecció entre ICU, `unaccent`, `pg_trgm`, `citext` o normalització pròpia requereix benchmarks i proves de correcció multilingüe.
+
+#### F. Importadors proposats
+
+Un port d'aplicació com `ITerritorialDatasetImporter` rebria un dataset verificat i cada adaptador d'infraestructura traduiria el format oficial del país al model canònic. El domini no coneixeria INE, INSEE, ISTAT, CSV, XML ni HTTP.
+
+Pipeline proposat: `adquirir artefacte verificat → staging immutable → validar llicència/checksum/esquema → normalitzar a model canònic → calcular diff → revisió/aprovació → publicar transaccionalment → auditar`.
+
+Regles obligatòries: idempotència per font+versió+checksum; upsert per codi oficial estable; detecció de canvis de nom, altes, baixes, fusions i escissions; cap baixa física automàtica; informe de duplicats i referències no resoltes; rollback a la versió publicada anterior; i separació entre descarregar, transformar i publicar.
+
+#### G. Estratègia de migració proposada — no executada
+
+1. Congelar un baseline amb backup, recomptes, FK, parells textuals i proves E2E.
+2. Afegir el model nou de manera additiva, sense eliminar `countries`, `cities`, `users.city/country` ni `places.city/country`.
+3. Importar primer a staging només datasets amb drets verificats; validar Unicode, codis, jerarquia, coordenades i duplicats.
+4. Crear una taula/mapa de correspondències i fer backfill determinista. Les coincidències ambigües o inexistents van a revisió; no s'endevinen.
+5. Introduir compatibilitat temporal de lectura i, si cal, escriptura dual controlada per feature flag.
+6. Migrar API, Perfil, Admin Usuaris, Places, Admin Llocs, filtres i proves al nou identificador estable.
+7. Aplicar FK/constraints només quan el 100% dels registres obligatoris estigui resolt; retirar text o model antic en una migració posterior independent.
+8. Verificar recomptes, orfes, favorits, historial, cerca, mapa i E2E. El rollback desactiva la lectura nova i restaura la versió publicada; els textos originals continuen disponibles durant tota la transició.
+
+Dades que no es poden perdre: usuaris i perfil, llocs i adreces/coordinates, favorits i reviews vinculats als llocs, metadades Google/manuals, parells textuals originals, historial E2E i files actuals de `countries/cities` encara que siguin de desenvolupament.
+
+#### H. Riscos principals
+
+- llicències heterogènies o incompatibles amb ús comercial/redistribució
+- codis que canvien, fusions municipals i jerarquies asimètriques
+- correspondències ambigües dels textos actuals i codis postals incrustats a `places.city`
+- confondre centre de municipi amb coordenades exactes d'un lloc
+- regressions en filtres, URLs, Favorits, Google Places, seeds i E2E
+- degradació de rendiment o resultats incorrectes en cerca multilingüe
+- duplicar lògica entre backend i Angular o mantenir GeoNames ocultament en runtime
+
+#### I. Fitxers previstos per a una implementació futura
+
+- domini: `Domain/Geography/CountryRow.cs`, `CityRow.cs`, `CountryCodeRules.cs`, `EuropeanCountryCodes.cs`, `Domain/Users/ValueObjects/UserProfile.cs`, `Domain/Places/ValueObjects/PostalAddress.cs` i `Domain/Abstractions/IGeographicCatalogRepository.cs`
+- aplicació: `Application/Admin/GeographicAdminAppService.cs`, contractes i validators geogràfics, `Application/Places/PlaceApplicationService.cs`, `PlaceContracts.cs`, `PlaceCityQueryNormalizer.cs`, serveis d'usuaris/auth i els nous ports territorials
+- infraestructura EF: `Entities/CountryRecord.cs`, `CityRecord.cs`, `UserRecord.cs`, `PlaceRecord.cs`; les quatre configuracions corresponents; `GeographicCatalogRepository.cs`; `PlaceRepository.cs`; `PlaceSearchSpecification.cs`; `ZuppetoDbContext.cs`; migracions noves encara inexistents
+- integracions: futurs adaptadors/importadors per país i, només després del canvi de runtime, `Infrastructure/GeoNames/GeoNamesCitySuggestionProvider.cs`, `GeoNamesOptions.cs` i el seu registre de DI
+- API: `Api/Endpoints/GeographicAdminEndpoints.cs`, `PlaceEndpoints.cs`, endpoints territorials nous encara inexistents i `Program.cs`/DI quan pertoqui
+- Angular: `features/places/services/place.service.ts`, `shared/components/city-combobox/*`, `features/admin/services/admin.service.ts`, `admin-console-page/*`, models i pantalles de Perfil, Places, Favorits i login/preview
+- dades controlades: `DevelopmentIdentitySeeder.cs`, `DevelopmentPlacesSeeder.cs` i qualsevol futura eina d'importació/staging
+- proves: backend, Angular, E2E `admin-geography-scenarios.ts`, factories/adapters territorials, inventari/Excel i documentació viva
+
+#### J. Registre preparat de fonts i llicències
+
+Cap fila està aprovada. `PENDENT` significa que encara s'han de verificar organisme, dataset, URL, format, jerarquia, cobertura de localitats, coordenades, llicència, ús comercial, atribució i versió abans de descarregar o importar res.
+
+| País | Organisme | Dataset | URL/font | Format | Jerarquia | Municipis/localitats | Coordenades | Llicència | Ús comercial | Atribució | Versió/data | Estat de revisió |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Alemanya | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
+| Andorra | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
+| Àustria | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
+| Bèlgica | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
+| Bulgària | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
+| Croàcia | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
+| Dinamarca | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
+| Eslovàquia | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
+| Eslovènia | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
+| Espanya | Candidat: INE, per verificar | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
+| Estònia | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
+| Finlàndia | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
+| França | Candidat: INSEE, per verificar | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
+| Grècia | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
+| Hongria | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
+| Irlanda | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
+| Islàndia | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
+| Itàlia | Candidat: ISTAT, per verificar | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
+| Letònia | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
+| Liechtenstein | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
+| Lituània | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
+| Luxemburg | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
+| Malta | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
+| Mònaco | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
+| Noruega | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
+| Països Baixos | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
+| Polònia | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
+| Portugal | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
+| República Txeca | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
+| Romania | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
+| San Marino | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
+| Suècia | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
+| Suïssa | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
+| Vaticà | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
+| Xipre | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
+
+La llista cobreix UE‑27 i els vuit microestats/països addicionals definits per l'abast. Regne Unit, Balcans no inclosos i altres extensions europees han de poder afegir-se sense redissenyar l'esquema.
 
 ### 2.11.3 Implementació tècnica recent del bloc `llocs` (Fase IV)
 

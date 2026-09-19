@@ -5,6 +5,8 @@
 **Estat:** Fases 0–10 validades. Google Chrome, Firefox, WebKit i Microsoft Edge comparteixen suite; l'auditoria final local queda tancada amb PASS i la CI definida a la Fase 9 resta preparada, però no s'ha executat durant la Fase 10.
 **Principi rector:** Codex construeix i manté la infraestructura; Playwright, invocat des del terminal o CI, executa les tirades llargues de forma autònoma.
 
+**Fase IV — Iteració 6, preparació territorial europea (2026-09-18):** canvi exclusivament documental i d'auditoria; no s'han modificat escenaris, adapters, dades ni Excel. La suite vigent de països/ciutats i els fluxos de Perfil, Admin Usuaris, Places i filtres formen el baseline per a la futura implementació. Els nous casos de jerarquies, Unicode, importadors, migració i API territorial s'incorporaran només quan existeixi codi executable; no es marquen ara com a PASS, FAIL ni SKIP.
+
 **Fase IV — Iteració 5, LinkedIn OAuth real — DESCARTADA PER DECISIÓ FUNCIONAL DE PRODUCTE (2026-09-18):** LinkedIn deixa de ser un proveïdor d'accés de Petiloc. S'han retirat botó i textos, endpoints, adaptador OIDC, configuració local, `state`, handoff, runner i proves exclusives. L'Excel marca `ZUP-007` com `N/A` i conserva l'històric d'execucions; `ZUP-016` queda dedicat a Google. No s'ha iniciat cap implementació de Facebook.
 
 **Traça històrica de la Iteració 5:** el 2026-09-17 la implementació de LinkedIn va arribar a superar els gates automàtics i va originar millores compartides de seguretat. Aquest resultat no equival a validació funcional de producte. Es conserven `IFederatedAuthenticationService`, `IAuthSessionFactory`, la unicitat d'`ExternalIdentity`, TOTP i la revocació persistent del JWT amb `jti`; s'han eliminat tots els artefactes que només servien LinkedIn.

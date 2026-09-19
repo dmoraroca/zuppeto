@@ -34,6 +34,8 @@ Format recomanat d'execucio:
 
 ## 4. Joc de proves actual
 
+**Iteració 6 — preparació territorial:** no s'afegeixen encara casos executables perquè no hi ha implementació, migracions ni dades noves. Els casos actuals de països/ciutats, perfil, Admin Usuaris, Places, filtres i GeoNames es conserven com a baseline. La futura implementació haurà d'afegir cobertura Unicode/multilingüe, jerarquies variables, fonts/llicències, importació idempotent, backfill sense pèrdua, API pròpia, selector compartit i absència de dependència territorial externa en runtime quan la Iteració 7 quedi confirmada.
+
 ### 4.1 Autenticacio
 
 Estat del bloc: email/contrasenya i Google formen l'accés actual; Google conserva el tancament 🟢 de la Iteració 4. LinkedIn és `N/A` per decisió funcional, no un resultat fallit. Microsoft/Apple/Samsung/LG no tenen encara casos executables i Facebook continua pendent al final del roadmap de proveïdors.

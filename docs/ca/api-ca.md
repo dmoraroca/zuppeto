@@ -81,6 +81,8 @@ El grup **`/api/places`** exigeix **`Authorization: Bearer <JWT>`** per defecte.
 - `GET /api/places` (anònim) — admet `country` i `city`; país filtra per coincidència exacta sense distingir majúscules
 - `GET /api/places/cities` (anònim) — llista `PlaceCitySuggestionDto` amb llocs, fins a 1000 resultats GeoNames (màxim per petició) i catàleg governat (`source`: `places` | `geonames` | `catalog`)
 - `GET /api/places/cities/search` (anònim) — typeahead de 2 caràcters sobre totes les fonts, fins a 1000 resultats
+
+Aquest és el contracte **actual**. La Iteració 6 només audita i dissenya la remodelació territorial europea. La possible substitució d'aquest agregat de fonts per una API territorial sobre catàleg PostgreSQL propi queda **EN REVISIÓ** per a la Iteració 7; no hi ha endpoints nous ni s'ha retirat GeoNames.
 - `GET /api/places/{id}`
 - `POST /api/places`
 - `PUT /api/places/{id}`

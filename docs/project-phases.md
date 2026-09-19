@@ -121,7 +121,7 @@ Separar clarament les zones públiques de les zones internes o controlades per p
 - autenticació pròpia i Google OAuth real (**FET**); `LinkedIn` queda descartat per decisió funcional de producte i `Facebook` continua pendent
 - rols i permisos (**FET**)
 - pàgines internes (**FET**): punt tancat amb el criteri definit per direcció de projecte, incloent base d'accés intern i manteniments d'administració ja operatius.
-- gestió de contingut o dades (**EN CURS**): `llocs` i després `favorits`; catàleg territorial (**prioritat Espanya**): detall a `docs/ca/funcional-ca.md` (§3.15.1).
+- gestió de contingut o dades (**EN CURS**): `llocs` i després `favorits`; la Iteració 6 redefineix el catàleg territorial com a base europea multicultural i multilingüe i continua **EN CURS / PREPARACIÓ**: subfases 0 i I completades, II següent i III–IX pendents. Detall a `docs/ca/funcional-ca.md` (§3.15.7).
 - accessos restringits a determinades funcionalitats (**PENDENT**)
 - revisió de documentació pendent (comprovar opcions i buits) (**PENDENT**)
 - canvi de contrasenya i operativa bàsica de credencials (**PENDENT**; tot el treball de contrasenya queda empaquetat aquí, sense escindir-lo en un altre punt)
@@ -136,6 +136,9 @@ La plataforma ja diferencia entre usuaris públics, usuaris autenticats i àrees
 - Fase IV, Iteració 4 — Google OAuth real: **🟢 VALIDADA I TANCADA el 2026-09-17**. Inclou alta Google nova amb rol `USER`, autovinculació segura d'un compte local activat per email verificat, `ExternalIdentity` única, TOTP sense bypass, logout/relogin, regressions, secrets, cleanup i registre Excel.
 - Fase IV, Iteració 5 — LinkedIn OAuth: **➖ DESCARTADA PER DECISIÓ FUNCIONAL DE PRODUCTE el 2026-09-18**. La integració es va estudiar i implementar tècnicament abans de la decisió; s'han retirat del producte UI, endpoints, adaptador OIDC i configuració LinkedIn, mantenint la infraestructura federada genèrica útil per Google i proveïdors futurs. No és `FAIL`, `PENDENT` ni `NO VALIDADA`.
 - La LinkedIn Page Petiloc es conserva com a canal corporatiu i queda separada del sistema d'autenticació.
+- Fase IV, Iteració 6 — **REMODELACIÓ TERRITORIAL EUROPEA MULTICULTURAL/MULTILINGÜE — EN CURS / PREPARACIÓ**. Subfase 0 (auditoria del sistema actual) i subfase I (definició funcional i model d'auditoria europea), **COMPLETADES**; subfase II (auditoria real dels 35 països), **SEGÜENT**; subfases III–IX, **PENDENTS**. El model objectiu admet jerarquies administratives variables, Unicode, noms oficials/localitzats/alternatius, procedència i llicències. Encara no hi ha model nou, migracions, importacions ni canvis de dades.
+- Fase IV, Iteració 7 — **EN REVISIÓ**. Proposta pendent de confirmació: substituir «GeoNames + alta lazy» per una API territorial sobre catàleg propi (`Angular → API Petiloc → TerritorialService → PostgreSQL`). GeoNames no s'elimina encara.
+- Fase IV, Iteració 8 — **PLANIFICADA**. Selector territorial compartit sobre la futura API pròpia per a registre/login, Perfil, Admin Usuaris, Places, Admin Llocs i filtres.
 - login: destí per defecte **Inici** per a tots els rols (ZUP-004); ADMIN obre permisos des del menú, no a la primera pantalla
 - `gestió de contingut o dades` continua **EN CURS**: focus actual en `llocs` (cerca lazy + base de proveïdor extern) i `favorits` (Cercar/Netejar sobre BD + caducitat Google 30 dies via Details). Tram llistat/fitxa 2026-09-01: **OK** (foto, paginació, Cercar, tres apartats). Pendent (no ara): recordar take per filtre (20/40/60) si es torna a aplicar; llistat scroll editorial (foto+text, seleccionat a encaixar); Ajuda «Dubtes habituals» amb textos i format diferents. Vegeu `docs/ca/millores-pendents-ca.md`.
 - detall funcional i tècnic del tram actual: `docs/ca/funcional-ca.md` (§3.17, §3.12, §12.5, §12.7) i `docs/ca/tecnic-ca.md` (§2.11.3, §2.11.3.1, §2.11.4 procedència `places`, §2.11.5 menús admin, §2.10.3 permisos de build local)
@@ -158,7 +161,7 @@ Fer el producte multiidioma de manera seriosa, un cop el contingut i l'estructur
 
 ### Què entra dins la fase V
 
-- **Territori i GeoNames** (extensió cap a la UE, API, llicències): criteri a `docs/ca/funcional-ca.md` (§3.15.1); traçabilitat tècnica a `docs/ca/tecnic-ca.md` (**PENDENT**)
+- internacionalització de la presentació territorial i de la resta del producte sobre el futur catàleg europeu definit a la Iteració 6 (**PENDENT**); fonts, API i llicències territorials es governen ja dins les Iteracions 6–8
 - estratègia d'i18n (**PENDENT**)
 - idiomes d'Europa (**PENDENT**)
 - àrab (**PENDENT**)
