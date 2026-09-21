@@ -1002,230 +1002,126 @@ La geografia del producte no s'ha de deixar a text lliure ni a resolucio ad hoc 
 
 ### 3.15.1 Iteració 6 — Remodelació territorial europea multicultural i multilingüe
 
-**Estat global: EN CURS / PREPARACIÓ.** Les subfases 0 i I estan completades documentalment, la subfase II és la següent i les subfases III–IX continuen pendents. Aquest apartat fixa el model funcional definitiu que haurà de guiar la implementació. La documentació actual no implica que existeixin ja el nou model, les migracions, els importadors, els datasets territorials ni la nova gestió ADMIN.
+**Estat global: EN CURS / READY FOR IMPLEMENTATION.** Les subfases 0, I, II i III estan completades; la subfase IV és la següent i les subfases V–IX continuen pendents.
 
-Petiloc substituirà progressivament el model rígid actual:
+El contracte funcional detallat i oficial de la Iteració 6 és [Iteració 6 — Contracte funcional del model territorial](iteracio-6-model-territorial-ca.md). Aquest document general en conserva el resum, l'abast i els criteris d'alt nivell; en cas de detall territorial, s'ha de consultar el contracte específic.
 
-`Country → City`
+Petiloc substituirà progressivament el model rígid actual Country → City per un catàleg propi, jeràrquic, multicultural i multilingüe:
 
-per un catàleg territorial propi, europeu, multicultural, multilingüe i persistent a PostgreSQL. Conceptualment:
+Country → 0..N TerritorialUnit → Municipality / Locality
 
-`Country → 0..N TerritorialUnit → Municipality / Locality`
+Els pilots inicials són Espanya i Alemanya. El model ha quedat validat estructuralment contra aquests dos pilots i dissenyat perquè la incorporació futura d'altres països es resolgui principalment mitjançant configuració, tipus territorials, locales, fonts, mapping i dades.
 
-La nomenclatura tècnica definitiva es decidirà en el disseny tècnic. Funcionalment, cada país podrà tenir zero o més nivells administratius abans d'arribar al municipi o localitat. Petiloc no assumirà una jerarquia fixa com `País → Comunitat autònoma → Província → Municipi`; representarà la jerarquia real proporcionada per les fonts oficials aprovades.
+No s'afirma que el model estigui empíricament validat contra tots els països europeus. La resta d'Europa s'auditarà durant la futura Fase V — Internacionalització abans d'activar cada país. Evitar remodelacions de BBDD és un objectiu arquitectònic, no una garantia absoluta.
 
-L'abast inicial són 35 països: UE‑27, Noruega, Islàndia, Liechtenstein, Suïssa, Andorra, Mònaco, San Marino i Vaticà. El model haurà de permetre incorporar altres països posteriorment sense remodelar la BBDD.
+### 3.15.2 Abast i principis funcionals
 
-Les dades territorials operatives residiran a PostgreSQL. El catàleg podrà conservar, segons la informació disponible: país, jerarquia, codi oficial, nom oficial, noms localitzats, noms alternatius, coordenades, estat actiu/inactiu i procedència. Les fonts externes alimentaran o actualitzaran el catàleg, però no seran el model territorial de Petiloc.
+La Iteració 6 ha de proporcionar:
 
-### 3.15.2 Evolució de les iteracions territorials
+- una identitat territorial interna estable que no depengui del nom;
+- una jerarquia canònica amb un pare nullable i nivells opcionals;
+- tipus configurables per país, inclosos tipus combinats reals;
+- múltiples noms, codis i locales amb procedència;
+- un punt territorial opcional diferenciat de les coordenades d'un Place;
+- fonts i llicències governades;
+- un pipeline ADMIN de lectura, mapping, staging, validació, diff i publicació;
+- importacions idempotents, auditables i transaccionals;
+- preservació de les dades textuals actuals de User i Place.
 
-| Iteració | Definició vigent | Estat |
-|---|---|---|
-| 6 | Remodelació territorial europea multicultural/multilingüe | **EN CURS / PREPARACIÓ**; subfases 0 i I completades, II següent i III–IX pendents |
-| 7 | Possible «API territorial sobre catàleg propi» | **EN REVISIÓ / PENDENT DE CONFIRMACIÓ**; substitueix conceptualment l'antiga «GeoNames + alta lazy» si la viabilitat de fonts ho confirma |
-| 8 | Selector territorial compartit sobre l'API pròpia | **PLANIFICAT / PENDENT D'IMPLEMENTAR** |
+La implementació seguirà DDD, SOLID i DRY amb el mínim nombre raonable de classes. No es crearan importadors ni condicionals dispersos per país. El domini no coneixerà INE, Destatis, formats de fitxer, HTTP, EF Core o PostgreSQL.
 
-La direcció proposada per a la Iteració 7 és `Petiloc → API pròpia → PostgreSQL`, sense dependència territorial externa en runtime. GeoNames encara existeix al sistema actual i **no s'elimina en aquesta iteració**; queda en revisió fins que l'auditoria de fonts oficials confirmi la cobertura necessària.
+Queden fora d'abast ara les geometries, les jerarquies N:M, els atributs EAV, el time travel complet, les reversions històriques arbitràries i l'auditoria dels altres països europeus.
 
-La Iteració 8 manté el selector compartit per registre/login, Perfil, Admin Usuaris, Places, Admin Llocs, filtres i qualsevol altra pantalla territorial, però haurà de consumir la futura API pròpia i aplicar el mateix catàleg i les mateixes regles. Aquesta integració encara no s'implementa.
+### 3.15.3 Resum del model territorial
 
-### 3.15.3 Noms oficials, idiomes i representació
+El nucli conceptual està format per:
 
-El nom oficial procedent d'una font aprovada s'ha de conservar sense alteracions destructives. Petiloc ha de poder emmagatzemar Unicode/UTF‑8, inclosos `München`, `Łódź`, `Αθήνα` i `České Budějovice`. Qualsevol normalització destinada a cerca serà una dada separada i no substituirà mai el nom oficial.
+- Country;
+- TerritorialUnit;
+- TerritorialUnitType;
+- TerritorialUnitName;
+- TerritorialUnitCode;
+- TerritorialLocaleAssignment;
+- TerritorialDatasetSource.
 
-**Idiomes de la interfície de Petiloc**
+Una TerritorialUnit pertany a un país, té un únic pare canònic vigent o cap i no obliga a materialitzar tots els nivells possibles. Ceuta, Melilla i les Kreisfreie Städte es publiquen com una sola unitat cadascuna quan les files d'origen representen la mateixa realitat. Les files originals es conserven a staging i no es creen jerarquies artificials.
 
-Els idiomes suportats actualment per la interfície de Petiloc són:
+Els noms oficials es preserven sense normalització destructiva. Els locales territorials són independents dels idiomes de la UI. Els codis són textuals, conserven zeros inicials i poden tenir vigència. Les coordenades són opcionals, tenen procedència i representen un punt territorial públic.
 
-- espanyol (`es`)
-- català (`ca`)
-- anglès (`en`)
-- francès (`fr`)
-- alemany (`de`)
+Les fonts poden ser FullSnapshot o Delta. Una absència en un Delta no és una baixa; una absència en un FullSnapshot només proposa una possible inactivació al diff i requereix confirmació.
 
-L'idioma per defecte actual de la UI és `es`. Aquesta configuració podrà evolucionar i passar, per exemple, a anglès en una expansió internacional sense remodelar el catàleg territorial. Els cinc idiomes de la UI no limiten els idiomes ni els locales que pot conservar el catàleg territorial.
+### 3.15.4 Fonts, llicències i privacitat
 
-**Locales territorials i codis de país**
+Una font pública no s'assumeix automàticament reutilitzable. Abans de publicar dades cal verificar dataset, URL oficial, llicència, ús comercial, transformació, atribució, restriccions i possibles dades de tercers.
 
-Cada país, regió o unitat territorial podrà conservar els tags lingüístics BCP 47 que corresponguin a la seva realitat lingüística i normativa. Aquests valors no queden limitats a `es`, `ca`, `en`, `fr` i `de`: el model admet, entre altres, `es-ES`, `fr-FR`, `de-DE`, `de-AT`, `it-IT`, `pl-PL`, `el-GR`, `ca-AD` i `fr-MC`. La manca d'una UI de Petiloc en polonès, grec o italià no converteix artificialment aquests locales en `en-PL`, `en-GR` o `en-IT`.
+La Fase II queda tancada per al disseny estructural, però no aprova els datasets per a producció:
 
-Els codis ISO de país i els tags BCP 47 són conceptes diferents i no es poden intercanviar. Per exemple:
+- Espanya conserva pendents la verificació final de la llicència INE, atribució, ús comercial, coordenades i fonts regionals;
+- Alemanya té verificada la font oficial i l'evidència de reproducció/distribució amb atribució del XLSX, però manté pendents la vinculació legal específica de l'ús comercial/transformació i la verificació de la data 30.09.2026;
+- les dades PLZ de Deutsche Post queden excloses.
 
-| Territori | ISO 3166-1 alpha-2 | ISO 3166-1 alpha-3 | Tag lingüístic territorial BCP 47 |
-|---|---|---|---|
-| Espanya | `ES` | `ESP` | `es-ES` |
-| Catalunya | país `ES` | país `ESP` | `ca-ES` |
-
-Un tag BCP 47 representa llengua i context territorial; no és un codi ISO de país ni acredita per si mateix l'oficialitat normativa. L'oficialitat o aplicació territorial de cada llengua haurà d'estar avalada per la font revisada corresponent.
-
-**Territoris multilingües i herència**
-
-El model permetrà diversos locales oficials o territorials dins d'un mateix país i no forçarà un únic locale nacional quan no correspongui. Per exemple, Espanya podrà tenir `es-ES` com a locale general i excepcions territorials configurades com `ca-ES` per a Catalunya, `eu-ES` per al País Basc i `gl-ES` per a Galícia. El territori sense configuració específica podrà heretar el locale general corresponent.
-
-El mateix mecanisme genèric haurà de representar casos com Bèlgica (`nl-BE`, `fr-BE`, `de-BE`), Suïssa (`de-CH`, `fr-CH`, `it-CH`, `rm-CH`) o Finlàndia (`fi-FI`, `sv-FI`). Altres casos es determinaran durant l'auditoria dels 35 països. No s'inventarà una jerarquia lingüística ni un locale nacional per defecte abans de verificar-lo, i aquestes excepcions no quedaran hardcoded per país.
-
-**Noms territorials i representació a la UI**
-
-Una entitat territorial podrà tenir nom oficial, locale del nom oficial, noms localitzats, noms alternatius i denominacions emprades en altres idiomes quan estiguin disponibles. No serà obligatori disposar de traducció als cinc idiomes de la UI i la seva absència no impedirà importar ni utilitzar una localitat. Exemple conceptual:
-
-| Territori | Tipus de nom | Idioma | Denominació |
-|---|---|---|---|
-| München | Oficial | original | München |
-| München | Localitzat | `es` | Múnich |
-| München | Localitzat | `ca` | Munic |
-| München | Localitzat | `en` | Munich |
-| München | Localitzat | `fr` | Munich |
-| München | Localitzat | `de` | München |
-
-El locale territorial i l'idioma actual de la UI són conceptes independents. La política que decidirà quin nom mostrar segons l'idioma de la UI, el locale territorial, els noms localitzats disponibles, el fallback i el nom oficial es definirà i validarà abans de la implementació corresponent. No queda hardcoded en aquesta iteració documental. Sigui quina sigui la política posterior, no podrà modificar ni eliminar el nom oficial, traduir destructivament les dades ni alterar la font original.
-
-### 3.15.4 Gestió ADMIN de països, fonts i llicències
-
-L'àrea exclusiva d'ADMIN de Gestió Territorial permetrà consultar o configurar, com a mínim:
-
-- país
-- estat actiu/inactiu
-- configuració lingüística territorial
-- fonts i datasets associats
-- estat de revisió de les fonts
-- informació necessària per a les importacions
-
-La configuració lingüística haurà de poder representar un locale general de país quan existeixi, múltiples locales oficials o territorials, excepcions regionals i herència territorial. Els selectors ADMIN no estaran limitats als cinc idiomes actuals de la UI: els valors disponibles correspondran als locales territorials admesos i configurats al catàleg. No es crearà una implementació específica per a Catalunya, Galícia, el País Basc, Bèlgica, Suïssa o altres casos; tots es resoldran mitjançant el mateix model territorial configurable.
-
-Petiloc prioritzarà fonts oficials de cada país. Abans d'aprovar-ne una s'hauran de registrar o revisar país, organisme, dataset, URL/font, format, versió/data, estructura territorial disponible, municipis/localitats, coordenades si existeixen, llicència, ús comercial, atribució i restriccions. El caràcter públic de l'organisme no implica automàticament reutilització comercial sense condicions.
-
-Funcionalment, una font podrà estar:
-
-- revisada/aprovada
-- pendent de revisió
-- no utilitzable
-
-La nomenclatura concreta podrà adaptar-se a les convencions de Petiloc. No s'importaran dades de producció procedents d'una font no aprovada.
-
-La traçabilitat haurà d'identificar organisme, dataset, versió, data d'importació, llicència i atribució requerida. Les coordenades podran procedir d'una font diferent de la denominació o jerarquia, i aquesta diferència també haurà de quedar registrada.
+El catàleg aplica minimització: només incorpora jerarquia, codis, noms, locales, coordenades territorials i procedència necessaris. No importa PII ni confon coordenades municipals amb geolocalització personal.
 
 ### 3.15.5 Importació territorial guiada per ADMIN
 
-La gestió de datasets territorials serà exclusiva d'ADMIN i seguirà un flux visual i guiat:
+El flux funcional és:
 
-`ADMIN → Gestió territorial → Importacions`
+País/font → fitxer → Reader → mapping → staging → validació → preview/diff → IMPORTAR → catàleg
 
-1. **Context.** Abans de carregar un fitxer, l'ADMIN seleccionarà país, font/organisme, dataset i versió/data quan correspongui.
-2. **Fitxer.** Carregar o seleccionar un fitxer no provocarà cap importació automàtica. Petiloc no imposarà un format únic: els formats implementats dependran de les fonts oficials aprovades i el procés funcional posterior serà comú.
-3. **Detecció.** Petiloc identificarà els camps o columnes disponibles i mostrarà camps detectats, exemples de contingut i informació suficient per preparar el mapatge, sense modificar encara el catàleg definitiu.
-4. **Mapatge visual.** L'ADMIN relacionarà cada camp origen amb un camp Petiloc mitjançant controls de UI, no amb text lliure arbitrari. Per exemple: codi → codi oficial; nom → nom oficial; pare → divisió pare; latitud/longitud → coordenades; camp sobrant → ignorar.
-5. **Plantilla.** Un mapatge validat es podrà guardar i reutilitzar. Davant una nova versió compatible del mateix dataset, Petiloc podrà proposar-lo perquè l'ADMIN el revisi. Si l'estructura ha canviat, les incompatibilitats s'hauran de detectar abans d'importar.
-6. **Validació.** Abans de tocar el catàleg es podran detectar camps obligatoris absents, registres incorrectes, duplicats, jerarquies incoherents, codis o caràcters incorrectes, coordenades invàlides i altres incoherències detectables. Validar no equival a importar.
-7. **Preview/diff.** Abans de confirmar, l'ADMIN veurà com a mínim registres llegits, correctes, errors, nous, modificats, sense canvis i baixes/inactivacions quan correspongui, amb possibilitat de revisar incidències.
-8. **Confirmació.** Només l'acció explícita **IMPORTAR** modificarà el catàleg definitiu.
+Carregar o validar un fitxer no publica. Només un ADMIN autoritzat pot confirmar la publicació. Els readers depenen del format; les peculiaritats s'expressen preferentment amb mapping i transformacions reutilitzables. Si no és raonable, es pot crear un adaptador del dataset, mai un importador genèric per país.
 
-El flux complet serà:
+La publicació és atòmica, registra un ChangeSet i no efectua baixes físiques automàtiques. S'admeten cancel·lació prèvia, rollback transaccional davant una fallada i reversió limitada de l'última publicació quan sigui segura.
 
-`País/font → fitxer → lectura → mapatge → validació → preview/diff → IMPORTAR → catàleg territorial Petiloc`
+### 3.15.6 User, Place i límit amb les Iteracions 7 i 8
 
-Cada importació conservarà com a mínim identificador, país, font, dataset, versió, data, ADMIN responsable, resultat, registres processats, altes, modificacions, baixes/inactivacions i errors.
+La migració territorial serà additiva. User i Place podran rebre una referència territorial nullable, però conservaran els camps textuals city/country. El backfill només vincularà automàticament casos inequívocs; els ambigus o no resolts conservaran la FK nul·la i els textos originals.
 
-### 3.15.6 Actualitzacions i preservació de dades
+Una unitat inactivada pot conservar referències existents, però no admet noves seleccions.
 
-Una nova versió d'un dataset no eliminarà i recrearà cegament el catàleg. Petiloc haurà d'identificar, segons la informació disponible, noves entitats, modificacions, canvis de nom o jerarquia, baixes/inactivacions i registres sense canvis. Les relacions existents es preservaran sempre que continuïn representant la mateixa entitat territorial.
+La Iteració 6 construeix i alimenta el catàleg. La Iteració 7 continua en revisió per adaptar l'API pròpia i les dependències actuals de GeoNames. La Iteració 8 continua planificada per al selector territorial compartit. GeoNames no s'eliminarà abans que la substitució estigui implementada i validada.
 
-Actualment `users.city/country` i `places.city/country` són text lliure sense una FK territorial fiable. La remodelació haurà de preservar aquests valors i vincular-los al nou catàleg de manera controlada. Les correspondències dubtoses no s'assignaran automàticament.
-
-GeoNames continua existint i no s'elimina en aquesta modificació documental. La seva necessitat queda **EN REVISIÓ**. L'objectiu és disposar de les dades necessàries a PostgreSQL i eliminar la dependència territorial de GeoNames en runtime només si l'auditoria de fonts oficials confirma que és viable.
-
-### 3.15.7 Pla d'execució per subfases de la Iteració 6
-
-Per evitar confondre-les amb la **Fase IV global del projecte**, les fases següents són subfases internes d'execució de la Iteració 6:
+### 3.15.7 Pla de subfases
 
 | Subfase | Contingut | Estat |
 |---|---|---|
-| 0 | Auditoria del sistema actual | **COMPLETADA / TANCADA** |
-| I | Definició funcional i model d'auditoria europea | **COMPLETADA / TANCADA** |
-| II | Auditoria real dels 35 països | **SEGÜENT** |
-| III | Disseny definitiu del model territorial | **PENDENT** |
-| IV | Migració EF Core / PostgreSQL | **PENDENT** |
+| 0 | Auditoria del sistema territorial actual | **COMPLETADA / TANCADA** |
+| I | Definició funcional inicial i model d'auditoria | **COMPLETADA / TANCADA** |
+| II | Auditoria i validació dels pilots Espanya + Alemanya | **COMPLETADA / TANCADA PER AL DISSENY** |
+| III | Disseny funcional i model territorial | **COMPLETADA / READY FOR IMPLEMENTATION** |
+| IV | Migració EF Core / PostgreSQL | **SEGÜENT** |
 | V | Motor genèric d'importació | **PENDENT** |
 | VI | Gestió Territorial ADMIN | **PENDENT** |
 | VII | Primera importació real i validació | **PENDENT** |
 | VIII | Backfill de les dades actuals | **PENDENT** |
 | IX | Regressió i tancament | **PENDENT** |
 
-#### Subfase 0 — Auditoria del sistema actual — COMPLETADA
+Les verificacions legals i de procedència pendents dels pilots són gates de les fonts i de la primera publicació real. No es presenten com a resoltes pel tancament estructural de la Fase II.
 
-L'auditoria inicial ha confirmat el model rígid `Country → City`; els camps textuals `users.city/country` i `places.city/country`; l'absència de FK territorials fiables per a Users i Places; PostgreSQL en UTF‑8; l'ús actual de GeoNames al backend i la dependència directa des d'Angular Admin. També ha identificat les dependències territorials principals i una estratègia inicial de migració additiva. Aquesta subfase no ha modificat codi ni BBDD i queda tancada.
+### 3.15.8 Criteris de tancament d'alt nivell
 
-#### Subfase I — Definició funcional i model d'auditoria europea — COMPLETADA
+La Iteració 6 només podrà quedar validada quan s'hagin comprovat:
 
-Queden definits l'abast europeu inicial de 35 països; el model territorial flexible, multicultural i Unicode; la separació entre idiomes de la UI, locales territorials, ISO2/ISO3 i BCP 47; el multilingüisme regional i l'herència; la revisió de fonts oficials, llicències, ús comercial, atribució, coordenades i procedència; i el flux ADMIN d'importació amb formats determinats per les fonts, mapatge visual, plantilles, validació, preview/diff, confirmació explícita, historial i preservació de dades. GeoNames continua en revisió.
+- model jeràrquic flexible i identitat estable;
+- Unicode, noms, locales, codis i procedència;
+- fonts i llicències aprovades abans de publicar;
+- mapping, staging, validació i diff revisable;
+- FullSnapshot i Delta;
+- publicació ADMIN atòmica, historial i reversió limitada;
+- preservació de User, Place i els snapshots textuals;
+- almenys una importació real d'una font aprovada;
+- seguretat, proves, regressió i documentació.
 
-També s'ha creat el full Excel de control dels 35 països amb els camps necessaris per a aquesta auditoria. No s'ampliarà amb camps nous sense una necessitat detectada durant l'auditoria real.
-
-#### Subfase II — Auditoria real dels 35 països — SEGÜENT
-
-S'investigarà cada país sense inventar dades no verificades. Per a cadascun s'hauran de contrastar amb fonts fiables o oficials: organisme territorial o estadístic, dataset, URL, municipis/localitats i divisions disponibles, format real de descàrrega, disponibilitat i procedència de coordenades, freqüència d'actualització, llicència, reutilització, ús comercial, atribució, restriccions, ISO2, ISO3, locales BCP 47 generals o regionals, font normativa lingüística i observacions necessàries.
-
-Cada país quedarà classificat documentalment. Els resultats determinaran també quins formats haurà de suportar realment el futur motor d'importació.
-
-#### Subfase III — Disseny definitiu del model territorial — PENDENT
-
-Només començarà després de la subfase II. Tancarà el model de domini i persistència per cobrir conceptualment `Country`, jerarquia territorial flexible, municipi/localitat, noms oficials, localitzats i alternatius, locales, fonts, datasets, llicències, importacions, mapatges, staging i historial. Els noms definitius de classes i taules es decidiran llavors amb SOLID, DDD, patrons només quan aportin valor i el mínim nombre raonable de classes.
-
-#### Subfase IV — Migració EF Core / PostgreSQL — PENDENT
-
-Implementarà el model de manera additiva, sense eliminar inicialment els camps territorials antics. Haurà de preservar Users, Places, relacions, dades i historial, i crear les taules, PK/FK, constraints, índexs, configuracions EF i migracions necessàries. La migració disposarà d'una estratègia de verificació i rollback.
-
-#### Subfase V — Motor genèric d'importació — PENDENT
-
-Implementarà el pipeline `fitxer oficial → lector del format → mapatge → staging → validació → diff → importació controlada → PostgreSQL`. Només es crearan lectors per als formats que necessitin les fonts aprovades durant la subfase II.
-
-#### Subfase VI — Gestió Territorial ADMIN — PENDENT
-
-Implementarà la UI administrativa `país/font/dataset → seleccionar fitxer → detectar camps → mapatge visual → guardar o reutilitzar plantilla → validar → preview/diff → IMPORTAR → resultat`. Serà exclusiva d'ADMIN i la protecció també s'aplicarà al backend.
-
-#### Subfase VII — Primera importació real i validació — PENDENT
-
-Executarà almenys una importació real procedent d'una font oficial aprovada. Espanya/INE és el candidat inicial previst, condicionat a la verificació definitiva de la subfase II. Es validaran jerarquia, codis, noms, Unicode, locales, duplicats, coordenades quan la font en disposi, procedència, llicència, atribució i historial.
-
-#### Subfase VIII — Backfill de les dades actuals — PENDENT
-
-Relacionarà progressivament `users.city/country` i `places.city/country` amb el catàleg nou. Preservarà els textos originals durant la transició, no assignarà automàticament correspondències dubtoses i verificarà que no es perdi cap User ni Place.
-
-#### Subfase IX — Regressió i tancament — PENDENT
-
-Executarà la validació completa: proves backend i Angular afectades, motor d'importació, mapatge, staging, validacions, Unicode, locales, permisos ADMIN, migracions, integritat referencial, Users, Places, builds, runner, secrets, documentació, Excel i `git diff --check`. Només després d'aquesta subfase la Iteració 6 podrà passar a **VALIDADA**.
-
-**Límit de la Iteració 6:** construeix i alimenta el catàleg territorial nou, però encara no substitueix tot el consum territorial actual de Petiloc. La Iteració 7 continua **EN REVISIÓ** i haurà d'adaptar el funcionament dependent de GeoNames/API perquè consumeixi l'API pròpia sobre PostgreSQL; GeoNames no s'eliminarà abans que aquesta substitució estigui validada. La Iteració 8 continua **PLANIFICADA** per al selector territorial compartit i l'adaptació uniforme de les pantalles.
-
-### 3.15.8 Criteris de tancament de la Iteració 6
-
-La Iteració 6 no quedarà validada només per crear taules. Per tancar-la s'haurà de validar:
-
-- remodelació territorial flexible i persistència
-- Unicode i preservació dels noms oficials
-- separació entre idiomes de la UI, codis ISO de país i tags lingüístics territorials BCP 47
-- configuració de múltiples locales, excepcions regionals i herència territorial
-- política de representació i fallback definida i validada sense alterar el nom oficial
-- fonts i llicències traçables
-- importació exclusiva d'ADMIN
-- mapatge visual i plantilles reutilitzables
-- validació i preview/diff abans de la confirmació
-- importació explícita i historial complet
-- preservació de les dades existents
-- almenys una importació real des d'una font oficial aprovada
-- seguretat ADMIN, proves, regressió i documentació
-
-La futura implementació seguirà SOLID, DDD, DRY, responsabilitats clares, testabilitat i simplicitat. Els patrons només s'aplicaran quan aportin valor; no es crearan abstraccions o classes sense una responsabilitat clara.
+Els casos d'ús, invariants, criteris d'acceptació i decisions ajornades complets consten al [contracte funcional territorial](iteracio-6-model-territorial-ca.md).
 
 ### 3.16 Dades de proveidors externs (Google, mapes, IA) i cataleg propi
 
-Aquest apartat fixa el criteri funcional: **no cal ni convé** emmagatzemar «tota la informació» que retornin serveis de tercers com a **repositori paral·lel** al domini Zuppeto. Per al futur catàleg territorial s'importarà només allò que defineixi el model propi, amb procedència, versió i llicència traçables. L'estratègia concreta és part del disseny pendent de la Iteració 6; l'antiga alta lazy amb GeoNames queda en revisió segons **§3.15.2**.
+Aquest apartat fixa el criteri funcional: **no cal ni convé** emmagatzemar «tota la informació» que retornin serveis de tercers com a **repositori paral·lel** al domini Zuppeto. Per al futur catàleg territorial s'importarà només allò que defineixi el model propi, amb procedència, versió i llicència traçables. L'estratègia territorial funcional queda definida al contracte de la Iteració 6; l'antiga alta lazy amb GeoNames queda en revisió per a la Iteració 7.
 
 - **Login Google (OAuth)** es tracta com a **dades de compte i perfil** dins el model d'usuari, amb el que permetin les polítiques de privacitat i el disseny d'identitat; **no** és un catàleg territorial ni un duplicat del directori de Google.
 - **Mapa a la web**: la visualització amb `Leaflet` i capes tipus OpenStreetMap **no implica** guardar tot el tile o tot el dataset OSM; es renderitza al client. El manteniment de país/ciutat és **independent** i serveix per negoci (filtres, coherència), no per substituir el mapa.
 - **IA o geocodificació** (p. ex. suggeriments de ciutats): poden ser **auxiliars** per omplir o validar abans d'alta al cataleg; el producte ha de **preferir sempre** el cataleg intern quan ja existeixi la ciutat, per evitar consultes repetides i costos.
 
-L'objectiu és una **única font de veritat** territorial (`paisos` / `ciutats` governats) i dades d'integració **mínimes** on calgui, sense convertir l'administració en una còpia de Google ni d'un altre proveïdor.
+L'objectiu és una **única font de veritat** basada en el catàleg territorial governat i dades d'integració **mínimes** on calgui, sense convertir l'administració en una còpia de Google ni d'un altre proveïdor.
 
 - **Privacitat i tractament de dades (esborrany):** apunts sobre integracions geogràfiques (p. ex. GeoNames, atribució, minimització) i el pla de text legal complet a la Fase V: vegeu `docs/ca/privacitat-ca.md`.
 
@@ -1410,7 +1306,7 @@ Abans d'iniciar funcionalitat nova, cal auditar els **5 SKIP E2E actuals**, iden
 | 3 | Identitat i seguretat | TOTP / 2FA | 🟢 VALIDAT |
 | 4 | Identitat i seguretat | Google OAuth real | 🟢 VALIDAT |
 | 5 | Identitat i seguretat | LinkedIn OAuth real | ➖ DESCARTADA — decisió funcional de producte |
-| 6 | Territori | Remodelació territorial europea multicultural/multilingüe | 🟠 EN CURS / PREPARACIÓ — subfases 0 i I completades; II següent |
+| 6 | Territori | Remodelació territorial europea multicultural/multilingüe | 🟠 EN CURS — subfases 0–III completades; IV següent |
 | 7 | Territori | API territorial sobre catàleg propi (proposta) | 🟠 EN REVISIÓ / pendent de confirmació |
 | 8 | Territori | Selector territorial compartit sobre API pròpia | 🔴 Planificat / pendent d'implementar |
 | 9 | Core Places | Google Places complet | 🔴 Pendent / crític |
@@ -1444,7 +1340,7 @@ Per tant, l'estat oficial actual és de **5 punts 🔴, 12 punts 🟠, 4 punts �
 
 #### 3.18.5 Bloc B — Territori
 
-**6. Remodelació territorial europea multicultural/multilingüe — 🟠 EN CURS / PREPARACIÓ.** Les subfases 0 (auditoria del sistema actual) i I (definició funcional i model d'auditoria europea) estan completades; la subfase II (auditoria real dels 35 països) és la següent i les subfases III–IX estan pendents. La iteració defineix un model flexible amb jerarquies nacionals diferents, noms oficials Unicode, noms localitzats i una configuració lingüística territorial separada dels idiomes de la UI. El model distingirà codis ISO de país i tags BCP 47, i admetrà múltiples locales, excepcions regionals i herència sense hardcodejar països concrets. També inclou fonts oficials i llicències traçables, importació ADMIN guiada i preservació de les dades existents. Encara no implementa entitats, dades ni importadors. Només es podrà tancar quan finalitzi la subfase IX i es compleixin tots els criteris de §3.15.8. §3.14–§3.16 en contenen el contracte funcional.
+**6. Remodelació territorial europea multicultural/multilingüe — 🟠 EN CURS / READY FOR IMPLEMENTATION.** Les subfases 0–III estan completades amb Espanya i Alemanya com a pilots; la subfase IV és la següent i les subfases V–IX estan pendents. El model funcional, els 54 casos d'ús, les fonts i llicències, la importació ADMIN i la preservació de dades es defineixen al [contracte funcional territorial de la Iteració 6](iteracio-6-model-territorial-ca.md). La resta de països europeus s'auditarà durant la Fase V — Internacionalització. Encara no s'han implementat entitats, migracions, dades ni importadors, i les fonts pilot no es podran publicar mentre mantinguin gates legals o de procedència pendents.
 
 **7. API territorial sobre catàleg propi — 🟠 EN REVISIÓ.** És la proposta que podria substituir l'antiga «GeoNames + alta lazy»: `Petiloc → API pròpia → PostgreSQL`. GeoNames no s'elimina encara i la redefinició queda pendent de confirmar que les fonts oficials i les seves llicències permeten mantenir el catàleg necessari sense dependència externa territorial en runtime.
 

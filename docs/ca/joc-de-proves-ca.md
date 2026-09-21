@@ -34,7 +34,7 @@ Format recomanat d'execucio:
 
 ## 4. Joc de proves actual
 
-**Iteració 6 — preparació territorial:** no s'afegeixen encara casos executables perquè no hi ha implementació, migracions ni dades noves. Els casos actuals de països/ciutats, perfil, Admin Usuaris, Places, filtres i GeoNames es conserven com a baseline. La futura implementació haurà d'afegir cobertura Unicode/multilingüe, jerarquies variables, fonts/llicències, importació idempotent, backfill sense pèrdua, API pròpia, selector compartit i absència de dependència territorial externa en runtime quan la Iteració 7 quedi confirmada.
+**Iteració 6 — Fase III completada / Ready for Implementation:** els 54 casos funcionals del contracte `iteracio-6-model-territorial-ca.md` encara no són executables perquè no hi ha implementació, migracions ni dades noves. Els casos actuals de països/ciutats, perfil, Admin Usuaris, Places, filtres i GeoNames es conserven com a baseline. La futura implementació haurà de derivar cobertura d'Unicode i locales, jerarquies variables, consolidació de pilots, fonts/llicències, importació idempotent, rollback, backfill sense pèrdua, API pròpia i selector compartit quan correspongui.
 
 ### 4.1 Autenticacio
 

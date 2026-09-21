@@ -1,5 +1,7 @@
 # Automatització E2E de Zuppeto
 
+**Iteració 6 — Fase III completada / Ready for Implementation (2026-09-21):** la revisió final del contracte territorial no modifica encara escenaris ni adapters E2E. Els 54 casos funcionals documentats són la font per derivar la cobertura executable durant les subfases d'implementació; fins llavors es manté el baseline actual de geografia, Perfil, Admin Usuaris, Places i filtres.
+
 ## Estat, abast i accés
 
 **Estat:** Fases 0–10 validades. Google Chrome, Firefox, WebKit i Microsoft Edge comparteixen suite; l'auditoria final local queda tancada amb PASS i la CI definida a la Fase 9 resta preparada, però no s'ha executat durant la Fase 10.

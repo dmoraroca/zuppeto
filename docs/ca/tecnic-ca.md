@@ -555,7 +555,7 @@ Resum del diagrama:
 
 ### Auditoria territorial i disseny objectiu europeu — Fase IV, Iteració 6
 
-**Estat global:** **EN CURS / PREPARACIÓ**. La subfase 0, auditoria del sistema actual, i la subfase I, definició funcional i model d'auditoria europea, estan **COMPLETADES**. La subfase II, auditoria real dels 35 països, és la **SEGÜENT**; les subfases III–IX continuen **PENDENTS**. Encara no s'han creat entitats, migracions, importadors ni datasets territorials, no s'han modificat dades i GeoNames no s'ha eliminat. El pla funcional complet de subfases consta a `funcional-ca.md` §3.15.7.
+**Estat global:** **READY FOR IMPLEMENTATION**. Les subfases 0–III estan **COMPLETADES** amb Espanya i Alemanya com a pilots; la subfase IV és la **SEGÜENT** i les subfases V–IX continuen **PENDENTS**. La resta d'Europa s'auditarà durant la Fase V — Internacionalització. Encara no s'han creat entitats, migracions o importadors, no s'han modificat dades i GeoNames no s'ha eliminat. El contracte funcional és `iteracio-6-model-territorial-ca.md` i el resum de subfases consta a `funcional-ca.md` §3.15.7.
 
 #### A. Model territorial actual
 
@@ -600,7 +600,7 @@ Conclusió Unicode: UTF‑8 permet persistir `München`, `Łódź`, `Αθήνα`
 - `AdminService` gestiona CRUD de `Country/City` i, a més, fa crides directes des del navegador a `secure.geonames.org` per països i ciutats amb un username per defecte. Això contradiu l'objectiu anterior de concentrar integracions territorials al backend i és una dependència a retirar/redefinir, no una funcionalitat que es modifiqui ara.
 - `AdminConsolePageComponent` concentra formularis d'usuaris, països, ciutats i llocs, resol valors `geo:<code>` i barreja catàleg intern amb GeoNames.
 
-#### E. Arquitectura objectiu proposada — pendent d'aprovació
+#### E. Arquitectura objectiu aprovada funcionalment — pendent de disseny tècnic
 
 Es proposa mantenir `Country` com a arrel territorial estable i introduir una unitat territorial jeràrquica genèrica, en lloc d'una taula per tipus nacional:
 
@@ -619,11 +619,11 @@ Es proposa mantenir `Country` com a arrel territorial estable i introduir una un
 
 #### F. Importadors proposats
 
-Un port d'aplicació com `ITerritorialDatasetImporter` rebria un dataset verificat i cada adaptador d'infraestructura traduiria el format oficial del país al model canònic. El domini no coneixeria INE, INSEE, ISTAT, CSV, XML ni HTTP.
+Ports d'aplicació cohesionats coordinaran un dataset verificat. Els readers d'infraestructura traduiran el format físic a staging neutral; el mapping farà la transformació canònica i només una peculiaritat no expressable raonablement podrà justificar un adaptador del dataset. No es crearan importadors per país i el domini no coneixerà INE, Destatis, CSV, XLSX, XML ni HTTP.
 
 Pipeline proposat: `adquirir artefacte verificat → staging immutable → validar llicència/checksum/esquema → normalitzar a model canònic → calcular diff → revisió/aprovació → publicar transaccionalment → auditar`.
 
-Regles obligatòries: idempotència per font+versió+checksum; upsert per codi oficial estable; detecció de canvis de nom, altes, baixes, fusions i escissions; cap baixa física automàtica; informe de duplicats i referències no resoltes; rollback a la versió publicada anterior; i separació entre descarregar, transformar i publicar.
+Regles obligatòries: idempotència per font+versió+checksum; continuïtat per identitat i codis oficials vigents; detecció de canvis de nom, altes, baixes, fusions i escissions; cap baixa física automàtica; informe de duplicats i referències no resoltes; publicació transaccional i reversió limitada de l'última publicació quan sigui segura; i separació entre llegir, transformar i publicar.
 
 #### G. Estratègia de migració proposada — no executada
 
@@ -653,7 +653,7 @@ Dades que no es poden perdre: usuaris i perfil, llocs i adreces/coordinates, fav
 - domini: `Domain/Geography/CountryRow.cs`, `CityRow.cs`, `CountryCodeRules.cs`, `EuropeanCountryCodes.cs`, `Domain/Users/ValueObjects/UserProfile.cs`, `Domain/Places/ValueObjects/PostalAddress.cs` i `Domain/Abstractions/IGeographicCatalogRepository.cs`
 - aplicació: `Application/Admin/GeographicAdminAppService.cs`, contractes i validators geogràfics, `Application/Places/PlaceApplicationService.cs`, `PlaceContracts.cs`, `PlaceCityQueryNormalizer.cs`, serveis d'usuaris/auth i els nous ports territorials
 - infraestructura EF: `Entities/CountryRecord.cs`, `CityRecord.cs`, `UserRecord.cs`, `PlaceRecord.cs`; les quatre configuracions corresponents; `GeographicCatalogRepository.cs`; `PlaceRepository.cs`; `PlaceSearchSpecification.cs`; `ZuppetoDbContext.cs`; migracions noves encara inexistents
-- integracions: futurs adaptadors/importadors per país i, només després del canvi de runtime, `Infrastructure/GeoNames/GeoNamesCitySuggestionProvider.cs`, `GeoNamesOptions.cs` i el seu registre de DI
+- integracions: futurs readers per format i adaptadors excepcionals per dataset; només després del canvi de runtime, `Infrastructure/GeoNames/GeoNamesCitySuggestionProvider.cs`, `GeoNamesOptions.cs` i el seu registre de DI
 - API: `Api/Endpoints/GeographicAdminEndpoints.cs`, `PlaceEndpoints.cs`, endpoints territorials nous encara inexistents i `Program.cs`/DI quan pertoqui
 - Angular: `features/places/services/place.service.ts`, `shared/components/city-combobox/*`, `features/admin/services/admin.service.ts`, `admin-console-page/*`, models i pantalles de Perfil, Places, Favorits i login/preview
 - dades controlades: `DevelopmentIdentitySeeder.cs`, `DevelopmentPlacesSeeder.cs` i qualsevol futura eina d'importació/staging
@@ -661,11 +661,11 @@ Dades que no es poden perdre: usuaris i perfil, llocs i adreces/coordinates, fav
 
 #### J. Registre preparat de fonts i llicències
 
-Cap fila està aprovada. `PENDENT` significa que encara s'han de verificar organisme, dataset, URL, format, jerarquia, cobertura de localitats, coordenades, llicència, ús comercial, atribució i versió abans de descarregar o importar res.
+Aquest registre de 35 països deixa de ser un gate de la Iteració 6. Espanya i Alemanya són els pilots; les altres files es reprendran durant la Fase V — Internacionalització. `PENDENT` significa que el país no es pot activar ni importar fins que es verifiquin organisme, dataset, URL, format, jerarquia, cobertura, coordenades, llicència, ús comercial, atribució i versió.
 
 | País | Organisme | Dataset | URL/font | Format | Jerarquia | Municipis/localitats | Coordenades | Llicència | Ús comercial | Atribució | Versió/data | Estat de revisió |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Alemanya | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
+| Alemanya | Destatis / oficines estadístiques federals i dels Länder | GV-ISys — Regionalgliederung | Pàgina oficial Destatis identificada | XLSX pilot | Estructura variable verificada | 10.943 registres municipals | Sí; 3 absències i un sentinella `(0,0)` | Reproducció/distribució amb atribució verificada al XLSX; vinculació legal específica pendent | PENDENT de verificació específica | Destatis, GV-ISys, 2026 | `30.09.2026`, data pendent de verificar | PILOT TANCAT PER AL DISSENY / FONT NO APROVADA ENCARA |
 | Andorra | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
 | Àustria | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
 | Bèlgica | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
@@ -674,7 +674,7 @@ Cap fila està aprovada. `PENDENT` significa que encara s'han de verificar organ
 | Dinamarca | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
 | Eslovàquia | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
 | Eslovènia | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
-| Espanya | Candidat: INE, per verificar | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
+| Espanya | INE | Relació de municipis i codis per comunitats i províncies | Pàgina oficial INE identificada | Fitxers territorials / pilot XLSX | Comunitat → província → municipi verificada | 8.132 municipis | No incorporades; font pendent | PENDENT de verificació del dataset concret | PENDENT | PENDENT | `01.01.2026` | PILOT TANCAT PER AL DISSENY / FONT NO APROVADA ENCARA |
 | Estònia | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
 | Finlàndia | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
 | França | Candidat: INSEE, per verificar | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |

@@ -13,7 +13,7 @@ Quan el producte consulti **GeoNames** (o serveis equivalents acordats) per sugg
 - **Llicència de les dades GeoNames:** les dades del projecte GeoNames es publiquen sota **Creative Commons Attribution 4.0** (CC-BY 4.0). Cal **atribució** a GeoNames (enllaç o referència clara) en la documentació pública, la política de privacitat o la pàgina “Sobre el projecte”, segons el que fixi la versió final d’aquest document i la revisió legal.
 - **Ús comercial:** el marc GeoNames permet ús comercial amb les condicions d’atribució i les seves condicions generals; la versió final d’aquest text ha de reflectir-ho sense contradir la normativa aplicable (UE, etc.).
 - **Minimització:** les peticions al servei han de fer-se **des del backend**; només s’ha d’enviar el **mínim necessari** per obtenir suggeriments (p. ex. fragment de text després del llindar funcional, filtre de país quan escaigui). El detall d’implementació queda al `tecnic-ca.md`.
-- **Persistència:** el que es guarda a la base de dades Zuppeto és el **catàleg propi** (`countries` / `cities`), no una còpia integral de bases externes; vegeu `funcional-ca.md` (§3.15.2 i §3.16).
+- **Persistència:** el que es guardarà és el **catàleg territorial propi** definit per Petiloc, no una còpia integral de bases externes; vegeu `funcional-ca.md` (§3.15 i §3.16) i `iteracio-6-model-territorial-ca.md`.
 
 A la **Fase V** s’ha d’**ampliar** aquest apartat amb: finalitats del tractament, base legal, destinataris, transferències fora de la UE si escau, terminis, drets dels interessats i qualsevol altre punt exigit per la normativa vigent i el criteri de direcció.
 
@@ -21,4 +21,5 @@ A la **Fase V** s’ha d’**ampliar** aquest apartat amb: finalitats del tracta
 
 - `docs/project-phases.md` — Fase V (revisió de privadesa i compliment).
 - `docs/ca/funcional-ca.md` — §3.15.1, §3.15.2, §3.16 (catàleg territorial i proveïdors).
+- `docs/ca/iteracio-6-model-territorial-ca.md` — contracte funcional detallat de la Iteració 6.
 - `docs/ca/tecnic-ca.md` — implementació, claus, caché (quan es tanqui el disseny).
