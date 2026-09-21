@@ -1002,7 +1002,7 @@ La geografia del producte no s'ha de deixar a text lliure ni a resolucio ad hoc 
 
 ### 3.15.1 Iteració 6 — Remodelació territorial europea multicultural i multilingüe
 
-**Estat global: EN CURS / READY FOR IMPLEMENTATION.** Les subfases 0, I, II i III estan completades; la subfase IV és la següent i les subfases V–IX continuen pendents.
+**Estat global: EN CURS / FASE IV VALIDADA.** Les subfases 0–IV estan completades; la subfase V és la següent i les subfases VI–IX continuen pendents.
 
 El contracte funcional detallat i oficial de la Iteració 6 és [Iteració 6 — Contracte funcional del model territorial](iteracio-6-model-territorial-ca.md). Aquest document general en conserva el resum, l'abast i els criteris d'alt nivell; en cas de detall territorial, s'ha de consultar el contracte específic.
 
@@ -1088,8 +1088,8 @@ La Iteració 6 construeix i alimenta el catàleg. La Iteració 7 continua en rev
 | I | Definició funcional inicial i model d'auditoria | **COMPLETADA / TANCADA** |
 | II | Auditoria i validació dels pilots Espanya + Alemanya | **COMPLETADA / TANCADA PER AL DISSENY** |
 | III | Disseny funcional i model territorial | **COMPLETADA / READY FOR IMPLEMENTATION** |
-| IV | Migració EF Core / PostgreSQL | **SEGÜENT** |
-| V | Motor genèric d'importació | **PENDENT** |
+| IV | Migració EF Core / PostgreSQL | **COMPLETADA / VALIDADA** |
+| V | Motor genèric d'importació | **SEGÜENT** |
 | VI | Gestió Territorial ADMIN | **PENDENT** |
 | VII | Primera importació real i validació | **PENDENT** |
 | VIII | Backfill de les dades actuals | **PENDENT** |
@@ -1306,7 +1306,7 @@ Abans d'iniciar funcionalitat nova, cal auditar els **5 SKIP E2E actuals**, iden
 | 3 | Identitat i seguretat | TOTP / 2FA | 🟢 VALIDAT |
 | 4 | Identitat i seguretat | Google OAuth real | 🟢 VALIDAT |
 | 5 | Identitat i seguretat | LinkedIn OAuth real | ➖ DESCARTADA — decisió funcional de producte |
-| 6 | Territori | Remodelació territorial europea multicultural/multilingüe | 🟠 EN CURS — subfases 0–III completades; IV següent |
+| 6 | Territori | Remodelació territorial europea multicultural/multilingüe | 🟠 EN CURS — subfases 0–IV completades; V següent |
 | 7 | Territori | API territorial sobre catàleg propi (proposta) | 🟠 EN REVISIÓ / pendent de confirmació |
 | 8 | Territori | Selector territorial compartit sobre API pròpia | 🔴 Planificat / pendent d'implementar |
 | 9 | Core Places | Google Places complet | 🔴 Pendent / crític |
@@ -1340,7 +1340,7 @@ Per tant, l'estat oficial actual és de **5 punts 🔴, 12 punts 🟠, 4 punts �
 
 #### 3.18.5 Bloc B — Territori
 
-**6. Remodelació territorial europea multicultural/multilingüe — 🟠 EN CURS / READY FOR IMPLEMENTATION.** Les subfases 0–III estan completades amb Espanya i Alemanya com a pilots; la subfase IV és la següent i les subfases V–IX estan pendents. El model funcional, els 54 casos d'ús, les fonts i llicències, la importació ADMIN i la preservació de dades es defineixen al [contracte funcional territorial de la Iteració 6](iteracio-6-model-territorial-ca.md). La resta de països europeus s'auditarà durant la Fase V — Internacionalització. Encara no s'han implementat entitats, migracions, dades ni importadors, i les fonts pilot no es podran publicar mentre mantinguin gates legals o de procedència pendents.
+**6. Remodelació territorial europea multicultural/multilingüe — 🟠 EN CURS / FASE IV VALIDADA.** Les subfases 0–IV estan completades amb Espanya i Alemanya com a pilots; la subfase V és la següent i les subfases VI–IX estan pendents. El nucli territorial, la persistència PostgreSQL i la migració additiva ja estan implementats i validats, sense importar datasets ni canviar el runtime actual. El model funcional, els 54 casos d'ús, les fonts i llicències, la futura importació ADMIN i la preservació de dades es defineixen al [contracte funcional territorial de la Iteració 6](iteracio-6-model-territorial-ca.md). Les fonts pilot no es podran publicar mentre mantinguin gates legals o de procedència pendents.
 
 **7. API territorial sobre catàleg propi — 🟠 EN REVISIÓ.** És la proposta que podria substituir l'antiga «GeoNames + alta lazy»: `Petiloc → API pròpia → PostgreSQL`. GeoNames no s'elimina encara i la redefinició queda pendent de confirmar que les fonts oficials i les seves llicències permeten mantenir el catàleg necessari sense dependència externa territorial en runtime.
 

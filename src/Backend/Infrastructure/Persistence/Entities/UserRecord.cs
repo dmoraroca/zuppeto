@@ -18,6 +18,10 @@ public sealed class UserRecord
 
     public string? Country { get; set; }
 
+    public Guid? TerritorialUnitId { get; set; }
+
+    public TerritorialUnitRecord? TerritorialUnit { get; set; }
+
     public string? Comments { get; set; }
 
     public string? AvatarUrl { get; set; }

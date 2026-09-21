@@ -48,6 +48,14 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<UserRecord>
             .HasColumnName("country")
             .HasMaxLength(120);
 
+        builder.Property(user => user.TerritorialUnitId)
+            .HasColumnName("territorial_unit_id");
+
+        builder.HasOne(user => user.TerritorialUnit)
+            .WithMany()
+            .HasForeignKey(user => user.TerritorialUnitId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.Property(user => user.Comments)
             .HasColumnName("comments");
 
@@ -106,6 +114,9 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<UserRecord>
         builder.HasIndex(user => user.Email)
             .IsUnique()
             .HasDatabaseName("uq_users_email");
+
+        builder.HasIndex(user => user.TerritorialUnitId)
+            .HasDatabaseName("ix_users_territorial_unit_id");
 
         builder.HasOne(user => user.FavoriteList)
             .WithOne(favoriteList => favoriteList.OwnerUser)

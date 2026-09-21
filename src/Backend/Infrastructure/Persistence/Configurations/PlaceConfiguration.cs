@@ -54,6 +54,14 @@ public sealed class PlaceConfiguration : IEntityTypeConfiguration<PlaceRecord>
             .HasMaxLength(120)
             .IsRequired();
 
+        builder.Property(place => place.TerritorialUnitId)
+            .HasColumnName("territorial_unit_id");
+
+        builder.HasOne(place => place.TerritorialUnit)
+            .WithMany()
+            .HasForeignKey(place => place.TerritorialUnitId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.Property(place => place.Neighborhood)
             .HasColumnName("neighborhood")
             .HasMaxLength(120);
@@ -143,6 +151,9 @@ public sealed class PlaceConfiguration : IEntityTypeConfiguration<PlaceRecord>
 
         builder.HasIndex(place => place.City)
             .HasDatabaseName("ix_places_city");
+
+        builder.HasIndex(place => place.TerritorialUnitId)
+            .HasDatabaseName("ix_places_territorial_unit_id");
 
         builder.HasIndex(place => place.Type)
             .HasDatabaseName("ix_places_type");

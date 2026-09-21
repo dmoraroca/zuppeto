@@ -34,7 +34,7 @@ Format recomanat d'execucio:
 
 ## 4. Joc de proves actual
 
-**Iteració 6 — Fase III completada / Ready for Implementation:** els 54 casos funcionals del contracte `iteracio-6-model-territorial-ca.md` encara no són executables perquè no hi ha implementació, migracions ni dades noves. Els casos actuals de països/ciutats, perfil, Admin Usuaris, Places, filtres i GeoNames es conserven com a baseline. La futura implementació haurà de derivar cobertura d'Unicode i locales, jerarquies variables, consolidació de pilots, fonts/llicències, importació idempotent, rollback, backfill sense pèrdua, API pròpia i selector compartit quan correspongui.
+**Iteració 6 — Fase IV completada / validada:** el nucli territorial i la migració additiva disposen de proves de domini i persistència PostgreSQL per a ISO, tipus configurables, jerarquia variable, mateix país, autocicle/cicle, homònims, noms primaris, Unicode, codis múltiples i zeros inicials, locales BCP-47, coordenades, fonts, FK, constraints i `DeleteBehavior.Restrict`. Els pilots sintètics cobreixen Espanya, Ceuta, branques alemanyes simples/profundes i una Kreisfreie Stadt. El cicle de migració `Up → Down → Up` ha passat. Els casos d'importació, publicació, backfill, API i selector continuen pendents de les fases corresponents; el baseline actual de City/GeoNames es conserva.
 
 ### 4.1 Autenticacio
 

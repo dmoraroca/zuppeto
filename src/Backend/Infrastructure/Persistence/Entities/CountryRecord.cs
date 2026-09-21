@@ -8,6 +8,10 @@ public sealed class CountryRecord
 
     public string Name { get; set; } = string.Empty;
 
+    public string? Iso2 { get; set; }
+
+    public string? Iso3 { get; set; }
+
     public bool IsActive { get; set; }
 
     public int SortOrder { get; set; }
@@ -17,4 +21,12 @@ public sealed class CountryRecord
     public DateTimeOffset UpdatedAtUtc { get; set; }
 
     public ICollection<CityRecord> Cities { get; set; } = [];
+
+    public ICollection<TerritorialUnitTypeRecord> TerritorialUnitTypes { get; set; } = [];
+
+    public ICollection<TerritorialUnitRecord> TerritorialUnits { get; set; } = [];
+
+    public ICollection<TerritorialLocaleAssignmentRecord> TerritorialLocaleAssignments { get; set; } = [];
+
+    public ICollection<TerritorialDatasetSourceRecord> TerritorialDatasetSources { get; set; } = [];
 }

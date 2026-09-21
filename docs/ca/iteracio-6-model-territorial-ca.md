@@ -14,8 +14,8 @@ No és una especificació d'Entity Framework ni fixa noms definitius de taules o
 | I | Definició funcional inicial i model d'auditoria | **COMPLETADA / TANCADA** |
 | II | Auditoria i validació dels pilots Espanya + Alemanya | **COMPLETADA / TANCADA PER AL DISSENY** |
 | III | Disseny funcional i model territorial | **COMPLETADA / READY FOR IMPLEMENTATION** |
-| IV | Migració EF Core / PostgreSQL | **SEGÜENT** |
-| V | Motor genèric d'importació | **PENDENT** |
+| IV | Migració EF Core / PostgreSQL | **COMPLETADA / VALIDADA** |
+| V | Motor genèric d'importació | **SEGÜENT** |
 | VI | Gestió Territorial ADMIN | **PENDENT** |
 | VII | Primera importació real i validació | **PENDENT** |
 | VIII | Backfill de dades actuals | **PENDENT** |
@@ -562,6 +562,6 @@ Els casos executables i E2E només s'incorporaran quan existeixi implementació.
 
 ## 30. Ready for Implementation
 
-La revisió final no ha detectat cap bloqueig funcional. La Fase III queda **COMPLETADA** i el contracte queda **READY FOR IMPLEMENTATION**. La Fase IV és la següent i haurà de traduir les invariants aprovades al model EF Core/PostgreSQL i al pla de migració additiva.
+La revisió final no va detectar cap bloqueig funcional. La Fase III queda **COMPLETADA** i el contracte es manté com a font de veritat. La Fase IV ha traduït les invariants aprovades al domini, al model EF Core/PostgreSQL i a la migració additiva `AddTerritorialModelPhase4`; queda **COMPLETADA / VALIDADA**. La Fase V —motor genèric d'importació— és la següent.
 
 L'OK funcional no autoritza a publicar els datasets pilot mentre les verificacions legals i de procedència marcades com a pendents no estiguin tancades.

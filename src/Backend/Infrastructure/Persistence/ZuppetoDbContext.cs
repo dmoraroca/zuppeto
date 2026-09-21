@@ -15,6 +15,18 @@ public sealed class ZuppetoDbContext(DbContextOptions<ZuppetoDbContext> options)
 
     public DbSet<CityRecord> Cities => Set<CityRecord>();
 
+    public DbSet<TerritorialUnitTypeRecord> TerritorialUnitTypes => Set<TerritorialUnitTypeRecord>();
+
+    public DbSet<TerritorialUnitRecord> TerritorialUnits => Set<TerritorialUnitRecord>();
+
+    public DbSet<TerritorialUnitNameRecord> TerritorialUnitNames => Set<TerritorialUnitNameRecord>();
+
+    public DbSet<TerritorialUnitCodeRecord> TerritorialUnitCodes => Set<TerritorialUnitCodeRecord>();
+
+    public DbSet<TerritorialLocaleAssignmentRecord> TerritorialLocaleAssignments => Set<TerritorialLocaleAssignmentRecord>();
+
+    public DbSet<TerritorialDatasetSourceRecord> TerritorialDatasetSources => Set<TerritorialDatasetSourceRecord>();
+
     public DbSet<MenuRecord> Menus => Set<MenuRecord>();
 
     public DbSet<MenuRoleRecord> MenuRoles => Set<MenuRoleRecord>();

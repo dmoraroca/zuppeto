@@ -555,7 +555,7 @@ Resum del diagrama:
 
 ### Auditoria territorial i disseny objectiu europeu — Fase IV, Iteració 6
 
-**Estat global:** **READY FOR IMPLEMENTATION**. Les subfases 0–III estan **COMPLETADES** amb Espanya i Alemanya com a pilots; la subfase IV és la **SEGÜENT** i les subfases V–IX continuen **PENDENTS**. La resta d'Europa s'auditarà durant la Fase V — Internacionalització. Encara no s'han creat entitats, migracions o importadors, no s'han modificat dades i GeoNames no s'ha eliminat. El contracte funcional és `iteracio-6-model-territorial-ca.md` i el resum de subfases consta a `funcional-ca.md` §3.15.7.
+**Estat global:** **FASE IV COMPLETADA / VALIDADA**. Les subfases 0–IV estan **COMPLETADES** amb Espanya i Alemanya com a pilots; la subfase V és la **SEGÜENT** i les subfases VI–IX continuen **PENDENTS**. S'han implementat el domini territorial, la persistència EF Core/PostgreSQL i la migració additiva `AddTerritorialModelPhase4`. No s'han importat datasets, no s'ha fet backfill, no s'han afegit endpoints i GeoNames continua operatiu. El contracte funcional és `iteracio-6-model-territorial-ca.md` i el resum de subfases consta a `funcional-ca.md` §3.15.7.
 
 #### A. Model territorial actual
 
@@ -600,22 +600,33 @@ Conclusió Unicode: UTF‑8 permet persistir `München`, `Łódź`, `Αθήνα`
 - `AdminService` gestiona CRUD de `Country/City` i, a més, fa crides directes des del navegador a `secure.geonames.org` per països i ciutats amb un username per defecte. Això contradiu l'objectiu anterior de concentrar integracions territorials al backend i és una dependència a retirar/redefinir, no una funcionalitat que es modifiqui ara.
 - `AdminConsolePageComponent` concentra formularis d'usuaris, països, ciutats i llocs, resol valors `geo:<code>` i barreja catàleg intern amb GeoNames.
 
-#### E. Arquitectura objectiu aprovada funcionalment — pendent de disseny tècnic
+#### E. Arquitectura territorial implementada
 
-Es proposa mantenir `Country` com a arrel territorial estable i introduir una unitat territorial jeràrquica genèrica, en lloc d'una taula per tipus nacional:
+`Country` s'ha ampliat, no duplicat: `countries.code` manté la semàntica anterior i s'hi afegeixen `iso2` i `iso3` nullable, únics quan existeixen i protegits per format. No s'ha fet cap backfill no verificat.
 
-| Concepte proposat | Responsabilitat |
+El domini nou resideix a `Domain/Geography` i no depèn d'EF Core ni PostgreSQL:
+
+| Concepte | Implementació i responsabilitat |
 |---|---|
-| `Country` | ISO/codis oficials, estat i metadades bàsiques del país |
-| `TerritorialUnit` | Divisió administrativa, municipi o localitat; `country_id`, `parent_unit_id` opcional, tipus/nivell, codi oficial, estat i centre geogràfic opcional |
-| noms localitzats | Nom, idioma, tipus (`official`, `short`, `alternative`, `historic`, etc.) i valor normalitzat només per cerca; es valoraran taules separades per país/unitat si això preserva millor les FK |
-| `TerritorialDataSource` / dataset | Organisme, país, dataset, URL, versió/data, format, llicència, ús comercial, atribució i restriccions |
-| `TerritorialImport` | Execució, checksum, versió, estat, comptadors, errors, timestamps i actor/job |
-| referència externa | Relació entre una unitat i el codi estable de la font, sense contaminar el domini amb GeoNames o un proveïdor concret |
+| `Country` | Nom canònic, ISO2/ISO3 verificables i activació |
+| `TerritorialUnitType` | Codi únic per país, nom, ordre orientatiu, selecció com a localitat i estat |
+| `TerritorialUnit` | Arrel individual amb país, tipus, pare nullable, estat, coordenades opcionals i procedència; agrega noms i codis |
+| `TerritorialUnitName` | Nom original, locale opcional, `Official/Localized/Alternative/Historic`, primari, procedència i normalització Petiloc no destructiva |
+| `TerritorialUnitCode` | Esquema namespaced, valor textual, vigència, preferència i procedència |
+| `TerritorialLocaleAssignment` | Locale regional BCP-47 a país o unitat, oficialitat, prioritat i procedència |
+| `TerritorialDatasetSource` | Organisme, dataset, URL, versió/data, mode, condicions legals, aprovació i responsable |
 
-`User` i `Place` haurien de convergir cap a una FK de localitat/unitat, mantenint temporalment els textos originals com a snapshot i compatibilitat. El model ha de permetre zero o múltiples nivells intermedis, evitar camps específics d'Espanya i impedir dependències del domini cap a HTTP, datasets o PostgreSQL.
+La persistència usa les taules `territorial_unit_types`, `territorial_units`, `territorial_unit_names`, `territorial_unit_codes`, `territorial_locale_assignments` i `territorial_dataset_sources`. Les FK compostes `(id, country_id)` garanteixen que pare, tipus i font de coordenades pertanyin al mateix país. La jerarquia usa adjacency list i `DeleteBehavior.Restrict`; els fills no formen part de l'agregat carregat.
 
-Índexs candidats —encara no aprovats—: codis oficials per font, `(country_id, parent_unit_id, type)`, noms per idioma/tipus i estratègia de cerca accent/case-insensitive. L'elecció entre ICU, `unaccent`, `pg_trgm`, `citext` o normalització pròpia requereix benchmarks i proves de correcció multilingüe.
+Les coordenades compleixen parell complet, rang i procedència mitjançant `CHECK`; `(0,0)` requereix validació explícita al domini. Els noms no són identitat i poden repetir-se entre unitats. Els codis són text, conserven zeros inicials i tenen unicitat global vigent per `scheme + value`. Els noms primaris són únics per unitat, kind i locale mitjançant índexs parcials.
+
+`users.territorial_unit_id` i `places.territorial_unit_id` són FK nullable amb `Restrict`. Els camps `city`/`country`, `City`, l'administració geogràfica actual i GeoNames es conserven sense canvi de runtime.
+
+Els autocicles estan bloquejats al domini i per `CHECK`. Els cicles llargs i el mateix país es validen amb `TerritorialHierarchy` abans de persistir; la FK composta reforça el mateix país. Com que aquesta fase no té encara serveis d'escriptura ni importador, un SQL manual amb privilegis directes podria crear un cicle llarg: la Fase V haurà d'invocar obligatòriament aquesta política en el port de publicació. No s'ha introduït un trigger PostgreSQL complex.
+
+No s'ha ampliat `IGeographicCatalogRepository` ni s'han creat repositoris preventius: el model encara no té runtime d'aplicació. Els ports cohesionats es definiran amb els casos reals de lectura/publicació de les fases següents.
+
+La normalització implementada aplica trim, Unicode NFKC, minúscules invariants i col·lapse d'espais, sense transliterar ni eliminar diacrítics. ICU, `unaccent`, `pg_trgm` i `citext` continuen ajornats fins a tenir consultes i benchmarks reals.
 
 #### F. Importadors proposats
 
@@ -625,16 +636,18 @@ Pipeline proposat: `adquirir artefacte verificat → staging immutable → valid
 
 Regles obligatòries: idempotència per font+versió+checksum; continuïtat per identitat i codis oficials vigents; detecció de canvis de nom, altes, baixes, fusions i escissions; cap baixa física automàtica; informe de duplicats i referències no resoltes; publicació transaccional i reversió limitada de l'última publicació quan sigui segura; i separació entre llegir, transformar i publicar.
 
-#### G. Estratègia de migració proposada — no executada
+#### G. Migració additiva executada i estratègia restant
 
-1. Congelar un baseline amb backup, recomptes, FK, parells textuals i proves E2E.
-2. Afegir el model nou de manera additiva, sense eliminar `countries`, `cities`, `users.city/country` ni `places.city/country`.
+1. **Completat:** model nou afegit de manera additiva per `20260921182620_AddTerritorialModelPhase4`, sense eliminar `countries`, `cities`, `users.city/country` ni `places.city/country`.
+2. **Completat:** `Country` ampliat amb ISO nullable i `User`/`Place` amb FK territorial nullable, sense backfill ni reinterpretació de dades.
 3. Importar primer a staging només datasets amb drets verificats; validar Unicode, codis, jerarquia, coordenades i duplicats.
 4. Crear una taula/mapa de correspondències i fer backfill determinista. Les coincidències ambigües o inexistents van a revisió; no s'endevinen.
 5. Introduir compatibilitat temporal de lectura i, si cal, escriptura dual controlada per feature flag.
 6. Migrar API, Perfil, Admin Usuaris, Places, Admin Llocs, filtres i proves al nou identificador estable.
 7. Aplicar FK/constraints només quan el 100% dels registres obligatoris estigui resolt; retirar text o model antic en una migració posterior independent.
-8. Verificar recomptes, orfes, favorits, historial, cerca, mapa i E2E. El rollback desactiva la lectura nova i restaura la versió publicada; els textos originals continuen disponibles durant tota la transició.
+8. Verificar recomptes, orfes, favorits, historial, cerca, mapa i E2E quan canviï el runtime. El rollback desactiva la lectura nova i restaura la versió publicada; els textos originals continuen disponibles durant tota la transició.
+
+La migració s'ha validat en PostgreSQL local amb el cicle `Up → Down → Up`. El `Down` elimina només les FK/columnes nullable, constraints, índexs i taules creats per aquesta migració. La prova d'integració crea l'esquema complet i valida FK, `CHECK`, `Restrict`, Unicode, homònims, codis amb zeros, locales i jerarquies sintètiques dels dos pilots.
 
 Dades que no es poden perdre: usuaris i perfil, llocs i adreces/coordinates, favorits i reviews vinculats als llocs, metadades Google/manuals, parells textuals originals, historial E2E i files actuals de `countries/cities` encara que siguin de desenvolupament.
 

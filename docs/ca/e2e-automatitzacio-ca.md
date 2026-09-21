@@ -1,6 +1,6 @@
 # Automatització E2E de Zuppeto
 
-**Iteració 6 — Fase III completada / Ready for Implementation (2026-09-21):** la revisió final del contracte territorial no modifica encara escenaris ni adapters E2E. Els 54 casos funcionals documentats són la font per derivar la cobertura executable durant les subfases d'implementació; fins llavors es manté el baseline actual de geografia, Perfil, Admin Usuaris, Places i filtres.
+**Iteració 6 — Fase IV territorial completada / validada (2026-09-21):** s'han implementat el domini, la persistència i la migració additiva sense canviar cap flux UI/API ni retirar City o GeoNames. No cal modificar encara escenaris ni adapters E2E. La regressió específica és backend: 45/45 proves PASS, inclosa persistència PostgreSQL real, i migració `Up → Down → Up` PASS. Els casos d'importació, API territorial, backfill i selector es derivaran en les fases corresponents; es manté el baseline E2E actual de geografia, Perfil, Admin Usuaris, Places i filtres.
 
 ## Estat, abast i accés
 

@@ -20,6 +20,10 @@ public sealed class PlaceRecord
 
     public string Country { get; set; } = string.Empty;
 
+    public Guid? TerritorialUnitId { get; set; }
+
+    public TerritorialUnitRecord? TerritorialUnit { get; set; }
+
     public string? Neighborhood { get; set; }
 
     public decimal? Latitude { get; set; }

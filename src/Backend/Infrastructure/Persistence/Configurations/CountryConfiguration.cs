@@ -26,6 +26,14 @@ public sealed class CountryConfiguration : IEntityTypeConfiguration<CountryRecor
             .HasMaxLength(200)
             .IsRequired();
 
+        builder.Property(country => country.Iso2)
+            .HasColumnName("iso2")
+            .HasMaxLength(2);
+
+        builder.Property(country => country.Iso3)
+            .HasColumnName("iso3")
+            .HasMaxLength(3);
+
         builder.Property(country => country.IsActive)
             .HasColumnName("is_active")
             .IsRequired();
@@ -45,5 +53,21 @@ public sealed class CountryConfiguration : IEntityTypeConfiguration<CountryRecor
         builder.HasIndex(country => country.Code)
             .IsUnique()
             .HasDatabaseName("uq_countries_code");
+
+        builder.HasIndex(country => country.Iso2)
+            .IsUnique()
+            .HasFilter("iso2 IS NOT NULL")
+            .HasDatabaseName("uq_countries_iso2");
+
+        builder.HasIndex(country => country.Iso3)
+            .IsUnique()
+            .HasFilter("iso3 IS NOT NULL")
+            .HasDatabaseName("uq_countries_iso3");
+
+        builder.ToTable(table =>
+        {
+            table.HasCheckConstraint("ck_countries_iso2", "iso2 IS NULL OR iso2 ~ '^[A-Z]{2}$'");
+            table.HasCheckConstraint("ck_countries_iso3", "iso3 IS NULL OR iso3 ~ '^[A-Z]{3}$'");
+        });
     }
 }
