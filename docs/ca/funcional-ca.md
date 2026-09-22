@@ -10,7 +10,7 @@ El focus funcional actual es:
 - descoberta de llocs pet-friendly
 - navegacio clara entre portada, resultats, detall i favorits
 - filtratge per ciutat, tipus, mascota i text de cerca
-- catàleg territorial propi europeu, multicultural i multilingüe com a disseny objectiu de la Iteració 6 (vegeu 3.14, 3.15 i **3.15.1**); encara pendent d'implementar
+- catàleg territorial propi europeu, multicultural i multilingüe de la Iteració 6 (vegeu 3.14, 3.15 i **3.15.1**); nucli, persistència i motor d'importació implementats, amb UI/API, primera publicació i backfill encara pendents
 - suport de mapa dins la feature `places` en mode mixt amb llistat sincronitzat
 - dades reals per `places`, `favorites` i manteniment de `perfil`
 - transicio controlada entre serveis locals i API sense reescriure pantalles
@@ -915,7 +915,7 @@ L'objectiu funcional d'aquesta pantalla és mantenir un model clar, auditable i 
 
 ### 3.14 Manteniment de països — estat actual i evolució planificada
 
-El manteniment actual de `countries` continua operatiu amb el contracte existent. La seva evolució cap al model europeu de la Iteració 6 és **PLANIFICADA / PENDENT D'IMPLEMENTAR**: aquesta preparació no modifica el model, les dades ni la UI.
+El manteniment actual de `countries` continua operatiu amb el contracte existent. El nucli, la persistència i el motor d'importació del model europeu de la Iteració 6 ja estan implementats; la seva incorporació a aquesta UI i al runtime continua **PLANIFICADA / PENDENT D'IMPLEMENTAR**. Fins aleshores, el manteniment visible no canvia.
 
 Funcions del manteniment:
 
@@ -1002,7 +1002,7 @@ La geografia del producte no s'ha de deixar a text lliure ni a resolucio ad hoc 
 
 ### 3.15.1 Iteració 6 — Remodelació territorial europea multicultural i multilingüe
 
-**Estat global: EN CURS / FASE IV VALIDADA.** Les subfases 0–IV estan completades; la subfase V és la següent i les subfases VI–IX continuen pendents.
+**Estat global: EN CURS / FASE V VALIDADA.** Les subfases 0–V estan completades; la subfase VI és la següent i les subfases VII–IX continuen pendents.
 
 El contracte funcional detallat i oficial de la Iteració 6 és [Iteració 6 — Contracte funcional del model territorial](iteracio-6-model-territorial-ca.md). Aquest document general en conserva el resum, l'abast i els criteris d'alt nivell; en cas de detall territorial, s'ha de consultar el contracte específic.
 
@@ -1089,8 +1089,8 @@ La Iteració 6 construeix i alimenta el catàleg. La Iteració 7 continua en rev
 | II | Auditoria i validació dels pilots Espanya + Alemanya | **COMPLETADA / TANCADA PER AL DISSENY** |
 | III | Disseny funcional i model territorial | **COMPLETADA / READY FOR IMPLEMENTATION** |
 | IV | Migració EF Core / PostgreSQL | **COMPLETADA / VALIDADA** |
-| V | Motor genèric d'importació | **SEGÜENT** |
-| VI | Gestió Territorial ADMIN | **PENDENT** |
+| V | Motor genèric d'importació | **COMPLETADA / VALIDADA** |
+| VI | Gestió Territorial ADMIN | **SEGÜENT** |
 | VII | Primera importació real i validació | **PENDENT** |
 | VIII | Backfill de les dades actuals | **PENDENT** |
 | IX | Regressió i tancament | **PENDENT** |
@@ -1306,7 +1306,7 @@ Abans d'iniciar funcionalitat nova, cal auditar els **5 SKIP E2E actuals**, iden
 | 3 | Identitat i seguretat | TOTP / 2FA | 🟢 VALIDAT |
 | 4 | Identitat i seguretat | Google OAuth real | 🟢 VALIDAT |
 | 5 | Identitat i seguretat | LinkedIn OAuth real | ➖ DESCARTADA — decisió funcional de producte |
-| 6 | Territori | Remodelació territorial europea multicultural/multilingüe | 🟠 EN CURS — subfases 0–IV completades; V següent |
+| 6 | Territori | Remodelació territorial europea multicultural/multilingüe | 🟠 EN CURS — subfases 0–V completades; VI següent |
 | 7 | Territori | API territorial sobre catàleg propi (proposta) | 🟠 EN REVISIÓ / pendent de confirmació |
 | 8 | Territori | Selector territorial compartit sobre API pròpia | 🔴 Planificat / pendent d'implementar |
 | 9 | Core Places | Google Places complet | 🔴 Pendent / crític |
@@ -1340,7 +1340,7 @@ Per tant, l'estat oficial actual és de **5 punts 🔴, 12 punts 🟠, 4 punts �
 
 #### 3.18.5 Bloc B — Territori
 
-**6. Remodelació territorial europea multicultural/multilingüe — 🟠 EN CURS / FASE IV VALIDADA.** Les subfases 0–IV estan completades amb Espanya i Alemanya com a pilots; la subfase V és la següent i les subfases VI–IX estan pendents. El nucli territorial, la persistència PostgreSQL i la migració additiva ja estan implementats i validats, sense importar datasets ni canviar el runtime actual. El model funcional, els 54 casos d'ús, les fonts i llicències, la futura importació ADMIN i la preservació de dades es defineixen al [contracte funcional territorial de la Iteració 6](iteracio-6-model-territorial-ca.md). Les fonts pilot no es podran publicar mentre mantinguin gates legals o de procedència pendents.
+**6. Remodelació territorial europea multicultural/multilingüe — 🟠 EN CURS / FASE V VALIDADA.** Les subfases 0–V estan completades amb Espanya i Alemanya com a pilots; la subfase VI és la següent i les subfases VII–IX estan pendents. El nucli territorial, la persistència PostgreSQL i el motor genèric d'importació XLSX ja estan implementats i validats, sense publicar datasets reals ni canviar el runtime actual. El motor cobreix mapping, staging JSONB, canonicalització, validació, diff, ChangeSet, concurrència, publicació idempotent i reversió limitada. El model funcional, els 54 casos d'ús, les fonts i llicències, la futura gestió ADMIN i la preservació de dades es defineixen al [contracte funcional territorial de la Iteració 6](iteracio-6-model-territorial-ca.md). Les fonts pilot no es podran publicar mentre mantinguin gates legals o de procedència pendents.
 
 **7. API territorial sobre catàleg propi — 🟠 EN REVISIÓ.** És la proposta que podria substituir l'antiga «GeoNames + alta lazy»: `Petiloc → API pròpia → PostgreSQL`. GeoNames no s'elimina encara i la redefinició queda pendent de confirmar que les fonts oficials i les seves llicències permeten mantenir el catàleg necessari sense dependència externa territorial en runtime.
 

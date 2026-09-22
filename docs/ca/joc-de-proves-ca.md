@@ -34,7 +34,7 @@ Format recomanat d'execucio:
 
 ## 4. Joc de proves actual
 
-**Iteració 6 — Fase IV completada / validada:** el nucli territorial i la migració additiva disposen de proves de domini i persistència PostgreSQL per a ISO, tipus configurables, jerarquia variable, mateix país, autocicle/cicle, homònims, noms primaris, Unicode, codis múltiples i zeros inicials, locales BCP-47, coordenades, fonts, FK, constraints i `DeleteBehavior.Restrict`. Els pilots sintètics cobreixen Espanya, Ceuta, branques alemanyes simples/profundes i una Kreisfreie Stadt. El cicle de migració `Up → Down → Up` ha passat. Els casos d'importació, publicació, backfill, API i selector continuen pendents de les fases corresponents; el baseline actual de City/GeoNames es conserva.
+**Iteració 6 — Fase V completada / validada:** el nucli territorial, la persistència i el motor d'importació disposen de 53/53 proves backend en PASS. La cobertura afegida inclou màquina d'estats, reader XLSX, mapping i zeros inicials, consolidació, staging JSONB, validació de tipus/pares/cicles/locales/coordenades/codis, FullSnapshot/Delta, protecció d'inactivacions massives, ChangeSet, autorització ADMIN, cancel·lació, publicació PostgreSQL transaccional, idempotència, font aprovada, concurrència optimista i reversió de l'última publicació. Els XLSX reals d'Espanya i Alemanya es llegeixen i canonicalitzen en proves controlades; no es publiquen al catàleg operatiu. El cicle de migració de Fase V `Up → Down → Up` ha passat. Backfill, API, UI ADMIN i selector continuen pendents; el baseline actual de City/GeoNames es conserva.
 
 ### 4.1 Autenticacio
 

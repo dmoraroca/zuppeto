@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using Zuppeto.Infrastructure.Persistence;
 using Zuppeto.Infrastructure.Persistence.Entities;
 using Xunit;
@@ -16,8 +17,9 @@ public sealed class TerritorialPersistenceTests
             return;
         }
 
+        var testConnection = new NpgsqlConnectionStringBuilder(connectionString) { Database = "zuppeto_territorial_phase4_tests" }.ConnectionString;
         var options = new DbContextOptionsBuilder<ZuppetoDbContext>()
-            .UseNpgsql(connectionString)
+            .UseNpgsql(testConnection)
             .Options;
 
         await using var db = new ZuppetoDbContext(options);

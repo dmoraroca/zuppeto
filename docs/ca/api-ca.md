@@ -82,7 +82,7 @@ El grup **`/api/places`** exigeix **`Authorization: Bearer <JWT>`** per defecte.
 - `GET /api/places/cities` (anònim) — llista `PlaceCitySuggestionDto` amb llocs, fins a 1000 resultats GeoNames (màxim per petició) i catàleg governat (`source`: `places` | `geonames` | `catalog`)
 - `GET /api/places/cities/search` (anònim) — typeahead de 2 caràcters sobre totes les fonts, fins a 1000 resultats
 
-Aquest és el contracte **actual**. La Iteració 6 ja ha implementat el nucli i la persistència del nou model territorial, però la Fase IV no introdueix endpoints ni canvia el consum funcional. La possible substitució d'aquest agregat de fonts per una API territorial sobre catàleg PostgreSQL propi queda **EN REVISIÓ** per a la Iteració 7; no hi ha endpoints nous ni s'ha retirat GeoNames.
+Aquest és el contracte **actual**. La Iteració 6 ja ha implementat el nucli, la persistència i el motor genèric d'importació del nou model territorial, però la Fase V no introdueix endpoints ni canvia el consum funcional. La possible substitució d'aquest agregat de fonts per una API territorial sobre catàleg PostgreSQL propi queda **EN REVISIÓ** per a la Iteració 7; no hi ha endpoints nous ni s'ha retirat GeoNames.
 - `GET /api/places/{id}`
 - `POST /api/places`
 - `PUT /api/places/{id}`

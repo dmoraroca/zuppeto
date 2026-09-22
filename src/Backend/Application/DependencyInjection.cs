@@ -16,6 +16,7 @@ using Zuppeto.Application.Admin.Commands;
 using Zuppeto.Application.Commands;
 using Zuppeto.Application.Users.Validators;
 using Zuppeto.Application.Places.Validators;
+using Zuppeto.Application.TerritorialImports;
 using Zuppeto.Domain.Places.ProhibitedTerms;
 
 namespace Zuppeto.Application;
@@ -42,6 +43,13 @@ public static class DependencyInjection
         services.AddScoped<IFavoriteListApplicationService, FavoriteListApplicationService>();
         services.AddScoped<IUserApplicationService, UserApplicationService>();
         services.AddScoped<IPlaceReviewApplicationService, PlaceReviewApplicationService>();
+        services.AddScoped<TerritorialImportService>();
+        services.AddSingleton<TerritorialMappingEngine>();
+        services.AddSingleton<TerritorialImportValidator>();
+        services.AddSingleton<TerritorialDiffEngine>();
+        services.AddSingleton<DefaultTerritorialCanonicalizer>();
+        services.AddSingleton<ITerritorialCanonicalizer>(provider => provider.GetRequiredService<DefaultTerritorialCanonicalizer>());
+        services.AddSingleton<ITerritorialCanonicalizer, GvIsysCanonicalizer>();
 
         services.AddSingleton<IProhibitedPlaceTermsCatalog, CatalanProhibitedPlaceTermsCatalog>();
         services.AddSingleton<IProhibitedPlaceTermsCatalogFactory, ProhibitedPlaceTermsCatalogFactory>();

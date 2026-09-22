@@ -1,6 +1,6 @@
 # Automatització E2E de Zuppeto
 
-**Iteració 6 — Fase IV territorial completada / validada (2026-09-21):** s'han implementat el domini, la persistència i la migració additiva sense canviar cap flux UI/API ni retirar City o GeoNames. No cal modificar encara escenaris ni adapters E2E. La regressió específica és backend: 45/45 proves PASS, inclosa persistència PostgreSQL real, i migració `Up → Down → Up` PASS. Els casos d'importació, API territorial, backfill i selector es derivaran en les fases corresponents; es manté el baseline E2E actual de geografia, Perfil, Admin Usuaris, Places i filtres.
+**Iteració 6 — Fase V territorial completada / validada (2026-09-21):** s'ha implementat el motor genèric d'importació XLSX amb mapping, staging JSONB, canonicalització, validació, ChangeSet, concurrència, publicació idempotent i reversió limitada. No canvia cap flux UI/API ni retira City o GeoNames, per tant encara no s'afegeixen escenaris Playwright. La regressió específica és backend: 53/53 proves PASS, inclosa persistència PostgreSQL real, pilots XLSX Espanya/Alemanya i migració `Up → Down → Up` PASS. Els casos d'UI ADMIN, API territorial, backfill i selector es derivaran en les fases corresponents; es manté el baseline E2E actual de geografia, Perfil, Admin Usuaris, Places i filtres.
 
 ## Estat, abast i accés
 

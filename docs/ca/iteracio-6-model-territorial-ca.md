@@ -4,7 +4,7 @@
 
 Aquest document forma part de l'especificació funcional oficial de la Fase IV, Iteració 6 de Petiloc. Defineix el comportament que ha de satisfer el futur catàleg territorial i és la base per derivar el model de domini, la persistència, el subsistema d'importació, l'API, les proves i els casos E2E.
 
-No és una especificació d'Entity Framework ni fixa noms definitius de taules o columnes SQL. Tampoc implica que el model, les migracions o l'importador ja estiguin implementats.
+No és una especificació d'Entity Framework ni fixa noms definitius de taules o columnes SQL. L'estat d'implementació es registra a la taula següent i a la documentació tècnica; el contracte continua definint el comportament independentment dels detalls tècnics.
 
 ## 2. Estat i abast
 
@@ -15,8 +15,8 @@ No és una especificació d'Entity Framework ni fixa noms definitius de taules o
 | II | Auditoria i validació dels pilots Espanya + Alemanya | **COMPLETADA / TANCADA PER AL DISSENY** |
 | III | Disseny funcional i model territorial | **COMPLETADA / READY FOR IMPLEMENTATION** |
 | IV | Migració EF Core / PostgreSQL | **COMPLETADA / VALIDADA** |
-| V | Motor genèric d'importació | **SEGÜENT** |
-| VI | Gestió Territorial ADMIN | **PENDENT** |
+| V | Motor genèric d'importació | **COMPLETADA / VALIDADA** |
+| VI | Gestió Territorial ADMIN | **SEGÜENT** |
 | VII | Primera importació real i validació | **PENDENT** |
 | VIII | Backfill de dades actuals | **PENDENT** |
 | IX | Regressió i tancament | **PENDENT** |
@@ -562,6 +562,8 @@ Els casos executables i E2E només s'incorporaran quan existeixi implementació.
 
 ## 30. Ready for Implementation
 
-La revisió final no va detectar cap bloqueig funcional. La Fase III queda **COMPLETADA** i el contracte es manté com a font de veritat. La Fase IV ha traduït les invariants aprovades al domini, al model EF Core/PostgreSQL i a la migració additiva `AddTerritorialModelPhase4`; queda **COMPLETADA / VALIDADA**. La Fase V —motor genèric d'importació— és la següent.
+La revisió final no va detectar cap bloqueig funcional. La Fase III queda **COMPLETADA** i el contracte es manté com a font de veritat. La Fase IV ha traduït les invariants aprovades al domini, al model EF Core/PostgreSQL i a la migració additiva `AddTerritorialModelPhase4`; queda **COMPLETADA / VALIDADA**. La Fase V ha implementat i validat el motor genèric d'importació XLSX, mapping declaratiu limitat, staging JSONB, canonicalització, validació, ChangeSet, concurrència, publicació idempotent i reversió limitada. La Fase VI —Gestió Territorial ADMIN— és la següent.
+
+La validació controlada de Fase V llegeix íntegrament els XLSX pilot d'Espanya i Alemanya i comprova el mapping i la canonicalització sense publicar-los al catàleg operatiu. Espanya produeix 8.201 files mapades i 8.199 unitats canòniques després de consolidar Ceuta i Melilla. Alemanya conserva la identitat composta `LAND + RB + KREIS`, consolida els rols territorials superposats i tracta els registres especials i `(0,0)` segons el contracte. Aquest resultat valida el motor, no les llicències ni la publicació real dels datasets.
 
 L'OK funcional no autoritza a publicar els datasets pilot mentre les verificacions legals i de procedència marcades com a pendents no estiguin tancades.

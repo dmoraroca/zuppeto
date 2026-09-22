@@ -555,7 +555,7 @@ Resum del diagrama:
 
 ### Auditoria territorial i disseny objectiu europeu — Fase IV, Iteració 6
 
-**Estat global:** **FASE IV COMPLETADA / VALIDADA**. Les subfases 0–IV estan **COMPLETADES** amb Espanya i Alemanya com a pilots; la subfase V és la **SEGÜENT** i les subfases VI–IX continuen **PENDENTS**. S'han implementat el domini territorial, la persistència EF Core/PostgreSQL i la migració additiva `AddTerritorialModelPhase4`. No s'han importat datasets, no s'ha fet backfill, no s'han afegit endpoints i GeoNames continua operatiu. El contracte funcional és `iteracio-6-model-territorial-ca.md` i el resum de subfases consta a `funcional-ca.md` §3.15.7.
+**Estat global:** **FASE V COMPLETADA / VALIDADA**. Les subfases 0–V estan **COMPLETADES** amb Espanya i Alemanya com a pilots; la subfase VI és la **SEGÜENT** i les subfases VII–IX continuen **PENDENTS**. S'han implementat el domini territorial, la persistència EF Core/PostgreSQL, les migracions additives i el motor genèric d'importació. Els datasets pilot només s'han llegit i canonicalitzat en proves controlades: no s'han publicat, no s'ha fet backfill, no s'han afegit endpoints i GeoNames continua operatiu. El contracte funcional és `iteracio-6-model-territorial-ca.md` i el resum de subfases consta a `funcional-ca.md` §3.15.7.
 
 #### A. Model territorial actual
 
@@ -622,19 +622,27 @@ Les coordenades compleixen parell complet, rang i procedència mitjançant `CHEC
 
 `users.territorial_unit_id` i `places.territorial_unit_id` són FK nullable amb `Restrict`. Els camps `city`/`country`, `City`, l'administració geogràfica actual i GeoNames es conserven sense canvi de runtime.
 
-Els autocicles estan bloquejats al domini i per `CHECK`. Els cicles llargs i el mateix país es validen amb `TerritorialHierarchy` abans de persistir; la FK composta reforça el mateix país. Com que aquesta fase no té encara serveis d'escriptura ni importador, un SQL manual amb privilegis directes podria crear un cicle llarg: la Fase V haurà d'invocar obligatòriament aquesta política en el port de publicació. No s'ha introduït un trigger PostgreSQL complex.
+Els autocicles estan bloquejats al domini i per `CHECK`. Els cicles llargs i el mateix país es validen abans de publicar; la FK composta reforça el mateix país. El motor de Fase V valida el graf canònic abans de generar un ChangeSet i la publicació torna a construir les entitats de domini abans de persistir-les. Un SQL manual amb privilegis directes encara podria crear un cicle llarg perquè no s'ha introduït un trigger PostgreSQL complex.
 
 No s'ha ampliat `IGeographicCatalogRepository` ni s'han creat repositoris preventius: el model encara no té runtime d'aplicació. Els ports cohesionats es definiran amb els casos reals de lectura/publicació de les fases següents.
 
 La normalització implementada aplica trim, Unicode NFKC, minúscules invariants i col·lapse d'espais, sense transliterar ni eliminar diacrítics. ICU, `unaccent`, `pg_trgm` i `citext` continuen ajornats fins a tenir consultes i benchmarks reals.
 
-#### F. Importadors proposats
+#### F. Motor genèric d'importació implementat — Fase V
 
-Ports d'aplicació cohesionats coordinaran un dataset verificat. Els readers d'infraestructura traduiran el format físic a staging neutral; el mapping farà la transformació canònica i només una peculiaritat no expressable raonablement podrà justificar un adaptador del dataset. No es crearan importadors per país i el domini no coneixerà INE, Destatis, CSV, XLSX, XML ni HTTP.
+El pipeline executable és `artefacte XLSX → reader neutral → mapping declaratiu → staging JSONB → canonicalització → validació → diff/ChangeSet → revisió → publicació transaccional`. `TerritorialImportService` l'orquestra mitjançant els ports `ITerritorialWorkbookReader`, `ITerritorialImportStore`, `ITerritorialCatalogImportGateway` i `ITerritorialCanonicalizer`; el domini no depèn d'XLSX, EF Core ni PostgreSQL.
 
-Pipeline proposat: `adquirir artefacte verificat → staging immutable → validar llicència/checksum/esquema → normalitzar a model canònic → calcular diff → revisió/aprovació → publicar transaccionalment → auditar`.
+`XlsxTerritorialReader` llegeix directament Open XML, conserva textos i zeros inicials, calcula una empremta estructural i rebutja fórmules. El mapping vertical admet només `Column`, `Constant`, `Concat` i `Coalesce`, amb condicions simples. La projecció de staging conserva exclusivament les columnes referenciades. `DefaultTerritorialCanonicalizer` consolida per clau canònica i detecta contradiccions; les excepcions reals no expressables poden entrar per un canonicalitzador especialitzat, com el dels rols superposats alemanys, sense crear un importador per país.
 
-Regles obligatòries: idempotència per font+versió+checksum; continuïtat per identitat i codis oficials vigents; detecció de canvis de nom, altes, baixes, fusions i escissions; cap baixa física automàtica; informe de duplicats i referències no resoltes; publicació transaccional i reversió limitada de l'última publicació quan sigui segura; i separació entre llegir, transformar i publicar.
+La persistència afegeix `territorial_mapping_templates`, `territorial_imports`, `territorial_import_rows`, `territorial_import_issues`, `territorial_catalog_states`, `territorial_change_sets` i `territorial_change_set_items`. Files d'origen i model canònic queden en JSONB amb full i número de fila; els issues tenen severitat, regla i procedència. La màquina d'estats separa càrrega, mapping, validació, revisió, publicació, error, cancel·lació i reversió.
+
+`TerritorialImportValidator` comprova tipus, pares, cicles, noms/locales, codis duplicats i coordenades, inclòs el sentinella `(0,0)`. `TerritorialDiffEngine` produeix `Create`, `Update`, `Deactivate` i `NoChange`, diferencia `FullSnapshot` de `Delta` i bloqueja inactivacions massives per recompte i percentatge. Preparar, cancel·lar, publicar i revertir exigeix un actor persistent amb rol `Admin`. La publicació exigeix, a més, font activa i aprovada, preview vigent i absència d'errors bloquejants; usa transacció serialitzable, versió atòmica per país i idempotència `font + versió de dataset + checksum`. No hi ha baixes físiques automàtiques.
+
+La reversió només admet l'última publicació segura del país. Genera un ChangeSet compensatori, restaura snapshots previs i incrementa `CatalogVersion`; una alta revertida queda inactiva per preservar identitat i referències. La persistència evita reescriure noms i codis equivalents, preservant els seus identificadors i la procedència. Les migracions són `AddTerritorialImportEnginePhase5` i `CompleteTerritorialImportReversalHistory`; la segona fixa l'historial del model de múltiples ChangeSet per importació i no requereix SQL addicional.
+
+La validació controlada llegeix els dos XLSX reals. Espanya genera 8.201 files mapades i 8.199 unitats canòniques després de consolidar Ceuta i Melilla. Alemanya fa servir identitat `LAND + RB + KREIS` per evitar col·lisions, consolida les 107 superposicions de rol i tracta `KREIS=00`, coordenades absents i `(0,0)` sense confondre'ls amb municipis ordinaris. Aquestes proves validen el motor i el mapping, no aproven les fonts ni publiquen dades reals.
+
+Resultat de tancament: 53/53 proves backend PASS, incloses les proves PostgreSQL de preparació, staging, preview, autorització ADMIN, cancel·lació, publicació, idempotència, font no aprovada, concurrència i reversió; `dotnet ef migrations has-pending-model-changes` sense diferències; cicle dedicat `Up → Down fins Fase IV → Up` PASS. El build no té errors; es manté un warning nullable preexistent a `DevelopmentIdentitySeeder.cs` fora de l'abast territorial.
 
 #### G. Migració additiva executada i estratègia restant
 
@@ -661,16 +669,13 @@ Dades que no es poden perdre: usuaris i perfil, llocs i adreces/coordinates, fav
 - degradació de rendiment o resultats incorrectes en cerca multilingüe
 - duplicar lògica entre backend i Angular o mantenir GeoNames ocultament en runtime
 
-#### I. Fitxers previstos per a una implementació futura
+#### I. Fitxers implementats i impacte futur
 
-- domini: `Domain/Geography/CountryRow.cs`, `CityRow.cs`, `CountryCodeRules.cs`, `EuropeanCountryCodes.cs`, `Domain/Users/ValueObjects/UserProfile.cs`, `Domain/Places/ValueObjects/PostalAddress.cs` i `Domain/Abstractions/IGeographicCatalogRepository.cs`
-- aplicació: `Application/Admin/GeographicAdminAppService.cs`, contractes i validators geogràfics, `Application/Places/PlaceApplicationService.cs`, `PlaceContracts.cs`, `PlaceCityQueryNormalizer.cs`, serveis d'usuaris/auth i els nous ports territorials
-- infraestructura EF: `Entities/CountryRecord.cs`, `CityRecord.cs`, `UserRecord.cs`, `PlaceRecord.cs`; les quatre configuracions corresponents; `GeographicCatalogRepository.cs`; `PlaceRepository.cs`; `PlaceSearchSpecification.cs`; `ZuppetoDbContext.cs`; migracions noves encara inexistents
-- integracions: futurs readers per format i adaptadors excepcionals per dataset; només després del canvi de runtime, `Infrastructure/GeoNames/GeoNamesCitySuggestionProvider.cs`, `GeoNamesOptions.cs` i el seu registre de DI
-- API: `Api/Endpoints/GeographicAdminEndpoints.cs`, `PlaceEndpoints.cs`, endpoints territorials nous encara inexistents i `Program.cs`/DI quan pertoqui
-- Angular: `features/places/services/place.service.ts`, `shared/components/city-combobox/*`, `features/admin/services/admin.service.ts`, `admin-console-page/*`, models i pantalles de Perfil, Places, Favorits i login/preview
-- dades controlades: `DevelopmentIdentitySeeder.cs`, `DevelopmentPlacesSeeder.cs` i qualsevol futura eina d'importació/staging
-- proves: backend, Angular, E2E `admin-geography-scenarios.ts`, factories/adapters territorials, inventari/Excel i documentació viva
+- domini territorial: `Domain/Geography/*` i `Domain/TerritorialImports/*`
+- aplicació d'importació: `Application/TerritorialImports/*`, amb contractes neutrals, mapping, canonicalització, validation, diff i orquestració
+- infraestructura: `Infrastructure/TerritorialImports/*`, entitats i configuracions `TerritorialImport*`, `ZuppetoDbContext` i migracions de Fases IV/V
+- proves: `TerritorialPersistenceTests`, `TerritorialImportEngineTests` i `TerritorialImportPersistenceTests`, inclosos els XLSX pilot reals
+- impacte futur: endpoints territorials ADMIN, Angular, backfill de `User`/`Place`, canvi de lectura i retirada posterior de GeoNames continuen fora de Fase V
 
 #### J. Registre preparat de fonts i llicències
 

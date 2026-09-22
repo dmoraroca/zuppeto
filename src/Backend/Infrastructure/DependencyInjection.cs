@@ -12,6 +12,8 @@ using Zuppeto.Infrastructure.GeoNames;
 using Zuppeto.Infrastructure.GooglePlaces;
 using Zuppeto.Infrastructure.Persistence;
 using Zuppeto.Infrastructure.Persistence.Repositories;
+using Zuppeto.Application.TerritorialImports;
+using Zuppeto.Infrastructure.TerritorialImports;
 using Zuppeto.Infrastructure.Places;
 using Zuppeto.Infrastructure.RabbitMq;
 using Zuppeto.Infrastructure.Email;
@@ -151,6 +153,10 @@ public static class DependencyInjection
         services.AddScoped<IPlaceCacheRetentionService, PlaceCacheRetentionService>();
         services.AddScoped<IGeographicCatalogRepository, GeographicCatalogRepository>();
         services.AddScoped<IRoleCatalogRepository, RoleCatalogRepository>();
+        services.AddSingleton<ITerritorialWorkbookReader, XlsxTerritorialReader>();
+        services.AddScoped<ITerritorialImportAuthorizer, TerritorialImportAuthorizer>();
+        services.AddScoped<ITerritorialImportStore, TerritorialImportStore>();
+        services.AddScoped<ITerritorialCatalogImportGateway, TerritorialCatalogImportGateway>();
 
         return services;
     }
