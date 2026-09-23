@@ -555,7 +555,7 @@ Resum del diagrama:
 
 ### Auditoria territorial i disseny objectiu europeu — Fase IV, Iteració 6
 
-**Estat global:** **FASE VI EN CURS / PENDENT DE VALIDACIÓ MANUAL FINAL**. La Fase VII no s’ha iniciat. Els datasets pilot no s’han publicat, no s’ha fet backfill i GeoNames continua operatiu com a compatibilitat interna.
+**Estat global:** **FASE VI COMPLETADA DEFINITIVAMENT / FASE VII SEGÜENT**. La Fase VII encara no s’ha executat. Els datasets pilot no s’han publicat, no s’ha fet backfill i GeoNames continua operatiu com a compatibilitat interna.
 
 #### A. Model territorial auditat abans de la implementació
 
@@ -2459,5 +2459,7 @@ La migració `AddUserPlaceTerritorialReferencesPhase6` completa la parella de re
 El filtre de Places propaga `countryId` i `territorialUnitId` des d’Angular fins a l’especificació EF. Perfil, Admin Usuaris, Admin Llocs, Places, Favorits i el preview públic reutilitzen el selector compartit. City/GeoNames es conserva només internament per compatibilitat, sense exposar controls ni textos tècnics a la UI, sense backfill i sense actuar com a font d’identitat territorial.
 
 La validació focalitzada real de ZUP-160 recorre Angular → API → Application → EF → PostgreSQL amb dades sintètiques controlades i acaba en PASS (`sim-20260923T202548369Z-35b2d77c`). A més del manteniment auditat, comprova l’autocomplete únic, el reset A → B, la inexistència de controls/textos transitoris a Perfil, Llocs, Favorits, ADMIN User, ADMIN Place i explorador públic, i el grid de filtres a 1280, 900 i 600 px. No publica Espanya ni Alemanya.
+
+El tancament definitiu retira de PostgreSQL totes les fixtures persistents VI.24 i confirma zero països, tipus, unitats, noms, codis, estats i auditories E2E. La regressió territorial autocontinguda posterior passa 7/7 (`sim-20260923T204748547Z-8368eb83`). Backend 69/69, incloses tres integracions PostgreSQL que creen i eliminen bases dedicades; Angular 61/61; runner 55/55; builds .NET i Angular PASS. EF Core no detecta canvis de model pendents i dues generacions de l’SQL idempotent produeixen el mateix SHA-256 `08a4ec011eee4a37c703e53b73f0a00b0d5c6ecf2955725f161d72d3510ef46b`.
 
 `scripts/generate-ef-migration-script.sh RUTA.sql` genera l’SQL idempotent de deploy des de les migracions EF; no hi ha un esquema SQL paral·lel.

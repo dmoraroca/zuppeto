@@ -13,7 +13,7 @@ No substitueix `docs/project-phases.md` ni el joc de proves Excel: aquí només 
 
 **Millora:** revisar al final de les iteracions funcionals la seva utilitat i decidir si es manté, es redissenya, se substitueix o s’elimina.
 
-**Estat:** pendent; decisió ajornada explícitament a la fase/iteració final de Millores. No redissenyar-lo dins la Fase VI.
+**Estat:** pendent; decisió ajornada explícitament a la fase/iteració final de Millores. La Fase VI s’ha tancat sense redissenyar-lo ni prendre aquesta decisió.
 
 ---
 
@@ -27,7 +27,7 @@ No substitueix `docs/project-phases.md` ni el joc de proves Excel: aquí només 
 
 **Estat:** **FET (2026-09-23)** dins la Fase VI territorial. Els dos fluxos comparteixen el contracte per IDs; City/GeoNames només resta com a fallback transitori explícit.
 
-El refinament visual del catàleg territorial també està implementat: filtres compactes, taula completa, detall modal ampli, pestanyes funcionals, badges, jerarquia navegable, auditoria llegible i diàlegs contextuals separats. El selector País → Localitat usa ara un únic autocomplete asíncron compartit; el grid de Llocs i Favorits ja s’ha equilibrat i resta pendent de validació manual final. No és una millora ajornada ni inicia la Fase VII.
+El refinament visual del catàleg territorial també està implementat i validat: filtres compactes, taula completa, detall modal ampli, sis pestanyes funcionals, badges, jerarquia navegable, auditoria llegible i diàlegs contextuals separats. El selector País → Localitat usa un únic autocomplete asíncron compartit i el grid de Llocs i Favorits està equilibrat. La Fase VI queda completada definitivament; aquesta entrada no inicia la Fase VII.
 
 ---
 

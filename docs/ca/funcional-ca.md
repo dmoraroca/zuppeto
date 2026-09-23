@@ -1002,7 +1002,7 @@ La geografia del producte no s'ha de deixar a text lliure ni a resolucio ad hoc 
 
 ### 3.15.1 Iteració 6 — Remodelació territorial europea multicultural i multilingüe
 
-**Estat global: FASE VI EN CURS, PENDENT DE VALIDACIÓ MANUAL FINAL.** VI.24-A (manteniment auditat) està validada i la selecció País → Localitat s’ha refinat transversalment. La Fase VII no s’ha iniciat i les subfases VIII–IX continuen pendents.
+**Estat global: FASE VI COMPLETADA DEFINITIVAMENT. FASE VII SEGÜENT.** La validació manual final accepta VI.24-A/B/C/D/E: Gestió Territorial ADMIN, Data Preview, Catàleg, manteniment auditat, País → Localitat, autocomplete únic i UX responsive. La Fase VII encara no s’ha executat i les subfases VIII–IX continuen pendents.
 
 El contracte funcional detallat i oficial de la Iteració 6 és [Iteració 6 — Contracte funcional del model territorial](iteracio-6-model-territorial-ca.md). Aquest document general en conserva el resum, l'abast i els criteris d'alt nivell; en cas de detall territorial, s'ha de consultar el contracte específic.
 
@@ -1090,8 +1090,8 @@ La Iteració 6 construeix el catàleg i ja adapta l’API pròpia i el selector 
 | III | Disseny funcional i model territorial | **COMPLETADA / READY FOR IMPLEMENTATION** |
 | IV | Migració EF Core / PostgreSQL | **COMPLETADA / VALIDADA** |
 | V | Motor genèric d'importació | **COMPLETADA / VALIDADA** |
-| VI | Gestió Territorial ADMIN | **EN CURS / PENDENT VALIDACIÓ MANUAL FINAL** |
-| VII | Primera importació real i validació | **PENDENT** |
+| VI | Gestió Territorial ADMIN | **COMPLETADA DEFINITIVAMENT** |
+| VII | Primera importació real i validació | **SEGÜENT** |
 | VIII | Backfill de les dades actuals | **PENDENT** |
 | IX | Regressió i tancament | **PENDENT** |
 
@@ -1340,13 +1340,13 @@ Per tant, l'estat oficial actual és de **5 punts 🔴, 12 punts 🟠, 4 punts �
 
 #### 3.18.5 Bloc B — Territori
 
-**6. Remodelació territorial europea multicultural/multilingüe — FASE VI EN CURS / PENDENT VALIDACIÓ MANUAL FINAL.** El nucli, el motor, Data Preview, Catàleg, manteniment auditat i País → Localitat estan implementats. El catàleg presenta filtres compactes, taula completa i detall modal amb pestanyes i operacions contextuals; les pantalles consumidores comparteixen un únic autocomplete asíncron de Localitat. No s’han publicat datasets reals ni s’ha fet backfill. La Fase VII no s’ha iniciat. El contracte i els límits es defineixen al [contracte funcional territorial](iteracio-6-model-territorial-ca.md).
+**6. Remodelació territorial europea multicultural/multilingüe — FASE VI COMPLETADA DEFINITIVAMENT / FASE VII SEGÜENT.** El nucli, el motor, Data Preview, Catàleg, manteniment auditat i País → Localitat estan implementats i validats. El catàleg presenta filtres compactes, taula completa i detall modal amb sis pestanyes i operacions contextuals; les pantalles consumidores comparteixen un únic autocomplete asíncron de Localitat. No s’han publicat datasets reals ni s’ha fet backfill. La Fase VII és la següent, però no s’ha executat. El contracte i els límits es defineixen al [contracte funcional territorial](iteracio-6-model-territorial-ca.md).
 
 **7. API territorial sobre catàleg propi — IMPLEMENTADA.** Consulta `Country + TerritorialUnit`, valida la parella i integra `User`, `Place` i els filtres amb IDs. Els snapshots textuals i GeoNames encara no s’eliminen.
 
 **8. Selector territorial compartit sobre API pròpia — IMPLEMENTAT I INTEGRAT.** El component mostra un `select` de País i un únic combobox/autocomplete asíncron de Localitat; no hi ha input, botó intern `Cercar` i segon `select` per a la mateixa propietat. Sense país queda deshabilitat; amb país aplica debounce, loading, buit, error i cancel·lació/ignoració de respostes antigues. Els homònims mostren context jeràrquic, i fletxes, Enter i Escape són operatius. Perfil, Admin Usuaris, Admin Llocs, Llocs, Favorits i explorador públic reutilitzen exactament el mateix component. City/GeoNames i els snapshots es preserven internament fins a Fase VIII, però aquesta transició no es mostra a l’usuari.
 
-**8.1. Layout dels filtres territorials — IMPLEMENTAT, PENDENT DE VALIDACIÓ MANUAL FINAL.** A Llocs i Favorits, Cerca i Localitat reben més amplada relativa; País, Tipus i Mascota mantenen una amplada útil i tots els controls ocupen el 100% de la columna. En desktop ample comparteixen fila, a amplada intermèdia es distribueixen en dues columnes i a 600 px passen a una columna, sense solapaments ni overflow horitzontal. El mapa públic sense sessió no es redissenya en aquesta fase i queda registrat al roadmap de Millores.
+**8.1. Layout dels filtres territorials — IMPLEMENTAT I VALIDAT MANUALMENT.** A Llocs i Favorits, Cerca i Localitat reben més amplada relativa; País, Tipus i Mascota mantenen una amplada útil i tots els controls ocupen el 100% de la columna. En desktop ample comparteixen fila, a amplada intermèdia es distribueixen en dues columnes i a 600 px passen a una columna, sense solapaments ni overflow horitzontal. El mapa públic sense sessió no s’ha redissenyat i queda registrat al roadmap de Millores.
 
 #### 3.18.6 Bloc C — Core Places
 

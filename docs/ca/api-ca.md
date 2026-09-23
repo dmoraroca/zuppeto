@@ -76,6 +76,8 @@ La decisió funcional posterior va retirar aquestes rutes i el handoff d'un sol 
 
 ### Gestió Territorial ADMIN — Iteració 6 / Fase VI
 
+**Estat:** Fase VI completada definitivament; Fase VII és la següent i encara no s’ha executat. El contracte API descrit aquí és el validat al tancament.
+
 El grup `/api/admin/territorial` exigeix JWT i rol exacte `Admin`. Exposa context, inspecció XLSX, mappings versionats, preparació d’importacions, historial/detall, incidències i ChangeSet paginats, i ordres de publicació, cancel·lació i reversió limitada. Els DTO no exposen EF Records, staging complet, paths ni excepcions internes. El contracte complet és [Iteració 6 — Fase VI](iteracio-6-fase-vi-gestio-territorial-admin-ca.md).
 
 El refinament afegeix `GET /imports/{id}/preview/source`, `GET /preview/canonical`, `GET /catalog`, `GET /catalog/{id}` i `POST /catalog/{id}/maintenance` dins el mateix grup Admin. Els previews i el catàleg són paginats al servidor; el manteniment rep acció, motiu i valor específic i pot retornar 400, 403, 404 o 409.

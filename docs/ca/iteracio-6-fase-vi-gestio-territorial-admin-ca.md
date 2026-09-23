@@ -2,7 +2,7 @@
 
 ## Estat
 
-**FASE VI EN CURS. PENDENT DE VALIDACIÓ MANUAL FINAL. FASE VII NO INICIADA.**
+**FASE VI COMPLETADA DEFINITIVAMENT. FASE VII SEGÜENT.**
 
 La revisió del repositori va confirmar que la Fase VI era compatible amb el contracte territorial i el motor de Fase V. No s’ha canviat el contracte funcional ni s’ha duplicat el pipeline: la UI governa TerritorialImportService, els mappings, la validació, el ChangeSet, la publicació i la reversió existents.
 
@@ -74,7 +74,7 @@ La importació es recupera pel seu identificador; refrescar o tornar més tard n
 - Angular: fitxer vàlid/invàlid, mapping compost i de pare, agrupació de projeccions i validació de camps obligatoris.
 - E2E: ZUP-154 a ZUP-160, amb accés Admin, denegació UI/API a User, upload invàlid, flux sintètic fins a ChangeSet, error bloquejant, publicació confirmada i recuperació per historial/URL.
 - E2E real focalitzat: ZUP-160 pot executar Angular → API → Application → EF → PostgreSQL amb fixtures sintètiques controlades; comprova catàleg, cerca, detall, manteniment, auditoria i persistència de la selecció territorial.
-- Les fixtures E2E són sintètiques. No depenen dels XLSX oficials d’Espanya o Alemanya.
+- Les fixtures E2E són sintètiques, autocontingudes i no depenen dels XLSX oficials d’Espanya o Alemanya. Les dades persistents creades exclusivament per VI.24 s’han retirat en el tancament.
 
 ## Límits preservats
 
@@ -108,11 +108,11 @@ La font de veritat és model EF Core + migracions. S’ha validat una instal·la
 - backend: 69/69, incloses proves amb PostgreSQL real;
 - Angular: 61/61;
 - runner E2E: 55/55;
-- Chrome territorial ZUP-154–160: 7/7 PASS, run final `sim-20260923T194508457Z-a2a4fafd`;
+- Chrome territorial ZUP-154–160 autocontingut i sense fixtures persistents: 7/7 PASS, run final `sim-20260923T204748547Z-8368eb83`;
 - Chrome ZUP-160 real: 1/1 PASS, incloent Perfil, Llocs, Favorits, ADMIN User, ADMIN Place i explorador públic amb el mateix autocomplete, més validació del grid de filtres a 1280, 900 i 600 px, run `sim-20260923T202548369Z-35b2d77c`;
 - altres navegadors: PENDENT segons l’estratègia vigent;
-- cap dataset oficial publicat i cap backfill real.
+- cap dataset oficial publicat, cap backfill real i cap fixture VI.24 residual.
 
 El catàleg final concentra els filtres, mostra codi, nom, tipus, país, pare, locale, coordenades, estat i seleccionabilitat, i conserva pàgina i filtres en tancar el detall. El modal ocupa fins al 90% de l’amplada i el 88% de l’alçada útil, retorna el focus a l’origen i presenta sis pestanyes. Activar/desactivar, canviar seleccionabilitat i corregir coordenades obren diàlegs independents amb motiu obligatori de 3–500 caràcters; cada diàleg contextual ofereix únicament `Cancel·lar` i l’acció principal. `Cancel·lar` torna al detall sense emetre cap ordre, mentre que el modal gran conserva `Tancar` per tornar al catàleg. Els errors funcionals del backend es mostren sense mocks.
 
-La implementació i els gates automàtics no equivalen al tancament definitiu: queda pendent la validació manual final.
+La validació manual final és satisfactòria i accepta VI.24-A/B/C/D/E. Les fixtures persistents `País E2E À`, `País E2E B`, els seus tipus, unitats, noms, codis, estats i auditories s’han retirat de manera controlada. Fase VI queda completada definitivament; Fase VII és la següent i no s’ha executat.

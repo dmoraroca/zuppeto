@@ -16,8 +16,8 @@ No és una especificació d'Entity Framework ni fixa noms definitius de taules o
 | III | Disseny funcional i model territorial | **COMPLETADA / READY FOR IMPLEMENTATION** |
 | IV | Migració EF Core / PostgreSQL | **COMPLETADA / VALIDADA** |
 | V | Motor genèric d'importació | **COMPLETADA / VALIDADA** |
-| VI | Gestió Territorial ADMIN | **EN CURS / PENDENT VALIDACIÓ MANUAL FINAL** |
-| VII | Primera importació real i validació | **PENDENT** |
+| VI | Gestió Territorial ADMIN | **COMPLETADA DEFINITIVAMENT** |
+| VII | Primera importació real i validació | **SEGÜENT** |
 | VIII | Backfill de dades actuals | **PENDENT** |
 | IX | Regressió i tancament | **PENDENT** |
 
@@ -560,9 +560,9 @@ Els casos executables i E2E només s'incorporaran quan existeixi implementació.
 - retirada dels textos antics de `User` i `Place`;
 - substitució definitiva de GeoNames i adaptacions de les Iteracions 7 i 8.
 
-## 30. Ready for Implementation
+## 30. Estat d’implementació
 
-La revisió final no va detectar cap bloqueig funcional. Les Fases III, IV i V queden completades. La Fase VI —Gestió Territorial ADMIN— continua **EN CURS** amb Data Preview, Catàleg territorial, manteniment auditat, protecció d’overrides i contracte País → Localitat. El selector compartit s’ha consolidat en un únic autocomplete asíncron de Localitat; el tancament queda condicionat a la seva validació manual. La Fase VII no s’ha iniciat.
+La revisió final no ha detectat cap bloqueig funcional. Les Fases III, IV, V i VI queden completades. La Fase VI —Gestió Territorial ADMIN— està **COMPLETADA DEFINITIVAMENT** amb Data Preview, Catàleg territorial, manteniment auditat, protecció d’overrides i contracte País → Localitat. El selector compartit s’ha consolidat en un únic autocomplete asíncron de Localitat i VI.24-A/B/C/D/E han estat acceptades manualment. La Fase VII és la següent i encara no s’ha executat.
 
 El detall territorial és una projecció funcional del mateix agregat: modal ampli, pestanyes General, Jerarquia, Noms i codis, Coordenades, Procedència i Auditoria. Les ordres d’activació, seleccionabilitat i coordenades continuen separades, exigeixen motiu propi i no alteren el contracte d’importació ni relaxen cap invariant.
 
