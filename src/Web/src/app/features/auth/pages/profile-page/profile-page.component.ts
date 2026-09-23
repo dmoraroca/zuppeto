@@ -29,6 +29,7 @@ import {
 import { shouldNavigateHomeAfterProfileSave } from '../../policies/federated-profile-navigation.policy';
 import { AuthService } from '../../services/auth.service';
 import { DB_FIELD_MAX } from '../../../../shared/policies/db-field-max-length';
+import { TerritorialLocationSelectorComponent, TerritorialLocationSelection } from '../../../../shared/components/territorial-location-selector/territorial-location-selector.component';
 
 @Component({
   selector: 'app-profile-page',
@@ -38,7 +39,8 @@ import { DB_FIELD_MAX } from '../../../../shared/policies/db-field-max-length';
     SiteFooterComponent,
     SectionHeadingComponent,
     PasswordFieldComponent,
-    RouterLink
+    RouterLink,
+    TerritorialLocationSelectorComponent
   ],
   templateUrl: './profile-page.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -80,6 +82,8 @@ export class ProfilePageComponent implements AfterViewInit {
     confirmNewPassword: [{ value: '', disabled: true }],
     city: [this.currentUser?.city ?? '', Validators.required],
     country: [this.currentUser?.country ?? '', Validators.required],
+    countryId: [this.currentUser?.countryId ?? ''],
+    territorialUnitId: [this.currentUser?.territorialUnitId ?? ''],
     comments: [this.currentUser?.comments ?? ''],
     avatarUrl: [normalizePetilocAvatarUrl(this.currentUser?.avatarUrl) ?? ''],
     privacyAccepted: [this.currentUser?.privacyAccepted ?? false]
@@ -121,6 +125,8 @@ export class ProfilePageComponent implements AfterViewInit {
           email: sessionUser.email ?? '',
           city: sessionUser.city ?? '',
           country: sessionUser.country ?? '',
+          countryId: sessionUser.countryId ?? '',
+          territorialUnitId: sessionUser.territorialUnitId ?? '',
           comments: sessionUser.comments ?? '',
           avatarUrl: normalizePetilocAvatarUrl(sessionUser.avatarUrl) ?? '',
           privacyAccepted: sessionUser.privacyAccepted ?? false
@@ -290,6 +296,8 @@ export class ProfilePageComponent implements AfterViewInit {
         name: value.name.trim(),
         city: value.city.trim(),
         country: value.country.trim(),
+        countryId: value.countryId && value.territorialUnitId ? value.countryId : null,
+        territorialUnitId: value.countryId && value.territorialUnitId ? value.territorialUnitId : null,
         comments: value.comments.trim(),
         avatarUrl: this.avatarPreview(),
         privacyAccepted: this.isAdmin() ? true : value.privacyAccepted
@@ -307,6 +315,16 @@ export class ProfilePageComponent implements AfterViewInit {
     if (shouldNavigateHomeAfterProfileSave(this.authService.provider())) {
       await this.router.navigate(['/'], { replaceUrl: true });
     }
+  }
+
+  protected onTerritorialSelection(selection: TerritorialLocationSelection): void {
+    this.form.patchValue({
+      countryId: selection.countryId,
+      territorialUnitId: selection.territorialUnitId,
+      country: selection.country || this.form.controls.country.value,
+      city: selection.locality || ''
+    });
+    this.form.markAsDirty();
   }
 
   protected logout(): void {

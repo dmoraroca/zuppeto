@@ -18,6 +18,8 @@ export interface AdminUserListItem {
   displayName: string;
   city: string;
   country: string;
+  countryId: string | null;
+  territorialUnitId: string | null;
   comments: string;
   avatarUrl: string | null;
   privacyAccepted: boolean;
@@ -34,6 +36,8 @@ export interface CreateAdminUserRequest {
   displayName: string;
   city: string;
   country: string;
+  countryId?: string | null;
+  territorialUnitId?: string | null;
   avatarUrl: string | null;
 }
 
@@ -41,6 +45,8 @@ export interface AdminUserUpdateRequest {
   displayName: string;
   city: string;
   country: string;
+  countryId?: string | null;
+  territorialUnitId?: string | null;
   comments: string;
   avatarUrl: string | null;
 }
@@ -257,6 +263,8 @@ export interface AdminPlaceDto {
   addressLine1: string;
   city: string;
   country: string;
+  countryId?: string | null;
+  territorialUnitId?: string | null;
   neighborhood: string;
   latitude: number;
   longitude: number;
@@ -288,6 +296,8 @@ export interface AdminPlaceUpsertRequest {
   addressLine1: string;
   city: string;
   country: string;
+  countryId?: string | null;
+  territorialUnitId?: string | null;
   neighborhood: string;
   latitude: number;
   longitude: number;

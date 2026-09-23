@@ -145,6 +145,7 @@ export interface CatalogUnit {
   id: string; countryId: string; country: string; territorialUnitTypeId: string; typeCode: string; type: string;
   parentId: string | null; parent: string | null; primaryCode: string | null; primaryName: string; locale: string | null;
   latitude: number | null; longitude: number | null; isActive: boolean; isSelectableLocality: boolean; hasManualOverride: boolean;
+  hasManualActiveOverride: boolean; hasManualSelectableOverride: boolean; hasManualCoordinateOverride: boolean;
 }
 export interface CatalogAudit {
   id: string; action: string; field: string; beforeValue: string | null; afterValue: string | null;

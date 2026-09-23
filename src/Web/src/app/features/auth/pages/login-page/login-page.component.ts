@@ -6,7 +6,7 @@ import {
   ErrorNotificationsService,
   NotificationTone
 } from '../../../../core/services/error-notifications.service';
-import { CityComboboxComponent } from '../../../../shared/components/city-combobox/city-combobox.component';
+import { TerritorialLocationSelectorComponent, TerritorialLocationSelection } from '../../../../shared/components/territorial-location-selector/territorial-location-selector.component';
 import { Place, PlaceFilters } from '../../../places/models/place.model';
 import { CitySuggestion, PlaceService } from '../../../places/services/place.service';
 import { formatCityDisplayLabel, mergeCityLabelsDistinct } from '../../../places/utils/city-typeahead.utils';
@@ -16,7 +16,7 @@ import { GoogleIdentityService } from '../../services/google-identity.service';
 @Component({
   selector: 'app-login-page',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, CityComboboxComponent],
+  imports: [ReactiveFormsModule, RouterLink, TerritorialLocationSelectorComponent],
   templateUrl: './login-page.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./login-page.component.scss']
@@ -226,6 +226,15 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
   protected onPreviewCityChange(city: string): void {
     this.updatePreviewFilters({
       city
+    });
+  }
+
+  protected onPreviewTerritorialSelection(selection: TerritorialLocationSelection): void {
+    this.updatePreviewFilters({
+      countryId: selection.countryId,
+      territorialUnitId: selection.territorialUnitId,
+      country: selection.country,
+      city: selection.locality
     });
   }
 

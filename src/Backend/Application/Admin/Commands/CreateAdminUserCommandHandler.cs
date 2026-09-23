@@ -6,6 +6,7 @@ using Zuppeto.Application.Results;
 using Zuppeto.Application.Users;
 using Zuppeto.Domain.Abstractions;
 using Zuppeto.Domain.Users;
+using Zuppeto.Application.TerritorialImports;
 
 namespace Zuppeto.Application.Admin.Commands;
 
@@ -14,7 +15,8 @@ public sealed class CreateAdminUserCommandHandler(
     IRoleCatalogRepository roleCatalogRepository,
     Auth.IPasswordHasher passwordHasher,
     IUserProfileFactory userProfileFactory,
-    IEventPublisher eventPublisher)
+    IEventPublisher eventPublisher,
+    TerritorialLocationService territorialLocations)
     : ICommandHandler<CreateAdminUserCommand, Result<UserDto>>
 {
     public async Task<Result<UserDto>> HandleAsync(
@@ -33,6 +35,22 @@ public sealed class CreateAdminUserCommandHandler(
         var displayName = request.DisplayName.Trim();
         var city = request.City.Trim();
         var country = request.Country.Trim();
+        TerritorialLocationSelectionDto? location = null;
+        try
+        {
+            if ((request.CountryId is null) != (request.TerritorialUnitId is null))
+                return Result<UserDto>.Fail(FailureKind.Conflict, "El país i la localitat territorial s’han d’informar conjuntament.");
+            if (request.CountryId is not null)
+            {
+                location = await territorialLocations.ResolveSelectionAsync(request.CountryId.Value, request.TerritorialUnitId!.Value, cancellationToken);
+                city = location.Locality;
+                country = location.Country;
+            }
+        }
+        catch (Exception exception) when (exception is KeyNotFoundException or InvalidOperationException)
+        {
+            return Result<UserDto>.Fail(FailureKind.Conflict, exception.Message);
+        }
         var avatarUrl = string.IsNullOrWhiteSpace(request.AvatarUrl) ? null : request.AvatarUrl.Trim();
 
         if (await userRepository.ExistsByEmailAsync(email, cancellationToken))
@@ -47,7 +65,9 @@ public sealed class CreateAdminUserCommandHandler(
             passwordHasher.Hash(request.Password.Trim()),
             catalogEntry.Key,
             userProfileFactory.Create(displayName, city, country, string.Empty, avatarUrl),
-            new Domain.Users.ValueObjects.PrivacyConsent(false, null));
+            new Domain.Users.ValueObjects.PrivacyConsent(false, null),
+            territorialCountryId: location?.CountryId,
+            territorialUnitId: location?.TerritorialUnitId);
 
         await userRepository.AddAsync(user, cancellationToken);
         await eventPublisher.PublishAsync(
@@ -64,6 +84,10 @@ public sealed class CreateAdminUserCommandHandler(
             user.Profile.Comments,
             user.Profile.AvatarUrl,
             user.PrivacyConsent.Accepted,
-            user.PrivacyConsent.AcceptedAtUtc));
+            user.PrivacyConsent.AcceptedAtUtc,
+            user.HasLocalCredential,
+            user.IsTotpEnabled,
+            user.TerritorialCountryId,
+            user.TerritorialUnitId));
     }
 }

@@ -9,13 +9,17 @@ public sealed class PlaceSearchCriteria : ValueObject
         string? country,
         string? city,
         PlaceType? type,
-        PetCategory petCategory)
+        PetCategory petCategory,
+        Guid? countryId = null,
+        Guid? territorialUnitId = null)
     {
         SearchText = Normalize(searchText);
         Country = Normalize(country);
         City = Normalize(city);
         Type = type;
         PetCategory = petCategory;
+        CountryId = countryId;
+        TerritorialUnitId = territorialUnitId;
     }
 
     public string? SearchText { get; }
@@ -27,6 +31,8 @@ public sealed class PlaceSearchCriteria : ValueObject
     public PlaceType? Type { get; }
 
     public PetCategory PetCategory { get; }
+    public Guid? CountryId { get; }
+    public Guid? TerritorialUnitId { get; }
 
     protected override IEnumerable<object?> GetEqualityComponents()
     {
@@ -35,6 +41,8 @@ public sealed class PlaceSearchCriteria : ValueObject
         yield return City;
         yield return Type;
         yield return PetCategory;
+        yield return CountryId;
+        yield return TerritorialUnitId;
     }
 
     private static string? Normalize(string? value)

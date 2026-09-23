@@ -19,7 +19,9 @@ export class PilotDiagnosticsCollector {
     this.page.on('pageerror', (error) => this.javascript.push(redact(error.message)));
     this.page.on('console', (message) => {
       const text = message.text();
-      if (message.type() === 'error' && !this.allowedConsoleErrors.some((pattern) => text.includes(pattern))) this.javascript.push(redact(text));
+      if (message.type() === 'error'
+        && !isKnownExternalReportOnlyError(text)
+        && !this.allowedConsoleErrors.some((pattern) => text.includes(pattern))) this.javascript.push(redact(text));
     });
     this.page.on('response', (response) => {
       const url = safeUrl(response.url());
@@ -43,4 +45,10 @@ export class PilotDiagnosticsCollector {
       finalUrl: safeUrl(this.page.url())
     };
   }
+}
+
+export function isKnownExternalReportOnlyError(text: string): boolean {
+  return text.includes("Framing 'https://accounts.google.com/'")
+    && text.includes('report-only Content Security Policy directive')
+    && text.includes("frame-ancestors 'self'");
 }

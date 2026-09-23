@@ -231,12 +231,15 @@ export class PlaceService {
     const country = (filters.country ?? '').trim();
     const city = (filters.city ?? '').trim();
     const type = (filters.type ?? '').trim();
+    const countryId = (filters.countryId ?? '').trim();
+    const territorialUnitId = (filters.territorialUnitId ?? '').trim();
 
     return (
       search.length >= 2 ||
       country.length > 0 ||
       city.length >= 2 ||
       type.length > 0 ||
+      (countryId.length > 0 && territorialUnitId.length > 0) ||
       filters.pet !== 'all'
     );
   }
@@ -247,6 +250,11 @@ export class PlaceService {
     const country = (filters.country ?? '').trim();
     const city = (filters.city ?? '').trim();
     const type = (filters.type ?? '').trim();
+
+    if (filters.countryId && filters.territorialUnitId) {
+      params = params.set('countryId', filters.countryId);
+      params = params.set('territorialUnitId', filters.territorialUnitId);
+    }
 
     if (search.length > 0) {
       params = params.set('searchText', search);

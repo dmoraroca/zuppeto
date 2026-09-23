@@ -92,18 +92,13 @@
             />
           </label>
 
-          <label>
-            <span>Ciutat</span>
-            <app-city-combobox
-              [value]="previewFilters().city"
-              (valueChange)="onPreviewCityChange($event)"
-              [pinOptions]="previewPinCities()"
-              [apiOptions]="previewApiCities()"
-              [staticOptions]="previewCatalogCities()"
-              [minCharsForRemote]="2"
-            />
-          </label>
-
+          <app-territorial-location-selector
+            [countryId]="previewFilters().countryId || ''"
+            [localityId]="previewFilters().territorialUnitId || ''"
+            [legacyCountry]="previewFilters().country"
+            [legacyLocality]="previewFilters().city"
+            (selectionChange)="onPreviewTerritorialSelection($event)"
+          />
           <label>
             <span>Tipus</span>
             <select [value]="previewFilters().type" (change)="onPreviewType($event)">

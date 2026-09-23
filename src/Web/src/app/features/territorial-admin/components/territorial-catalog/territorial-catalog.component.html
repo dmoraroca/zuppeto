@@ -1,43 +1,55 @@
 <section class="catalog" [attr.aria-busy]="busy">
-  <header><div><p class="eyebrow">Catàleg publicat</p><h2>Territori existent a PostgreSQL</h2></div><strong>{{ page.totalCount }} unitats</strong></header>
-  <p class="concept">El catàleg mostra què existeix ara. No és el Data Preview del fitxer ni el ChangeSet d’una futura publicació.</p>
-  @if (error) { <div class="error" role="alert">{{ error }}</div> }
-  <div class="filters">
-    <label>País<select [(ngModel)]="countryId" (ngModelChange)="resetType()"><option value="">Tots</option>@for (country of context().countries; track country.id) { <option [value]="country.id">{{ country.name }}</option> }</select></label>
-    <label>Tipus<select [(ngModel)]="typeId"><option value="">Tots</option>@for (type of types; track type.id) { <option [value]="type.id">{{ type.name }}</option> }</select></label>
-    <label>Estat<select [(ngModel)]="status"><option value="">Tots</option><option value="active">Actius</option><option value="inactive">Inactius</option></select></label>
-    <label>Seleccionable<select [(ngModel)]="selectable"><option value="">Tots</option><option value="true">Sí</option><option value="false">No</option></select></label>
-    <label>Locale<input [(ngModel)]="locale" placeholder="ca-ES" /></label>
-    <label>Cerca<input [(ngModel)]="search" placeholder="Nom o codi" /></label>
-    <button type="button" (click)="load(1)">Cercar</button>
-  </div>
-  <div class="table-wrap"><table><thead><tr><th>Codi</th><th>Nom</th><th>Tipus</th><th>Pare</th><th>Locale</th><th>Coordenades</th><th>Estat</th></tr></thead>
-    <tbody>@for (item of page.items; track item.id) {
-      <tr tabindex="0" (click)="open(item)" (keydown.enter)="open(item)">
-        <td>{{ item.primaryCode || '—' }}</td><td>{{ item.primaryName }}</td><td>{{ item.type }}</td><td>{{ item.parent || '—' }}</td>
-        <td>{{ item.locale || '—' }}</td><td>{{ item.latitude === null ? 'No' : 'Sí' }}</td>
-        <td><span class="badge" [class.off]="!item.isActive">{{ item.isActive ? 'Actiu' : 'Inactiu' }}</span> {{ item.hasManualOverride ? '· override' : '' }}</td>
-      </tr>
-    } @empty { <tr><td colspan="7">Aplica filtres per consultar el catàleg publicat.</td></tr> }</tbody>
-  </table></div>
-  <div class="pager"><button [disabled]="page.page <= 1" (click)="load(page.page - 1)">Anterior</button><span>{{ page.page }}/{{ page.totalPages || 1 }}</span><button [disabled]="page.page >= page.totalPages" (click)="load(page.page + 1)">Següent</button></div>
+  <header class="catalog-header">
+    <div><p class="eyebrow">Catàleg publicat</p><h2>Territori existent a PostgreSQL</h2><p>Consulta el catàleg operatiu actual sense modificar imports ni ChangeSets.</p></div>
+    <strong>{{ page.totalCount }} unitats</strong>
+  </header>
 
-  @if (detail) {
-    <section class="detail" aria-labelledby="territorial-detail-title">
-      <header><h3 id="territorial-detail-title">{{ detail.unit.primaryName }}</h3><button type="button" (click)="close()">Tancar</button></header>
-      <dl><dt>País</dt><dd>{{ detail.unit.country }}</dd><dt>Tipus</dt><dd>{{ detail.unit.type }}</dd><dt>Seleccionable</dt><dd>{{ detail.unit.isSelectableLocality ? 'Sí' : 'No' }}</dd><dt>Estat</dt><dd>{{ detail.unit.isActive ? 'Actiu' : 'Inactiu' }}</dd></dl>
-      <h4>Jerarquia</h4><p>@for (ancestor of detail.ancestors; track ancestor.id) { {{ ancestor.name }} / } {{ detail.unit.primaryName }}</p>
-      <h4>Noms</h4><ul>@for (name of detail.names; track name.id) { <li>{{ name.name }} · {{ name.locale || 'sense locale' }} · {{ name.kind }} · {{ name.source || 'manual' }}</li> }</ul>
-      <h4>Codis oficials — només lectura</h4><ul>@for (code of detail.codes; track code.id) { <li>{{ code.scheme }}: {{ code.value }} · {{ code.source || 'sense font' }}</li> }</ul>
-      <h4>Procedència</h4><p>{{ detail.datasetSources.join(', ') || 'Sense font publicada' }} · {{ detail.importIds.length }} importacions</p>
-      <h4>Manteniment controlat</h4>
-      <label>Motiu obligatori<textarea [(ngModel)]="reason" maxlength="500"></textarea></label>
-      <div class="actions">
-        <button type="button" (click)="maintain(detail.unit.isActive ? 'deactivate' : 'activate')">{{ detail.unit.isActive ? 'Desactivar' : 'Reactivar' }}</button>
-        <button type="button" (click)="maintain('set-selectable', !detail.unit.isSelectableLocality)">Fer {{ detail.unit.isSelectableLocality ? 'no seleccionable' : 'seleccionable' }}</button>
-      </div>
-      <div class="coordinates"><label>Latitud<input type="number" [(ngModel)]="latitude" /></label><label>Longitud<input type="number" [(ngModel)]="longitude" /></label><button type="button" (click)="maintain('set-coordinates')">Corregir coordenades</button></div>
-      <h4>Auditoria</h4><ul>@for (audit of detail.audit; track audit.id) { <li>{{ audit.createdAtUtc }} · {{ audit.actor }} · {{ audit.action }} · {{ audit.reason }}</li> } @empty { <li>Sense modificacions manuals.</li> }</ul>
-    </section>
-  }
+  @if (error && !detail) { <div class="error" role="alert">{{ error }}</div> }
+  @if (parentId) { <div class="parent-filter">Mostrant filles de <strong>{{ parentName }}</strong><button type="button" (click)="clearParent()">Treure filtre de pare</button></div> }
+
+  <form class="filters" (ngSubmit)="load(1)" aria-label="Filtres del catàleg territorial">
+    <label>País<select [(ngModel)]="countryId" name="country" (ngModelChange)="resetType()"><option value="">Tots</option>@for (country of context().countries; track country.id) { <option [value]="country.id">{{ country.name }}</option> }</select></label>
+    <label>Tipus<select [(ngModel)]="typeId" name="type"><option value="">Tots</option>@for (type of types; track type.id) { <option [value]="type.id">{{ type.name }}</option> }</select></label>
+    <label>Estat<select [(ngModel)]="status" name="status"><option value="">Tots</option><option value="active">Actius</option><option value="inactive">Inactius</option></select></label>
+    <label>Seleccionable<select [(ngModel)]="selectable" name="selectable"><option value="">Tots</option><option value="true">Sí</option><option value="false">No</option></select></label>
+    <label>Locale<select [(ngModel)]="locale" name="locale"><option value="">Tots</option>@for (item of locales; track item) { <option [value]="item">{{ item }}</option> }</select></label>
+    <label class="search-field">Cerca<input [(ngModel)]="search" name="search" placeholder="Nom o codi" /></label>
+    <div class="filter-actions"><button class="primary" type="submit">Cercar</button><button type="button" (click)="clearFilters()">Netejar</button></div>
+  </form>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Codi</th><th>Nom</th><th>Tipus</th><th>País</th><th>Pare</th><th>Locale</th><th>Coordenades</th><th>Estat</th><th>Seleccionable</th><th><span class="visually-hidden">Accions</span></th></tr></thead>
+      <tbody>
+        @for (item of page.items; track item.id) {
+          <tr tabindex="0" (click)="open(item)" (keydown.enter)="open(item)">
+            <td>{{ item.primaryCode || '—' }}</td>
+            <td><strong>{{ item.primaryName }}</strong></td>
+            <td>{{ item.type }}</td>
+            <td>{{ item.country }}</td>
+            <td>{{ item.parent || '—' }}</td>
+            <td>{{ item.locale || '—' }}</td>
+            <td>{{ item.latitude === null ? 'No' : 'Sí' }}</td>
+            <td><span class="badge" [class.badge--inactive]="!item.isActive">{{ item.isActive ? 'Actiu' : 'Inactiu' }}</span>@if (item.hasManualOverride) { <span class="badge badge--override">Override</span> }</td>
+            <td>@if (item.isSelectableLocality) { <span class="badge badge--selectable">Seleccionable</span> } @else { <span>—</span> }</td>
+            <td><button class="open-action" type="button" (click)="$event.stopPropagation(); open(item)" [attr.aria-label]="'Obrir detall de ' + item.primaryName">Detall</button></td>
+          </tr>
+        } @empty { <tr><td colspan="10" class="empty-state">No hi ha unitats que coincideixin amb els filtres.</td></tr> }
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pager"><button type="button" [disabled]="page.page <= 1" (click)="load(page.page - 1)">Anterior</button><span>Pàgina {{ page.page }} de {{ page.totalPages || 1 }}</span><button type="button" [disabled]="page.page >= page.totalPages" (click)="load(page.page + 1)">Següent</button></div>
 </section>
+
+@if (detail) {
+  <app-territorial-catalog-detail
+    [detail]="detail"
+    [busy]="busy"
+    [error]="error"
+    (closeDetail)="close()"
+    (openUnit)="openById($event)"
+    (filterChildren)="showChildren($event)"
+    (maintenance)="maintain($event)"
+  />
+}

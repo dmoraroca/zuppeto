@@ -48,6 +48,14 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<UserRecord>
             .HasColumnName("country")
             .HasMaxLength(120);
 
+        builder.Property(user => user.TerritorialCountryId)
+            .HasColumnName("territorial_country_id");
+
+        builder.HasOne(user => user.TerritorialCountry)
+            .WithMany()
+            .HasForeignKey(user => user.TerritorialCountryId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.Property(user => user.TerritorialUnitId)
             .HasColumnName("territorial_unit_id");
 
@@ -117,6 +125,13 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<UserRecord>
 
         builder.HasIndex(user => user.TerritorialUnitId)
             .HasDatabaseName("ix_users_territorial_unit_id");
+
+        builder.HasIndex(user => user.TerritorialCountryId)
+            .HasDatabaseName("ix_users_territorial_country_id");
+
+        builder.ToTable(table => table.HasCheckConstraint(
+            "ck_users_territorial_pair",
+            "(territorial_country_id IS NULL AND territorial_unit_id IS NULL) OR (territorial_country_id IS NOT NULL AND territorial_unit_id IS NOT NULL)"));
 
         builder.HasOne(user => user.FavoriteList)
             .WithOne(favoriteList => favoriteList.OwnerUser)

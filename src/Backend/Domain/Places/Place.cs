@@ -25,7 +25,9 @@ public sealed class Place : AggregateRoot<Guid>
         DateTimeOffset? googleCoordinatesCachedUntil = null,
         DateTimeOffset? lastGoogleSyncAt = null,
         bool excludeFromOsmMap = false,
-        PlaceManualFields manualFields = PlaceManualFields.None) : base(id)
+        PlaceManualFields manualFields = PlaceManualFields.None,
+        Guid? territorialCountryId = null,
+        Guid? territorialUnitId = null) : base(id)
     {
         Rename(name);
         UpdateDescriptions(shortDescription, description);
@@ -39,6 +41,7 @@ public sealed class Place : AggregateRoot<Guid>
         SetDataProvenance(dataProvenance, googlePlaceId, googleCoordinatesCachedUntil, lastGoogleSyncAt);
         ExcludeFromOsmMap = excludeFromOsmMap;
         ManualFields = manualFields;
+        SetTerritorialLocation(territorialCountryId, territorialUnitId);
     }
 
     public string Name { get; private set; } = string.Empty;
@@ -85,6 +88,16 @@ public sealed class Place : AggregateRoot<Guid>
     public bool ExcludeFromOsmMap { get; private set; }
 
     public PlaceManualFields ManualFields { get; private set; }
+    public Guid? TerritorialCountryId { get; private set; }
+    public Guid? TerritorialUnitId { get; private set; }
+
+    public void SetTerritorialLocation(Guid? countryId, Guid? territorialUnitId)
+    {
+        if ((countryId is null) != (territorialUnitId is null))
+            throw new DomainRuleException("El país i la localitat territorial s'han d'informar conjuntament.");
+        TerritorialCountryId = countryId;
+        TerritorialUnitId = territorialUnitId;
+    }
 
     public bool IsManuallyMaintained(PlaceManualFields fields) =>
         (ManualFields & fields) == fields;

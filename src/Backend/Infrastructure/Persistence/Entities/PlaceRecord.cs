@@ -20,6 +20,10 @@ public sealed class PlaceRecord
 
     public string Country { get; set; } = string.Empty;
 
+    public Guid? TerritorialCountryId { get; set; }
+
+    public CountryRecord? TerritorialCountry { get; set; }
+
     public Guid? TerritorialUnitId { get; set; }
 
     public TerritorialUnitRecord? TerritorialUnit { get; set; }

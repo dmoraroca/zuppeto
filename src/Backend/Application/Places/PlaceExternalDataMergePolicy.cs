@@ -73,7 +73,9 @@ internal sealed class PlaceExternalDataMergePolicy
             coordinatesCachedUntil,
             synchronizedAtUtc,
             excludeFromOsmMap: place.ExcludeFromOsmMap,
-            place.ManualFields);
+            place.ManualFields,
+            place.TerritorialCountryId,
+            place.TerritorialUnitId);
 
         merged.ReplaceTags(tags);
         merged.ReplaceFeatures(features);

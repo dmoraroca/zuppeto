@@ -17,7 +17,7 @@ export class TerritorialLocationService {
   }
 
   async localities(countryId: string, search: string): Promise<TerritorialLocalityOption[]> {
-    const params = new HttpParams().set('countryId', countryId).set('search', search).set('pageSize', 20);
+    const params = new HttpParams().set('countryId', countryId).set('search', search).set('page', 1).set('pageSize', 20);
     return (await firstValueFrom(this.http.get<Page<TerritorialLocalityOption>>(`${this.url}/localities`, { params }))).items;
   }
 

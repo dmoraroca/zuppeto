@@ -87,7 +87,13 @@ internal static class UserEndpoints
             return validation.ToValidationProblem();
         }
 
-        await service.UpdateProfileAsync(normalized, cancellationToken);
+        try { await service.UpdateProfileAsync(normalized, cancellationToken); }
+        catch (Exception exception) when (exception is KeyNotFoundException or InvalidOperationException)
+        {
+            var failure = ValidationResult.Success();
+            failure.Add(nameof(request.TerritorialUnitId), exception.Message);
+            return failure.ToValidationProblem();
+        }
         return TypedResults.NoContent();
     }
 

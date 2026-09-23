@@ -46,6 +46,8 @@ export interface PlaceFilters {
   search: string;
   country: string;
   city: string;
+  countryId?: string;
+  territorialUnitId?: string;
   type: string;
   pet: PetFilter;
 }

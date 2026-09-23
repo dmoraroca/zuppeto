@@ -45,7 +45,9 @@ internal static class PlacePersistenceMapper
             record.GoogleCoordinatesCachedUntil,
             record.LastGoogleSyncAt,
             excludeFromOsmMap,
-            (PlaceManualFields)record.ManualFields);
+            (PlaceManualFields)record.ManualFields,
+            record.TerritorialCountryId,
+            record.TerritorialUnitId);
 
         place.ReplaceTags(
             record.PlaceTags
@@ -76,6 +78,8 @@ internal static class PlacePersistenceMapper
         record.AddressLine1 = place.Address.Line1;
         record.City = place.Address.City;
         record.Country = place.Address.Country;
+        record.TerritorialCountryId = place.TerritorialCountryId;
+        record.TerritorialUnitId = place.TerritorialUnitId;
         record.Neighborhood = place.Address.Neighborhood;
         // Persist coordinates even when the stored ExcludeFromOsmMap flag is true: Google cache
         // (≤30 days) needs lat/lng in DB. Map rendering uses null lat/lng (redaction) as the gate.

@@ -8,6 +8,8 @@ interface ProfileState {
   readonly displayName: string;
   readonly city: string;
   readonly country: string;
+  readonly countryId: string | null;
+  readonly territorialUnitId: string | null;
   readonly comments: string;
   readonly avatarUrl: string | null;
   readonly privacyAccepted: boolean;
@@ -28,6 +30,8 @@ export class ProfileStateFixture {
           method: 'PUT', path: `/api/users/${session.user.id}/profile`, accessToken: session.accessToken,
           body: {
             id: original.id, displayName: original.displayName, city: original.city, country: original.country,
+            countryId: original.countryId, territorialUnitId: original.territorialUnitId,
+            clearTerritorialLocation: original.territorialUnitId === null,
             comments: original.comments, avatarUrl: original.avatarUrl, privacyAccepted: original.privacyAccepted,
             privacyAcceptedAtUtc: original.privacyAcceptedAtUtc
           }
@@ -42,6 +46,7 @@ export class ProfileStateFixture {
 
 function sameProfile(left: ProfileState, right: ProfileState): boolean {
   return left.displayName === right.displayName && left.city === right.city && left.country === right.country
+    && left.countryId === right.countryId && left.territorialUnitId === right.territorialUnitId
     && left.comments === right.comments && left.avatarUrl === right.avatarUrl
     && left.privacyAccepted === right.privacyAccepted && left.privacyAcceptedAtUtc === right.privacyAcceptedAtUtc;
 }

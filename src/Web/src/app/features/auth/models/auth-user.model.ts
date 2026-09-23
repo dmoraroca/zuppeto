@@ -8,6 +8,8 @@ export interface AuthUser {
   role: AuthRole;
   city: string;
   country: string;
+  countryId: string | null;
+  territorialUnitId: string | null;
   comments: string;
   avatarUrl: string | null;
   privacyAccepted: boolean;
@@ -39,6 +41,8 @@ export interface AuthProfileUpdate {
   name: string;
   city: string;
   country: string;
+  countryId: string | null;
+  territorialUnitId: string | null;
   comments: string;
   avatarUrl: string | null;
   privacyAccepted: boolean;

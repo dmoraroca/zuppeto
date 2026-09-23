@@ -1,0 +1,11 @@
+BEGIN;
+UPDATE users SET territorial_country_id = null, territorial_unit_id = null WHERE territorial_unit_id::text LIKE 'e2e00000-%';
+UPDATE places SET territorial_country_id = null, territorial_unit_id = null WHERE territorial_unit_id::text LIKE 'e2e00000-%';
+DELETE FROM territorial_maintenance_audit WHERE territorial_unit_id::text LIKE 'e2e00000-%';
+DELETE FROM territorial_unit_codes WHERE territorial_unit_id::text LIKE 'e2e00000-%';
+DELETE FROM territorial_unit_names WHERE territorial_unit_id::text LIKE 'e2e00000-%';
+DELETE FROM territorial_catalog_states WHERE country_id::text LIKE 'e2e00000-%';
+DELETE FROM territorial_units WHERE id::text LIKE 'e2e00000-%';
+DELETE FROM territorial_unit_types WHERE id::text LIKE 'e2e00000-%';
+DELETE FROM countries WHERE id::text LIKE 'e2e00000-%';
+COMMIT;

@@ -215,7 +215,8 @@ internal sealed class TerritorialAdminRepository(ZuppetoDbContext db) : ITerrito
                 x.Names.Where(n => n.IsPrimary).Select(n => n.Locale).FirstOrDefault(),
                 x.Latitude, x.Longitude, x.IsActive,
                 x.ManualSelectableLocality ?? x.TerritorialUnitType.IsSelectableLocality,
-                x.HasManualActiveOverride || x.ManualSelectableLocality != null || x.HasManualCoordinateOverride)).ToArrayAsync(ct);
+                x.HasManualActiveOverride || x.ManualSelectableLocality != null || x.HasManualCoordinateOverride,
+                x.HasManualActiveOverride, x.ManualSelectableLocality != null, x.HasManualCoordinateOverride)).ToArrayAsync(ct);
         return new PageResult<TerritorialCatalogUnitDto>(rows, request.Page, request.PageSize, total);
     }
 
@@ -311,5 +312,6 @@ internal sealed class TerritorialAdminRepository(ZuppetoDbContext db) : ITerrito
         x.Names.FirstOrDefault(n => n.IsPrimary)?.Name ?? x.Names.FirstOrDefault()?.Name ?? string.Empty,
         x.Names.FirstOrDefault(n => n.IsPrimary)?.Locale, x.Latitude, x.Longitude, x.IsActive,
         x.ManualSelectableLocality ?? x.TerritorialUnitType.IsSelectableLocality,
-        x.HasManualActiveOverride || x.ManualSelectableLocality != null || x.HasManualCoordinateOverride);
+        x.HasManualActiveOverride || x.ManualSelectableLocality != null || x.HasManualCoordinateOverride,
+        x.HasManualActiveOverride, x.ManualSelectableLocality != null, x.HasManualCoordinateOverride);
 }

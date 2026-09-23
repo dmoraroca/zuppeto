@@ -12,7 +12,9 @@ public sealed record UserDto(
     bool PrivacyAccepted,
     DateTimeOffset? PrivacyAcceptedAtUtc,
     bool HasLocalCredential = true,
-    bool IsTotpEnabled = false);
+    bool IsTotpEnabled = false,
+    Guid? CountryId = null,
+    Guid? TerritorialUnitId = null);
 
 public sealed record UserRegistrationRequest(
     string Email,
@@ -24,7 +26,9 @@ public sealed record UserRegistrationRequest(
     string Comments,
     string? AvatarUrl,
     bool PrivacyAccepted,
-    DateTimeOffset? PrivacyAcceptedAtUtc);
+    DateTimeOffset? PrivacyAcceptedAtUtc,
+    Guid? CountryId = null,
+    Guid? TerritorialUnitId = null);
 
 public sealed record AccountActivationRequest(string Token);
 
@@ -52,7 +56,10 @@ public sealed record UserProfileUpdateRequest(
     string Comments,
     string? AvatarUrl,
     bool PrivacyAccepted,
-    DateTimeOffset? PrivacyAcceptedAtUtc);
+    DateTimeOffset? PrivacyAcceptedAtUtc,
+    Guid? CountryId = null,
+    Guid? TerritorialUnitId = null,
+    bool ClearTerritorialLocation = false);
 
 public sealed record UserAccountUpdateRequest(
     Guid Id,

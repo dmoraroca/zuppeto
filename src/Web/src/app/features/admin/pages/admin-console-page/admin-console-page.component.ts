@@ -41,6 +41,7 @@ import { EditorChangeTracker } from '../../../../shared/policies/editor-change-t
 import { AuthService } from '../../../auth/services/auth.service';
 import { SectionHeadingComponent } from '../../../../shared/components/section-heading/section-heading.component';
 import { fileToAvatarDataUrl } from '../../../../shared/utils/avatar-image.util';
+import { TerritorialLocationSelectorComponent, TerritorialLocationSelection } from '../../../../shared/components/territorial-location-selector/territorial-location-selector.component';
 import { PLACE_TYPE_LABELS } from '../../../places/mock/places.fake';
 import {
   AdminMenuCatalog,
@@ -77,6 +78,7 @@ type AvatarSuccessOperation = 'crear' | 'modificar' | 'esborrar';
   imports: [
     FormsModule,
     ReactiveFormsModule,
+    TerritorialLocationSelectorComponent,
     SiteHeaderComponent,
     SiteFooterComponent,
     SectionHeadingComponent,
@@ -205,6 +207,8 @@ export class AdminConsolePageComponent {
       displayName: ['', [Validators.required, Validators.minLength(3)]],
       city: ['', [Validators.required, Validators.minLength(2)]],
       country: ['', [Validators.required, Validators.minLength(2)]],
+      countryId: [''],
+      territorialUnitId: [''],
       role: this.formBuilder.nonNullable.control<string>('User'),
       avatarUrl: ['']
     },
@@ -215,6 +219,8 @@ export class AdminConsolePageComponent {
       displayName: ['', [Validators.required, Validators.minLength(3)]],
       city: ['', [Validators.required, Validators.minLength(2)]],
       country: ['', [Validators.required, Validators.minLength(2)]],
+      countryId: [''],
+      territorialUnitId: [''],
       comments: [''],
       role: this.formBuilder.nonNullable.control<string>('User'),
       newPassword: [''],
@@ -284,6 +290,8 @@ export class AdminConsolePageComponent {
     addressLine1: string;
     city: string;
     country: string;
+    countryId: string;
+    territorialUnitId: string;
     countrySelectValue: string;
     neighborhood: string;
     latitude: string;
@@ -315,6 +323,8 @@ export class AdminConsolePageComponent {
     city: '',
     country: '',
     countrySelectValue: '',
+    countryId: '',
+    territorialUnitId: '',
     neighborhood: '',
     latitude: '0',
     longitude: '0',
@@ -994,6 +1004,8 @@ export class AdminConsolePageComponent {
           displayName: payload.displayName.trim(),
           city: payload.city.trim(),
           country: payload.country.trim(),
+          countryId: payload.countryId && payload.territorialUnitId ? payload.countryId : null,
+          territorialUnitId: payload.countryId && payload.territorialUnitId ? payload.territorialUnitId : null,
           comments: payload.comments.trim(),
           avatarUrl: this.detailAvatarPreview()
         });
@@ -1131,6 +1143,8 @@ export class AdminConsolePageComponent {
       displayName: payload.displayName.trim(),
       city: payload.city.trim(),
       country: payload.country.trim(),
+      countryId: payload.countryId && payload.territorialUnitId ? payload.countryId : null,
+      territorialUnitId: payload.countryId && payload.territorialUnitId ? payload.territorialUnitId : null,
       avatarUrl: this.createAvatarPreview()
     });
 
@@ -1197,6 +1211,8 @@ export class AdminConsolePageComponent {
       displayName: user.displayName,
       city: user.city || '',
       country: user.country || '',
+      countryId: user.countryId || '',
+      territorialUnitId: user.territorialUnitId || '',
       comments: user.comments || '',
       role: user.role,
       newPassword: '',
@@ -1239,6 +1255,8 @@ export class AdminConsolePageComponent {
       displayName: '',
       city: '',
       country: '',
+      countryId: '',
+      territorialUnitId: '',
       role: 'User',
       avatarUrl: ''
     });
@@ -2121,6 +2139,31 @@ export class AdminConsolePageComponent {
     void this.ensurePlaceCityOptions(value);
   }
 
+  protected onCreateUserTerritorialSelection(selection: TerritorialLocationSelection): void {
+    this.userForm.patchValue({
+      countryId: selection.countryId, territorialUnitId: selection.territorialUnitId,
+      country: selection.country || this.userForm.controls.country.value,
+      city: selection.locality || ''
+    });
+  }
+
+  protected onDetailUserTerritorialSelection(selection: TerritorialLocationSelection): void {
+    this.detailForm.patchValue({
+      countryId: selection.countryId, territorialUnitId: selection.territorialUnitId,
+      country: selection.country || this.detailForm.controls.country.value,
+      city: selection.locality || ''
+    });
+  }
+
+  protected onPlaceTerritorialSelection(selection: TerritorialLocationSelection): void {
+    this.editablePlace.set({
+      ...this.editablePlace(), countryId: selection.countryId,
+      territorialUnitId: selection.territorialUnitId,
+      country: selection.country || this.editablePlace().country,
+      city: selection.locality || ''
+    });
+  }
+
   protected onPlaceCityChange(value: string): void {
     const option = this.placeCitySelectOptions().find((item) => item.value === value);
     this.editablePlace.set({
@@ -2377,6 +2420,8 @@ export class AdminConsolePageComponent {
       city: '',
       country: '',
       countrySelectValue: '',
+      countryId: '',
+      territorialUnitId: '',
       neighborhood: '',
       latitude: '0',
       longitude: '0',
@@ -2411,6 +2456,8 @@ export class AdminConsolePageComponent {
       city: place.city,
       country: place.country,
       countrySelectValue: this.resolvePlaceCountrySelectValue(place.country),
+      countryId: place.countryId ?? '',
+      territorialUnitId: place.territorialUnitId ?? '',
       neighborhood: place.neighborhood || '',
       latitude: formatDecimalCoordinate(place.latitude.toString()),
       longitude: formatDecimalCoordinate(place.longitude.toString()),
@@ -2480,6 +2527,8 @@ export class AdminConsolePageComponent {
       city: original.city,
       country: original.country,
       countrySelectValue: this.resolvePlaceCountrySelectValue(original.country),
+      countryId: original.countryId ?? '',
+      territorialUnitId: original.territorialUnitId ?? '',
       neighborhood: original.neighborhood || '',
       latitude: formatDecimalCoordinate(original.latitude.toString()),
       longitude: formatDecimalCoordinate(original.longitude.toString()),
@@ -2578,6 +2627,8 @@ export class AdminConsolePageComponent {
     addressLine1: string;
     city: string;
     country: string;
+    countryId: string;
+    territorialUnitId: string;
     neighborhood: string;
     latitude: string;
     longitude: string;
@@ -2634,6 +2685,8 @@ export class AdminConsolePageComponent {
     addressLine1: string;
     city: string;
     country: string;
+    countryId: string;
+    territorialUnitId: string;
     neighborhood: string;
     latitude: string;
     longitude: string;
@@ -2668,6 +2721,8 @@ export class AdminConsolePageComponent {
       addressLine1: place.addressLine1.trim(),
       city: place.city.trim(),
       country: place.country.trim(),
+      countryId: place.countryId && place.territorialUnitId ? place.countryId : null,
+      territorialUnitId: place.countryId && place.territorialUnitId ? place.territorialUnitId : null,
       neighborhood: (place.neighborhood ?? '').trim(),
       latitude,
       longitude,

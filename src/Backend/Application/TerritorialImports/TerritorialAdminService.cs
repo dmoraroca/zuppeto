@@ -224,10 +224,15 @@ public sealed class TerritorialLocationService(ITerritorialLocationRepository re
         return repository.SearchLocalitiesAsync(countryId, search?.Trim(), Math.Max(1, page), Math.Clamp(pageSize, 1, 50), ct);
     }
 
-    public Task ValidateSelectionAsync(TerritorialLocationValidationRequest request, CancellationToken ct = default)
+    public async Task ValidateSelectionAsync(TerritorialLocationValidationRequest request, CancellationToken ct = default)
     {
-        if (request.CountryId == Guid.Empty || request.TerritorialUnitId == Guid.Empty)
+        _ = await ResolveSelectionAsync(request.CountryId, request.TerritorialUnitId, ct);
+    }
+
+    public Task<TerritorialLocationSelectionDto> ResolveSelectionAsync(Guid countryId, Guid territorialUnitId, CancellationToken ct = default)
+    {
+        if (countryId == Guid.Empty || territorialUnitId == Guid.Empty)
             throw new InvalidOperationException("El país i la localitat són obligatoris.");
-        return repository.ValidateSelectionAsync(request.CountryId, request.TerritorialUnitId, ct);
+        return repository.ResolveSelectionAsync(countryId, territorialUnitId, ct);
     }
 }

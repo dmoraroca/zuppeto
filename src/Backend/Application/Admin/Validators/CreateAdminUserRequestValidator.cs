@@ -58,6 +58,12 @@ public sealed class CreateAdminUserRequestValidator : IValidator<CreateAdminUser
             result.Add(nameof(request.Country), "El país ha de tenir com a mínim 2 caràcters.");
         }
 
+
+        if ((request.CountryId is null) != (request.TerritorialUnitId is null))
+        {
+            result.Add(nameof(request.TerritorialUnitId), "El país i la localitat territorial s’han d’informar conjuntament.");
+        }
+
         return result;
     }
 }

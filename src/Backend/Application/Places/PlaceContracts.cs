@@ -7,7 +7,9 @@ public sealed record PlaceSearchRequest(
     string? Type,
     string PetCategory,
     int Skip = 0,
-    int? Take = null);
+    int? Take = null,
+    Guid? CountryId = null,
+    Guid? TerritorialUnitId = null);
 
 public sealed record PlaceSearchPageDto(
     IReadOnlyCollection<PlaceSummaryDto> Items,
@@ -80,7 +82,9 @@ public sealed record PlaceUpsertRequest(
     string? DataProvenance = null,
     string? GooglePlaceId = null,
     DateTimeOffset? GoogleCoordinatesCachedUntil = null,
-    DateTimeOffset? LastGoogleSyncAt = null);
+    DateTimeOffset? LastGoogleSyncAt = null,
+    Guid? CountryId = null,
+    Guid? TerritorialUnitId = null);
 
 public sealed record PlaceSummaryDto(
     Guid Id,
@@ -116,7 +120,9 @@ public sealed record PlaceSummaryDto(
     string? Website = null,
     string? CategoryLabel = null,
     string? CoverAttribution = null,
-    string? CoverSourceUri = null);
+    string? CoverSourceUri = null,
+    Guid? CountryId = null,
+    Guid? TerritorialUnitId = null);
 
 public sealed record PlaceDetailDto(
     Guid Id,
@@ -152,4 +158,6 @@ public sealed record PlaceDetailDto(
     string? OpeningHours = null,
     string? Phone = null,
     string? Website = null,
-    string? CategoryLabel = null);
+    string? CategoryLabel = null,
+    Guid? CountryId = null,
+    Guid? TerritorialUnitId = null);

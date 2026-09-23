@@ -44,7 +44,9 @@ internal sealed class PlaceResponseMapper(IPlaceCoverStorage coverStorage)
             visit.Website,
             PlaceGoogleHighlights.CategoryLabel(place.Features, PlaceTypeLabels.From(place.Type)),
             attribution?.AuthorName,
-            attribution?.SourceUri);
+            attribution?.SourceUri,
+            place.TerritorialCountryId,
+            place.TerritorialUnitId);
     }
 
     internal PlaceDetailDto ToDetail(Place place)
@@ -84,7 +86,9 @@ internal sealed class PlaceResponseMapper(IPlaceCoverStorage coverStorage)
             summary.OpeningHours,
             summary.Phone,
             summary.Website,
-            summary.CategoryLabel);
+            summary.CategoryLabel,
+            summary.CountryId,
+            summary.TerritorialUnitId);
     }
 
     private static (bool CacheExpired, bool RequiresGoogleMap) ComputeGoogleCoordinateFlags(Place place)

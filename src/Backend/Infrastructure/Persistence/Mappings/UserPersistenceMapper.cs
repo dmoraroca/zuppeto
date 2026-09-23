@@ -35,7 +35,9 @@ internal static class UserPersistenceMapper
             record.PendingTotpSecretProtected,
             record.PendingTotpExpiresAtUtc,
             record.TotpEnabledAtUtc,
-            record.LastTotpTimeStepUsed);
+            record.LastTotpTimeStepUsed,
+            record.TerritorialCountryId,
+            record.TerritorialUnitId);
     }
 
     public static UserRecord ToRecord(User user)
@@ -54,6 +56,8 @@ internal static class UserPersistenceMapper
         record.DisplayName = user.Profile.DisplayName;
         record.City = user.Profile.City;
         record.Country = user.Profile.Country;
+        record.TerritorialCountryId = user.TerritorialCountryId;
+        record.TerritorialUnitId = user.TerritorialUnitId;
         record.Comments = user.Profile.Comments;
         record.AvatarUrl = user.Profile.AvatarUrl;
         record.PrivacyAccepted = user.PrivacyConsent.Accepted;

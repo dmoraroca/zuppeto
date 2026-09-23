@@ -1,6 +1,6 @@
-import { Component, computed, input, output, ChangeDetectionStrategy } from '@angular/core';
+import { Component, input, output, ChangeDetectionStrategy } from '@angular/core';
 
-import { CityComboboxComponent } from '../../../../shared/components/city-combobox/city-combobox.component';
+import { TerritorialLocationSelectorComponent, TerritorialLocationSelection } from '../../../../shared/components/territorial-location-selector/territorial-location-selector.component';
 import { PlaceFilters } from '../../models/place.model';
 
 export type PlaceFilterSort = 'recent' | 'rating' | 'name';
@@ -8,7 +8,7 @@ export type PlaceFilterSort = 'recent' | 'rating' | 'name';
 @Component({
   selector: 'app-place-filters',
   standalone: true,
-  imports: [CityComboboxComponent],
+  imports: [TerritorialLocationSelectorComponent],
   templateUrl: './place-filters.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './place-filters.component.scss'
@@ -36,20 +36,18 @@ export class PlaceFiltersComponent {
   readonly filtersChanged = output<Partial<PlaceFilters>>();
   readonly sortChanged = output<PlaceFilterSort>();
 
-  protected readonly remoteCityMinChars = computed(() => (this.enableRemoteCitySearch() ? 2 : 999));
-
   protected onSearch(event: Event): void {
     const value = (event.target as HTMLInputElement).value;
     this.filtersChanged.emit({ search: value });
   }
 
-  protected onCityChange(city: string): void {
-    this.filtersChanged.emit({ city });
-  }
-
-  protected onCountry(event: Event): void {
-    const country = (event.target as HTMLSelectElement).value;
-    this.filtersChanged.emit({ country, city: '' });
+  protected onTerritorialSelection(selection: TerritorialLocationSelection): void {
+    this.filtersChanged.emit({
+      countryId: selection.countryId,
+      territorialUnitId: selection.territorialUnitId,
+      country: selection.country,
+      city: selection.locality
+    });
   }
 
   protected onType(event: Event): void {
@@ -71,6 +69,8 @@ export class PlaceFiltersComponent {
       search: '',
       country: '',
       city: '',
+      countryId: '',
+      territorialUnitId: '',
       type: '',
       pet: 'all'
     });

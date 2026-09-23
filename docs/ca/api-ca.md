@@ -80,20 +80,24 @@ El grup `/api/admin/territorial` exigeix JWT i rol exacte `Admin`. Exposa contex
 
 El refinament afegeix `GET /imports/{id}/preview/source`, `GET /preview/canonical`, `GET /catalog`, `GET /catalog/{id}` i `POST /catalog/{id}/maintenance` dins el mateix grup Admin. Els previews i el catàleg són paginats al servidor; el manteniment rep acció, motiu i valor específic i pot retornar 400, 403, 404 o 409.
 
-L’API funcional compartida incorpora `GET /api/territorial/countries`, `GET /api/territorial/localities` i `POST /api/territorial/location/validate`. La cerca només retorna unitats actives i seleccionables. La validació rebutja país o localitat inexistents, països diferents, unitat inactiva o no seleccionable.
+La projecció resum del catàleg diferencia `hasManualActiveOverride`, `hasManualSelectableOverride` i `hasManualCoordinateOverride`, a més de l’indicador agregat. Això permet que la UI atribueixi cada override al camp correcte sense inferir-lo. Les ordres `activate`, `deactivate`, `set-selectable` i `set-coordinates` continuen explícites i el motiu és obligatori (3–500 caràcters).
+
+L’API funcional compartida incorpora `GET /api/territorial/countries`, `GET /api/territorial/localities` i `POST /api/territorial/location/validate`. `localities` és la font paginada de l’autocomplete: rep `countryId`, `search`, `page` i `pageSize` (20 per defecte, màxim 50), i només retorna unitats actives i seleccionables del país amb nom, locale i context jeràrquic. La validació rebutja país o localitat inexistents, països diferents, unitat inactiva o no seleccionable. Les noves seleccions de `User` i `Place` transmeten `countryId + territorialUnitId`; el backend n’és l’autoritat i deriva els snapshots textuals oficials. Aquesta correcció UX reutilitza el contracte existent i no introdueix cap endpoint nou.
 
 ### Places
 
 El grup **`/api/places`** exigeix **`Authorization: Bearer <JWT>`** per defecte. Per al preview públic del login, aquestes lectures són anònimes: `GET /api/places`, `GET /api/places/cities` i `GET /api/places/cities/search`. La resta (inclòs detall per id, cerques externes i escrits) segueix amb JWT; els escrits **`POST` / `PUT`** també requereixen permís **`action.places.manage`**.
 
-- `GET /api/places` (anònim) — admet `country` i `city`; país filtra per coincidència exacta sense distingir majúscules
+- `GET /api/places` (anònim) — admet `countryId` i `territorialUnitId` per identitat estable, i conserva `country` i `city` com a compatibilitat textual
 - `GET /api/places/cities` (anònim) — llista `PlaceCitySuggestionDto` amb llocs, fins a 1000 resultats GeoNames (màxim per petició) i catàleg governat (`source`: `places` | `geonames` | `catalog`)
 - `GET /api/places/cities/search` (anònim) — typeahead de 2 caràcters sobre totes les fonts, fins a 1000 resultats
 
-Aquest agregat textual continua sent compatibilitat de Places fins que Fase VII publiqui el catàleg i Fase VIII executi el backfill. La nova API territorial ja existeix per als fluxos nous, però no s’ha retirat GeoNames ni s’han vinculat User/Place per nom.
+Aquest agregat textual continua sent compatibilitat de Places fins que Fase VII publiqui el catàleg i Fase VIII executi el backfill. La nova API territorial ja alimenta els fluxos nous; no s’ha retirat GeoNames i no es vincula mai User/Place per nom.
 - `GET /api/places/{id}`
 - `POST /api/places`
 - `PUT /api/places/{id}`
+
+Els DTO de lectura i escriptura de `Place` inclouen `countryId` i `territorialUnitId`. En una selecció nova s’exigeixen tots dos o cap; una parella vàlida actualitza els snapshots `country/city` des del catàleg. Les referències històriques nul·les i les referències existents que després quedin inactives es preserven.
 
 Valors de `type` admesos actualment:
 
@@ -110,6 +114,8 @@ Valors de `type` admesos actualment:
 - `POST /api/users`
 - `PUT /api/users/{id}/profile`
 - `PUT /api/users/{id}/account`
+
+Els contractes de perfil i administració d’usuaris inclouen `countryId` i `territorialUnitId`. La parella segueix les mateixes regles de validació que Places. `clearTerritorialLocation=true` és l’ordre explícita per esborrar una referència; ometre IDs des d’un client antic no l’elimina accidentalment.
 
 ### Favorites
 

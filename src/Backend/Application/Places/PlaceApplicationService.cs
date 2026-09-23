@@ -2,6 +2,7 @@ using Microsoft.Extensions.Options;
 using Zuppeto.Domain.Abstractions;
 using Zuppeto.Domain.Places;
 using Zuppeto.Domain.Places.ValueObjects;
+using Zuppeto.Application.TerritorialImports;
 
 namespace Zuppeto.Application.Places;
 
@@ -16,6 +17,7 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
     private readonly PlaceSearchPageAssembler searchPageAssembler;
     private readonly PlaceResponseMapper responseMapper;
     private readonly IOptions<PlaceExternalIntegrationOptions> externalIntegrationOptions;
+    private readonly TerritorialLocationService territorialLocations;
 
     public PlaceApplicationService(
         IPlaceRepository placeRepository,
@@ -26,7 +28,8 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
         PlaceExternalSearchImporter externalSearchImporter,
         PlaceSearchPageAssembler searchPageAssembler,
         PlaceResponseMapper responseMapper,
-        IOptions<PlaceExternalIntegrationOptions> externalIntegrationOptions)
+        IOptions<PlaceExternalIntegrationOptions> externalIntegrationOptions,
+        TerritorialLocationService territorialLocations)
     {
         this.placeRepository = placeRepository;
         this.geographicCatalogRepository = geographicCatalogRepository;
@@ -37,6 +40,7 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
         this.searchPageAssembler = searchPageAssembler;
         this.responseMapper = responseMapper;
         this.externalIntegrationOptions = externalIntegrationOptions;
+        this.territorialLocations = territorialLocations;
     }
 
     private int CoordinateCacheRetentionDays =>
@@ -74,7 +78,7 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
         }
 
         // Existing snapshot persistence has no country column; country searches must not reuse it.
-        var useSnapshot = string.IsNullOrWhiteSpace(request.Country);
+        var useSnapshot = string.IsNullOrWhiteSpace(request.Country) && request.TerritorialUnitId is null;
         var searchSnapshotKey = new IPlaceSearchQueryRepository.SearchSnapshotKey(
             request.SearchText ?? string.Empty,
             request.City ?? string.Empty,
@@ -97,7 +101,9 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
             request.Country,
             request.City,
             PlaceCatalogEnums.ParsePlaceType(request.Type),
-            PlaceCatalogEnums.ParsePetCategory(request.PetCategory));
+            PlaceCatalogEnums.ParsePetCategory(request.PetCategory),
+            request.CountryId,
+            request.TerritorialUnitId);
 
         var places = await placeRepository.SearchAsync(criteria, cancellationToken);
         var ordered = places.ToArray();
@@ -269,6 +275,20 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
         var placeId = request.Id ?? Guid.NewGuid();
         var nowUtc = DateTimeOffset.UtcNow;
         var existing = await placeRepository.GetByIdAsync(placeId, cancellationToken);
+        var city = request.City.Trim();
+        var country = request.Country.Trim();
+        var countryId = existing?.TerritorialCountryId;
+        var unitId = existing?.TerritorialUnitId;
+        if ((request.CountryId is null) != (request.TerritorialUnitId is null))
+            throw new InvalidOperationException("El país i la localitat territorial s’han d’informar conjuntament.");
+        if (request.CountryId is not null)
+        {
+            var location = await territorialLocations.ResolveSelectionAsync(request.CountryId.Value, request.TerritorialUnitId!.Value, cancellationToken);
+            city = location.Locality;
+            country = location.Country;
+            countryId = location.CountryId;
+            unitId = location.TerritorialUnitId;
+        }
 
         var place = new Place(
             placeId,
@@ -277,12 +297,14 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
             request.ShortDescription,
             request.Description,
             request.CoverImageUrl,
-            new PostalAddress(request.AddressLine1, request.City, request.Country, request.Neighborhood),
+            new PostalAddress(request.AddressLine1, city, country, request.Neighborhood),
             new GeoLocation(request.Latitude, request.Longitude),
             new PetPolicy(request.AcceptsDogs, request.AcceptsCats, request.PetPolicyLabel, request.PetPolicyNotes),
             new Pricing(request.PricingLabel),
             new RatingSnapshot(request.RatingAverage, request.ReviewCount),
-            excludeFromOsmMap: existing?.ExcludeFromOsmMap ?? false);
+            excludeFromOsmMap: existing?.ExcludeFromOsmMap ?? false,
+            territorialCountryId: countryId,
+            territorialUnitId: unitId);
 
         place.ReplaceTags(request.Tags);
         place.ReplaceFeatures(request.Features);

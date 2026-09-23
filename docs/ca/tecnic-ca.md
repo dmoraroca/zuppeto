@@ -555,9 +555,9 @@ Resum del diagrama:
 
 ### Auditoria territorial i disseny objectiu europeu — Fase IV, Iteració 6
 
-**Estat global:** **FASE VI COMPLETADA DEFINITIVAMENT / VALIDADA**. Les subfases 0–VI estan completades; Fase VII és la següent. Els datasets pilot no s’han publicat, no s’ha fet backfill i GeoNames continua operatiu com a compatibilitat.
+**Estat global:** **FASE VI EN CURS / PENDENT DE VALIDACIÓ MANUAL FINAL**. La Fase VII no s’ha iniciat. Els datasets pilot no s’han publicat, no s’ha fet backfill i GeoNames continua operatiu com a compatibilitat interna.
 
-#### A. Model territorial actual
+#### A. Model territorial auditat abans de la implementació
 
 | Element actual | Persistència i contracte | Relacions i proteccions | Dependències |
 |---|---|---|---|
@@ -620,7 +620,7 @@ La persistència usa les taules `territorial_unit_types`, `territorial_units`, `
 
 Les coordenades compleixen parell complet, rang i procedència mitjançant `CHECK`; `(0,0)` requereix validació explícita al domini. Els noms no són identitat i poden repetir-se entre unitats. Els codis són text, conserven zeros inicials i tenen unicitat global vigent per `scheme + value`. Els noms primaris són únics per unitat, kind i locale mitjançant índexs parcials.
 
-`users.territorial_unit_id` i `places.territorial_unit_id` són FK nullable amb `Restrict`. Els camps `city`/`country`, `City`, l'administració geogràfica actual i GeoNames es conserven sense canvi de runtime.
+`users` i `places` tenen `territorial_country_id` i `territorial_unit_id` nullable, amb FK `Restrict`, índexs i restricció que exigeix el parell complet o nul. Els camps `city`/`country`, `City`, l'administració geogràfica actual i GeoNames es conserven per compatibilitat. El runtime nou valida la parella al backend, deriva els snapshots oficials i preserva referències històriques o posteriorment inactives.
 
 Els autocicles estan bloquejats al domini i per `CHECK`. Els cicles llargs i el mateix país es validen abans de publicar; la FK composta reforça el mateix país. El motor de Fase V valida el graf canònic abans de generar un ChangeSet i la publicació torna a construir les entitats de domini abans de persistir-les. Un SQL manual amb privilegis directes encara podria crear un cicle llarg perquè no s'ha introduït un trigger PostgreSQL complex.
 
@@ -647,11 +647,11 @@ Resultat de tancament: 53/53 proves backend PASS, incloses les proves PostgreSQL
 #### G. Migració additiva executada i estratègia restant
 
 1. **Completat:** model nou afegit de manera additiva per `20260921182620_AddTerritorialModelPhase4`, sense eliminar `countries`, `cities`, `users.city/country` ni `places.city/country`.
-2. **Completat:** `Country` ampliat amb ISO nullable i `User`/`Place` amb FK territorial nullable, sense backfill ni reinterpretació de dades.
+2. **Completat:** `Country` ampliat amb ISO nullable i `User`/`Place` amb FK nullable de país i unitat territorial, sense backfill ni reinterpretació de dades.
 3. Importar primer a staging només datasets amb drets verificats; validar Unicode, codis, jerarquia, coordenades i duplicats.
 4. Crear una taula/mapa de correspondències i fer backfill determinista. Les coincidències ambigües o inexistents van a revisió; no s'endevinen.
 5. Introduir compatibilitat temporal de lectura i, si cal, escriptura dual controlada per feature flag.
-6. Migrar API, Perfil, Admin Usuaris, Places, Admin Llocs, filtres i proves al nou identificador estable.
+6. **Completat:** API, Perfil, Admin Usuaris, Places, Admin Llocs, filtres, Favorits, preview públic i proves usen el nou identificador estable, amb fallback textual explícit.
 7. Aplicar FK/constraints només quan el 100% dels registres obligatoris estigui resolt; retirar text o model antic en una migració posterior independent.
 8. Verificar recomptes, orfes, favorits, historial, cerca, mapa i E2E quan canviï el runtime. El rollback desactiva la lectura nova i restaura la versió publicada; els textos originals continuen disponibles durant tota la transició.
 
@@ -675,7 +675,7 @@ Dades que no es poden perdre: usuaris i perfil, llocs i adreces/coordinates, fav
 - aplicació d'importació: `Application/TerritorialImports/*`, amb contractes neutrals, mapping, canonicalització, validation, diff i orquestració
 - infraestructura: `Infrastructure/TerritorialImports/*`, entitats i configuracions `TerritorialImport*`, `ZuppetoDbContext` i migracions de Fases IV/V
 - proves: `TerritorialPersistenceTests`, `TerritorialImportEngineTests` i `TerritorialImportPersistenceTests`, inclosos els XLSX pilot reals
-- Fase VI: endpoints territorials ADMIN i feature Angular separada completats; backfill de `User`/`Place`, canvi de lectura i retirada posterior de GeoNames continuen fora d’abast
+- Fase VI: endpoints territorials ADMIN, feature Angular, API funcional, selector compartit i referències `User`/`Place` completats; backfill històric i retirada posterior de GeoNames continuen fora d’abast
 
 #### J. Registre preparat de fonts i llicències
 
@@ -2452,6 +2452,12 @@ Document de fases:
 
 `AddTerritorialMaintenancePhase6Refinement` afegeix els flags d’override i `territorial_maintenance_audit`. L’auditoria conserva unitat, acció, camp, actor, timestamp, motiu, before/after i origen. El manteniment incrementa `CatalogVersion` en transacció serialitzable; el motor emet `MANUAL_OVERRIDE_CONFLICT` i preserva estat/coordenades manuals.
 
-`TerritorialLocationService` és el port compartit Country → TerritorialUnit i `TerritorialLocationSelectorComponent` la UI reutilitzable. El backend torna a validar sempre.
+`TerritorialLocationService` és el port compartit Country → TerritorialUnit i `TerritorialLocationSelectorComponent` la UI reutilitzable. La Localitat és un únic combobox ARIA sobre `GET /api/territorial/localities`: un `Subject` aplica `debounceTime(300)`, `distinctUntilChanged` i `switchMap`; per tant una consulta nova desubscriu o invalida l’anterior. L’estat del component encapsula loading, buit, error, resultat actiu, selecció i teclat. El backend torna a validar sempre.
+
+La migració `AddUserPlaceTerritorialReferencesPhase6` completa la parella de referències nullable a `User` i `Place`. `TerritorialLocationRepository` resol només seleccions noves actives, seleccionables i del mateix país; els serveis d’aplicació escriuen els snapshots retornats pel catàleg i ignoren noms territorials aportats pel client. `ClearTerritorialLocation` separa l’ordre d’esborrat d’una simple absència d’IDs en clients antics.
+
+El filtre de Places propaga `countryId` i `territorialUnitId` des d’Angular fins a l’especificació EF. Perfil, Admin Usuaris, Admin Llocs, Places, Favorits i el preview públic reutilitzen el selector compartit. City/GeoNames es conserva només internament per compatibilitat, sense exposar controls ni textos tècnics a la UI, sense backfill i sense actuar com a font d’identitat territorial.
+
+La validació focalitzada real de ZUP-160 recorre Angular → API → Application → EF → PostgreSQL amb dades sintètiques controlades i acaba en PASS (`sim-20260923T202548369Z-35b2d77c`). A més del manteniment auditat, comprova l’autocomplete únic, el reset A → B, la inexistència de controls/textos transitoris a Perfil, Llocs, Favorits, ADMIN User, ADMIN Place i explorador públic, i el grid de filtres a 1280, 900 i 600 px. No publica Espanya ni Alemanya.
 
 `scripts/generate-ef-migration-script.sh RUTA.sql` genera l’SQL idempotent de deploy des de les migracions EF; no hi ha un esquema SQL paral·lel.

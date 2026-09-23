@@ -1,4 +1,4 @@
-import { expect } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 import type { ChromeScenarioContext } from './chrome-scenario.js';
 
 const sourceId = '10000000-0000-0000-0000-000000000001';
@@ -7,6 +7,7 @@ const importId = '30000000-0000-0000-0000-000000000001';
 
 export async function executeTerritorialAdminScenario(code: number, context: ChromeScenarioContext): Promise<void> {
   if (code === 155) return securityScenario(context);
+  if (code === 160 && process.env['E2E_TERRITORIAL_REAL'] === 'true') return realTerritorialCircuit(context);
   const mode = code === 158 ? 'blocked' : 'ready';
   await mockTerritorialApi(context, mode);
 
@@ -20,15 +21,24 @@ export async function executeTerritorialAdminScenario(code: number, context: Chr
     await expect(context.page.getByText('Catàleg actual: v7')).toBeVisible();
     await context.page.getByRole('button', { name: 'Catàleg territorial' }).click();
     await context.page.getByRole('button', { name: 'Cercar', exact: true }).click();
-    await context.page.getByRole('cell', { name: 'Àmbit sintètic' }).click();
+    await context.page.getByRole('cell', { name: 'Àmbit sintètic', exact: true }).click();
     await expect(context.page.getByRole('heading', { name: 'Àmbit sintètic' })).toBeVisible();
     await expect(context.page.getByRole('definition').filter({ hasText: 'País sintètic' })).toBeVisible();
-    await context.page.getByLabel('Motiu obligatori').fill('Revisió E2E controlada');
     await context.page.getByRole('button', { name: 'Desactivar' }).click();
-    await expect(context.page.getByText('Admin E2E · deactivate')).toBeVisible();
-    await context.page.getByLabel('Motiu obligatori').fill('Reactivació E2E controlada');
+    await context.page.getByLabel('Motiu *').fill('Revisió E2E controlada');
+    await context.page.getByRole('alertdialog').getByRole('button', { name: 'Desactivar' }).click();
+    const deactivationAudit = context.page.locator('.audit-list li').filter({ hasText: 'Revisió E2E controlada' });
+    await expect(deactivationAudit).toContainText('Admin E2E');
+    await expect(deactivationAudit).toContainText('Revisió E2E controlada');
+    await expect(deactivationAudit).toContainText('Abans');
+    await expect(deactivationAudit).toContainText('Després');
+    await context.page.getByRole('button', { name: 'General' }).click();
     await context.page.getByRole('button', { name: 'Reactivar' }).click();
-    await expect(context.page.getByText('Admin E2E · activate')).toBeVisible();
+    await context.page.getByLabel('Motiu *').fill('Reactivació E2E controlada');
+    await context.page.getByRole('alertdialog').getByRole('button', { name: 'Reactivar' }).click();
+    const activationAudit = context.page.locator('.audit-list li').filter({ hasText: 'Reactivació E2E controlada' });
+    await expect(activationAudit).toContainText('Admin E2E');
+    await expect(activationAudit).toContainText('Reactivació E2E controlada');
     return;
   }
 
@@ -83,6 +93,159 @@ export async function executeTerritorialAdminScenario(code: number, context: Chr
     await context.page.getByRole('button', { name: 'Confirmar' }).click();
     await expect(context.page.getByText('Estat: Published')).toBeVisible();
   }
+}
+
+async function realTerritorialCircuit(context: ChromeScenarioContext): Promise<void> {
+  if (!context.session.session) throw new Error('El circuit territorial real requereix sessió ADMIN.');
+
+  await context.page.goto('/admin/territori');
+  await context.page.getByRole('button', { name: 'Catàleg territorial' }).click();
+  await context.page.getByLabel('País').selectOption({ label: 'País E2E À' });
+  await context.page.getByLabel('Cerca').fill('E2E-001');
+  await context.page.getByRole('button', { name: 'Cercar', exact: true }).click();
+  await context.page.getByRole('cell', { name: 'Vila E2E À', exact: true }).click();
+  await expect(context.page.getByRole('dialog')).toBeVisible();
+  await context.page.getByRole('button', { name: 'Coordenades' }).click();
+  await expect(context.page.getByRole('definition').filter({ hasText: '40.4168' })).toBeVisible();
+  await context.page.getByRole('button', { name: 'General' }).click();
+  const deactivate = context.page.getByRole('button', { name: 'Desactivar' });
+  await deactivate.click();
+  const reason = context.page.getByLabel('Motiu *');
+  const confirmDeactivate = context.page.getByRole('alertdialog').getByRole('button', { name: 'Desactivar' });
+  await expect(confirmDeactivate).toBeDisabled();
+  await reason.click();
+  await reason.pressSequentially('ab');
+  await expect(reason).toHaveValue('ab');
+  await expect(confirmDeactivate).toBeDisabled();
+  await reason.pressSequentially('c');
+  await expect(reason).toHaveValue('abc');
+  await expect(confirmDeactivate).toBeEnabled();
+  await reason.pressSequentially(' Circuit E2E real fase VI');
+  const deactivateRequest = context.page.waitForRequest((request) =>
+    request.method() === 'POST' && request.url().endsWith('/api/admin/territorial/catalog/e2e00000-0000-0000-0000-000000000101/maintenance')
+  );
+  await confirmDeactivate.click();
+  expect((await deactivateRequest).postDataJSON()).toMatchObject({ action: 'deactivate', reason: 'abc Circuit E2E real fase VI' });
+  const currentDeactivation = context.page.locator('.audit-list li').filter({ hasText: 'abc Circuit E2E real fase VI' }).first();
+  await expect(currentDeactivation).toContainText('AbansActiu');
+  await expect(currentDeactivation).toContainText('DesprésInactiu');
+  await context.page.getByRole('button', { name: 'General' }).click();
+  await context.page.getByRole('button', { name: 'Reactivar' }).click();
+  const reactivationReason = context.page.getByLabel('Motiu *');
+  await reactivationReason.pressSequentially('Reactivació E2E real fase VI');
+  const reactivateRequest = context.page.waitForRequest((request) =>
+    request.method() === 'POST' && request.url().endsWith('/api/admin/territorial/catalog/e2e00000-0000-0000-0000-000000000101/maintenance')
+  );
+  await context.page.getByRole('alertdialog').getByRole('button', { name: 'Reactivar' }).click();
+  expect((await reactivateRequest).postDataJSON()).toMatchObject({ action: 'activate', reason: 'Reactivació E2E real fase VI' });
+  const currentReactivation = context.page.locator('.audit-list li').filter({ hasText: 'Reactivació E2E real fase VI' }).first();
+  await expect(currentReactivation).toContainText('AbansInactiu');
+  await expect(currentReactivation).toContainText('DesprésActiu');
+  await context.page.getByRole('button', { name: 'Tancar el detall territorial' }).click();
+  await expect(context.page.getByRole('cell', { name: 'Vila E2E À', exact: true })).toBeVisible();
+  await expect(context.page.getByLabel('País')).toHaveValue('e2e00000-0000-0000-0000-000000000001');
+  await context.page.goto('/perfil');
+  const location = context.page.locator('app-territorial-location-selector');
+  await assertSingleLocationAutocomplete(location);
+  const country = location.getByLabel('País');
+  const locality = location.getByRole('combobox', { name: 'Localitat', exact: true });
+  await expect(locality).toBeDisabled();
+  await expect(locality).toHaveAttribute('placeholder', 'Selecciona primer un país');
+  await country.selectOption({ label: 'País E2E À' });
+  await locality.fill('Vila');
+  await location.getByRole('option').filter({ hasText: 'Vila E2E À' }).click();
+  await expect(locality).toHaveValue('Vila E2E À');
+  await country.selectOption({ label: 'País E2E B' });
+  await expect(locality).toHaveValue('');
+  await locality.fill('Vila');
+  await location.getByRole('option').filter({ hasText: 'Vila E2E B' }).click();
+  await expect(locality).toHaveValue('Vila E2E B');
+
+  await context.page.goto('/places');
+  const placesLocation = context.page.locator('app-place-filters app-territorial-location-selector');
+  await assertSingleLocationAutocomplete(placesLocation);
+  await placesLocation.getByLabel('País').selectOption({ label: 'País E2E À' });
+  await placesLocation.getByRole('combobox', { name: 'Localitat', exact: true }).fill('Vila');
+  await placesLocation.getByRole('option').filter({ hasText: 'Vila E2E À' }).click();
+  await expect(context.page.getByRole('button', { name: 'Cercar', exact: true })).toBeVisible();
+  await assertResponsiveFilterLayout(context.page, context.page.locator('app-place-filters'), false);
+  await context.page.getByRole('button', { name: 'Cercar', exact: true }).click();
+
+  await context.favoriteFactory.create(context.identity, context.session.session, context.cleanup);
+  await context.page.goto('/favorites');
+  const favoritesLocation = context.page.locator('app-place-filters app-territorial-location-selector');
+  await assertSingleLocationAutocomplete(favoritesLocation);
+  await expect(context.page.getByRole('button', { name: 'Cercar', exact: true })).toBeVisible();
+  await assertResponsiveFilterLayout(context.page, context.page.locator('app-place-filters'), true);
+
+  await context.page.goto('/admin/usuaris');
+  await context.page.getByRole('button', { name: 'Crear usuari' }).click();
+  await assertSingleLocationAutocomplete(context.page.locator('app-territorial-location-selector'));
+
+  await context.page.goto('/admin/llocs');
+  await context.page.getByRole('button', { name: 'Nou lloc' }).click();
+  await assertSingleLocationAutocomplete(context.page.locator('app-territorial-location-selector'));
+
+  await context.page.evaluate(() => localStorage.removeItem('zuppeto-auth-session'));
+  await context.page.goto('/login', { waitUntil: 'domcontentloaded' });
+  const publicLocation = context.page.locator('app-territorial-location-selector');
+  await assertSingleLocationAutocomplete(publicLocation);
+  await expect(context.page.getByText(/Compatibilitat transitòria/i)).toHaveCount(0);
+}
+
+async function assertSingleLocationAutocomplete(location: Locator): Promise<void> {
+  await expect(location).toBeVisible();
+  await expect(location.locator('select')).toHaveCount(1);
+  await expect(location.getByRole('combobox')).toHaveCount(2);
+  await expect(location.getByRole('button', { name: 'Cercar', exact: true })).toHaveCount(0);
+  await expect(location.getByText(/Compatibilitat transitòria/i)).toHaveCount(0);
+}
+
+async function assertResponsiveFilterLayout(page: Page, filters: Locator, includesSort: boolean): Promise<void> {
+  const territory = filters.locator('app-territorial-location-selector');
+  const controls = [
+    filters.locator('.place-filters__search input'),
+    territory.locator('select'),
+    territory.locator('input[role="combobox"]'),
+    filters.locator('.place-filters__type select'),
+    filters.locator('.place-filters__pet select'),
+    ...(includesSort ? [filters.locator('.place-filters__sort select')] : [])
+  ];
+  for (const width of [1280, 900, 600]) {
+    await page.setViewportSize({ width, height: 900 });
+    const boxes = await Promise.all(controls.map((control) => control.boundingBox()));
+    boxes.forEach((box) => {
+      expect(box).not.toBeNull();
+      expect(box!.x).toBeGreaterThanOrEqual(0);
+      expect(box!.x + box!.width).toBeLessThanOrEqual(width + 1);
+    });
+    for (let left = 0; left < boxes.length; left += 1) {
+      for (let right = left + 1; right < boxes.length; right += 1) {
+        const a = boxes[left]!;
+        const b = boxes[right]!;
+        const separated = a.x + a.width <= b.x + 1 || b.x + b.width <= a.x + 1
+          || a.y + a.height <= b.y + 1 || b.y + b.height <= a.y + 1;
+        expect(separated).toBe(true);
+      }
+    }
+    const columnWidths = await Promise.all(controls.map((control) => control.evaluate((element) => {
+      const label = element.closest('label');
+      return label?.getBoundingClientRect().width ?? 0;
+    })));
+    boxes.forEach((box, index) => expect(Math.abs(box!.width - columnWidths[index]!)).toBeLessThanOrEqual(2));
+    expect(Math.max(...boxes.map((box) => box!.height)) - Math.min(...boxes.map((box) => box!.height))).toBeLessThanOrEqual(2);
+
+    if (width === 1280) {
+      expect(Math.max(...boxes.slice(0, 5).map((box) => box!.y)) - Math.min(...boxes.slice(0, 5).map((box) => box!.y))).toBeLessThanOrEqual(2);
+      expect(boxes[0]!.width).toBeGreaterThan(boxes[1]!.width);
+      expect(boxes[2]!.width).toBeGreaterThan(boxes[1]!.width);
+    } else if (width === 900) {
+      expect(new Set(boxes.map((box) => Math.round(box!.x))).size).toBeLessThanOrEqual(2);
+    } else {
+      expect(new Set(boxes.map((box) => Math.round(box!.x))).size).toBe(1);
+    }
+  }
+  await page.setViewportSize({ width: 1280, height: 900 });
 }
 
 async function securityScenario(context: ChromeScenarioContext): Promise<void> {
@@ -199,7 +362,10 @@ function catalogUnit(isActive: boolean) {
     territorialUnitTypeId: '40000000-0000-0000-0000-000000000001', typeCode: 'MUNICIPALITY',
     type: 'Municipi', parentId: null, parent: null, primaryCode: '001', primaryName: 'Àmbit sintètic',
     locale: 'ca-ES', latitude: 41.5, longitude: 2.1, isActive, isSelectableLocality: true,
-    hasManualOverride: !isActive
+    hasManualOverride: !isActive,
+    hasManualActiveOverride: !isActive,
+    hasManualSelectableOverride: false,
+    hasManualCoordinateOverride: false
   };
 }
 

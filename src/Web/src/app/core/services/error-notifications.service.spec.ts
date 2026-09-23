@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 
 import { ErrorNotificationsService } from './error-notifications.service';
@@ -38,5 +39,15 @@ describe('ErrorNotificationsService authenticated cache', () => {
     service.purgeCurrentUser();
 
     expect(localStorage.getItem('zuppeto-notifications')).toBeNull();
+  });
+
+  it('shows the functional API message for a simple 400 response', () => {
+    service.pushHttpError(new HttpErrorResponse({
+      status: 400,
+      error: { message: 'El motiu és obligatori i ha de tenir entre 3 i 500 caràcters.' }
+    }));
+
+    expect(service.notifications()[0].title).toBe('Petició no vàlida');
+    expect(service.notifications()[0].message).toBe('El motiu és obligatori i ha de tenir entre 3 i 500 caràcters.');
   });
 });

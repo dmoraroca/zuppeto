@@ -5,6 +5,7 @@ using Zuppeto.Application.Factories;
 using Zuppeto.Application.Validation;
 using System.Security.Cryptography;
 using System.Text;
+using Zuppeto.Application.TerritorialImports;
 
 namespace Zuppeto.Application.Users;
 
@@ -16,7 +17,8 @@ internal sealed class UserApplicationService(
     IPasswordRecoveryEmailSender passwordRecoveryEmailSender,
     Auth.ITotpService totpService,
     ITotpRecoveryCodeRepository totpRecoveryCodes,
-    Auth.ITwoFactorChallengeStore challenges) : IUserApplicationService
+    Auth.ITwoFactorChallengeStore challenges,
+    TerritorialLocationService territorialLocations) : IUserApplicationService
 {
     public async Task<IReadOnlyCollection<UserDto>> ListAsync(CancellationToken cancellationToken = default)
     {
@@ -38,6 +40,7 @@ internal sealed class UserApplicationService(
 
     public async Task<Guid> RegisterAsync(UserRegistrationRequest request, CancellationToken cancellationToken = default)
     {
+        var location = await ResolveLocationAsync(request.CountryId, request.TerritorialUnitId, request.City, request.Country, cancellationToken);
         var rawToken = CreateRawToken();
         var expiresAtUtc = DateTimeOffset.UtcNow.AddHours(24);
         var user = new User(
@@ -45,8 +48,10 @@ internal sealed class UserApplicationService(
             request.Email,
             passwordHasher.Hash(request.PasswordHash),
             request.Role.Trim(),
-            userProfileFactory.Create(request.DisplayName, request.City, request.Country, request.Comments, request.AvatarUrl),
-            new PrivacyConsent(request.PrivacyAccepted, request.PrivacyAcceptedAtUtc));
+            userProfileFactory.Create(request.DisplayName, location.City, location.Country, request.Comments, request.AvatarUrl),
+            new PrivacyConsent(request.PrivacyAccepted, request.PrivacyAcceptedAtUtc),
+            territorialCountryId: location.CountryId,
+            territorialUnitId: location.TerritorialUnitId);
         user.RequireEmailActivation(HashToken(rawToken), expiresAtUtc);
 
         await userRepository.AddAsync(user, cancellationToken);
@@ -175,13 +180,21 @@ internal sealed class UserApplicationService(
             user.AcceptPrivacy(request.PrivacyAcceptedAtUtc ?? DateTimeOffset.UtcNow);
         }
 
+        var location = request.ClearTerritorialLocation
+            ? new ResolvedLocation(null, null, request.City, request.Country)
+            : request.CountryId is null && request.TerritorialUnitId is null
+                ? new ResolvedLocation(user.TerritorialCountryId, user.TerritorialUnitId, request.City, request.Country)
+                : request.CountryId == user.TerritorialCountryId && request.TerritorialUnitId == user.TerritorialUnitId
+                    ? new ResolvedLocation(user.TerritorialCountryId, user.TerritorialUnitId, request.City, request.Country)
+                : await ResolveLocationAsync(request.CountryId, request.TerritorialUnitId, request.City, request.Country, cancellationToken);
         user.UpdateProfile(
             userProfileFactory.Create(
                 request.DisplayName,
-                request.City,
-                request.Country,
+                location.City,
+                location.Country,
                 request.Comments,
                 request.AvatarUrl));
+        user.SetTerritorialLocation(location.CountryId, location.TerritorialUnitId);
 
         await userRepository.UpdateAsync(user, cancellationToken);
     }
@@ -255,8 +268,20 @@ internal sealed class UserApplicationService(
             user.PrivacyConsent.Accepted,
             user.PrivacyConsent.AcceptedAtUtc,
             user.HasLocalCredential,
-            user.IsTotpEnabled);
+            user.IsTotpEnabled,
+            user.TerritorialCountryId,
+            user.TerritorialUnitId);
     }
+
+    private async Task<ResolvedLocation> ResolveLocationAsync(Guid? countryId, Guid? unitId, string city, string country, CancellationToken ct)
+    {
+        if (countryId is null && unitId is null) return new(null, null, city.Trim(), country.Trim());
+        if (countryId is null || unitId is null) throw new InvalidOperationException("El país i la localitat territorial s’han d’informar conjuntament.");
+        var resolved = await territorialLocations.ResolveSelectionAsync(countryId.Value, unitId.Value, ct);
+        return new(resolved.CountryId, resolved.TerritorialUnitId, resolved.Locality, resolved.Country);
+    }
+
+    private sealed record ResolvedLocation(Guid? CountryId, Guid? TerritorialUnitId, string City, string Country);
 
     private static string CreateRawToken() => Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))
         .TrimEnd('=').Replace('+', '-').Replace('/', '_');

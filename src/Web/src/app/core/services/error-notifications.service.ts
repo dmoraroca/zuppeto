@@ -258,6 +258,10 @@ export class ErrorNotificationsService {
       if (validation) {
         return this.pushWithTone(validation.title, validation.message, 'error');
       }
+      const message = this.tryExtractBodyMessage(error);
+      if (message) {
+        return this.pushWithTone('Petició no vàlida', message, 'error');
+      }
     }
 
     if (error.status >= 500) {
@@ -276,17 +280,19 @@ export class ErrorNotificationsService {
   }
 
   private tryExtractConflictMessage(error: HttpErrorResponse): string {
+    const message = this.tryExtractBodyMessage(error);
+    if (message) return message;
+    return 'Aquest element ja existeix o hi ha un conflicte amb l’estat actual.';
+  }
+
+  private tryExtractBodyMessage(error: HttpErrorResponse): string {
     const raw = error.error;
-    if (typeof raw === 'string' && raw.trim()) {
-      return toCatalanApiMessage(raw);
-    }
+    if (typeof raw === 'string' && raw.trim()) return toCatalanApiMessage(raw);
     if (raw && typeof raw === 'object') {
       const message = (raw as { message?: unknown }).message;
-      if (typeof message === 'string' && message.trim()) {
-        return toCatalanApiMessage(message);
-      }
+      if (typeof message === 'string' && message.trim()) return toCatalanApiMessage(message);
     }
-    return 'Aquest element ja existeix o hi ha un conflicte amb l’estat actual.';
+    return '';
   }
 
   private tryExtractValidationSummary(

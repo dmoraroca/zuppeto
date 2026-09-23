@@ -16,7 +16,7 @@ No és una especificació d'Entity Framework ni fixa noms definitius de taules o
 | III | Disseny funcional i model territorial | **COMPLETADA / READY FOR IMPLEMENTATION** |
 | IV | Migració EF Core / PostgreSQL | **COMPLETADA / VALIDADA** |
 | V | Motor genèric d'importació | **COMPLETADA / VALIDADA** |
-| VI | Gestió Territorial ADMIN | **SEGÜENT** |
+| VI | Gestió Territorial ADMIN | **EN CURS / PENDENT VALIDACIÓ MANUAL FINAL** |
 | VII | Primera importació real i validació | **PENDENT** |
 | VIII | Backfill de dades actuals | **PENDENT** |
 | IX | Regressió i tancament | **PENDENT** |
@@ -562,7 +562,9 @@ Els casos executables i E2E només s'incorporaran quan existeixi implementació.
 
 ## 30. Ready for Implementation
 
-La revisió final no va detectar cap bloqueig funcional. Les Fases III, IV i V queden completades. La Fase VI —Gestió Territorial ADMIN— queda **COMPLETADA DEFINITIVAMENT** amb Data Preview, Catàleg territorial, manteniment auditat, protecció d’overrides i contracte País → Localitat. La Fase VII és la següent.
+La revisió final no va detectar cap bloqueig funcional. Les Fases III, IV i V queden completades. La Fase VI —Gestió Territorial ADMIN— continua **EN CURS** amb Data Preview, Catàleg territorial, manteniment auditat, protecció d’overrides i contracte País → Localitat. El selector compartit s’ha consolidat en un únic autocomplete asíncron de Localitat; el tancament queda condicionat a la seva validació manual. La Fase VII no s’ha iniciat.
+
+El detall territorial és una projecció funcional del mateix agregat: modal ampli, pestanyes General, Jerarquia, Noms i codis, Coordenades, Procedència i Auditoria. Les ordres d’activació, seleccionabilitat i coordenades continuen separades, exigeixen motiu propi i no alteren el contracte d’importació ni relaxen cap invariant.
 
 La validació controlada de Fase V llegeix íntegrament els XLSX pilot d'Espanya i Alemanya i comprova el mapping i la canonicalització sense publicar-los al catàleg operatiu. Espanya produeix 8.201 files mapades i 8.199 unitats canòniques després de consolidar Ceuta i Melilla. Alemanya conserva la identitat composta `LAND + RB + KREIS`, consolida els rols territorials superposats i tracta els registres especials i `(0,0)` segons el contracte. Aquest resultat valida el motor, no les llicències ni la publicació real dels datasets.
 

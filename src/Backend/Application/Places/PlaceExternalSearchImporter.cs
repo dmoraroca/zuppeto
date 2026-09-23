@@ -164,7 +164,9 @@ internal sealed class PlaceExternalSearchImporter(
             cacheUntil,
             nowUtc,
             excludeFromOsmMap: false,
-            manualFields);
+            manualFields,
+            existing?.TerritorialCountryId,
+            existing?.TerritorialUnitId);
 
         if (existing is not null)
         {

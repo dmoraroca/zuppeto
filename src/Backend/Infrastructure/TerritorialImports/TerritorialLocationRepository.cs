@@ -35,18 +35,23 @@ internal sealed class TerritorialLocationRepository(ZuppetoDbContext db) : ITerr
         return new PageResult<TerritorialLocalityOptionDto>(rows, page, pageSize, total);
     }
 
-    public async Task ValidateSelectionAsync(Guid countryId, Guid territorialUnitId, CancellationToken ct = default)
+    public async Task<TerritorialLocationSelectionDto> ResolveSelectionAsync(Guid countryId, Guid territorialUnitId, CancellationToken ct = default)
     {
-        if (!await db.Countries.AsNoTracking().AnyAsync(x => x.Id == countryId && x.IsActive, ct))
+        var country = await db.Countries.AsNoTracking().Where(x => x.Id == countryId && x.IsActive)
+            .Select(x => new { x.Id, x.Name }).SingleOrDefaultAsync(ct);
+        if (country is null)
             throw new KeyNotFoundException("No s'ha trobat el país.");
         var unit = await db.TerritorialUnits.AsNoTracking().Where(x => x.Id == territorialUnitId)
             .Select(x => new
             {
                 x.CountryId, x.IsActive,
-                IsSelectable = x.ManualSelectableLocality ?? x.TerritorialUnitType.IsSelectableLocality
+                IsSelectable = x.ManualSelectableLocality ?? x.TerritorialUnitType.IsSelectableLocality,
+                Name = x.Names.Where(n => n.IsPrimary).Select(n => n.Name).FirstOrDefault()
+                    ?? x.Names.Select(n => n.Name).FirstOrDefault() ?? string.Empty
             }).SingleOrDefaultAsync(ct) ?? throw new KeyNotFoundException("No s'ha trobat la localitat.");
         if (unit.CountryId != countryId) throw new InvalidOperationException("La localitat no pertany al país indicat.");
         if (!unit.IsActive) throw new InvalidOperationException("La localitat està inactiva.");
         if (!unit.IsSelectable) throw new InvalidOperationException("La unitat territorial no és una localitat seleccionable.");
+        return new TerritorialLocationSelectionDto(country.Id, country.Name, territorialUnitId, unit.Name);
     }
 }

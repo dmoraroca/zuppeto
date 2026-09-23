@@ -12,7 +12,9 @@ public sealed record AdminUserListItemDto(
     bool PrivacyAccepted,
     DateTimeOffset? PrivacyAcceptedAtUtc,
     DateTimeOffset CreatedAtUtc,
-    DateTimeOffset? LastAccessedAtUtc);
+    DateTimeOffset? LastAccessedAtUtc,
+    Guid? CountryId = null,
+    Guid? TerritorialUnitId = null);
 
 public sealed record CreateAdminUserRequest(
     string Email,
@@ -22,7 +24,9 @@ public sealed record CreateAdminUserRequest(
     string DisplayName,
     string City,
     string Country,
-    string? AvatarUrl);
+    string? AvatarUrl,
+    Guid? CountryId = null,
+    Guid? TerritorialUnitId = null);
 
 public sealed record UpdateUserRoleRequest(string Role);
 
@@ -32,7 +36,9 @@ public sealed record UpdateAdminUserRequest(
     string City,
     string Country,
     string Comments,
-    string? AvatarUrl);
+    string? AvatarUrl,
+    Guid? CountryId = null,
+    Guid? TerritorialUnitId = null);
 
 /// <summary>
 /// Admin sets the account login password. Confirm is validation-only; the new value is stored as <c>password_hash</c>.

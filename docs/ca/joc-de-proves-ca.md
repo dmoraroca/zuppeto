@@ -1,6 +1,6 @@
 # Joc de proves (CA)
 
-**Iteració 6 — Fase VI:** la Gestió Territorial ADMIN afegeix proves backend del contracte administratiu, 60/60 proves backend, 49/49 proves Angular, 54/54 proves del runner i els escenaris sintètics ZUP-154–160 en Chrome (7/7 PASS). Es cobreixen format/mida, metadata, mapping versionat, Unicode, paginació, accés exclusiu Admin, wizard, validació bloquejant, ChangeSet, publicació confirmada, historial i recuperació per URL. Cap prova publica datasets oficials.
+**Iteració 6 — Fase VI:** la Gestió Territorial ADMIN afegeix proves backend del contracte administratiu, 69/69 proves backend, 61/61 proves Angular, 55/55 proves del runner i els escenaris sintètics ZUP-154–160 en Chrome (7/7 PASS). Es cobreixen format/mida, metadata, mapping versionat, Unicode, paginació, accés exclusiu Admin, wizard, validació bloquejant, ChangeSet, publicació confirmada, historial i recuperació per URL. ZUP-160 també passa 1/1 sobre el recorregut real Angular → API → EF → PostgreSQL. Cap prova publica datasets oficials.
 
 ## 1. Objectiu
 
@@ -36,7 +36,7 @@ Format recomanat d'execucio:
 
 ## 4. Joc de proves actual
 
-**Iteració 6 — Fase V completada / validada:** el nucli territorial, la persistència i el motor d'importació disposen de 53/53 proves backend en PASS. La cobertura afegida inclou màquina d'estats, reader XLSX, mapping i zeros inicials, consolidació, staging JSONB, validació de tipus/pares/cicles/locales/coordenades/codis, FullSnapshot/Delta, protecció d'inactivacions massives, ChangeSet, autorització ADMIN, cancel·lació, publicació PostgreSQL transaccional, idempotència, font aprovada, concurrència optimista i reversió de l'última publicació. Els XLSX reals d'Espanya i Alemanya es llegeixen i canonicalitzen en proves controlades; no es publiquen al catàleg operatiu. El cicle de migració de Fase V `Up → Down → Up` ha passat. Backfill, API, UI ADMIN i selector continuen pendents; el baseline actual de City/GeoNames es conserva.
+**Iteració 6 — Fase V completada / validada (estat en tancar aquella fase):** el nucli territorial, la persistència i el motor d'importació disposaven de 53/53 proves backend en PASS. La cobertura afegida inclou màquina d'estats, reader XLSX, mapping i zeros inicials, consolidació, staging JSONB, validació de tipus/pares/cicles/locales/coordenades/codis, FullSnapshot/Delta, protecció d'inactivacions massives, ChangeSet, autorització ADMIN, cancel·lació, publicació PostgreSQL transaccional, idempotència, font aprovada, concurrència optimista i reversió de l'última publicació. Els XLSX reals d'Espanya i Alemanya es llegeixen i canonicalitzen en proves controlades; no es publiquen al catàleg operatiu. El cicle de migració de Fase V `Up → Down → Up` va passar. En aquell moment backfill, API, UI ADMIN i selector continuaven pendents; les implementacions posteriors consten al bloc de Fase VI.
 
 ### 4.1 Autenticacio
 
@@ -280,4 +280,4 @@ L'historic d'execucions automatitzades es guarda a `docs/probes-e2e-resultats/` 
 
 Es cobreixen previews minimitzat/canonical, catàleg i detall, manteniment auditat, conflicte d’override, validació Country/TerritorialUnit, selector Angular dependent, Unicode, homònims, seguretat Admin i migracions Up → Down segur → Up.
 
-Resultat: backend 68/68, Angular 51/51, runner 54/54 i Chrome territorial 7/7.
+Resultat automàtic final del refinament: backend 69/69, PostgreSQL territorial 3/3, Angular 61/61, runner 55/55, build .NET i Angular PASS i model EF sense canvis pendents. Chrome territorial simulat 7/7 (`sim-20260923T194508457Z-a2a4fafd`) i Chrome ZUP-160 real 1/1 (`sim-20260923T202548369Z-35b2d77c`). Les proves Angular cobreixen disabled/habilitat, debounce, resultats, selecció, reset, resposta obsoleta, buit, error, Unicode, homònims i teclat. La prova real recorre tots els consumidors visibles; a Llocs i Favorits comprova amplada completa, alçades equivalents, repartiment 3/12–2/12–3/12–2/12–2/12, absència de solapaments i overflow, dues columnes a 900 px i una a 600 px. Queda pendent la validació manual final.

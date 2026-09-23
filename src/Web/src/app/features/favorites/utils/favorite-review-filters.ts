@@ -17,6 +17,8 @@ export function toPlaceFilters(filters: FavoriteReviewFilters): PlaceFilters {
     search: filters.search,
     country: filters.country,
     city: filters.city,
+    countryId: filters.countryId,
+    territorialUnitId: filters.territorialUnitId,
     type: filters.type,
     pet: filters.pet
   };

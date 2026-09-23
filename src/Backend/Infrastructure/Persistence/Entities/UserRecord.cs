@@ -18,6 +18,10 @@ public sealed class UserRecord
 
     public string? Country { get; set; }
 
+    public Guid? TerritorialCountryId { get; set; }
+
+    public CountryRecord? TerritorialCountry { get; set; }
+
     public Guid? TerritorialUnitId { get; set; }
 
     public TerritorialUnitRecord? TerritorialUnit { get; set; }

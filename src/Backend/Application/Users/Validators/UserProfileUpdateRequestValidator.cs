@@ -45,6 +45,11 @@ public sealed class UserProfileUpdateRequestValidator : IValidator<UserProfileUp
             result.Add(nameof(request.PrivacyAcceptedAtUtc), "Cal la data d’acceptació de privacitat.");
         }
 
+        if ((request.CountryId is null) != (request.TerritorialUnitId is null))
+        {
+            result.Add(nameof(request.TerritorialUnitId), "El país i la localitat territorial s’han d’informar conjuntament.");
+        }
+
         return result;
     }
 }

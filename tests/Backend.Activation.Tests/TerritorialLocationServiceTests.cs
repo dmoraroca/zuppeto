@@ -54,14 +54,14 @@ public sealed class TerritorialLocationServiceTests
             Task.FromResult(new PageResult<TerritorialLocalityOptionDto>(
                 [new(locality, country, "München", "Bayern · Deutschland", "de-DE")], page, pageSize, 1));
 
-        public Task ValidateSelectionAsync(Guid countryId, Guid territorialUnitId, CancellationToken cancellationToken = default) =>
+        public Task<TerritorialLocationSelectionDto> ResolveSelectionAsync(Guid countryId, Guid territorialUnitId, CancellationToken cancellationToken = default) =>
             failure switch
             {
                 Failure.CountryMissing or Failure.LocalityMissing => throw new KeyNotFoundException(),
                 Failure.OtherCountry => throw new InvalidOperationException("La localitat no pertany al país indicat."),
                 Failure.Inactive => throw new InvalidOperationException("La localitat està inactiva."),
                 Failure.NotSelectable => throw new InvalidOperationException("La unitat territorial no és una localitat seleccionable."),
-                _ => Task.CompletedTask
+                _ => Task.FromResult(new TerritorialLocationSelectionDto(country, "Deutschland", locality, "München"))
             };
     }
 }

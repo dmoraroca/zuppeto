@@ -169,14 +169,14 @@
                 }
               </select>
             </label>
-            <label>
-              <span>Ciutat <strong class="form-field-required" aria-hidden="true">*</strong></span>
-              <input placeholder="Ciutat" formControlName="city" [maxlength]="dbMax.userCity" required />
-            </label>
-            <label>
-              <span>País <strong class="form-field-required" aria-hidden="true">*</strong></span>
-              <input placeholder="País" formControlName="country" [maxlength]="dbMax.userCountry" required />
-            </label>
+            <app-territorial-location-selector
+              class="admin-console-form--full"
+              [countryId]="userForm.controls.countryId.value"
+              [localityId]="userForm.controls.territorialUnitId.value"
+              [legacyCountry]="userForm.controls.country.value"
+              [legacyLocality]="userForm.controls.city.value"
+              (selectionChange)="onCreateUserTerritorialSelection($event)"
+            />
             <div class="admin-console-form__password-pair">
               <app-password-field
                 label="Contrasenya"
@@ -286,22 +286,19 @@
                   <input class="admin-console-static-field" [value]="user.displayName" readonly />
                 }
               </label>
-              <label>
-                <span>Ciutat <strong class="form-field-required" aria-hidden="true">*</strong></span>
-                @if (detailEditMode()) {
-                  <input formControlName="city" [maxlength]="dbMax.userCity" aria-required="true" />
-                } @else {
-                  <input class="admin-console-static-field" [value]="user.city || '-'" readonly />
-                }
-              </label>
-              <label>
-                <span>País <strong class="form-field-required" aria-hidden="true">*</strong></span>
-                @if (detailEditMode()) {
-                  <input formControlName="country" [maxlength]="dbMax.userCountry" aria-required="true" />
-                } @else {
-                  <input class="admin-console-static-field" [value]="user.country || '-'" readonly />
-                }
-              </label>
+              @if (detailEditMode()) {
+                <app-territorial-location-selector
+                  class="admin-console-form--full"
+                  [countryId]="detailForm.controls.countryId.value"
+                  [localityId]="detailForm.controls.territorialUnitId.value"
+                  [legacyCountry]="detailForm.controls.country.value"
+                  [legacyLocality]="detailForm.controls.city.value"
+                  (selectionChange)="onDetailUserTerritorialSelection($event)"
+                />
+              } @else {
+                <label><span>Ciutat</span><input class="admin-console-static-field" [value]="user.city || '-'" readonly /></label>
+                <label><span>País</span><input class="admin-console-static-field" [value]="user.country || '-'" readonly /></label>
+              }
               <label>
                 <span>Consentiment</span>
                 <input [value]="user.privacyAccepted ? 'Sí' : 'No'" readonly />
@@ -1715,33 +1712,15 @@
                 }
               </select>
             </label>
-            <label>
-              <span>País <strong class="form-field-required" aria-hidden="true">*</strong></span>
-              <select
-                [disabled]="!placeIsNew() && !placeDetailEditMode()"
-                [required]="placeIsNew() || placeDetailEditMode()"
-                [ngModel]="editablePlace().countrySelectValue"
-                (ngModelChange)="onPlaceCountryChange($event)"
-              >
-                <option value="">Selecciona</option>
-                @for (opt of placeCountrySelectOptions(); track opt.value) {
-                  <option [value]="opt.value">{{ opt.label }}</option>
-                }
-              </select>
-            </label>
-            <label>
-              <span>Ciutat <strong class="form-field-required" aria-hidden="true">*</strong></span>
-              <select
-                [disabled]="(!placeIsNew() && !placeDetailEditMode()) || !editablePlace().countrySelectValue"
-                [ngModel]="editablePlace().city"
-                (ngModelChange)="onPlaceCityChange($event)"
-              >
-                <option value="">Selecciona</option>
-                @for (opt of placeCitySelectOptions(); track opt.value) {
-                  <option [value]="opt.value">{{ opt.label }}</option>
-                }
-              </select>
-            </label>
+            <app-territorial-location-selector
+              class="admin-console-form--full"
+              [disabled]="!placeIsNew() && !placeDetailEditMode()"
+              [countryId]="editablePlace().countryId"
+              [localityId]="editablePlace().territorialUnitId"
+              [legacyCountry]="editablePlace().country"
+              [legacyLocality]="editablePlace().city"
+              (selectionChange)="onPlaceTerritorialSelection($event)"
+            />
             <label><span>Adreça <strong class="form-field-required" aria-hidden="true">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().addressLine1" (ngModelChange)="editablePlace.set({ ...editablePlace(), addressLine1: $event })" [maxlength]="dbMax.placeAddress" /></label>
             <label><span>Barri</span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().neighborhood" (ngModelChange)="editablePlace.set({ ...editablePlace(), neighborhood: $event })" [maxlength]="dbMax.placeNeighborhood" /></label>
             <label><span>Latitud <strong class="form-field-required" aria-hidden="true">*</strong></span><input type="text" inputmode="decimal" autocomplete="off" spellcheck="false" [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().latitude" (ngModelChange)="onPlaceLatitudeInput($event)" (keydown)="onCoordinateKeydown($event)" (blur)="onPlaceLatitudeBlur()" placeholder="p. ex. 41.387" /></label>

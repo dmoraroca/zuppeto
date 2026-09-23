@@ -1,11 +1,19 @@
 .place-filters {
   display: grid;
-  grid-template-columns: minmax(14rem, 1.4fr) repeat(4, minmax(9rem, 1fr));
+  grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: 1rem;
   padding: 1rem;
   border-radius: 1.5rem;
   background: rgba(255, 255, 255, 0.88);
   border: 1px solid rgba(209, 213, 219, 0.75);
+}
+
+.place-filters__search {
+  grid-column: span 3;
+}
+
+.place-filters__standard {
+  grid-column: span 2;
 }
 
 .place-filters label {
@@ -39,13 +47,18 @@
   cursor: pointer;
 }
 
-@media (max-width: 760px) {
+@media (max-width: 1100px) {
   .place-filters {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .place-filters__search,
+  .place-filters__standard {
+    grid-column: auto;
+  }
 }
 
-@media (max-width: 540px) {
+@media (max-width: 640px) {
   .place-filters {
     grid-template-columns: 1fr;
     padding: 0.9rem;

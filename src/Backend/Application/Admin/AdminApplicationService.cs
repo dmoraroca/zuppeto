@@ -47,7 +47,9 @@ internal sealed class AdminApplicationService(
                 user.PrivacyConsent.Accepted,
                 user.PrivacyConsent.AcceptedAtUtc,
                 user.CreatedAtUtc,
-                user.LastAccessedAtUtc))
+                user.LastAccessedAtUtc,
+                user.TerritorialCountryId,
+                user.TerritorialUnitId))
             .ToArray();
     }
 

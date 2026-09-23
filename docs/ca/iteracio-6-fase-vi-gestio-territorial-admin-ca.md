@@ -2,7 +2,7 @@
 
 ## Estat
 
-**FASE VI COMPLETADA DEFINITIVAMENT / VALIDADA. FASE VII SEGÜENT.**
+**FASE VI EN CURS. PENDENT DE VALIDACIÓ MANUAL FINAL. FASE VII NO INICIADA.**
 
 La revisió del repositori va confirmar que la Fase VI era compatible amb el contracte territorial i el motor de Fase V. No s’ha canviat el contracte funcional ni s’ha duplicat el pipeline: la UI governa TerritorialImportService, els mappings, la validació, el ChangeSet, la publicació i la reversió existents.
 
@@ -73,13 +73,15 @@ La importació es recupera pel seu identificador; refrescar o tornar més tard n
 - Backend: inspecció, metadata/checksum, format i mida, autorització no-Admin, mapping immutable versionat, Unicode i paginació.
 - Angular: fitxer vàlid/invàlid, mapping compost i de pare, agrupació de projeccions i validació de camps obligatoris.
 - E2E: ZUP-154 a ZUP-160, amb accés Admin, denegació UI/API a User, upload invàlid, flux sintètic fins a ChangeSet, error bloquejant, publicació confirmada i recuperació per historial/URL.
+- E2E real focalitzat: ZUP-160 pot executar Angular → API → Application → EF → PostgreSQL amb fixtures sintètiques controlades; comprova catàleg, cerca, detall, manteniment, auditoria i persistència de la selecció territorial.
 - Les fixtures E2E són sintètiques. No depenen dels XLSX oficials d’Espanya o Alemanya.
 
 ## Límits preservats
 
 - No s’ha publicat cap dataset oficial real.
 - No s’ha fet backfill de User o Place.
-- City, GeoNames i snapshots textuals continuen preservats. La nova API i el selector compartit Country → TerritorialUnit queden preparats; la substitució dels fluxos User/Place espera dades publicades i el backfill de Fase VIII.
+- `User` i `Place` disposen de FK nullable de país i unitat territorial. Els fluxos nous usen el selector compartit i el backend deriva els snapshots oficials; els registres històrics sense FK continuen vàlids.
+- City, GeoNames i snapshots textuals continuen preservats com a compatibilitat explícita fins a la publicació i el backfill governats.
 - La primera importació real continua reservada a la Fase VII.
 
 ## Conceptes i política final
@@ -93,6 +95,8 @@ La importació es recupera pel seu identificador; refrescar o tornar més tard n
 - **Override manual:** decisió Admin auditada que una nova importació no pot sobreescriure silenciosament.
 - **País → Localitat:** tota nova selecció territorial usa una parella coherent validada pel backend.
 
+La UI final de selecció territorial té dos conceptes i només dos controls: País i un únic autocomplete asíncron de Localitat. El component compartit aplica debounce de 300 ms, ignora respostes obsoletes amb `switchMap`, presenta loading/buit/error al desplegable i permet fletxes, Enter i Escape. Els resultats mostren nom i context jeràrquic per distingir homònims. Canviar país elimina selecció, consulta i resultats. Els botons generals `Cercar` de Llocs, Favorits i explorador es mantenen; només ha desaparegut el botó intern de Localitat. Cap pantalla mostra textos de compatibilitat City/GeoNames. Als blocs de filtres, Cerca i Localitat disposen de més amplada relativa, País no queda reduït a una columna mínima i tots els controls ocupen el 100% de la seva columna; el grid passa de la fila ampla a dues columnes i finalment a una columna a 600 px.
+
 La checklist global i els pendents justificats són a [Inventari País → Localitat](iteracio-6-inventari-pais-localitat-ca.md).
 
 ## BBDD i deploy
@@ -101,9 +105,14 @@ La font de veritat és model EF Core + migracions. S’ha validat una instal·la
 
 ## Gates finals del refinament
 
-- backend: 68/68;
-- Angular: 51/51;
-- runner E2E: 54/54;
-- Chrome territorial ZUP-154–160: 7/7 PASS, run `sim-20260923T104434463Z-69afa70a`;
+- backend: 69/69, incloses proves amb PostgreSQL real;
+- Angular: 61/61;
+- runner E2E: 55/55;
+- Chrome territorial ZUP-154–160: 7/7 PASS, run final `sim-20260923T194508457Z-a2a4fafd`;
+- Chrome ZUP-160 real: 1/1 PASS, incloent Perfil, Llocs, Favorits, ADMIN User, ADMIN Place i explorador públic amb el mateix autocomplete, més validació del grid de filtres a 1280, 900 i 600 px, run `sim-20260923T202548369Z-35b2d77c`;
 - altres navegadors: PENDENT segons l’estratègia vigent;
 - cap dataset oficial publicat i cap backfill real.
+
+El catàleg final concentra els filtres, mostra codi, nom, tipus, país, pare, locale, coordenades, estat i seleccionabilitat, i conserva pàgina i filtres en tancar el detall. El modal ocupa fins al 90% de l’amplada i el 88% de l’alçada útil, retorna el focus a l’origen i presenta sis pestanyes. Activar/desactivar, canviar seleccionabilitat i corregir coordenades obren diàlegs independents amb motiu obligatori de 3–500 caràcters; cada diàleg contextual ofereix únicament `Cancel·lar` i l’acció principal. `Cancel·lar` torna al detall sense emetre cap ordre, mentre que el modal gran conserva `Tancar` per tornar al catàleg. Els errors funcionals del backend es mostren sense mocks.
+
+La implementació i els gates automàtics no equivalen al tancament definitiu: queda pendent la validació manual final.

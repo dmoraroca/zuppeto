@@ -10,7 +10,7 @@ El focus funcional actual es:
 - descoberta de llocs pet-friendly
 - navegacio clara entre portada, resultats, detall i favorits
 - filtratge per ciutat, tipus, mascota i text de cerca
-- catàleg territorial propi europeu, multicultural i multilingüe de la Iteració 6 (vegeu 3.14, 3.15 i **3.15.1**); nucli, persistència i motor d'importació implementats, amb UI/API, primera publicació i backfill encara pendents
+- catàleg territorial propi europeu, multicultural i multilingüe de la Iteració 6 (vegeu 3.14, 3.15 i **3.15.1**); nucli, persistència, motor, UI ADMIN, API i selector compartit implementats, amb primera publicació i backfill encara pendents
 - suport de mapa dins la feature `places` en mode mixt amb llistat sincronitzat
 - dades reals per `places`, `favorites` i manteniment de `perfil`
 - transicio controlada entre serveis locals i API sense reescriure pantalles
@@ -649,13 +649,13 @@ Per tant, dins `admin/usuaris`, no s'han de poder modificar manualment les metad
 
 Estat territorial del manteniment d'usuaris:
 
-- **ACTUAL:** `ciutat` i `pais` són strings editables i persistits sense FK al catàleg. El catàleg `countries/cities`, l'autocomplete de Places i GeoNames existeixen, però encara no imposen una identitat territorial única a Perfil o Admin Usuaris.
-- **OBJECTIU DE LA ITERACIÓ 6, PENDENT D'IMPLEMENTAR:** la localització ha de provenir del catàleg territorial propi alimentat per fonts oficials verificades, no d'inferència lliure ni d'una generació d'IA.
+- **ACTUAL:** `User` i `Place` admeten `CountryId + TerritorialUnitId` nullable i conserven els snapshots `ciutat/pais`. Una selecció nova es valida al backend i els textos es deriven del catàleg; els històrics sense FK continuen vàlids.
+- **OBJECTIU IMPLEMENTAT A FASE VI:** la localització nova prové del catàleg territorial propi, no d'inferència lliure ni d'una generació d'IA.
 - GeoNames és una dependència actual en revisió. Ja no es defineix com la font funcional definitiva ni es garanteix l'antiga alta lazy.
-- El futur selector mostrarà noms oficials/localitzats, país i, quan calgui, context administratiu suficient per desambiguar. La selecció retornarà un identificador estable i sincronitzarà la resta del context territorial.
+- El selector compartit mostra noms oficials/localitzats, país i context administratiu per desambiguar. Retorna identificadors estables, desactiva localitat sense país i la reinicia quan el país canvia.
 - Les coordenades del territori i les coordenades exactes d'un lloc són conceptes diferents; tota coordenada importada haurà de conservar procedència i llicència.
 - L'abast objectiu inicial és UE‑27, Noruega, Islàndia, Liechtenstein, Suïssa, Andorra, Mònaco, San Marino i Vaticà. Futures ampliacions europees no han d'exigir redissenyar la base.
-- Fins que les Iteracions 6–8 implementin i migrin el nou contracte, els fluxos actuals continuen funcionant amb strings i suggeriments existents. No s'ha de documentar la integritat territorial com si ja estigués garantida.
+- Fins que les Fases VII–VIII publiquin dades oficials i completin el backfill, els fluxos preserven strings i suggeriments existents com a fallback explícit. La integritat queda garantida per a les noves seleccions per IDs, no per als històrics encara no migrats.
 
 Flux administratiu actual ja visible:
 
@@ -1002,7 +1002,7 @@ La geografia del producte no s'ha de deixar a text lliure ni a resolucio ad hoc 
 
 ### 3.15.1 Iteració 6 — Remodelació territorial europea multicultural i multilingüe
 
-**Estat global: FASE VI COMPLETADA DEFINITIVAMENT.** Les subfases 0–VI estan completades; la subfase VII és la següent i les subfases VIII–IX continuen pendents.
+**Estat global: FASE VI EN CURS, PENDENT DE VALIDACIÓ MANUAL FINAL.** VI.24-A (manteniment auditat) està validada i la selecció País → Localitat s’ha refinat transversalment. La Fase VII no s’ha iniciat i les subfases VIII–IX continuen pendents.
 
 El contracte funcional detallat i oficial de la Iteració 6 és [Iteració 6 — Contracte funcional del model territorial](iteracio-6-model-territorial-ca.md). Aquest document general en conserva el resum, l'abast i els criteris d'alt nivell; en cas de detall territorial, s'ha de consultar el contracte específic.
 
@@ -1074,11 +1074,11 @@ La publicació és atòmica, registra un ChangeSet i no efectua baixes físiques
 
 ### 3.15.6 User, Place i límit amb les Iteracions 7 i 8
 
-La migració territorial serà additiva. User i Place podran rebre una referència territorial nullable, però conservaran els camps textuals city/country. El backfill només vincularà automàticament casos inequívocs; els ambigus o no resolts conservaran la FK nul·la i els textos originals.
+La migració territorial és additiva. User i Place ja tenen referències nullable de país i unitat territorial i conserven els camps textuals city/country. El backfill només vincularà automàticament casos inequívocs; els ambigus o no resolts conservaran la FK nul·la i els textos originals.
 
 Una unitat inactivada pot conservar referències existents, però no admet noves seleccions.
 
-La Iteració 6 construeix i alimenta el catàleg. La Iteració 7 continua en revisió per adaptar l'API pròpia i les dependències actuals de GeoNames. La Iteració 8 continua planificada per al selector territorial compartit. GeoNames no s'eliminarà abans que la substitució estigui implementada i validada.
+La Iteració 6 construeix el catàleg i ja adapta l’API pròpia i el selector compartit als identificadors territorials. La Fase VII farà la primera importació real validada i la Fase VIII governarà el backfill. GeoNames no s'eliminarà abans que la substitució disposi de dades publicades i quedi validada.
 
 ### 3.15.7 Pla de subfases
 
@@ -1090,7 +1090,7 @@ La Iteració 6 construeix i alimenta el catàleg. La Iteració 7 continua en rev
 | III | Disseny funcional i model territorial | **COMPLETADA / READY FOR IMPLEMENTATION** |
 | IV | Migració EF Core / PostgreSQL | **COMPLETADA / VALIDADA** |
 | V | Motor genèric d'importació | **COMPLETADA / VALIDADA** |
-| VI | Gestió Territorial ADMIN | **COMPLETADA / VALIDADA** |
+| VI | Gestió Territorial ADMIN | **EN CURS / PENDENT VALIDACIÓ MANUAL FINAL** |
 | VII | Primera importació real i validació | **PENDENT** |
 | VIII | Backfill de les dades actuals | **PENDENT** |
 | IX | Regressió i tancament | **PENDENT** |
@@ -1175,7 +1175,7 @@ Per evitar cost i latència repetida, cada consulta funcional s'ha de poder guar
 5. `hotel`
 6. `apartment`
 
-Aquestes tipologies són **tancades de producte** (no hi ha manteniment de tipus). A l’alta/edició de lloc (`/admin/llocs`) es trien amb **desplegable**, no amb text lliure. **País** va primer i **ciutat** depenent: tots dos són combo (catàleg Zuppeto ∪ GeoNames); triar un país omple les ciutats d’aquell país. La **descripció curta**, la **descripció**, la **imatge de portada**, el **barri**, el **preu** i la **política de mascotes** (frase) són opcionals. Les etiquetes del formulari són en català (imatge de portada, etiquetes, característiques, valoració, ressenyes). Un lloc **nou** no demana Place ID de Google ni activa la caché de 30 dies; això només aplica si el local té Place ID.
+Aquestes tipologies són **tancades de producte** (no hi ha manteniment de tipus). A l’alta/edició de lloc (`/admin/llocs`) es trien amb **desplegable**, no amb text lliure. **País** va primer i **localitat** depenent mitjançant el selector territorial compartit per IDs; City/GeoNames queda en un fallback de compatibilitat explícit mentre no hi hagi dades oficials publicades. La **descripció curta**, la **descripció**, la **imatge de portada**, el **barri**, el **preu** i la **política de mascotes** (frase) són opcionals. Les etiquetes del formulari són en català (imatge de portada, etiquetes, característiques, valoració, ressenyes). Un lloc **nou** no demana Place ID de Google ni activa la caché de 30 dies; això només aplica si el local té Place ID.
 
 **Dades mínimes del local (v1 aprovada)**
 
@@ -1340,11 +1340,13 @@ Per tant, l'estat oficial actual és de **5 punts 🔴, 12 punts 🟠, 4 punts �
 
 #### 3.18.5 Bloc B — Territori
 
-**6. Remodelació territorial europea multicultural/multilingüe — FASE VI COMPLETADA DEFINITIVAMENT.** Les subfases 0–VI estan completades; la subfase VII és la següent i les subfases VIII–IX estan pendents. El nucli, el motor, Data Preview, Catàleg, manteniment auditat i País → Localitat estan implementats sense publicar datasets reals ni fer backfill. El contracte i els límits es defineixen al [contracte funcional territorial](iteracio-6-model-territorial-ca.md).
+**6. Remodelació territorial europea multicultural/multilingüe — FASE VI EN CURS / PENDENT VALIDACIÓ MANUAL FINAL.** El nucli, el motor, Data Preview, Catàleg, manteniment auditat i País → Localitat estan implementats. El catàleg presenta filtres compactes, taula completa i detall modal amb pestanyes i operacions contextuals; les pantalles consumidores comparteixen un únic autocomplete asíncron de Localitat. No s’han publicat datasets reals ni s’ha fet backfill. La Fase VII no s’ha iniciat. El contracte i els límits es defineixen al [contracte funcional territorial](iteracio-6-model-territorial-ca.md).
 
-**7. API territorial sobre catàleg propi — IMPLEMENTADA COM A BASE.** Ja consulta `Country + TerritorialUnit` i valida la parella. La substitució del runtime textual espera la publicació real de Fase VII; GeoNames encara no s’elimina.
+**7. API territorial sobre catàleg propi — IMPLEMENTADA.** Consulta `Country + TerritorialUnit`, valida la parella i integra `User`, `Place` i els filtres amb IDs. Els snapshots textuals i GeoNames encara no s’eliminen.
 
-**8. Selector territorial compartit sobre API pròpia — COMPONENT IMPLEMENTAT / MIGRACIÓ PROGRESSIVA.** El component Country → TerritorialUnit, reset, loading, errors i accessibilitat existeix. Les pantalles User/Place mantenen snapshots fins a Fase VIII i els filtres Places esperen dades publicades de Fase VII, segons l’inventari.
+**8. Selector territorial compartit sobre API pròpia — IMPLEMENTAT I INTEGRAT.** El component mostra un `select` de País i un únic combobox/autocomplete asíncron de Localitat; no hi ha input, botó intern `Cercar` i segon `select` per a la mateixa propietat. Sense país queda deshabilitat; amb país aplica debounce, loading, buit, error i cancel·lació/ignoració de respostes antigues. Els homònims mostren context jeràrquic, i fletxes, Enter i Escape són operatius. Perfil, Admin Usuaris, Admin Llocs, Llocs, Favorits i explorador públic reutilitzen exactament el mateix component. City/GeoNames i els snapshots es preserven internament fins a Fase VIII, però aquesta transició no es mostra a l’usuari.
+
+**8.1. Layout dels filtres territorials — IMPLEMENTAT, PENDENT DE VALIDACIÓ MANUAL FINAL.** A Llocs i Favorits, Cerca i Localitat reben més amplada relativa; País, Tipus i Mascota mantenen una amplada útil i tots els controls ocupen el 100% de la columna. En desktop ample comparteixen fila, a amplada intermèdia es distribueixen en dues columnes i a 600 px passen a una columna, sense solapaments ni overflow horitzontal. El mapa públic sense sessió no es redissenya en aquesta fase i queda registrat al roadmap de Millores.
 
 #### 3.18.6 Bloc C — Core Places
 
@@ -2108,4 +2110,4 @@ La gestió Admin separa Nova importació, Historial i Catàleg territorial. Data
 
 Activar, desactivar, canviar seleccionabilitat o coordenades exigeix operació explícita, motiu i auditoria. Codis, noms i jerarquia oficials no tenen edició directa.
 
-Una nova localitat requereix país. Sense país queda deshabilitada; canviar país la neteja. Només es retornen unitats actives i seleccionables, amb validació backend. La transició de pantalles existents és a [Inventari País → Localitat](iteracio-6-inventari-pais-localitat-ca.md). User/Place conserven snapshots fins a Fase VIII; City i GeoNames no s’eliminen.
+Una nova localitat requereix país. Sense país, l’únic autocomplete de Localitat queda deshabilitat amb `Selecciona primer un país`; amb país mostra `Cerca una localitat`. Canviar país neteja selecció, text, resultats i cerques anteriors. Només es retornen unitats actives i seleccionables del país, amb validació backend. La transició de pantalles existents és a [Inventari País → Localitat](iteracio-6-inventari-pais-localitat-ca.md). User/Place conserven snapshots fins a Fase VIII; City i GeoNames no s’eliminen, però no exposen terminologia tècnica a la UI.

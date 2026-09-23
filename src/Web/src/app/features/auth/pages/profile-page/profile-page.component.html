@@ -136,17 +136,14 @@
           <p class="profile-form__hint">Aquest compte usa un accés federat. No té ni necessita una contrasenya local de Zuppeto.</p>
         }
 
-        <div class="profile-form__grid">
-          <label class="profile-form__field">
-            <span>Ciutat <strong class="form-field-required" aria-hidden="true">*</strong></span>
-            <input type="text" formControlName="city" [maxlength]="dbMax.userCity" aria-required="true" />
-          </label>
-
-          <label class="profile-form__field">
-            <span>País <strong class="form-field-required" aria-hidden="true">*</strong></span>
-            <input type="text" formControlName="country" [maxlength]="dbMax.userCountry" aria-required="true" />
-          </label>
-        </div>
+        <app-territorial-location-selector
+          [countryId]="form.controls.countryId.value"
+          [localityId]="form.controls.territorialUnitId.value"
+          [legacyCountry]="form.controls.country.value"
+          [legacyLocality]="form.controls.city.value"
+          [required]="true"
+          (selectionChange)="onTerritorialSelection($event)"
+        />
 
         <label class="profile-form__field">
           <span>Imatge de perfil</span>

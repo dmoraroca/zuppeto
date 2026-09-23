@@ -7,15 +7,27 @@ No substitueix `docs/project-phases.md` ni el joc de proves Excel: aquí només 
 
 ---
 
+## 2026-09-23 — Explorador/mapa públic sense sessió
+
+**Àmbit:** explorador i mapa públic sense sessió.
+
+**Millora:** revisar al final de les iteracions funcionals la seva utilitat i decidir si es manté, es redissenya, se substitueix o s’elimina.
+
+**Estat:** pendent; decisió ajornada explícitament a la fase/iteració final de Millores. No redissenyar-lo dins la Fase VI.
+
+---
+
 ## 2026-09-09 22:45 CEST
 
 **Àmbit:** Login · mapa i selectors geogràfics
 
 **Què es veu:** el selector geogràfic associat al mapa del login no segueix la mateixa disposició que la pantalla Llocs. A Llocs, `País` apareix al costat de `Ciutat`, però al login no es presenta igual.
 
-**Millora (interessant, no ara):** unificar el selector geogràfic del login amb el de Llocs, mostrant `País` al costat de `Ciutat` i reutilitzant el mateix component o una base compartida per evitar diferències de comportament, dades i disseny. Revisar abans si actualment són components diferents o configuracions diferents del mateix component. **No implementar ara.**
+**Millora:** unificar el selector geogràfic del login amb el de Llocs, mostrant `País` al costat de `Localitat` i reutilitzant el selector territorial compartit.
 
-**Estat:** pendent; implementar després de finalitzar les proves manuals.
+**Estat:** **FET (2026-09-23)** dins la Fase VI territorial. Els dos fluxos comparteixen el contracte per IDs; City/GeoNames només resta com a fallback transitori explícit.
+
+El refinament visual del catàleg territorial també està implementat: filtres compactes, taula completa, detall modal ampli, pestanyes funcionals, badges, jerarquia navegable, auditoria llegible i diàlegs contextuals separats. El selector País → Localitat usa ara un únic autocomplete asíncron compartit; el grid de Llocs i Favorits ja s’ha equilibrat i resta pendent de validació manual final. No és una millora ajornada ni inicia la Fase VII.
 
 ---
 

@@ -27,7 +27,9 @@ public sealed class User : AggregateRoot<Guid>
         string? pendingTotpSecretProtected = null,
         DateTimeOffset? pendingTotpExpiresAtUtc = null,
         DateTimeOffset? totpEnabledAtUtc = null,
-        long? lastTotpTimeStepUsed = null) : base(id)
+        long? lastTotpTimeStepUsed = null,
+        Guid? territorialCountryId = null,
+        Guid? territorialUnitId = null) : base(id)
     {
         SetEmail(email);
         if (!string.IsNullOrWhiteSpace(passwordHash)) SetPasswordHash(passwordHash);
@@ -49,6 +51,7 @@ public sealed class User : AggregateRoot<Guid>
         PendingTotpExpiresAtUtc = pendingTotpExpiresAtUtc;
         TotpEnabledAtUtc = totpEnabledAtUtc;
         LastTotpTimeStepUsed = lastTotpTimeStepUsed;
+        SetTerritorialLocation(territorialCountryId, territorialUnitId);
     }
 
     public string Email { get; private set; } = string.Empty;
@@ -90,6 +93,16 @@ public sealed class User : AggregateRoot<Guid>
     public DateTimeOffset? TotpEnabledAtUtc { get; private set; }
     public long? LastTotpTimeStepUsed { get; private set; }
     public bool IsTotpEnabled => !string.IsNullOrWhiteSpace(TotpSecretProtected) && TotpEnabledAtUtc is not null;
+    public Guid? TerritorialCountryId { get; private set; }
+    public Guid? TerritorialUnitId { get; private set; }
+
+    public void SetTerritorialLocation(Guid? countryId, Guid? territorialUnitId)
+    {
+        if ((countryId is null) != (territorialUnitId is null))
+            throw new DomainRuleException("El país i la localitat territorial s'han d'informar conjuntament.");
+        TerritorialCountryId = countryId;
+        TerritorialUnitId = territorialUnitId;
+    }
 
     public void StartTotpSetup(string protectedSecret, DateTimeOffset expiresAtUtc)
     {

@@ -115,7 +115,7 @@ export class AuthService {
     try {
       await firstValueFrom(this.http.post(`${API_BASE_URL}/users`, {
         email: input.email.trim(), passwordHash: input.password, role: 'User', displayName: input.displayName.trim(),
-        city: '', country: '', comments: '', avatarUrl: null, privacyAccepted: true,
+        city: '', country: '', countryId: null, territorialUnitId: null, comments: '', avatarUrl: null, privacyAccepted: true,
         privacyAcceptedAtUtc: new Date().toISOString()
       }));
       return true;
@@ -262,6 +262,8 @@ export class AuthService {
         displayName: update.name,
         city: update.city,
         country: update.country,
+        countryId: update.countryId,
+        territorialUnitId: update.territorialUnitId,
         comments: update.comments,
         avatarUrl: update.avatarUrl,
         privacyAccepted: update.privacyAccepted,
@@ -518,6 +520,8 @@ export class AuthService {
         displayName: this.readUserField(user, 'displayName', 'DisplayName') ?? '',
         city: this.readUserField(user, 'city', 'City') ?? '',
         country: this.readUserField(user, 'country', 'Country') ?? '',
+        countryId: this.readUserField(user, 'countryId', 'CountryId') ?? null,
+        territorialUnitId: this.readUserField(user, 'territorialUnitId', 'TerritorialUnitId') ?? null,
         comments:
           this.readUserField(user, 'comments', 'Comments')
           ?? this.readUserField(user, 'bio', 'Bio')
@@ -570,6 +574,8 @@ export class AuthService {
       role: user.role,
       city: user.city,
       country: user.country,
+      countryId: user.countryId ?? null,
+      territorialUnitId: user.territorialUnitId ?? null,
       comments: user.comments || user.bio || '',
       avatarUrl: user.avatarUrl,
       privacyAccepted: user.privacyAccepted,
@@ -960,6 +966,8 @@ interface UserApiDto {
   displayName: string;
   city: string;
   country: string;
+  countryId?: string | null;
+  territorialUnitId?: string | null;
   comments: string;
   bio?: string;
   avatarUrl: string | null;
@@ -985,6 +993,8 @@ interface PascalCaseUserApiDto {
   DisplayName?: string;
   City?: string;
   Country?: string;
+  CountryId?: string | null;
+  TerritorialUnitId?: string | null;
   Comments?: string;
   Bio?: string;
   AvatarUrl?: string | null;

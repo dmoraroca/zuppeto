@@ -1,0 +1,129 @@
+<div class="detail-backdrop" (click)="closeDetail.emit()">
+  <section class="detail-modal" role="dialog" aria-modal="true" aria-labelledby="territorial-detail-title" (click)="$event.stopPropagation()">
+    <header class="detail-header">
+      <div>
+        <p class="eyebrow">Detall territorial</p>
+        <h3 id="territorial-detail-title">{{ detail().unit.primaryName }}</h3>
+        <p>{{ detail().unit.type }} · {{ detail().unit.country }} · {{ detail().unit.primaryCode || 'Sense codi principal' }}</p>
+        <div class="badges" aria-label="Estat de la unitat">
+          <span class="badge" [class.badge--inactive]="!detail().unit.isActive">{{ detail().unit.isActive ? 'Activa' : 'Inactiva' }}</span>
+          <span class="badge badge--neutral">{{ detail().unit.isSelectableLocality ? 'Seleccionable' : 'No seleccionable' }}</span>
+          @if (detail().unit.hasManualOverride) { <span class="badge badge--override">Override</span> }
+        </div>
+      </div>
+      <button class="close-button" type="button" autofocus (click)="closeDetail.emit()" aria-label="Tancar el detall territorial">Tancar</button>
+    </header>
+
+    <nav class="detail-tabs" aria-label="Seccions del detall territorial">
+      @for (tab of tabs; track tab.id) {
+        <button type="button" [class.active]="activeTab() === tab.id" [attr.aria-selected]="activeTab() === tab.id" (click)="selectTab(tab.id)">{{ tab.label }}</button>
+      }
+    </nav>
+
+    <div class="detail-content">
+      @if (error()) { <div class="error" role="alert">{{ error() }}</div> }
+
+      @if (activeTab() === 'general') {
+        <section aria-labelledby="general-title">
+          <h4 id="general-title">Informació general</h4>
+          <dl class="facts">
+            <dt>Nom principal</dt><dd>{{ detail().unit.primaryName }}</dd>
+            <dt>Codi principal</dt><dd>{{ detail().unit.primaryCode || 'Sense codi' }}</dd>
+            <dt>Tipus</dt><dd>{{ detail().unit.type }}</dd>
+            <dt>País</dt><dd>{{ detail().unit.country }}</dd>
+            <dt>Pare</dt><dd>{{ detail().unit.parent || 'Arrel territorial' }}</dd>
+            <dt>Locale</dt><dd>{{ detail().unit.locale || 'Sense locale' }}</dd>
+            <dt>Estat</dt><dd>{{ detail().unit.isActive ? 'Activa' : 'Inactiva' }}</dd>
+            <dt>Seleccionabilitat</dt><dd>{{ detail().unit.isSelectableLocality ? 'Seleccionable com a localitat' : 'No seleccionable com a localitat' }}</dd>
+          </dl>
+          <div class="maintenance-actions" aria-label="Manteniment controlat">
+            <button type="button" [disabled]="busy()" (click)="beginMaintenance(detail().unit.isActive ? 'deactivate' : 'activate')">{{ detail().unit.isActive ? 'Desactivar' : 'Reactivar' }}</button>
+            <button type="button" [disabled]="busy()" (click)="beginMaintenance('set-selectable')">Fer {{ detail().unit.isSelectableLocality ? 'no seleccionable' : 'seleccionable' }}</button>
+          </div>
+        </section>
+      }
+
+      @if (activeTab() === 'hierarchy') {
+        <section aria-labelledby="hierarchy-title">
+          <h4 id="hierarchy-title">Camí territorial</h4>
+          <ol class="hierarchy-tree">
+            <li><span>{{ detail().unit.country }}</span></li>
+            @for (ancestor of detail().ancestors; track ancestor.id) {
+              <li><button type="button" (click)="openUnit.emit(ancestor.id)">{{ ancestor.name }} <small>{{ ancestor.type }}</small></button></li>
+            }
+            <li><strong>{{ detail().unit.primaryName }}</strong> <small>{{ detail().unit.type }}</small></li>
+          </ol>
+          <button class="secondary-action" type="button" (click)="filterChildren.emit({ id: detail().unit.id, name: detail().unit.primaryName })">Veure unitats filles al catàleg</button>
+        </section>
+      }
+
+      @if (activeTab() === 'names') {
+        <section class="stack" aria-labelledby="names-title">
+          <div><h4 id="names-title">Noms</h4><div class="table-wrap"><table><thead><tr><th>Valor</th><th>Locale</th><th>Kind</th><th>Primary</th><th>Procedència</th></tr></thead><tbody>
+            @for (name of detail().names; track name.id) { <tr><td>{{ name.name }}</td><td>{{ name.locale || '—' }}</td><td>{{ name.kind }}</td><td>{{ name.isPrimary ? 'Sí' : 'No' }}</td><td>{{ name.source || 'Manual' }}</td></tr> }
+          </tbody></table></div></div>
+          <div><h4>Codis oficials — només lectura</h4><div class="table-wrap"><table><thead><tr><th>Scheme</th><th>Value</th><th>Vigència</th><th>Primary</th><th>Procedència</th></tr></thead><tbody>
+            @for (code of detail().codes; track code.id) { <tr><td>{{ code.scheme }}</td><td>{{ code.value }}</td><td>{{ code.validFrom || '—' }} → {{ code.validTo || 'vigent' }}</td><td>{{ code.isPrimary ? 'Sí' : 'No' }}</td><td>{{ code.source || 'Manual' }}</td></tr> }
+          </tbody></table></div></div>
+        </section>
+      }
+
+      @if (activeTab() === 'coordinates') {
+        <section aria-labelledby="coordinates-title">
+          <h4 id="coordinates-title">Coordenades</h4>
+          <dl class="facts">
+            <dt>Latitud</dt><dd>{{ detail().unit.latitude ?? 'Sense coordenada' }}</dd>
+            <dt>Longitud</dt><dd>{{ detail().unit.longitude ?? 'Sense coordenada' }}</dd>
+            <dt>Font</dt><dd>{{ detail().coordinateSource || (detail().unit.hasManualCoordinateOverride ? 'Correcció manual' : 'Sense font publicada') }}</dd>
+            <dt>Override</dt><dd>{{ detail().unit.hasManualCoordinateOverride ? 'Coordenades corregides manualment' : 'Sense override manual de coordenades' }}</dd>
+          </dl>
+          <button class="primary-action" type="button" [disabled]="busy()" (click)="beginMaintenance('set-coordinates')">Corregir coordenades</button>
+        </section>
+      }
+
+      @if (activeTab() === 'provenance') {
+        <section aria-labelledby="provenance-title">
+          <h4 id="provenance-title">Procedència</h4>
+          <dl class="facts">
+            <dt>Fonts de dades</dt><dd>{{ detail().datasetSources.join(', ') || 'Fixture o manteniment manual, sense dataset publicat' }}</dd>
+            <dt>Font de coordenades</dt><dd>{{ detail().coordinateSource || 'Correcció manual o sense font publicada' }}</dd>
+            <dt>Importacions publicades relacionades</dt><dd>{{ detail().importIds.length || 'Cap' }}</dd>
+          </dl>
+          <p class="supporting-text">Els identificadors tècnics no es mostren perquè no aporten informació funcional al manteniment.</p>
+        </section>
+      }
+
+      @if (activeTab() === 'audit') {
+        <section aria-labelledby="audit-title">
+          <div class="section-heading"><h4 id="audit-title">Auditoria</h4><span>Més recent primer</span></div>
+          <ol class="audit-list">
+            @for (audit of detail().audit; track audit.id) {
+              <li>
+                <header><strong>{{ auditAction(audit.action) }}</strong><time [attr.datetime]="audit.createdAtUtc">{{ formatDate(audit.createdAtUtc) }}</time></header>
+                <dl><dt>Actor</dt><dd>{{ audit.actor }}</dd><dt>Motiu</dt><dd>{{ audit.reason }}</dd><dt>Abans</dt><dd>{{ auditValue(audit, audit.beforeValue) }}</dd><dt>Després</dt><dd>{{ auditValue(audit, audit.afterValue) }}</dd></dl>
+              </li>
+            } @empty { <li class="empty-state">Sense modificacions manuals.</li> }
+          </ol>
+        </section>
+      }
+    </div>
+  </section>
+
+  @if (pendingAction()) {
+    <div class="confirm-backdrop" (click)="cancelMaintenance()">
+      <section class="confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="maintenance-title" (click)="$event.stopPropagation()">
+        <header><div><p class="eyebrow">Operació territorial controlada</p><h4 id="maintenance-title">{{ actionTitle }}</h4></div></header>
+        @if (pendingAction() === 'set-coordinates') {
+          <div class="coordinate-form">
+            <label>Latitud<input type="number" min="-90" max="90" [(ngModel)]="latitude" /></label>
+            <label>Longitud<input type="number" min="-180" max="180" [(ngModel)]="longitude" /></label>
+          </div>
+          @if (!hasValidCoordinates) { <p class="validation-hint">Informa una parella dins dels rangs vàlids; `(0,0)` no és una coordenada admesa.</p> }
+        }
+        <label class="reason-field">Motiu *<textarea [(ngModel)]="reason" required minlength="3" maxlength="500" autofocus></textarea></label>
+        <p class="character-count">{{ reason.trim().length }}/500 caràcters · mínim 3</p>
+        <footer><button type="button" class="secondary-action" (click)="cancelMaintenance()">Cancel·lar</button><button type="button" class="primary-action" [disabled]="!canConfirm" (click)="confirmMaintenance()">{{ actionLabel }}</button></footer>
+      </section>
+    </div>
+  }
+</div>

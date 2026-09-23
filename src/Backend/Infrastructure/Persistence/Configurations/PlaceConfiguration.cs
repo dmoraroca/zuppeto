@@ -54,6 +54,14 @@ public sealed class PlaceConfiguration : IEntityTypeConfiguration<PlaceRecord>
             .HasMaxLength(120)
             .IsRequired();
 
+        builder.Property(place => place.TerritorialCountryId)
+            .HasColumnName("territorial_country_id");
+
+        builder.HasOne(place => place.TerritorialCountry)
+            .WithMany()
+            .HasForeignKey(place => place.TerritorialCountryId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.Property(place => place.TerritorialUnitId)
             .HasColumnName("territorial_unit_id");
 
@@ -155,6 +163,9 @@ public sealed class PlaceConfiguration : IEntityTypeConfiguration<PlaceRecord>
         builder.HasIndex(place => place.TerritorialUnitId)
             .HasDatabaseName("ix_places_territorial_unit_id");
 
+        builder.HasIndex(place => place.TerritorialCountryId)
+            .HasDatabaseName("ix_places_territorial_country_id");
+
         builder.HasIndex(place => place.Type)
             .HasDatabaseName("ix_places_type");
 
@@ -163,6 +174,7 @@ public sealed class PlaceConfiguration : IEntityTypeConfiguration<PlaceRecord>
             table.HasCheckConstraint("ck_places_pet_policy", "accepts_dogs OR accepts_cats");
             table.HasCheckConstraint("ck_places_rating_average", "rating_average >= 0 AND rating_average <= 5");
             table.HasCheckConstraint("ck_places_review_count", "review_count >= 0");
+            table.HasCheckConstraint("ck_places_territorial_pair", "(territorial_country_id IS NULL AND territorial_unit_id IS NULL) OR (territorial_country_id IS NOT NULL AND territorial_unit_id IS NOT NULL)");
         });
     }
 }

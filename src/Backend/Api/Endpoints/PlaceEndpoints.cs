@@ -53,7 +53,9 @@ internal static class PlaceEndpoints
                 query.Type,
                 query.PetCategory ?? "All",
                 query.Skip ?? 0,
-                query.Take),
+                query.Take,
+                query.CountryId,
+                query.TerritorialUnitId),
             cancellationToken);
 
         return TypedResults.Ok(result);
@@ -131,7 +133,10 @@ internal static class PlaceEndpoints
             return validation.ToValidationProblem();
         }
 
-        var id = await service.SaveAsync(request, cancellationToken);
+        Guid id;
+        try { id = await service.SaveAsync(request, cancellationToken); }
+        catch (Exception exception) when (exception is KeyNotFoundException or InvalidOperationException)
+        { return TerritorialValidation(exception); }
         return TypedResults.Created($"/api/places/{id}", id);
     }
 
@@ -156,7 +161,10 @@ internal static class PlaceEndpoints
             return validation.ToValidationProblem();
         }
 
-        var resultId = await service.SaveAsync(normalized, cancellationToken);
+        Guid resultId;
+        try { resultId = await service.SaveAsync(normalized, cancellationToken); }
+        catch (Exception exception) when (exception is KeyNotFoundException or InvalidOperationException)
+        { return TerritorialValidation(exception); }
         return TypedResults.Ok(resultId);
     }
 
@@ -223,7 +231,10 @@ internal static class PlaceEndpoints
             return validation.ToValidationProblem();
         }
 
-        var id = await service.SaveAsync(request, cancellationToken);
+        Guid id;
+        try { id = await service.SaveAsync(request, cancellationToken); }
+        catch (Exception exception) when (exception is KeyNotFoundException or InvalidOperationException)
+        { return TerritorialValidation(exception); }
         return TypedResults.Created($"/api/admin/places/{id}", id);
     }
 
@@ -249,7 +260,10 @@ internal static class PlaceEndpoints
             return validation.ToValidationProblem();
         }
 
-        var resultId = await service.SaveAsync(normalized, cancellationToken);
+        Guid resultId;
+        try { resultId = await service.SaveAsync(normalized, cancellationToken); }
+        catch (Exception exception) when (exception is KeyNotFoundException or InvalidOperationException)
+        { return TerritorialValidation(exception); }
         return TypedResults.Ok(resultId);
     }
 
@@ -270,6 +284,13 @@ internal static class PlaceEndpoints
         return deleted ? TypedResults.NoContent() : TypedResults.NotFound();
     }
 
+    private static ValidationProblem TerritorialValidation(Exception exception)
+    {
+        var failure = ValidationResult.Success();
+        failure.Add(nameof(PlaceUpsertRequest.TerritorialUnitId), exception.Message);
+        return failure.ToValidationProblem();
+    }
+
     internal sealed record PlaceSearchQuery(
         string? SearchText,
         string? Country,
@@ -277,7 +298,9 @@ internal static class PlaceEndpoints
         string? Type,
         string? PetCategory,
         int? Skip,
-        int? Take);
+        int? Take,
+        Guid? CountryId,
+        Guid? TerritorialUnitId);
 
     internal sealed record PlaceExternalSearchQuery(
         string? Query,

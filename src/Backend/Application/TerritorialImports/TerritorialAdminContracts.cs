@@ -138,7 +138,8 @@ public sealed record TerritorialCatalogQuery(
 public sealed record TerritorialCatalogUnitDto(
     Guid Id, Guid CountryId, string Country, Guid TerritorialUnitTypeId, string TypeCode, string Type,
     Guid? ParentId, string? Parent, string? PrimaryCode, string PrimaryName, string? Locale,
-    decimal? Latitude, decimal? Longitude, bool IsActive, bool IsSelectableLocality, bool HasManualOverride);
+    decimal? Latitude, decimal? Longitude, bool IsActive, bool IsSelectableLocality, bool HasManualOverride,
+    bool HasManualActiveOverride, bool HasManualSelectableOverride, bool HasManualCoordinateOverride);
 public sealed record TerritorialCatalogNameDto(Guid Id, string Name, string? Locale, string Kind, bool IsPrimary, string? Source);
 public sealed record TerritorialCatalogCodeDto(Guid Id, string Scheme, string Value, DateOnly? ValidFrom, DateOnly? ValidTo, bool IsPrimary, string? Source);
 public sealed record TerritorialAncestorDto(Guid Id, string Name, string Type);
@@ -154,6 +155,7 @@ public sealed record TerritorialMaintenanceRequest(string Action, string Reason,
 
 public sealed record TerritorialLocalityOptionDto(Guid Id, Guid CountryId, string Name, string Context, string? Locale);
 public sealed record TerritorialLocationValidationRequest(Guid CountryId, Guid TerritorialUnitId);
+public sealed record TerritorialLocationSelectionDto(Guid CountryId, string Country, Guid TerritorialUnitId, string Locality);
 
 public interface ITerritorialAdminRepository
 {
@@ -176,5 +178,5 @@ public interface ITerritorialLocationRepository
 {
     Task<IReadOnlyCollection<TerritorialAdminCountryDto>> ListCountriesAsync(CancellationToken cancellationToken = default);
     Task<PageResult<TerritorialLocalityOptionDto>> SearchLocalitiesAsync(Guid countryId, string? search, int page, int pageSize, CancellationToken cancellationToken = default);
-    Task ValidateSelectionAsync(Guid countryId, Guid territorialUnitId, CancellationToken cancellationToken = default);
+    Task<TerritorialLocationSelectionDto> ResolveSelectionAsync(Guid countryId, Guid territorialUnitId, CancellationToken cancellationToken = default);
 }

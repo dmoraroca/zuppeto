@@ -63,6 +63,11 @@ public sealed class PlaceUpsertRequestValidator : IValidator<PlaceUpsertRequest>
             result.Add(nameof(request.ReviewCount), "El nombre de ressenyes no pot ser negatiu.");
         }
 
+        if ((request.CountryId is null) != (request.TerritorialUnitId is null))
+        {
+            result.Add(nameof(request.TerritorialUnitId), "El país i la localitat territorial s’han d’informar conjuntament.");
+        }
+
         PlaceDataProvenance? parsedProvenance = null;
         if (!string.IsNullOrWhiteSpace(request.DataProvenance))
         {

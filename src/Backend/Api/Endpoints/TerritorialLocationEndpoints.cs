@@ -16,9 +16,9 @@ internal static class TerritorialLocationEndpoints
     }
 
     private static async Task<IResult> SearchAsync(
-        Guid countryId, string? search, int page, int pageSize, TerritorialLocationService service, CancellationToken ct)
+        Guid countryId, string? search, int? page, int? pageSize, TerritorialLocationService service, CancellationToken ct)
     {
-        try { return TypedResults.Ok(await service.SearchLocalitiesAsync(countryId, search, page == 0 ? 1 : page, pageSize == 0 ? 20 : pageSize, ct)); }
+        try { return TypedResults.Ok(await service.SearchLocalitiesAsync(countryId, search, page is null or 0 ? 1 : page.Value, pageSize is null or 0 ? 20 : pageSize.Value, ct)); }
         catch (KeyNotFoundException) { return TypedResults.NotFound(); }
         catch (InvalidOperationException exception) { return TypedResults.BadRequest(new { message = exception.Message }); }
     }
