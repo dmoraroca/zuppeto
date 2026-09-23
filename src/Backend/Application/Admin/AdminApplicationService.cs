@@ -26,7 +26,9 @@ internal sealed class AdminApplicationService(
         new("funcional-ca", "Documentació funcional"),
         new("auth-ca", "Autenticació"),
         new("millores-pendents-ca", "Millores pendents"),
-        new("e2e-automatitzacio-ca", "Automatització E2E")
+        new("e2e-automatitzacio-ca", "Automatització E2E"),
+        new("iteracio-6-fase-vi", "Iteració 6 — Fase VI territorial"),
+        new("iteracio-6-inventari-pais-localitat", "Iteració 6 — Inventari País → Localitat")
     ];
 
     public async Task<IReadOnlyCollection<AdminUserListItemDto>> GetUsersAsync(CancellationToken cancellationToken = default)
@@ -383,6 +385,8 @@ internal sealed class AdminApplicationService(
             "auth-ca" => Path.Combine("docs", "ca", "auth-ca.md"),
             "millores-pendents-ca" => Path.Combine("docs", "ca", "millores-pendents-ca.md"),
             "e2e-automatitzacio-ca" => Path.Combine("docs", "ca", "e2e-automatitzacio-ca.md"),
+            "iteracio-6-fase-vi" => Path.Combine("docs", "ca", "iteracio-6-fase-vi-gestio-territorial-admin-ca.md"),
+            "iteracio-6-inventari-pais-localitat" => Path.Combine("docs", "ca", "iteracio-6-inventari-pais-localitat-ca.md"),
             _ => string.Empty
         };
 

@@ -17,6 +17,7 @@ import { executeAdminUserScenario } from './admin-user-scenarios.js';
 import { executeAdminPermissionMenuScenario } from './admin-permission-menu-scenarios.js';
 import { executeAdminGeographyScenario } from './admin-geography-scenarios.js';
 import { executeAdminPlaceScenario } from './admin-place-scenarios.js';
+import { executeTerritorialAdminScenario } from './territorial-admin-scenarios.js';
 
 export class ChromeScenarioCatalog {
   private readonly byId: ReadonlyMap<string, ChromeScenario>;
@@ -51,6 +52,7 @@ function createScenario(item: ChromeScenarioInventoryItem): ChromeScenario {
       if (item.block === 'admin-permissions-menus') return executeAdminPermissionMenuScenario(code, context);
       if (item.block === 'admin-geography') return executeAdminGeographyScenario(code, context);
       if (item.block === 'admin-places') return executeAdminPlaceScenario(code, context);
+      if (item.block === 'territorial-admin') return executeTerritorialAdminScenario(code, context);
       if (item.block === 'help-contact') return executeHelpContactScenario(code, context);
       if (item.block === 'documentation-api-security') return executeDocumentationSecurityScenario(code, context);
       throw new Error(`Bloc Chrome encara no implementat: ${item.block}.`);

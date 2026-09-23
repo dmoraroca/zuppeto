@@ -1,0 +1,33 @@
+<section class="history" aria-labelledby="territorial-history-title">
+  <div class="history__heading">
+    <div>
+      <p class="eyebrow">Traçabilitat</p>
+      <h2 id="territorial-history-title">Historial d’importacions</h2>
+    </div>
+    <span>{{ history.totalCount }} registres</span>
+  </div>
+  <div class="history__table-wrap">
+    <table>
+      <thead><tr><th>Data</th><th>País i font</th><th>Versió</th><th>Estat</th><th>Resultat</th><th></th></tr></thead>
+      <tbody>
+        @for (item of history.items; track item.id) {
+          <tr>
+            <td>{{ item.createdAtUtc | date:'short' }}<small>{{ item.actor }}</small></td>
+            <td><strong>{{ item.countryName }}</strong><small>{{ item.organisation }} · {{ item.dataset }}</small></td>
+            <td>{{ item.datasetVersion }}<small>mapping v{{ item.mappingVersion }}</small></td>
+            <td><span class="status" [class.status--blocked]="item.hasBlockingErrors">{{ item.status }}</span></td>
+            <td>+{{ item.counters.create }} · ~{{ item.counters.update }} · −{{ item.counters.deactivate }}</td>
+            <td><button type="button" (click)="openImport.emit(item.id)">Obrir detall</button></td>
+          </tr>
+        } @empty {
+          <tr><td colspan="6">Encara no hi ha importacions territorials.</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  <nav class="pager" aria-label="Paginació de l’historial">
+    <button type="button" [disabled]="busy || history.page <= 1" (click)="pageChange.emit(history.page - 1)">Anterior</button>
+    <span>Pàgina {{ history.page }} de {{ history.totalPages || 1 }}</span>
+    <button type="button" [disabled]="busy || history.page >= history.totalPages" (click)="pageChange.emit(history.page + 1)">Següent</button>
+  </nav>
+</section>

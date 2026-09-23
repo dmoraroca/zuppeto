@@ -1,5 +1,7 @@
 # Automatització E2E de Zuppeto
 
+**Iteració 6 — Fase VI territorial (2026-09-22):** s’incorpora el bloc `territorial-admin` amb ZUP-154–160 a la matriu de Chrome, Firefox, Edge, IE 11, Opera, Brave i WebKit. Els escenaris executables fan servir exclusivament respostes i XLSX sintètics controlats: accés Admin, 403 no-Admin, fitxer invàlid, mapping compatible, validació bloquejant, ChangeSet, publicació i recuperació per historial/URL. Chrome ha executat ZUP-154–160: 7 PASS, 0 FAIL, 0 BLOCKED i 0 SKIP; l’Excel els sincronitza com `OK/E2E`. Les files dels altres navegadors romanen `PENDENT` i no s’han convertit en PASS documental.
+
 **Iteració 6 — Fase V territorial completada / validada (2026-09-21):** s'ha implementat el motor genèric d'importació XLSX amb mapping, staging JSONB, canonicalització, validació, ChangeSet, concurrència, publicació idempotent i reversió limitada. No canvia cap flux UI/API ni retira City o GeoNames, per tant encara no s'afegeixen escenaris Playwright. La regressió específica és backend: 53/53 proves PASS, inclosa persistència PostgreSQL real, pilots XLSX Espanya/Alemanya i migració `Up → Down → Up` PASS. Els casos d'UI ADMIN, API territorial, backfill i selector es derivaran en les fases corresponents; es manté el baseline E2E actual de geografia, Perfil, Admin Usuaris, Places i filtres.
 
 ## Estat, abast i accés
@@ -1082,3 +1084,9 @@ La Fase 11 roman pendent d'una nova execució real després que la correcció si
 La cobertura focalitzada `npm run e2e:totp` crea un usuari temporal inequívoc, l'activa, inicia el setup TOTP, confirma el primer codi, comprova codi incorrecte, login correcte, anti-replay del mateix timestep, recovery code correcte i single-use, desactivació i login posterior sense segon factor. L'escenari usa només `node:crypto`, manté secret i recovery codes en memòria, no els imprimeix ni genera traces o captures, i elimina per email exacte l'usuari i les relacions en un bloc `finally`; la consulta posterior confirma zero residus.
 
 Resultats de tancament de la iteració: `e2e:totp` PASS, `e2e:activation` PASS, `e2e:password-recovery` PASS i regressió Chrome definitiva del bloc `authentication` `sim-20260915T213324241Z-ec8207d2` completada amb 15 PASS, 0 FAIL, 0 BLOCKED, 1 SKIP extern justificat i 0 retries. La sincronització conserva l'historial append-only amb executionId/runId nous i la fulla MANUAL intacta.
+
+## Refinament final territorial — 2026-09-23
+
+ZUP-154–160 distingeixen Data Preview d’origen, preview canonicalitzat i ChangeSet, i cobreixen Catàleg → detall → desactivar amb motiu → reactivar → auditoria sobre fixture sintètica. Es manté la denegació real de l’API Admin per a User.
+
+Chrome `sim-20260923T104434463Z-69afa70a`: 7 PASS, 0 FAIL/BLOCKED/SKIP. Runner: 54/54. Altres navegadors continuen PENDENT. No s’han publicat datasets oficials.

@@ -1,0 +1,46 @@
+<app-site-header />
+<main class="territorial-page">
+  <section class="hero">
+    <div>
+      <p class="eyebrow">Administració · Territori</p>
+      <h1>Gestió territorial</h1>
+      <p>Prepara, valida, revisa i publica fonts oficials amb preview, concurrència i traçabilitat.</p>
+    </div>
+    <div class="hero__rule"><strong>Cap XLSX modifica el catàleg directament.</strong><span>La publicació sempre parteix d’un ChangeSet revisable.</span></div>
+  </section>
+
+  <nav class="tabs" aria-label="Seccions de gestió territorial">
+    <button type="button" [class.active]="tab === 'wizard'" (click)="tab = 'wizard'">Nova importació / detall</button>
+    <button type="button" [class.active]="tab === 'history'" (click)="tab = 'history'">Historial</button>
+    <button type="button" [class.active]="tab === 'catalog'" (click)="tab = 'catalog'">Catàleg territorial</button>
+  </nav>
+
+  @if (error) { <div class="error" role="alert">{{ error }}</div> }
+  @if (busy && !context) { <p class="loading" aria-live="polite">Carregant context territorial…</p> }
+
+  @if (context && tab === 'wizard') {
+    <app-territorial-import-wizard
+      [context]="context"
+      [requestedImportId]="selectedId"
+      (importChanged)="changed($event)"
+    />
+  }
+  @if (tab === 'history') {
+    <section class="history-filters" aria-label="Filtres de l’historial">
+      <label>País<select [(ngModel)]="historyCountryId" (ngModelChange)="resetHistorySource()"><option value="">Tots</option>@for (country of context?.countries || []; track country.id) { <option [value]="country.id">{{ country.name }}</option> }</select></label>
+      <label>Font<select [(ngModel)]="historySourceId"><option value="">Totes</option>@for (source of historySources; track source.id) { <option [value]="source.id">{{ source.organisation }} · {{ source.dataset }}</option> }</select></label>
+      <label>Estat<select [(ngModel)]="historyStatus"><option value="">Tots</option><option>ReadyForReview</option><option>ValidationFailed</option><option>Published</option><option>Cancelled</option><option>Reverted</option></select></label>
+      <button type="button" (click)="historyPage(1)">Aplicar filtres</button>
+    </section>
+    <app-territorial-import-history
+      [history]="history"
+      [busy]="busy"
+      (openImport)="openImport($event)"
+      (pageChange)="historyPage($event)"
+    />
+  }
+  @if (context && tab === 'catalog') {
+    <app-territorial-catalog [context]="context" />
+  }
+</main>
+<app-site-footer />

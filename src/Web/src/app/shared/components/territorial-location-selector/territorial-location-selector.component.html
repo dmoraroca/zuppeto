@@ -1,0 +1,16 @@
+<div class="location-pair">
+  <label>País
+    <select [ngModel]="countryId()" (ngModelChange)="countryChanged($event)" [attr.aria-required]="required()">
+      <option value="">Selecciona un país</option>
+      @for (country of countries; track country.id) { <option [value]="country.id">{{ country.name }}</option> }
+    </select>
+  </label>
+  <label>Localitat
+    <span class="search"><input [ngModel]="search" (ngModelChange)="search = $event" [disabled]="!countryId()" placeholder="Cerca una localitat" (keyup.enter)="find()" /><button type="button" [disabled]="!countryId() || loading" (click)="find()">Cercar</button></span>
+    <select [ngModel]="localityId()" (ngModelChange)="localityIdChange.emit($event)" [disabled]="!countryId() || loading" [attr.aria-required]="required()">
+      <option value="">{{ loading ? 'Carregant…' : 'Selecciona una localitat' }}</option>
+      @for (locality of localities; track locality.id) { <option [value]="locality.id">{{ locality.name }} · {{ locality.context }}</option> }
+    </select>
+  </label>
+</div>
+@if (error) { <p class="error" role="alert">{{ error }}</p> }

@@ -120,6 +120,20 @@ public sealed class TerritorialDiffEngine
             matched.Add(current.Id);
             resolved[unit.CanonicalUnitKey] = current.Id;
             var changed = ChangedFields(current, unit, incomingByKey, resolved, context.DatasetSourceId);
+            if (current.HasManualActiveOverride && current.IsActive != unit.IsActive)
+            {
+                changed.Add("manualOverrideConflict:isActive");
+                issues.Add(new TerritorialImportIssue("MANUAL_OVERRIDE_CONFLICT", TerritorialIssueSeverity.Warning,
+                    "La font proposa un estat contrari a l'override manual; la decisió ADMIN es preservarà.",
+                    Field: "isActive", CanonicalUnitKey: unit.CanonicalUnitKey));
+            }
+            if (current.HasManualCoordinateOverride && (current.Latitude != unit.Latitude || current.Longitude != unit.Longitude))
+            {
+                changed.Add("manualOverrideConflict:coordinates");
+                issues.Add(new TerritorialImportIssue("MANUAL_OVERRIDE_CONFLICT", TerritorialIssueSeverity.Warning,
+                    "La font proposa coordenades contràries a l'override manual; la decisió ADMIN es preservarà.",
+                    Field: "coordinates", CanonicalUnitKey: unit.CanonicalUnitKey));
+            }
             result.Add(Change(changed.Count == 0 ? TerritorialChangeKind.NoChange : TerritorialChangeKind.Update,
                 current.Id, unit.CanonicalUnitKey, current, unit, changed));
         }
@@ -129,7 +143,17 @@ public sealed class TerritorialDiffEngine
             var managedSchemes = (managedCodeSchemes ?? incoming.SelectMany(item => item.Codes).Select(item => item.Scheme).ToArray()).ToHashSet(StringComparer.Ordinal);
             var deactivations = context.CurrentUnits.Where(item => item.IsActive && !matched.Contains(item.Id) && item.Codes.Any(code => managedSchemes.Contains(code.Scheme))).ToArray();
             foreach (var unit in deactivations)
-                result.Add(Change(TerritorialChangeKind.Deactivate, unit.Id, $"existing:{unit.Id}", unit, null, ["isActive"]));
+            {
+                if (unit.HasManualActiveOverride)
+                {
+                    result.Add(Change(TerritorialChangeKind.NoChange, unit.Id, $"existing:{unit.Id}", unit, null,
+                        ["manualOverrideConflict:isActive"]));
+                    issues.Add(new TerritorialImportIssue("MANUAL_OVERRIDE_CONFLICT", TerritorialIssueSeverity.Warning,
+                        "La font proposa una inactivació contrària a l'override manual; la decisió ADMIN es preservarà.",
+                        Field: "isActive", CanonicalUnitKey: $"existing:{unit.Id}"));
+                }
+                else result.Add(Change(TerritorialChangeKind.Deactivate, unit.Id, $"existing:{unit.Id}", unit, null, ["isActive"]));
+            }
 
             if (guard is not null && deactivations.Length > guard.MaximumCount && context.CurrentUnits.Count > 0 &&
                 deactivations.Length * 100m / context.CurrentUnits.Count > guard.MaximumPercentage)
@@ -145,7 +169,7 @@ public sealed class TerritorialDiffEngine
             before is null ? null : JsonSerializer.Serialize(before, TerritorialImportJson.Options),
             after is null ? null : JsonSerializer.Serialize(after, TerritorialImportJson.Options), fields);
 
-    private static IReadOnlyCollection<string> ChangedFields(
+    private static List<string> ChangedFields(
         TerritorialCatalogUnitSnapshot current,
         CanonicalTerritorialUnit incoming,
         IReadOnlyDictionary<string, CanonicalTerritorialUnit> incomingByKey,
@@ -154,8 +178,8 @@ public sealed class TerritorialDiffEngine
     {
         var changed = new List<string>();
         if (!string.Equals(current.TerritorialUnitTypeCode, incoming.TerritorialUnitTypeCode, StringComparison.OrdinalIgnoreCase)) changed.Add("territorialUnitType");
-        if (current.IsActive != incoming.IsActive) changed.Add("isActive");
-        if (current.Latitude != incoming.Latitude || current.Longitude != incoming.Longitude) changed.Add("coordinates");
+        if (!current.HasManualActiveOverride && current.IsActive != incoming.IsActive) changed.Add("isActive");
+        if (!current.HasManualCoordinateOverride && (current.Latitude != incoming.Latitude || current.Longitude != incoming.Longitude)) changed.Add("coordinates");
         var incomingNames = incoming.Names.Select(item => item with { DatasetSourceId = item.DatasetSourceId ?? sourceId });
         var incomingCodes = incoming.Codes.Select(item => item with { DatasetSourceId = item.DatasetSourceId ?? sourceId });
         if (!current.Names.OrderBy(item => item.Name).SequenceEqual(incomingNames.OrderBy(item => item.Name))) changed.Add("names");

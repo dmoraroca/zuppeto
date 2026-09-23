@@ -268,8 +268,14 @@ internal sealed class TerritorialCatalogImportGateway(ZuppetoDbContext db) : ITe
 
     private static void ApplyCanonical(TerritorialUnitRecord unit, CanonicalTerritorialUnit model, Guid typeId, Guid? parentId, Guid sourceId)
     {
-        unit.TerritorialUnitTypeId = typeId; unit.ParentId = parentId; unit.IsActive = model.IsActive;
-        unit.Latitude = model.Latitude; unit.Longitude = model.Longitude; unit.CoordinateSourceId = model.Latitude is null ? null : model.CoordinateSourceId ?? sourceId; unit.UpdatedAtUtc = DateTimeOffset.UtcNow;
+        unit.TerritorialUnitTypeId = typeId; unit.ParentId = parentId;
+        if (!unit.HasManualActiveOverride) unit.IsActive = model.IsActive;
+        if (!unit.HasManualCoordinateOverride)
+        {
+            unit.Latitude = model.Latitude; unit.Longitude = model.Longitude;
+            unit.CoordinateSourceId = model.Latitude is null ? null : model.CoordinateSourceId ?? sourceId;
+        }
+        unit.UpdatedAtUtc = DateTimeOffset.UtcNow;
         if (!NamesMatch(unit.Names, model.Names, sourceId))
         {
             unit.Names.Clear(); foreach (var name in model.Names) unit.Names.Add(new TerritorialUnitNameRecord { Id = Guid.NewGuid(), Name = name.Name, Locale = name.Locale, Kind = name.Kind, IsPrimary = name.IsPrimary, NormalizedName = TerritorialNameNormalizer.Normalize(name.Name), DatasetSourceId = name.DatasetSourceId ?? sourceId, CreatedAtUtc = DateTimeOffset.UtcNow });
@@ -282,7 +288,12 @@ internal sealed class TerritorialCatalogImportGateway(ZuppetoDbContext db) : ITe
 
     private static void RestoreSnapshot(TerritorialUnitRecord unit, TerritorialCatalogUnitSnapshot before, Guid fallbackSourceId)
     {
-        unit.ParentId = before.ParentId; unit.IsActive = before.IsActive; unit.Latitude = before.Latitude; unit.Longitude = before.Longitude; unit.CoordinateSourceId = before.CoordinateSourceId;
+        unit.ParentId = before.ParentId;
+        if (!unit.HasManualActiveOverride) unit.IsActive = before.IsActive;
+        if (!unit.HasManualCoordinateOverride)
+        {
+            unit.Latitude = before.Latitude; unit.Longitude = before.Longitude; unit.CoordinateSourceId = before.CoordinateSourceId;
+        }
         if (!NamesMatch(unit.Names, before.Names, fallbackSourceId))
         {
             unit.Names.Clear(); foreach (var name in before.Names) unit.Names.Add(new TerritorialUnitNameRecord { Id = Guid.NewGuid(), Name = name.Name, Locale = name.Locale, Kind = name.Kind, IsPrimary = name.IsPrimary, NormalizedName = TerritorialNameNormalizer.Normalize(name.Name), DatasetSourceId = name.DatasetSourceId ?? fallbackSourceId, CreatedAtUtc = DateTimeOffset.UtcNow });
@@ -316,5 +327,6 @@ internal sealed class TerritorialCatalogImportGateway(ZuppetoDbContext db) : ITe
     private static TerritorialCatalogUnitSnapshot Snapshot(TerritorialUnitRecord unit) => new(unit.Id, unit.TerritorialUnitType.Code, unit.ParentId,
         unit.Names.Select(x => new CanonicalTerritorialName(x.Name, x.Locale, x.Kind, x.IsPrimary, x.DatasetSourceId)).ToArray(),
         unit.Codes.Select(x => new CanonicalTerritorialCode(x.Scheme, x.Value, x.IsPrimary, x.ValidFrom, x.ValidTo, x.DatasetSourceId)).ToArray(),
-        unit.Latitude, unit.Longitude, unit.IsActive, unit.CoordinateSourceId);
+        unit.Latitude, unit.Longitude, unit.IsActive, unit.CoordinateSourceId,
+        unit.HasManualActiveOverride, unit.HasManualCoordinateOverride);
 }

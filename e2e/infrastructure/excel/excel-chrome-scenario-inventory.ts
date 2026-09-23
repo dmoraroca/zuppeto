@@ -86,7 +86,8 @@ function blockFor(code: number): ChromeBlock {
   if (code <= 126) return 'admin-permissions-menus';
   if (code <= 138) return 'admin-geography';
   if (code <= 143) return 'admin-places';
-  return 'documentation-api-security';
+  if (code <= 153) return 'documentation-api-security';
+  return 'territorial-admin';
 }
 
 function preconditionsFor(role: E2ERole, code: number): readonly string[] {
@@ -104,6 +105,7 @@ function dataFor(code: number): readonly string[] {
   if (code >= 117 && code <= 126) return ['Estat original de permisos o menú'];
   if (code >= 128 && code <= 138) return ['Country/City temporal traçable'];
   if (code >= 140 && code <= 143) return ['Place temporal traçable'];
+  if (code >= 154) return ['Fixture territorial XLSX sintètica'];
   return [];
 }
 
@@ -120,6 +122,7 @@ function dependenciesFor(role: E2ERole, code: number): readonly string[] {
   if (code === 16) dependencies.push('OAuth extern interactiu');
   if ([51, 52, 53, 54, 59, 62].includes(code)) dependencies.push('Mapa Leaflet i geometria visible');
   if ([79, 80, 81, 113].includes(code)) dependencies.push('Fitxer d’imatge temporal segur');
+  if (code >= 154) dependencies.push('Fixture territorial sintètica; cap dataset oficial');
   return dependencies;
 }
 

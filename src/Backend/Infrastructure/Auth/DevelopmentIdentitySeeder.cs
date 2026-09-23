@@ -37,8 +37,10 @@ public sealed class DevelopmentIdentitySeeder(
         new("page.admin.places", "page", "Llocs (admin)", "Accés al manteniment intern de llocs."),
         new("menu.admin.countries", "menu", "Menú Països", "Accés al manteniment del catàleg de països."),
         new("menu.admin.cities", "menu", "Menú Ciutats", "Accés al manteniment del catàleg de ciutats."),
+        new("menu.admin.territorial", "menu", "Menú Gestió territorial", "Accés a la gestió d’importacions territorials."),
         new("page.admin.countries", "page", "Països (admin)", "Accés al manteniment del catàleg de països."),
         new("page.admin.cities", "page", "Ciutats (admin)", "Accés al manteniment del catàleg de ciutats."),
+        new("page.admin.territorial", "page", "Gestió territorial", "Accés exclusiu Admin a importacions, publicació i reversió territorials."),
         new("action.favorites.write", "action", "Editar favorits", "Permet afegir o eliminar favorits."),
         new("action.profile.write", "action", "Editar perfil", "Permet actualitzar dades del perfil propi."),
         new("action.users.manage", "action", "Gestionar usuaris", "Permet crear, editar o assignar rols a usuaris."),
@@ -91,6 +93,7 @@ public sealed class DevelopmentIdentitySeeder(
                 "menu.admin.places",
                 "menu.admin.countries",
                 "menu.admin.cities",
+                "menu.admin.territorial",
                 "page.home",
                 "page.places",
                 "page.place-detail",
@@ -103,6 +106,7 @@ public sealed class DevelopmentIdentitySeeder(
                 "page.admin.places",
                 "page.admin.countries",
                 "page.admin.cities",
+                "page.admin.territorial",
                 "action.favorites.write",
                 "action.profile.write",
                 "action.users.manage",
@@ -130,6 +134,7 @@ public sealed class DevelopmentIdentitySeeder(
         new("admin.places", "Catàleg de llocs", "/admin/llocs", "admin.negoci", 40, true),
         new("admin.countries", "Països", "/admin/paisos", "admin.negoci", 50, true),
         new("admin.cities", "Ciutats", "/admin/ciutats", "admin.negoci", 60, true),
+        new("admin.territorial", "Gestió territorial", "/admin/territori", "admin.negoci", 70, true),
         new("admin.permissions", "Permisos", "/admin/permisos", "admin.tecnic", 10, true),
         new("admin.roles", "Rols", "/admin/rols", "admin.tecnic", 20, true)
     ];
@@ -189,7 +194,8 @@ public sealed class DevelopmentIdentitySeeder(
                 "admin.roles",
                 "admin.menus",
                 "admin.countries",
-                "admin.cities"
+                "admin.cities",
+                "admin.territorial"
             ]
         };
 
@@ -371,7 +377,7 @@ public sealed class DevelopmentIdentitySeeder(
 
         if (existing is not null)
         {
-            if (!existing.PasswordHash.StartsWith("pbkdf2$", StringComparison.OrdinalIgnoreCase))
+            if (existing.PasswordHash?.StartsWith("pbkdf2$", StringComparison.OrdinalIgnoreCase) != true)
             {
                 existing.PasswordHash = passwordHasher.Hash(password);
             }

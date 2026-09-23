@@ -97,7 +97,9 @@ public sealed record TerritorialCatalogUnitSnapshot(
     decimal? Latitude,
     decimal? Longitude,
     bool IsActive,
-    Guid? CoordinateSourceId = null);
+    Guid? CoordinateSourceId = null,
+    bool HasManualActiveOverride = false,
+    bool HasManualCoordinateOverride = false);
 
 public sealed record TerritorialImportContext(
     Guid DatasetSourceId,

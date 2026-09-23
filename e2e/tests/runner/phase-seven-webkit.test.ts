@@ -19,11 +19,11 @@ test('Phase VII reuses the complete scenario inventory for WebKit', async () => 
     await new ExcelBrowserMatrixProvisioner(path).provision('Chrome', 'WebKit');
     const inventory = await new ExcelChromeScenarioInventory(path, webkitTarget.name).load();
     const summary = summarizeChromeInventory(inventory);
-    assert.equal(summary.scenarios, 177);
-    assert.equal(summary.uniqueTestCodes, 153);
-    assert.equal(summary.automatable, 172);
+    assert.equal(summary.scenarios, 184);
+    assert.equal(summary.uniqueTestCodes, 160);
+    assert.equal(summary.automatable, 179);
     assert.equal(summary.nonAutomatable, 5);
-    assert.equal(new Set(inventory.map((item) => item.scenarioId)).size, 177);
+    assert.equal(new Set(inventory.map((item) => item.scenarioId)).size, 184);
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
@@ -48,11 +48,11 @@ test('WebKit matrix provisioning is exact, idempotent and preserves existing row
     const first = await provisioner.provision('Chrome', 'WebKit');
     const second = await provisioner.provision('Chrome', 'WebKit');
     const after = await rows(path);
-    assert.equal(first.created, 177);
-    assert.deepEqual(second, { created: 0, existing: 177 });
+    assert.equal(first.created, 184);
+    assert.deepEqual(second, { created: 0, existing: 184 });
     assert.deepEqual(after.filter((row) => row.browser !== 'WebKit'), before);
     const webkit = after.filter((row) => row.browser === 'WebKit');
-    assert.equal(webkit.length, 177);
+    assert.equal(webkit.length, 184);
     assert.ok(webkit.every((row) => row.result === 'PENDENT' && row.origin === ''));
   } finally {
     await rm(directory, { recursive: true, force: true });

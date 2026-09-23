@@ -1002,7 +1002,7 @@ La geografia del producte no s'ha de deixar a text lliure ni a resolucio ad hoc 
 
 ### 3.15.1 Iteració 6 — Remodelació territorial europea multicultural i multilingüe
 
-**Estat global: EN CURS / FASE V VALIDADA.** Les subfases 0–V estan completades; la subfase VI és la següent i les subfases VII–IX continuen pendents.
+**Estat global: FASE VI COMPLETADA DEFINITIVAMENT.** Les subfases 0–VI estan completades; la subfase VII és la següent i les subfases VIII–IX continuen pendents.
 
 El contracte funcional detallat i oficial de la Iteració 6 és [Iteració 6 — Contracte funcional del model territorial](iteracio-6-model-territorial-ca.md). Aquest document general en conserva el resum, l'abast i els criteris d'alt nivell; en cas de detall territorial, s'ha de consultar el contracte específic.
 
@@ -1090,7 +1090,7 @@ La Iteració 6 construeix i alimenta el catàleg. La Iteració 7 continua en rev
 | III | Disseny funcional i model territorial | **COMPLETADA / READY FOR IMPLEMENTATION** |
 | IV | Migració EF Core / PostgreSQL | **COMPLETADA / VALIDADA** |
 | V | Motor genèric d'importació | **COMPLETADA / VALIDADA** |
-| VI | Gestió Territorial ADMIN | **SEGÜENT** |
+| VI | Gestió Territorial ADMIN | **COMPLETADA / VALIDADA** |
 | VII | Primera importació real i validació | **PENDENT** |
 | VIII | Backfill de les dades actuals | **PENDENT** |
 | IX | Regressió i tancament | **PENDENT** |
@@ -1340,11 +1340,11 @@ Per tant, l'estat oficial actual és de **5 punts 🔴, 12 punts 🟠, 4 punts �
 
 #### 3.18.5 Bloc B — Territori
 
-**6. Remodelació territorial europea multicultural/multilingüe — 🟠 EN CURS / FASE V VALIDADA.** Les subfases 0–V estan completades amb Espanya i Alemanya com a pilots; la subfase VI és la següent i les subfases VII–IX estan pendents. El nucli territorial, la persistència PostgreSQL i el motor genèric d'importació XLSX ja estan implementats i validats, sense publicar datasets reals ni canviar el runtime actual. El motor cobreix mapping, staging JSONB, canonicalització, validació, diff, ChangeSet, concurrència, publicació idempotent i reversió limitada. El model funcional, els 54 casos d'ús, les fonts i llicències, la futura gestió ADMIN i la preservació de dades es defineixen al [contracte funcional territorial de la Iteració 6](iteracio-6-model-territorial-ca.md). Les fonts pilot no es podran publicar mentre mantinguin gates legals o de procedència pendents.
+**6. Remodelació territorial europea multicultural/multilingüe — FASE VI COMPLETADA DEFINITIVAMENT.** Les subfases 0–VI estan completades; la subfase VII és la següent i les subfases VIII–IX estan pendents. El nucli, el motor, Data Preview, Catàleg, manteniment auditat i País → Localitat estan implementats sense publicar datasets reals ni fer backfill. El contracte i els límits es defineixen al [contracte funcional territorial](iteracio-6-model-territorial-ca.md).
 
-**7. API territorial sobre catàleg propi — 🟠 EN REVISIÓ.** És la proposta que podria substituir l'antiga «GeoNames + alta lazy»: `Petiloc → API pròpia → PostgreSQL`. GeoNames no s'elimina encara i la redefinició queda pendent de confirmar que les fonts oficials i les seves llicències permeten mantenir el catàleg necessari sense dependència externa territorial en runtime.
+**7. API territorial sobre catàleg propi — IMPLEMENTADA COM A BASE.** Ja consulta `Country + TerritorialUnit` i valida la parella. La substitució del runtime textual espera la publicació real de Fase VII; GeoNames encara no s’elimina.
 
-**8. Selector territorial compartit sobre API pròpia — 🔴 PLANIFICAT.** Registre/login, Perfil, Admin Usuaris, Places, Admin Llocs, filtres i qualsevol altre formulari territorial hauran de consumir la mateixa API, catàleg i regles, inclosa la jerarquia aplicable a cada país. No s'implementa durant la preparació de la Iteració 6.
+**8. Selector territorial compartit sobre API pròpia — COMPONENT IMPLEMENTAT / MIGRACIÓ PROGRESSIVA.** El component Country → TerritorialUnit, reset, loading, errors i accessibilitat existeix. Les pantalles User/Place mantenen snapshots fins a Fase VIII i els filtres Places esperen dades publicades de Fase VII, segons l’inventari.
 
 #### 3.18.6 Bloc C — Core Places
 
@@ -2101,3 +2101,11 @@ Document tecnic:
 Document de fases:
 
 - [`../project-phases.md`](../project-phases.md)
+
+## 14. Territori publicat i selecció País → Localitat
+
+La gestió Admin separa Nova importació, Historial i Catàleg territorial. Data Preview mostra el que s’ha llegit i canonicalitzat; ChangeSet mostra què canviaria; Catàleg mostra l’estat vigent.
+
+Activar, desactivar, canviar seleccionabilitat o coordenades exigeix operació explícita, motiu i auditoria. Codis, noms i jerarquia oficials no tenen edició directa.
+
+Una nova localitat requereix país. Sense país queda deshabilitada; canviar país la neteja. Només es retornen unitats actives i seleccionables, amb validació backend. La transició de pantalles existents és a [Inventari País → Localitat](iteracio-6-inventari-pais-localitat-ca.md). User/Place conserven snapshots fins a Fase VIII; City i GeoNames no s’eliminen.

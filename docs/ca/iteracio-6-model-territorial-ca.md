@@ -562,8 +562,16 @@ Els casos executables i E2E només s'incorporaran quan existeixi implementació.
 
 ## 30. Ready for Implementation
 
-La revisió final no va detectar cap bloqueig funcional. La Fase III queda **COMPLETADA** i el contracte es manté com a font de veritat. La Fase IV ha traduït les invariants aprovades al domini, al model EF Core/PostgreSQL i a la migració additiva `AddTerritorialModelPhase4`; queda **COMPLETADA / VALIDADA**. La Fase V ha implementat i validat el motor genèric d'importació XLSX, mapping declaratiu limitat, staging JSONB, canonicalització, validació, ChangeSet, concurrència, publicació idempotent i reversió limitada. La Fase VI —Gestió Territorial ADMIN— és la següent.
+La revisió final no va detectar cap bloqueig funcional. Les Fases III, IV i V queden completades. La Fase VI —Gestió Territorial ADMIN— queda **COMPLETADA DEFINITIVAMENT** amb Data Preview, Catàleg territorial, manteniment auditat, protecció d’overrides i contracte País → Localitat. La Fase VII és la següent.
 
 La validació controlada de Fase V llegeix íntegrament els XLSX pilot d'Espanya i Alemanya i comprova el mapping i la canonicalització sense publicar-los al catàleg operatiu. Espanya produeix 8.201 files mapades i 8.199 unitats canòniques després de consolidar Ceuta i Melilla. Alemanya conserva la identitat composta `LAND + RB + KREIS`, consolida els rols territorials superposats i tracta els registres especials i `(0,0)` segons el contracte. Aquest resultat valida el motor, no les llicències ni la publicació real dels datasets.
 
 L'OK funcional no autoritza a publicar els datasets pilot mentre les verificacions legals i de procedència marcades com a pendents no estiguin tancades.
+
+## 31. Refinament final de Fase VI
+
+Importació, Data Preview, ChangeSet i Catàleg són responsabilitats diferents. El manteniment no és un CRUD: activació, desactivació, seleccionabilitat i coordenades són operacions explícites amb actor, timestamp, motiu, before/after i origen manual. Noms, codis oficials, país, jerarquia i procedència no són editables.
+
+`IsActive` i `IsSelectableLocality` són independents. Una unitat inactiva es preserva però no es pot seleccionar de nou. Una importació contrària a estat o coordenades manuals produeix `MANUAL_OVERRIDE_CONFLICT` i preserva la decisió Admin.
+
+La regla per a noves seleccions és `CountryId + TerritorialUnitId`, validada al backend. L’inventari i la transició City/GeoNames/User/Place són a [l’inventari País → Localitat](iteracio-6-inventari-pais-localitat-ca.md).

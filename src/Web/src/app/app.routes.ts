@@ -238,6 +238,22 @@ export const routes: Routes = [
     }
   },
   {
+    path: 'admin/territori',
+    canActivate: [adminGuard],
+    loadComponent: () =>
+      import('./features/territorial-admin/pages/territorial-management-page/territorial-management-page.component').then(
+        (m) => m.TerritorialManagementPageComponent
+      )
+  },
+  {
+    path: 'admin/territori/:id',
+    canActivate: [adminGuard],
+    loadComponent: () =>
+      import('./features/territorial-admin/pages/territorial-management-page/territorial-management-page.component').then(
+        (m) => m.TerritorialManagementPageComponent
+      )
+  },
+  {
     path: 'admin/paisos',
     canActivate: [
       permissionGuard(

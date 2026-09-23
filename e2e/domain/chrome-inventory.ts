@@ -3,7 +3,7 @@ import type { E2ERole } from './e2e-role.js';
 export const chromeBlocks = [
   'authentication', 'navigation-security', 'home', 'places', 'place-detail', 'favorites',
   'profile', 'notifications', 'help-contact', 'admin-roles', 'admin-users',
-  'admin-permissions-menus', 'admin-geography', 'admin-places', 'documentation-api-security'
+  'admin-permissions-menus', 'admin-geography', 'admin-places', 'territorial-admin', 'documentation-api-security'
 ] as const;
 
 export type ChromeBlock = typeof chromeBlocks[number];

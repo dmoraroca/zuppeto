@@ -555,7 +555,7 @@ Resum del diagrama:
 
 ### Auditoria territorial i disseny objectiu europeu — Fase IV, Iteració 6
 
-**Estat global:** **FASE V COMPLETADA / VALIDADA**. Les subfases 0–V estan **COMPLETADES** amb Espanya i Alemanya com a pilots; la subfase VI és la **SEGÜENT** i les subfases VII–IX continuen **PENDENTS**. S'han implementat el domini territorial, la persistència EF Core/PostgreSQL, les migracions additives i el motor genèric d'importació. Els datasets pilot només s'han llegit i canonicalitzat en proves controlades: no s'han publicat, no s'ha fet backfill, no s'han afegit endpoints i GeoNames continua operatiu. El contracte funcional és `iteracio-6-model-territorial-ca.md` i el resum de subfases consta a `funcional-ca.md` §3.15.7.
+**Estat global:** **FASE VI COMPLETADA DEFINITIVAMENT / VALIDADA**. Les subfases 0–VI estan completades; Fase VII és la següent. Els datasets pilot no s’han publicat, no s’ha fet backfill i GeoNames continua operatiu com a compatibilitat.
 
 #### A. Model territorial actual
 
@@ -675,7 +675,7 @@ Dades que no es poden perdre: usuaris i perfil, llocs i adreces/coordinates, fav
 - aplicació d'importació: `Application/TerritorialImports/*`, amb contractes neutrals, mapping, canonicalització, validation, diff i orquestració
 - infraestructura: `Infrastructure/TerritorialImports/*`, entitats i configuracions `TerritorialImport*`, `ZuppetoDbContext` i migracions de Fases IV/V
 - proves: `TerritorialPersistenceTests`, `TerritorialImportEngineTests` i `TerritorialImportPersistenceTests`, inclosos els XLSX pilot reals
-- impacte futur: endpoints territorials ADMIN, Angular, backfill de `User`/`Place`, canvi de lectura i retirada posterior de GeoNames continuen fora de Fase V
+- Fase VI: endpoints territorials ADMIN i feature Angular separada completats; backfill de `User`/`Place`, canvi de lectura i retirada posterior de GeoNames continuen fora d’abast
 
 #### J. Registre preparat de fonts i llicències
 
@@ -2445,3 +2445,13 @@ Document funcional:
 Document de fases:
 
 - [`../project-phases.md`](../project-phases.md)
+
+## Gestió territorial — refinament final de Fase VI
+
+`source_json` alimenta el preview d’origen minimitzat, `canonical_json` el preview canonicalitzat, `territorial_change_set_items` el diff i `territorial_units` el catàleg. Angular no canonicalitza.
+
+`AddTerritorialMaintenancePhase6Refinement` afegeix els flags d’override i `territorial_maintenance_audit`. L’auditoria conserva unitat, acció, camp, actor, timestamp, motiu, before/after i origen. El manteniment incrementa `CatalogVersion` en transacció serialitzable; el motor emet `MANUAL_OVERRIDE_CONFLICT` i preserva estat/coordenades manuals.
+
+`TerritorialLocationService` és el port compartit Country → TerritorialUnit i `TerritorialLocationSelectorComponent` la UI reutilitzable. El backend torna a validar sempre.
+
+`scripts/generate-ef-migration-script.sh RUTA.sql` genera l’SQL idempotent de deploy des de les migracions EF; no hi ha un esquema SQL paral·lel.

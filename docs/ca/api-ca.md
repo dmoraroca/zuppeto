@@ -74,6 +74,14 @@ Durant la Iteració 5 es van arribar a implementar endpoints d'inici i callback 
 
 La decisió funcional posterior va retirar aquestes rutes i el handoff d'un sol ús que només consumia LinkedIn. El coneixement tècnic queda registrat, però cap endpoint LinkedIn es documenta com a actiu. Es mantenen l'orquestració federada comuna, la factoria de sessions, les restriccions d'unicitat, TOTP i `POST /api/auth/logout`, que continuen tenint ús real amb Google i el login local.
 
+### Gestió Territorial ADMIN — Iteració 6 / Fase VI
+
+El grup `/api/admin/territorial` exigeix JWT i rol exacte `Admin`. Exposa context, inspecció XLSX, mappings versionats, preparació d’importacions, historial/detall, incidències i ChangeSet paginats, i ordres de publicació, cancel·lació i reversió limitada. Els DTO no exposen EF Records, staging complet, paths ni excepcions internes. El contracte complet és [Iteració 6 — Fase VI](iteracio-6-fase-vi-gestio-territorial-admin-ca.md).
+
+El refinament afegeix `GET /imports/{id}/preview/source`, `GET /preview/canonical`, `GET /catalog`, `GET /catalog/{id}` i `POST /catalog/{id}/maintenance` dins el mateix grup Admin. Els previews i el catàleg són paginats al servidor; el manteniment rep acció, motiu i valor específic i pot retornar 400, 403, 404 o 409.
+
+L’API funcional compartida incorpora `GET /api/territorial/countries`, `GET /api/territorial/localities` i `POST /api/territorial/location/validate`. La cerca només retorna unitats actives i seleccionables. La validació rebutja país o localitat inexistents, països diferents, unitat inactiva o no seleccionable.
+
 ### Places
 
 El grup **`/api/places`** exigeix **`Authorization: Bearer <JWT>`** per defecte. Per al preview públic del login, aquestes lectures són anònimes: `GET /api/places`, `GET /api/places/cities` i `GET /api/places/cities/search`. La resta (inclòs detall per id, cerques externes i escrits) segueix amb JWT; els escrits **`POST` / `PUT`** també requereixen permís **`action.places.manage`**.
@@ -82,7 +90,7 @@ El grup **`/api/places`** exigeix **`Authorization: Bearer <JWT>`** per defecte.
 - `GET /api/places/cities` (anònim) — llista `PlaceCitySuggestionDto` amb llocs, fins a 1000 resultats GeoNames (màxim per petició) i catàleg governat (`source`: `places` | `geonames` | `catalog`)
 - `GET /api/places/cities/search` (anònim) — typeahead de 2 caràcters sobre totes les fonts, fins a 1000 resultats
 
-Aquest és el contracte **actual**. La Iteració 6 ja ha implementat el nucli, la persistència i el motor genèric d'importació del nou model territorial, però la Fase V no introdueix endpoints ni canvia el consum funcional. La possible substitució d'aquest agregat de fonts per una API territorial sobre catàleg PostgreSQL propi queda **EN REVISIÓ** per a la Iteració 7; no hi ha endpoints nous ni s'ha retirat GeoNames.
+Aquest agregat textual continua sent compatibilitat de Places fins que Fase VII publiqui el catàleg i Fase VIII executi el backfill. La nova API territorial ja existeix per als fluxos nous, però no s’ha retirat GeoNames ni s’han vinculat User/Place per nom.
 - `GET /api/places/{id}`
 - `POST /api/places`
 - `PUT /api/places/{id}`

@@ -44,6 +44,8 @@ public static class DependencyInjection
         services.AddScoped<IUserApplicationService, UserApplicationService>();
         services.AddScoped<IPlaceReviewApplicationService, PlaceReviewApplicationService>();
         services.AddScoped<TerritorialImportService>();
+        services.AddScoped<TerritorialAdminService>();
+        services.AddScoped<TerritorialLocationService>();
         services.AddSingleton<TerritorialMappingEngine>();
         services.AddSingleton<TerritorialImportValidator>();
         services.AddSingleton<TerritorialDiffEngine>();

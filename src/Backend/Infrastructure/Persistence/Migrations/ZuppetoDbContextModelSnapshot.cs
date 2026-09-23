@@ -1510,6 +1510,71 @@ namespace Infrastructure.Persistence.Migrations
                     b.ToTable("territorial_locale_assignments", (string)null);
                 });
 
+            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.TerritorialMaintenanceAuditRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("action");
+
+                    b.Property<Guid>("ActorUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("actor_user_id");
+
+                    b.Property<string>("AfterValue")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("after_value");
+
+                    b.Property<string>("BeforeValue")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("before_value");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("Field")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("field");
+
+                    b.Property<string>("Origin")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("origin");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("reason");
+
+                    b.Property<Guid>("TerritorialUnitId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("territorial_unit_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorUserId");
+
+                    b.HasIndex("TerritorialUnitId", "CreatedAtUtc")
+                        .HasDatabaseName("ix_territorial_maintenance_unit_created");
+
+                    b.ToTable("territorial_maintenance_audit", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_territorial_maintenance_origin", "origin IN ('Manual','Import')");
+                        });
+                });
+
             modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.TerritorialMappingTemplateRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1721,6 +1786,18 @@ namespace Infrastructure.Persistence.Migrations
                         .HasColumnName("created_at_utc")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
+                    b.Property<bool>("HasManualActiveOverride")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("has_manual_active_override");
+
+                    b.Property<bool>("HasManualCoordinateOverride")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("has_manual_coordinate_override");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean")
                         .HasColumnName("is_active");
@@ -1734,6 +1811,10 @@ namespace Infrastructure.Persistence.Migrations
                         .HasPrecision(9, 6)
                         .HasColumnType("numeric(9,6)")
                         .HasColumnName("longitude");
+
+                    b.Property<bool?>("ManualSelectableLocality")
+                        .HasColumnType("boolean")
+                        .HasColumnName("manual_selectable_locality");
 
                     b.Property<Guid?>("ParentId")
                         .HasColumnType("uuid")
@@ -1774,7 +1855,7 @@ namespace Infrastructure.Persistence.Migrations
 
                     b.ToTable("territorial_units", null, t =>
                         {
-                            t.HasCheckConstraint("ck_territorial_units_coordinates", "(latitude IS NULL AND longitude IS NULL AND coordinate_source_id IS NULL) OR (latitude IS NOT NULL AND longitude IS NOT NULL AND coordinate_source_id IS NOT NULL AND latitude BETWEEN -90 AND 90 AND longitude BETWEEN -180 AND 180)");
+                            t.HasCheckConstraint("ck_territorial_units_coordinates", "(latitude IS NULL AND longitude IS NULL AND coordinate_source_id IS NULL) OR (latitude IS NOT NULL AND longitude IS NOT NULL AND (coordinate_source_id IS NOT NULL OR has_manual_coordinate_override) AND latitude BETWEEN -90 AND 90 AND longitude BETWEEN -180 AND 180)");
 
                             t.HasCheckConstraint("ck_territorial_units_not_self_parent", "parent_id IS NULL OR parent_id <> id");
                         });
@@ -2370,6 +2451,25 @@ namespace Infrastructure.Persistence.Migrations
                     b.Navigation("TerritorialUnit");
                 });
 
+            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.TerritorialMaintenanceAuditRecord", b =>
+                {
+                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.UserRecord", "ActorUser")
+                        .WithMany()
+                        .HasForeignKey("ActorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.TerritorialUnitRecord", "TerritorialUnit")
+                        .WithMany("MaintenanceAudit")
+                        .HasForeignKey("TerritorialUnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ActorUser");
+
+                    b.Navigation("TerritorialUnit");
+                });
+
             modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.TerritorialMappingTemplateRecord", b =>
                 {
                     b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.TerritorialDatasetSourceRecord", "DatasetSource")
@@ -2587,6 +2687,8 @@ namespace Infrastructure.Persistence.Migrations
                     b.Navigation("Codes");
 
                     b.Navigation("LocaleAssignments");
+
+                    b.Navigation("MaintenanceAudit");
 
                     b.Navigation("Names");
                 });

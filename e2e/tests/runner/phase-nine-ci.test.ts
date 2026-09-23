@@ -20,7 +20,7 @@ test('CI profiles select the shared smoke, critical and full inventories', async
   assert.deepEqual(selectSuiteProfile(inventory, 'smoke').map((item) => item.testCode), ['ZUP-001', 'ZUP-073', 'ZUP-115']);
   assert.equal(selectSuiteProfile(inventory, 'critical').length, 59);
   assert.ok(selectSuiteProfile(inventory, 'critical').every((item) => item.risk === 'HIGH'));
-  assert.equal(selectSuiteProfile(inventory, 'full').length, 177);
+  assert.equal(selectSuiteProfile(inventory, 'full').length, 184);
   assert.equal(parseSuiteProfile(undefined), 'full');
   assert.throws(() => parseSuiteProfile('copied-ci-suite'));
 });

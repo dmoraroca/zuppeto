@@ -18,6 +18,9 @@ public sealed class TerritorialUnitConfiguration : IEntityTypeConfiguration<Terr
         builder.Property(item => item.ParentId).HasColumnName("parent_id");
         builder.Property(item => item.TerritorialUnitTypeId).HasColumnName("territorial_unit_type_id").IsRequired();
         builder.Property(item => item.IsActive).HasColumnName("is_active").IsRequired();
+        builder.Property(item => item.HasManualActiveOverride).HasColumnName("has_manual_active_override").HasDefaultValue(false).IsRequired();
+        builder.Property(item => item.ManualSelectableLocality).HasColumnName("manual_selectable_locality");
+        builder.Property(item => item.HasManualCoordinateOverride).HasColumnName("has_manual_coordinate_override").HasDefaultValue(false).IsRequired();
         builder.Property(item => item.Latitude).HasColumnName("latitude").HasPrecision(9, 6);
         builder.Property(item => item.Longitude).HasColumnName("longitude").HasPrecision(9, 6);
         builder.Property(item => item.CoordinateSourceId).HasColumnName("coordinate_source_id");
@@ -56,7 +59,7 @@ public sealed class TerritorialUnitConfiguration : IEntityTypeConfiguration<Terr
             table.HasCheckConstraint(
                 "ck_territorial_units_coordinates",
                 "(latitude IS NULL AND longitude IS NULL AND coordinate_source_id IS NULL) OR " +
-                "(latitude IS NOT NULL AND longitude IS NOT NULL AND coordinate_source_id IS NOT NULL AND " +
+                "(latitude IS NOT NULL AND longitude IS NOT NULL AND (coordinate_source_id IS NOT NULL OR has_manual_coordinate_override) AND " +
                 "latitude BETWEEN -90 AND 90 AND longitude BETWEEN -180 AND 180)");
         });
     }

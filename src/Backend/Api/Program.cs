@@ -308,6 +308,8 @@ app.MapDevelopmentActivationTestEndpoints();
 app.MapNavigationEndpoints();
 app.MapAdminEndpoints();
 app.MapGeographicAdminEndpoints();
+app.MapTerritorialAdminEndpoints();
+app.MapTerritorialLocationEndpoints();
 app.MapPlaceEndpoints();
 app.MapFavoriteEndpoints();
 

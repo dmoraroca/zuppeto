@@ -11,6 +11,9 @@ public sealed class TerritorialUnitRecord
     public Guid TerritorialUnitTypeId { get; set; }
     public TerritorialUnitTypeRecord TerritorialUnitType { get; set; } = null!;
     public bool IsActive { get; set; }
+    public bool HasManualActiveOverride { get; set; }
+    public bool? ManualSelectableLocality { get; set; }
+    public bool HasManualCoordinateOverride { get; set; }
     public decimal? Latitude { get; set; }
     public decimal? Longitude { get; set; }
     public Guid? CoordinateSourceId { get; set; }
@@ -20,4 +23,5 @@ public sealed class TerritorialUnitRecord
     public ICollection<TerritorialUnitNameRecord> Names { get; set; } = [];
     public ICollection<TerritorialUnitCodeRecord> Codes { get; set; } = [];
     public ICollection<TerritorialLocaleAssignmentRecord> LocaleAssignments { get; set; } = [];
+    public ICollection<TerritorialMaintenanceAuditRecord> MaintenanceAudit { get; set; } = [];
 }

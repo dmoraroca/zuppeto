@@ -1,5 +1,7 @@
 # Joc de proves (CA)
 
+**Iteració 6 — Fase VI:** la Gestió Territorial ADMIN afegeix proves backend del contracte administratiu, 60/60 proves backend, 49/49 proves Angular, 54/54 proves del runner i els escenaris sintètics ZUP-154–160 en Chrome (7/7 PASS). Es cobreixen format/mida, metadata, mapping versionat, Unicode, paginació, accés exclusiu Admin, wizard, validació bloquejant, ChangeSet, publicació confirmada, historial i recuperació per URL. Cap prova publica datasets oficials.
+
 ## 1. Objectiu
 
 Aquest document recull el joc de proves manual de Zuppeto en format separat de la documentacio funcional i tecnica.
@@ -273,3 +275,9 @@ L'historic d'execucions automatitzades es guarda a `docs/probes-e2e-resultats/` 
 
 - `YYYYMMDD_HHMM_OK_<punt>_<commit>.md`
 - `YYYYMMDD_HHMM_KO_<punt>_<commit>.md`
+
+## Iteració 6 — Fase VI — refinament territorial
+
+Es cobreixen previews minimitzat/canonical, catàleg i detall, manteniment auditat, conflicte d’override, validació Country/TerritorialUnit, selector Angular dependent, Unicode, homònims, seguretat Admin i migracions Up → Down segur → Up.
+
+Resultat: backend 68/68, Angular 51/51, runner 54/54 i Chrome territorial 7/7.

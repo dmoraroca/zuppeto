@@ -13,11 +13,11 @@ const workbookPath = resolve(process.cwd(), '../docs/probes-e2e/probes-pagines/M
 test('Phase VIII reuses the complete scenario inventory for Edge', async () => {
   const inventory = await new ExcelChromeScenarioInventory(workbookPath, edgeTarget.name).load();
   const summary = summarizeChromeInventory(inventory);
-  assert.equal(summary.scenarios, 177);
-  assert.equal(summary.uniqueTestCodes, 153);
-  assert.equal(summary.automatable, 172);
+  assert.equal(summary.scenarios, 184);
+  assert.equal(summary.uniqueTestCodes, 160);
+  assert.equal(summary.automatable, 179);
   assert.equal(summary.nonAutomatable, 5);
-  assert.equal(new Set(inventory.map((item) => item.scenarioId)).size, 177);
+  assert.equal(new Set(inventory.map((item) => item.scenarioId)).size, 184);
   assert.ok(inventory.every((item) => item.variant === 'principal'));
 });
 

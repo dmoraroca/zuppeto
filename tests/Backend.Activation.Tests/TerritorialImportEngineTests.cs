@@ -91,6 +91,23 @@ public sealed class TerritorialImportEngineTests
     }
 
     [Fact]
+    public void Manual_override_is_visible_in_changeset_and_is_not_silently_replaced()
+    {
+        var existing = new TerritorialCatalogUnitSnapshot(Guid.NewGuid(), "MUNICIPALITY", null,
+            [new("München", "de-DE", "Official")], [new("scheme", "09162000")], null, null, false, null,
+            HasManualActiveOverride: true);
+        var incoming = Unit("de:09162000", null, "MUNICIPALITY", "München", [new("scheme", "09162000")]);
+
+        var result = new TerritorialDiffEngine().Build(
+            Guid.NewGuid(), Context("Delta", ["MUNICIPALITY"], [existing]), [incoming], null, DateTimeOffset.UtcNow);
+
+        var change = Assert.Single(result.ChangeSet.Changes);
+        Assert.Contains("manualOverrideConflict:isActive", change.ChangedFields);
+        Assert.Contains(result.Issues, issue => issue.RuleCode == "MANUAL_OVERRIDE_CONFLICT");
+        Assert.DoesNotContain("isActive", change.ChangedFields);
+    }
+
+    [Fact]
     public async Task Xlsx_reader_reads_both_real_pilots_without_executing_domain_logic()
     {
         var root = FindRepositoryRoot();
