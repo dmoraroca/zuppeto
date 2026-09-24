@@ -28,7 +28,7 @@ internal sealed class TerritorialImportStore(ZuppetoDbContext db) : ITerritorial
             item.DefinitionJson, item.SchemaFingerprint, item.DefinitionChecksum, item.CreatedAtUtc, item.IsActive);
     }
 
-    public async Task CreateAsync(TerritorialImport import, CancellationToken ct = default)
+    public async Task CreateAsync(TerritorialImport import, byte[] artifact, CancellationToken ct = default)
     {
         var mode = await db.TerritorialDatasetSources.Where(x => x.Id == import.DatasetSourceId).Select(x => x.PublicationMode).SingleAsync(ct);
         db.TerritorialImports.Add(new TerritorialImportRecord
@@ -36,20 +36,67 @@ internal sealed class TerritorialImportStore(ZuppetoDbContext db) : ITerritorial
             Id = import.Id, DatasetSourceId = import.DatasetSourceId, MappingTemplateId = import.MappingTemplateId,
             ArtifactName = import.ArtifactName, FileChecksum = import.FileChecksum, FileSize = import.FileSize,
             DatasetVersion = import.DatasetVersion, PublicationMode = mode, Status = import.Status.ToString(),
-            CreatedByUserId = import.CreatedByUserId, CreatedAtUtc = import.CreatedAtUtc, UpdatedAtUtc = import.UpdatedAtUtc
+            CreatedByUserId = import.CreatedByUserId, CreatedAtUtc = import.CreatedAtUtc, UpdatedAtUtc = import.UpdatedAtUtc,
+            CurrentStage = TerritorialImportStage.Artifact.ToString(), NextAttemptAtUtc = import.CreatedAtUtc,
+            Artifact = new TerritorialImportArtifactRecord { ImportId = import.Id, Content = artifact, CreatedAtUtc = import.CreatedAtUtc }
         });
         await db.SaveChangesAsync(ct);
     }
 
+    public async Task<Stream> OpenArtifactAsync(Guid importId, CancellationToken ct = default)
+    {
+        var content = await db.TerritorialImportArtifacts.AsNoTracking().Where(x => x.ImportId == importId).Select(x => x.Content).SingleAsync(ct);
+        return new MemoryStream(content, writable: false);
+    }
+
+    public async Task BeginPreparationAsync(TerritorialImport import, CancellationToken ct = default)
+    {
+        await db.TerritorialImportRows.Where(x => x.ImportId == import.Id).ExecuteDeleteAsync(ct);
+        await db.TerritorialImportIssues.Where(x => x.ImportId == import.Id).ExecuteDeleteAsync(ct);
+        await db.TerritorialChangeSets.Where(x => x.ImportId == import.Id).ExecuteDeleteAsync(ct);
+        var record = await db.TerritorialImports.SingleAsync(x => x.Id == import.Id, ct);
+        record.Status = import.Status.ToString(); record.CurrentStage = TerritorialImportStage.Reading.ToString();
+        record.TotalRows = null; record.ProcessedRows = null; record.HasBlockingErrors = false; record.CatalogVersion = null;
+        record.FailureReason = null; record.LastErrorCode = null; record.LastErrorMessage = null; record.IsRecoverable = false;
+        record.ProcessingStartedAtUtc ??= DateTimeOffset.UtcNow; record.ProcessingCompletedAtUtc = null;
+        record.LastHeartbeatAtUtc = DateTimeOffset.UtcNow; record.UpdatedAtUtc = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+    }
+
+    public async Task SetStageAsync(Guid importId, TerritorialImportStage stage, int? totalRows = null, int? processedRows = null, CancellationToken ct = default)
+    {
+        var record = await db.TerritorialImports.SingleAsync(x => x.Id == importId, ct);
+        if (record.CancellationRequested) throw new TerritorialImportCancellationException();
+        record.CurrentStage = stage.ToString(); record.TotalRows = totalRows ?? record.TotalRows;
+        record.ProcessedRows = processedRows ?? record.ProcessedRows; record.LastHeartbeatAtUtc = DateTimeOffset.UtcNow;
+        record.UpdatedAtUtc = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+    }
+
+    public async Task EnsureNotCancelledAsync(Guid importId, CancellationToken ct = default)
+    {
+        if (await db.TerritorialImports.AsNoTracking().Where(x => x.Id == importId).Select(x => x.CancellationRequested).SingleAsync(ct))
+            throw new TerritorialImportCancellationException();
+    }
+
     public async Task SaveMappedAsync(TerritorialImport import, IReadOnlyCollection<TerritorialMappedRow> rows, CancellationToken ct = default)
     {
-        db.TerritorialImportRows.AddRange(rows.Select(row => new TerritorialImportRowRecord
+        var processed = 0;
+        foreach (var batch in rows.Chunk(500))
         {
-            Id = Guid.NewGuid(), ImportId = import.Id, Sheet = row.Sheet, RowNumber = row.RowNumber,
-            SourceJson = JsonSerializer.Serialize(row.SourceValues, TerritorialImportJson.Options),
-            CanonicalJson = JsonSerializer.Serialize(row.Candidate, TerritorialImportJson.Options),
-            CanonicalUnitKey = row.Candidate.CanonicalUnitKey, ParentCanonicalUnitKey = row.Candidate.ParentCanonicalUnitKey
-        }));
+            await EnsureNotCancelledAsync(import.Id, ct);
+            db.TerritorialImportRows.AddRange(batch.Select(row => new TerritorialImportRowRecord
+            {
+                Id = Guid.NewGuid(), ImportId = import.Id, Sheet = row.Sheet, RowNumber = row.RowNumber,
+                SourceJson = JsonSerializer.Serialize(row.SourceValues, TerritorialImportJson.Options),
+                CanonicalJson = JsonSerializer.Serialize(row.Candidate, TerritorialImportJson.Options),
+                CanonicalUnitKey = row.Candidate.CanonicalUnitKey, ParentCanonicalUnitKey = row.Candidate.ParentCanonicalUnitKey
+            }));
+            processed += batch.Length;
+            var record = await db.TerritorialImports.SingleAsync(x => x.Id == import.Id, ct);
+            record.TotalRows = rows.Count; record.ProcessedRows = processed; record.LastHeartbeatAtUtc = DateTimeOffset.UtcNow;
+            await db.SaveChangesAsync(ct);
+        }
         await UpdateImport(import, new { rows = rows.Count }, ct);
     }
 
@@ -85,9 +132,14 @@ internal sealed class TerritorialImportStore(ZuppetoDbContext db) : ITerritorial
     public async Task CancelAsync(Guid importId, CancellationToken ct = default)
     {
         var record = await db.TerritorialImports.SingleAsync(x => x.Id == importId, ct);
-        if (record.Status is "Published" or "Reverted")
+        if (record.Status is "Published" or "Reverted" or "Publishing")
             throw new InvalidOperationException("Una importació publicada no es pot cancel·lar.");
-        record.Status = "Cancelled";
+        if (record.LeaseOwner is null)
+        {
+            record.Status = "Cancelled";
+            record.ProcessingCompletedAtUtc = DateTimeOffset.UtcNow;
+        }
+        else record.CancellationRequested = true;
         record.UpdatedAtUtc = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
     }
@@ -99,6 +151,9 @@ internal sealed class TerritorialImportStore(ZuppetoDbContext db) : ITerritorial
         record.CatalogVersion = import.CatalogVersion; record.UpdatedAtUtc = import.UpdatedAtUtc;
         record.PublishedAtUtc = import.PublishedAtUtc; record.FailureReason = Truncate(import.FailureReason, 2000);
         record.SummaryJson = JsonSerializer.Serialize(summary, TerritorialImportJson.Options);
+        record.LastHeartbeatAtUtc = DateTimeOffset.UtcNow;
+        if (import.Status is TerritorialImportStatus.ReadyForReview or TerritorialImportStatus.Validated)
+            record.ProcessingCompletedAtUtc = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
     }
 
@@ -124,7 +179,7 @@ internal sealed class TerritorialCatalogImportGateway(ZuppetoDbContext db) : ITe
         var import = await db.TerritorialImports.Include(x => x.DatasetSource).Include(x => x.ChangeSets).ThenInclude(x => x.Items)
             .SingleAsync(x => x.Id == importId, ct);
         var changeSet = import.ChangeSets.SingleOrDefault(x => x.RevertsChangeSetId == null);
-        if (import.Status != "ReadyForReview" || changeSet is null || import.HasBlockingErrors) throw new InvalidOperationException("La importació no està preparada per publicar.");
+        if (import.Status != "Publishing" || changeSet is null || import.HasBlockingErrors) throw new InvalidOperationException("La importació no està preparada per publicar.");
         var sourceGate = await db.TerritorialDatasetSources.AsNoTracking().Where(x => x.Id == import.DatasetSourceId)
             .Select(x => new { x.IsActive, x.ApprovalStatus }).SingleAsync(ct);
         if (!sourceGate.IsActive || sourceGate.ApprovalStatus != "Approved") throw new InvalidOperationException("La font territorial no està aprovada.");
@@ -158,6 +213,7 @@ internal sealed class TerritorialCatalogImportGateway(ZuppetoDbContext db) : ITe
 
         await ApplyItems(changeSet.Items, import.DatasetSource, ct);
         import.Status = "Published"; import.PublishedAtUtc = publishedAtUtc; import.UpdatedAtUtc = publishedAtUtc;
+        import.ProcessingCompletedAtUtc = publishedAtUtc; import.LastHeartbeatAtUtc = publishedAtUtc;
         changeSet.Status = "Published"; changeSet.PublishedAtUtc = import.PublishedAtUtc;
         try
         {

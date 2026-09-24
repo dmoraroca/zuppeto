@@ -3,7 +3,8 @@ BEGIN;
 INSERT INTO countries (id, code, name, iso2, iso3, is_active, sort_order, created_at_utc, updated_at_utc)
 VALUES
   ('e2e00000-0000-0000-0000-000000000001', 'E2EA', 'País E2E À', 'QZ', 'QZZ', true, 900, now(), now()),
-  ('e2e00000-0000-0000-0000-000000000002', 'E2EB', 'País E2E B', 'QY', 'QYY', true, 901, now(), now())
+  ('e2e00000-0000-0000-0000-000000000002', 'E2EB', 'País E2E B', 'QY', 'QYY', true, 901, now(), now()),
+  ('e2e00000-0000-0000-0000-000000000003', 'E2EC', 'País E2E Importació', 'QX', 'QXX', true, 902, now(), now())
 ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, is_active = true, updated_at_utc = now();
 
 INSERT INTO territorial_unit_types
@@ -11,8 +12,27 @@ INSERT INTO territorial_unit_types
 VALUES
   ('e2e00000-0000-0000-0000-000000000011', 'e2e00000-0000-0000-0000-000000000001', 'REGION', 'Regió E2E', 1, false, true, now(), now()),
   ('e2e00000-0000-0000-0000-000000000012', 'e2e00000-0000-0000-0000-000000000001', 'LOCALITY', 'Localitat E2E', 2, true, true, now(), now()),
-  ('e2e00000-0000-0000-0000-000000000013', 'e2e00000-0000-0000-0000-000000000002', 'LOCALITY', 'Localitat E2E', 1, true, true, now(), now())
+  ('e2e00000-0000-0000-0000-000000000013', 'e2e00000-0000-0000-0000-000000000002', 'LOCALITY', 'Localitat E2E', 1, true, true, now(), now()),
+  ('e2e00000-0000-0000-0000-000000000014', 'e2e00000-0000-0000-0000-000000000003', 'LOCALITY', 'Localitat E2E', 1, true, true, now(), now())
 ON CONFLICT (id) DO UPDATE SET is_selectable_locality = EXCLUDED.is_selectable_locality, is_active = true, updated_at_utc = now();
+
+INSERT INTO territorial_dataset_sources
+  (id, country_id, organisation, dataset, dataset_type, locale, url, license, attribution,
+   commercial_use_allowed, transformation_allowed, approval_status, verified_at_utc,
+   verified_by_user_id, is_active, publication_mode, dataset_version, created_at_utc, updated_at_utc)
+SELECT
+  'e2e00000-0000-0000-0000-000000000401',
+  'e2e00000-0000-0000-0000-000000000003',
+  'Organisme E2E', 'Dataset worker E2E', 'AdministrativeTerritory', 'ca-ES',
+  'https://example.test/e2e-territorial', 'Fixture E2E', 'Només prova automatitzada',
+  true, true, 'Approved', now(), id, true, 'FullSnapshot', 'e2e-v1', now(), now()
+FROM users
+WHERE role = 'Admin'
+ORDER BY created_at_utc
+LIMIT 1
+ON CONFLICT (id) DO UPDATE SET
+  approval_status = 'Approved', verified_at_utc = now(), verified_by_user_id = EXCLUDED.verified_by_user_id,
+  is_active = true, updated_at_utc = now();
 
 INSERT INTO territorial_units
   (id, country_id, territorial_unit_type_id, parent_id, is_active, has_manual_active_override,

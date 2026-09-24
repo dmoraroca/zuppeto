@@ -125,6 +125,18 @@ public sealed record PreparedTerritorialImport(
     IReadOnlyCollection<TerritorialImportIssue> Issues,
     TerritorialChangeSet? ChangeSet);
 
+public sealed record TerritorialImportWorkItem(
+    Guid ImportId,
+    Guid DatasetSourceId,
+    Guid MappingTemplateId,
+    string ArtifactName,
+    string FileChecksum,
+    long FileSize,
+    string DatasetVersion,
+    Guid ActorUserId,
+    bool IsPublication,
+    string LeaseOwner);
+
 public interface ITerritorialWorkbookReader
 {
     Task<TerritorialSourceWorkbook> ReadAsync(Stream source, CancellationToken cancellationToken = default);
@@ -138,12 +150,31 @@ public interface ITerritorialImportAuthorizer
 public interface ITerritorialImportStore
 {
     Task<TerritorialMappingTemplate?> GetMappingAsync(Guid mappingTemplateId, CancellationToken cancellationToken = default);
-    Task CreateAsync(TerritorialImport import, CancellationToken cancellationToken = default);
+    Task CreateAsync(TerritorialImport import, byte[] artifact, CancellationToken cancellationToken = default);
+    Task<Stream> OpenArtifactAsync(Guid importId, CancellationToken cancellationToken = default);
+    Task BeginPreparationAsync(TerritorialImport import, CancellationToken cancellationToken = default);
+    Task SetStageAsync(Guid importId, TerritorialImportStage stage, int? totalRows = null, int? processedRows = null, CancellationToken cancellationToken = default);
+    Task EnsureNotCancelledAsync(Guid importId, CancellationToken cancellationToken = default);
     Task SaveMappedAsync(TerritorialImport import, IReadOnlyCollection<TerritorialMappedRow> rows, CancellationToken cancellationToken = default);
     Task SaveValidatedAsync(TerritorialImport import, IReadOnlyCollection<TerritorialImportIssue> issues, CancellationToken cancellationToken = default);
     Task SaveReadyAsync(TerritorialImport import, TerritorialChangeSet changeSet, CancellationToken cancellationToken = default);
     Task CancelAsync(Guid importId, CancellationToken cancellationToken = default);
     Task MarkFailedAsync(TerritorialImport import, CancellationToken cancellationToken = default);
+}
+
+public interface ITerritorialImportWorkQueue
+{
+    Task<TerritorialImportWorkItem?> ClaimNextAsync(string owner, TimeSpan leaseDuration, CancellationToken cancellationToken = default);
+    Task HeartbeatAsync(Guid importId, string owner, TimeSpan leaseDuration, CancellationToken cancellationToken = default);
+    Task CompleteAsync(Guid importId, string owner, CancellationToken cancellationToken = default);
+    Task FailAsync(Guid importId, string owner, string errorCode, string safeMessage, bool recoverable, int maximumAttempts, CancellationToken cancellationToken = default);
+    Task CancelClaimedAsync(Guid importId, string owner, CancellationToken cancellationToken = default);
+    Task QueuePublicationAsync(Guid importId, Guid actorUserId, CancellationToken cancellationToken = default);
+}
+
+public sealed class TerritorialImportCancellationException : OperationCanceledException
+{
+    public TerritorialImportCancellationException() : base("La cancel·lació territorial ha estat sol·licitada.") { }
 }
 
 public interface ITerritorialCatalogImportGateway

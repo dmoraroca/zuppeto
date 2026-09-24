@@ -8,14 +8,14 @@
   </div>
   <div class="history__table-wrap">
     <table>
-      <thead><tr><th>Data</th><th>País i font</th><th>Versió</th><th>Estat</th><th>Resultat</th><th></th></tr></thead>
+      <thead><tr><th>Data</th><th>País i font</th><th>Versió</th><th>Estat / etapa</th><th>Resultat</th><th></th></tr></thead>
       <tbody>
         @for (item of history.items; track item.id) {
           <tr>
             <td>{{ item.createdAtUtc | date:'short' }}<small>{{ item.actor }}</small></td>
             <td><strong>{{ item.countryName }}</strong><small>{{ item.organisation }} · {{ item.dataset }}</small></td>
             <td>{{ item.datasetVersion }}<small>mapping v{{ item.mappingVersion }}</small></td>
-            <td><span class="status" [class.status--blocked]="item.hasBlockingErrors">{{ item.status }}</span></td>
+            <td><span class="status" [class.status--blocked]="item.hasBlockingErrors || item.status === 'Failed'">{{ statusLabel(item.status) }}</span><small>{{ stageLabel(item.currentStage) }} @if (item.totalRows) { · {{ item.processedRows || 0 }}/{{ item.totalRows }} }</small></td>
             <td>+{{ item.counters.create }} · ~{{ item.counters.update }} · −{{ item.counters.deactivate }}</td>
             <td><button type="button" (click)="openImport.emit(item.id)">Obrir detall</button></td>
           </tr>

@@ -50,3 +50,10 @@ Encara no es considera autenticacio real:
 - no hi ha permisos reals persistits
 
 Aixo queda reservat per la Fase IV.
+# Actualització territorial — Fase VII
+
+La preparació territorial és asíncrona. Angular rep `202 Accepted` amb el detall `Queued`, conserva l'identificador i consulta `GET /api/admin/territorial/imports/{id}` només mentre l'estat és actiu. La pantalla mostra etapa, files processades/totals, intent, heartbeat, cancel·lació i error funcional; en arribar a `ReadyForReview`, `Validated` bloquejant, `Failed`, `Cancelled`, `Published` o `Reverted`, atura el polling i carrega preview, incidències i ChangeSet.
+
+VII.8 separa els valors interns de la seva presentació: una política compartida tradueix estats, etapes, accions i tipus. La resposta de canvis arriba tipada i Angular mostra **Canvis a publicar** amb nom, codi, tipus, pare i detall estructurat; no renderitza `BeforeJson`, `AfterJson`, claus canòniques ni propietats de DTO com a interfície funcional.
+
+La inspecció XLSX retorna també `sourcePreview`, una mostra limitada anterior al mapping. Angular no llegeix ni canonicalitza el workbook localment. `publish` retorna `Publishing` i segueix el mateix patró. Les fonts pilot `Pending` es poden validar però el backend n'impedeix la publicació.

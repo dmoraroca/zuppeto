@@ -141,6 +141,7 @@ public static class DependencyInjection
         services.AddScoped<IGoogleIdTokenVerifier, GoogleIdTokenVerifier>();
         services.AddScoped<DevelopmentIdentitySeeder>();
         services.AddScoped<DevelopmentPlacesSeeder>();
+        services.AddScoped<TerritorialPilotConfigurationSeeder>();
         services.AddScoped<IMenuRepository, MenuRepository>();
         services.AddScoped<IPlaceRepository, PlaceRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
@@ -156,9 +157,11 @@ public static class DependencyInjection
         services.AddSingleton<ITerritorialWorkbookReader, XlsxTerritorialReader>();
         services.AddScoped<ITerritorialImportAuthorizer, TerritorialImportAuthorizer>();
         services.AddScoped<ITerritorialImportStore, TerritorialImportStore>();
+        services.AddScoped<ITerritorialImportWorkQueue, TerritorialImportWorkQueue>();
         services.AddScoped<ITerritorialCatalogImportGateway, TerritorialCatalogImportGateway>();
         services.AddScoped<ITerritorialAdminRepository, TerritorialAdminRepository>();
         services.AddScoped<ITerritorialLocationRepository, TerritorialLocationRepository>();
+        services.AddHostedService<TerritorialImportWorker>();
 
         return services;
     }

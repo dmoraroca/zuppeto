@@ -59,10 +59,10 @@
 
       @if (activeTab() === 'names') {
         <section class="stack" aria-labelledby="names-title">
-          <div><h4 id="names-title">Noms</h4><div class="table-wrap"><table><thead><tr><th>Valor</th><th>Locale</th><th>Kind</th><th>Primary</th><th>Procedència</th></tr></thead><tbody>
-            @for (name of detail().names; track name.id) { <tr><td>{{ name.name }}</td><td>{{ name.locale || '—' }}</td><td>{{ name.kind }}</td><td>{{ name.isPrimary ? 'Sí' : 'No' }}</td><td>{{ name.source || 'Manual' }}</td></tr> }
+          <div><h4 id="names-title">Noms</h4><div class="table-wrap"><table><thead><tr><th>Nom</th><th>Locale</th><th>Tipus</th><th>Principal</th><th>Procedència</th></tr></thead><tbody>
+            @for (name of detail().names; track name.id) { <tr><td>{{ name.name }}</td><td>{{ name.locale || '—' }}</td><td>{{ nameKindLabel(name.kind) }}</td><td>{{ name.isPrimary ? 'Sí' : 'No' }}</td><td>{{ name.source || 'Manual' }}</td></tr> }
           </tbody></table></div></div>
-          <div><h4>Codis oficials — només lectura</h4><div class="table-wrap"><table><thead><tr><th>Scheme</th><th>Value</th><th>Vigència</th><th>Primary</th><th>Procedència</th></tr></thead><tbody>
+          <div><h4>Codis oficials — només lectura</h4><div class="table-wrap"><table><thead><tr><th>Esquema</th><th>Valor</th><th>Vigència</th><th>Principal</th><th>Procedència</th></tr></thead><tbody>
             @for (code of detail().codes; track code.id) { <tr><td>{{ code.scheme }}</td><td>{{ code.value }}</td><td>{{ code.validFrom || '—' }} → {{ code.validTo || 'vigent' }}</td><td>{{ code.isPrimary ? 'Sí' : 'No' }}</td><td>{{ code.source || 'Manual' }}</td></tr> }
           </tbody></table></div></div>
         </section>

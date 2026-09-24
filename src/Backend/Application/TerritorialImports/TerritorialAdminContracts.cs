@@ -9,6 +9,8 @@ public sealed record TerritorialAdminSourceDto(
     Guid CountryId,
     string Organisation,
     string Dataset,
+    string DatasetType,
+    string? Locale,
     string ApprovalStatus,
     bool IsActive,
     string PublicationMode,
@@ -33,7 +35,10 @@ public sealed record TerritorialWorkbookInspectionDto(
     string Format,
     string SchemaFingerprint,
     IReadOnlyCollection<TerritorialWorkbookSheetDto> Sheets,
+    IReadOnlyCollection<TerritorialWorkbookPreviewRowDto> SourcePreview,
     IReadOnlyCollection<TerritorialMappingTemplateSummaryDto> CompatibleMappings);
+
+public sealed record TerritorialWorkbookPreviewRowDto(string Sheet, int RowNumber, IReadOnlyDictionary<string, string?> Values);
 
 public sealed record TerritorialMappingTemplateSummaryDto(
     Guid Id,
@@ -79,6 +84,17 @@ public sealed record TerritorialImportListItemDto(
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset UpdatedAtUtc,
     DateTimeOffset? PublishedAtUtc,
+    string? CurrentStage,
+    int? TotalRows,
+    int? ProcessedRows,
+    DateTimeOffset? ProcessingStartedAtUtc,
+    DateTimeOffset? ProcessingCompletedAtUtc,
+    DateTimeOffset? LastHeartbeatAtUtc,
+    int AttemptCount,
+    string? LastErrorCode,
+    string? LastErrorMessage,
+    bool IsRecoverable,
+    bool CancellationRequested,
     TerritorialImportCountersDto Counters);
 
 public sealed record TerritorialImportDetailDto(
@@ -93,7 +109,18 @@ public sealed record TerritorialImportDetailDto(
     Guid? ChangeSetId,
     string? ChangeSetStatus,
     DateTimeOffset? ChangeSetCreatedAtUtc,
-    DateTimeOffset? ChangeSetPublishedAtUtc);
+    DateTimeOffset? ChangeSetPublishedAtUtc,
+    IReadOnlyCollection<string> SourceSheets,
+    int ManualConflictCount,
+    IReadOnlyCollection<TerritorialPublicationBreakdownDto> TerritorialBreakdown);
+
+public sealed record TerritorialPublicationBreakdownDto(
+    string TerritorialUnitTypeCode,
+    string TerritorialUnitType,
+    int Create,
+    int Update,
+    int Deactivate,
+    int NoChange);
 
 public sealed record TerritorialImportIssueDto(
     Guid Id,
@@ -111,10 +138,39 @@ public sealed record TerritorialChangeItemDto(
     Guid Id,
     string Kind,
     Guid? TerritorialUnitId,
-    string CanonicalUnitKey,
-    JsonElement? Before,
-    JsonElement? After,
-    IReadOnlyCollection<string> ChangedFields);
+    string Name,
+    string? PrimaryCode,
+    string TerritorialUnitTypeCode,
+    string TerritorialUnitType,
+    string Country,
+    string? Parent,
+    string? Locale,
+    bool IsActive,
+    bool IsSelectableLocality,
+    decimal? Latitude,
+    decimal? Longitude,
+    string Source,
+    IReadOnlyCollection<string> Hierarchy,
+    TerritorialChangeProvenanceDto Provenance,
+    IReadOnlyCollection<TerritorialChangeNameDto> Names,
+    IReadOnlyCollection<TerritorialChangeCodeDto> Codes,
+    IReadOnlyCollection<TerritorialFieldDifferenceDto> Differences,
+    string? FunctionalReason,
+    bool HasManualConflict);
+
+public sealed record TerritorialChangeProvenanceDto(
+    string Organisation,
+    string Dataset,
+    string DatasetVersion,
+    DateOnly? DatasetDate,
+    int MappingVersion,
+    string? Locale,
+    string? Source);
+
+public sealed record TerritorialChangeNameDto(string Name, string? Locale, string Kind, bool IsPrimary, string Source);
+public sealed record TerritorialChangeCodeDto(
+    string Scheme, string Value, bool IsPrimary, DateOnly? ValidFrom, DateOnly? ValidTo, string Source);
+public sealed record TerritorialFieldDifferenceDto(string Field, string? Before, string? After, bool HasManualConflict);
 
 public sealed record PageResult<T>(IReadOnlyCollection<T> Items, int Page, int PageSize, int TotalCount)
 {
@@ -124,13 +180,23 @@ public sealed record PageResult<T>(IReadOnlyCollection<T> Items, int Page, int P
 public sealed record TerritorialImportQuery(Guid? CountryId, Guid? DatasetSourceId, string? Status, int Page = 1, int PageSize = 25);
 public sealed record TerritorialIssueQuery(string? Severity, string? RuleCode, string? Sheet, string? Field, int Page = 1, int PageSize = 50);
 public sealed record TerritorialChangeQuery(string? Kind, string? Search, int Page = 1, int PageSize = 50);
+public sealed record TerritorialChangeHierarchyQuery(string? Search, int Page = 1, int PageSize = 25);
+public sealed record TerritorialChangeHierarchyNodeDto(
+    Guid ChangeId, string Name, string? PrimaryCode, string TerritorialUnitType, string Kind, bool HasBlockingConflict);
+public sealed record TerritorialChangeHierarchyDto(
+    TerritorialChangeItemDto Current,
+    IReadOnlyCollection<TerritorialChangeHierarchyNodeDto> Ancestors,
+    PageResult<TerritorialChangeHierarchyNodeDto> Children);
 
 public sealed record TerritorialPreviewQuery(string? Sheet, string? Search, int Page = 1, int PageSize = 50);
 public sealed record TerritorialSourcePreviewRowDto(Guid Id, string Sheet, int RowNumber, JsonElement Values, string ReadingStatus);
 public sealed record TerritorialCanonicalPreviewRowDto(
     Guid Id, string Sheet, int RowNumber, string CanonicalUnitKey, string? ParentCanonicalUnitKey,
     string Name, string? Locale, string TerritorialUnitTypeCode, IReadOnlyCollection<CanonicalTerritorialCode> Codes,
-    decimal? Latitude, decimal? Longitude, string Status, int IssueCount);
+    decimal? Latitude, decimal? Longitude, string Status, int IssueCount,
+    IReadOnlyCollection<TerritorialCanonicalPreviewIssueDto> Issues);
+public sealed record TerritorialCanonicalPreviewIssueDto(
+    string Severity, string Rule, string Sheet, int RowNumber, string? Field, string Message);
 
 public sealed record TerritorialCatalogQuery(
     Guid? CountryId, Guid? TerritorialUnitTypeId, string? Status, string? Locale, Guid? ParentId,
@@ -167,6 +233,7 @@ public interface ITerritorialAdminRepository
     Task<TerritorialImportDetailDto?> GetImportAsync(Guid id, CancellationToken cancellationToken = default);
     Task<PageResult<TerritorialImportIssueDto>> ListIssuesAsync(Guid importId, TerritorialIssueQuery query, CancellationToken cancellationToken = default);
     Task<PageResult<TerritorialChangeItemDto>> ListChangesAsync(Guid importId, TerritorialChangeQuery query, CancellationToken cancellationToken = default);
+    Task<TerritorialChangeHierarchyDto?> GetChangeHierarchyAsync(Guid importId, Guid changeId, TerritorialChangeHierarchyQuery query, CancellationToken cancellationToken = default);
     Task<PageResult<TerritorialSourcePreviewRowDto>> ListSourcePreviewAsync(Guid importId, TerritorialPreviewQuery query, CancellationToken cancellationToken = default);
     Task<PageResult<TerritorialCanonicalPreviewRowDto>> ListCanonicalPreviewAsync(Guid importId, TerritorialPreviewQuery query, CancellationToken cancellationToken = default);
     Task<PageResult<TerritorialCatalogUnitDto>> ListCatalogAsync(TerritorialCatalogQuery query, CancellationToken cancellationToken = default);

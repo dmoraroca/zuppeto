@@ -17,7 +17,7 @@ No és una especificació d'Entity Framework ni fixa noms definitius de taules o
 | IV | Migració EF Core / PostgreSQL | **COMPLETADA / VALIDADA** |
 | V | Motor genèric d'importació | **COMPLETADA / VALIDADA** |
 | VI | Gestió Territorial ADMIN | **COMPLETADA DEFINITIVAMENT** |
-| VII | Primera importació real i validació | **SEGÜENT** |
+| VII | Primera importació real i validació | **EN CURS — VII.2–VII.7 COMPLETADES; VII.8 IMPLEMENTADA I PENDENT DE VALIDACIÓ MANUAL; VII.9 NO INICIADA** |
 | VIII | Backfill de dades actuals | **PENDENT** |
 | IX | Regressió i tancament | **PENDENT** |
 
@@ -349,7 +349,7 @@ No totes aquestes peces són entitats de domini.
 
 Es persisteix i conserva font, país, artefacte, mida, checksum, versió/data del dataset, mapping, actor, timestamps, versió del catàleg, estat, comptadors i resultat.
 
-Estats funcionals mínims: carregat, mapat, validat, preparat per revisar, publicat, cancel·lat, fallit i revertit quan correspongui.
+Estats funcionals: en cua, carregat, mapat, validat, preparat per revisar, publicant, publicat, cancel·lat, fallit i revertit quan correspongui. L'artefacte i la cua són persistents; lease, heartbeat, intent, etapa, progrés, error segur i cancel·lació permeten recuperar el procés després d'un restart sense lligar-lo a la petició HTTP.
 
 ### 21.2 Reader
 
@@ -562,7 +562,7 @@ Els casos executables i E2E només s'incorporaran quan existeixi implementació.
 
 ## 30. Estat d’implementació
 
-La revisió final no ha detectat cap bloqueig funcional. Les Fases III, IV, V i VI queden completades. La Fase VI —Gestió Territorial ADMIN— està **COMPLETADA DEFINITIVAMENT** amb Data Preview, Catàleg territorial, manteniment auditat, protecció d’overrides i contracte País → Localitat. El selector compartit s’ha consolidat en un únic autocomplete asíncron de Localitat i VI.24-A/B/C/D/E han estat acceptades manualment. La Fase VII és la següent i encara no s’ha executat.
+La revisió final no ha detectat cap bloqueig funcional. Les Fases III, IV, V i VI queden completades. La Fase VII està **EN CURS**: VII.2–VII.7 estan implementades i validades; VII.8 està implementada i pendent de validació manual; VII.9 no s’ha iniciat. El worker durable, la configuració `Pending`, els mappings versionats i la validació real dels dos pilots consten al [document específic de Fase VII](iteracio-6-fase-vii-prerequisits-publicacio-ca.md). No s'ha publicat cap pilot ni s'ha iniciat el backfill.
 
 El detall territorial és una projecció funcional del mateix agregat: modal ampli, pestanyes General, Jerarquia, Noms i codis, Coordenades, Procedència i Auditoria. Les ordres d’activació, seleccionabilitat i coordenades continuen separades, exigeixen motiu propi i no alteren el contracte d’importació ni relaxen cap invariant.
 
@@ -573,6 +573,8 @@ L'OK funcional no autoritza a publicar els datasets pilot mentre les verificacio
 ## 31. Refinament final de Fase VI
 
 Importació, Data Preview, ChangeSet i Catàleg són responsabilitats diferents. El manteniment no és un CRUD: activació, desactivació, seleccionabilitat i coordenades són operacions explícites amb actor, timestamp, motiu, before/after i origen manual. Noms, codis oficials, país, jerarquia i procedència no són editables.
+
+En la interfície ADMIN, aquests conceptes es presenten funcionalment com **Previsualització** i **Canvis a publicar**. No s’hi exposa JSON cru ni terminologia interna com a interfície principal: noms, codis, tipus, jerarquia, procedència i diferències Abans/Després són la representació obligatòria.
 
 `IsActive` i `IsSelectableLocality` són independents. Una unitat inactiva es preserva però no es pot seleccionar de nou. Una importació contrària a estat o coordenades manuals produeix `MANUAL_OVERRIDE_CONFLICT` i preserva la decisió Admin.
 

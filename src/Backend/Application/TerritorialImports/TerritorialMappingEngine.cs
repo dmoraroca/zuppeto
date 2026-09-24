@@ -158,5 +158,36 @@ public sealed class DefaultTerritorialCanonicalizer : ITerritorialCanonicalizer
 public sealed class GvIsysCanonicalizer(DefaultTerritorialCanonicalizer inner) : ITerritorialCanonicalizer
 {
     public string Key => "gv-isys";
-    public (IReadOnlyCollection<CanonicalTerritorialUnit> Units, IReadOnlyCollection<TerritorialImportIssue> Issues) Canonicalize(IReadOnlyCollection<TerritorialMappedRow> rows) => inner.Canonicalize(rows);
+    public (IReadOnlyCollection<CanonicalTerritorialUnit> Units, IReadOnlyCollection<TerritorialImportIssue> Issues) Canonicalize(IReadOnlyCollection<TerritorialMappedRow> rows)
+    {
+        var result = inner.Canonicalize(rows);
+        var preferredNames = rows
+            .GroupBy(row => row.Candidate.CanonicalUnitKey, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.Last().Candidate.Names.First().Name, StringComparer.Ordinal);
+        var units = result.Units.Select(unit =>
+        {
+            var preferred = preferredNames[unit.CanonicalUnitKey];
+            var names = unit.Names
+                .GroupBy(name => (name.Name, name.Locale), new NameLocaleComparer())
+                .Select(group => group.First())
+                .Select(name => name with
+                {
+                    Kind = string.Equals(name.Name, preferred, StringComparison.Ordinal) ? "Official" : "Alternative",
+                    IsPrimary = string.Equals(name.Name, preferred, StringComparison.Ordinal)
+                })
+                .ToArray();
+            return unit with { Names = names };
+        }).ToArray();
+        return (units, result.Issues);
+    }
+
+    private sealed class NameLocaleComparer : IEqualityComparer<(string Name, string? Locale)>
+    {
+        public bool Equals((string Name, string? Locale) x, (string Name, string? Locale) y) =>
+            string.Equals(x.Name, y.Name, StringComparison.Ordinal) &&
+            string.Equals(x.Locale, y.Locale, StringComparison.OrdinalIgnoreCase);
+
+        public int GetHashCode((string Name, string? Locale) value) =>
+            HashCode.Combine(value.Name, value.Locale?.ToUpperInvariant());
+    }
 }

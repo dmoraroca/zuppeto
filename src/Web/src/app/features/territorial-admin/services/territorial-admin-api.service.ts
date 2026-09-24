@@ -4,6 +4,7 @@ import { firstValueFrom } from 'rxjs';
 
 import { API_BASE_URL } from '../../../core/config/api.config';
 import {
+  ChangeHierarchy,
   CanonicalPreviewRow, CatalogDetail, CatalogUnit, ChangeItem, ImportDetail, ImportIssue,
   MappingSummary, PageResult, SourcePreviewRow, TerritorialContext, TerritorialImport, WorkbookInspection
 } from '../models/territorial-admin.model';
@@ -74,6 +75,13 @@ export class TerritorialAdminApiService {
     if (filters.search) params = params.set('search', filters.search);
     return firstValueFrom(this.http.get<PageResult<ChangeItem>>(
       `${this.url}/imports/${id}/changes`, { params }));
+  }
+
+  changeHierarchy(id: string, changeId: string, filters: { search?: string; page?: number; pageSize?: number } = {}): Promise<ChangeHierarchy> {
+    let params = this.pageParams(filters.page, filters.pageSize ?? 25);
+    if (filters.search) params = params.set('search', filters.search);
+    return firstValueFrom(this.http.get<ChangeHierarchy>(
+      `${this.url}/imports/${id}/changes/${changeId}/hierarchy`, { params }));
   }
 
   sourcePreview(id: string, filters: { sheet?: string; search?: string; page?: number } = {}): Promise<PageResult<SourcePreviewRow>> {

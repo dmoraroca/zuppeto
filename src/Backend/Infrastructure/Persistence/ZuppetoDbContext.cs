@@ -29,6 +29,7 @@ public sealed class ZuppetoDbContext(DbContextOptions<ZuppetoDbContext> options)
 
     public DbSet<TerritorialMappingTemplateRecord> TerritorialMappingTemplates => Set<TerritorialMappingTemplateRecord>();
     public DbSet<TerritorialImportRecord> TerritorialImports => Set<TerritorialImportRecord>();
+    public DbSet<TerritorialImportArtifactRecord> TerritorialImportArtifacts => Set<TerritorialImportArtifactRecord>();
     public DbSet<TerritorialImportRowRecord> TerritorialImportRows => Set<TerritorialImportRowRecord>();
     public DbSet<TerritorialImportIssueRecord> TerritorialImportIssues => Set<TerritorialImportIssueRecord>();
     public DbSet<TerritorialCatalogStateRecord> TerritorialCatalogStates => Set<TerritorialCatalogStateRecord>();

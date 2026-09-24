@@ -43,6 +43,8 @@ public sealed class TerritorialAdminService(
             "XLSX",
             workbook.SchemaFingerprint,
             workbook.Sheets.Select(ToSheetMetadata).ToArray(),
+            workbook.Sheets.SelectMany(sheet => sheet.Rows.Skip(1).Take(20).Select(row =>
+                new TerritorialWorkbookPreviewRowDto(sheet.Name, row.Number, row.Values))).ToArray(),
             mappings);
     }
 
@@ -91,10 +93,10 @@ public sealed class TerritorialAdminService(
         ValidateArtifact(artifactName, fileSize);
         if (string.IsNullOrWhiteSpace(datasetVersion) || datasetVersion.Length > 120)
             throw new InvalidOperationException("La versió del dataset és obligatòria i no pot superar 120 caràcters.");
-        var prepared = await importService.PrepareAsync(new PrepareTerritorialImportRequest(
+        var importId = await importService.QueueAsync(new PrepareTerritorialImportRequest(
             datasetSourceId, mappingTemplateId, SafeArtifactName(artifactName), datasetVersion.Trim(), artifact, actorUserId), ct);
-        return await repository.GetImportAsync(prepared.Import.Id, ct)
-            ?? throw new InvalidOperationException("No s'ha pogut recuperar la importació preparada.");
+        return await repository.GetImportAsync(importId, ct)
+            ?? throw new InvalidOperationException("No s'ha pogut recuperar la importació en cua.");
     }
 
     public async Task<PageResult<TerritorialImportListItemDto>> ListImportsAsync(Guid actorUserId, TerritorialImportQuery query, CancellationToken ct = default)
@@ -119,6 +121,13 @@ public sealed class TerritorialAdminService(
     {
         await authorizer.EnsureAdminAsync(actorUserId, ct);
         return await repository.ListChangesAsync(importId, Normalize(query), ct);
+    }
+
+    public async Task<TerritorialChangeHierarchyDto?> GetChangeHierarchyAsync(
+        Guid actorUserId, Guid importId, Guid changeId, TerritorialChangeHierarchyQuery query, CancellationToken ct = default)
+    {
+        await authorizer.EnsureAdminAsync(actorUserId, ct);
+        return await repository.GetChangeHierarchyAsync(importId, changeId, Normalize(query), ct);
     }
 
     public async Task<PageResult<TerritorialSourcePreviewRowDto>> ListSourcePreviewAsync(Guid actorUserId, Guid importId, TerritorialPreviewQuery query, CancellationToken ct = default)
@@ -209,6 +218,7 @@ public sealed class TerritorialAdminService(
     private static TerritorialImportQuery Normalize(TerritorialImportQuery query) => query with { Page = Math.Max(1, query.Page), PageSize = Math.Clamp(query.PageSize, 1, 100) };
     private static TerritorialIssueQuery Normalize(TerritorialIssueQuery query) => query with { Page = Math.Max(1, query.Page), PageSize = Math.Clamp(query.PageSize, 1, 200) };
     private static TerritorialChangeQuery Normalize(TerritorialChangeQuery query) => query with { Page = Math.Max(1, query.Page), PageSize = Math.Clamp(query.PageSize, 1, 200) };
+    private static TerritorialChangeHierarchyQuery Normalize(TerritorialChangeHierarchyQuery query) => query with { Page = Math.Max(1, query.Page), PageSize = Math.Clamp(query.PageSize, 1, 100) };
     private static TerritorialPreviewQuery Normalize(TerritorialPreviewQuery query) => query with { Page = Math.Max(1, query.Page), PageSize = Math.Clamp(query.PageSize, 1, 100) };
     private static TerritorialCatalogQuery Normalize(TerritorialCatalogQuery query) => query with { Page = Math.Max(1, query.Page), PageSize = Math.Clamp(query.PageSize, 1, 100) };
 }

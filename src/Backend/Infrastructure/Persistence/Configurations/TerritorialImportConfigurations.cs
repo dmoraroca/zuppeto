@@ -27,7 +27,7 @@ public sealed class TerritorialImportConfiguration : IEntityTypeConfiguration<Te
     {
         b.ToTable("territorial_imports", t =>
         {
-            t.HasCheckConstraint("ck_territorial_import_status", "status IN ('Uploaded','Mapped','Validated','ReadyForReview','Published','Failed','Cancelled','Reverted')");
+            t.HasCheckConstraint("ck_territorial_import_status", "status IN ('Queued','Uploaded','Mapped','Validated','ReadyForReview','Publishing','Published','Failed','Cancelled','Reverted')");
             t.HasCheckConstraint("ck_territorial_import_size", "file_size > 0");
         });
         b.HasKey(x => x.Id); b.Property(x => x.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()");
@@ -38,12 +38,35 @@ public sealed class TerritorialImportConfiguration : IEntityTypeConfiguration<Te
         b.Property(x => x.Status).HasColumnName("status").HasMaxLength(24); b.Property(x => x.HasBlockingErrors).HasColumnName("has_blocking_errors");
         b.Property(x => x.CatalogVersion).HasColumnName("catalog_version"); b.Property(x => x.SummaryJson).HasColumnName("summary_json").HasColumnType("jsonb");
         b.Property(x => x.FailureReason).HasColumnName("failure_reason").HasMaxLength(2000); b.Property(x => x.CreatedByUserId).HasColumnName("created_by_user_id");
+        b.Property(x => x.PublicationRequestedByUserId).HasColumnName("publication_requested_by_user_id");
         b.Property(x => x.CreatedAtUtc).HasColumnName("created_at_utc"); b.Property(x => x.UpdatedAtUtc).HasColumnName("updated_at_utc"); b.Property(x => x.PublishedAtUtc).HasColumnName("published_at_utc");
+        b.Property(x => x.CurrentStage).HasColumnName("current_stage").HasMaxLength(32);
+        b.Property(x => x.TotalRows).HasColumnName("total_rows"); b.Property(x => x.ProcessedRows).HasColumnName("processed_rows");
+        b.Property(x => x.ProcessingStartedAtUtc).HasColumnName("processing_started_at_utc"); b.Property(x => x.ProcessingCompletedAtUtc).HasColumnName("processing_completed_at_utc");
+        b.Property(x => x.LastHeartbeatAtUtc).HasColumnName("last_heartbeat_at_utc"); b.Property(x => x.AttemptCount).HasColumnName("attempt_count");
+        b.Property(x => x.LastErrorCode).HasColumnName("last_error_code").HasMaxLength(80); b.Property(x => x.LastErrorMessage).HasColumnName("last_error_message").HasMaxLength(1000);
+        b.Property(x => x.IsRecoverable).HasColumnName("is_recoverable"); b.Property(x => x.CancellationRequested).HasColumnName("cancellation_requested");
+        b.Property(x => x.LeaseOwner).HasColumnName("lease_owner").HasMaxLength(160); b.Property(x => x.LeaseExpiresAtUtc).HasColumnName("lease_expires_at_utc");
+        b.Property(x => x.NextAttemptAtUtc).HasColumnName("next_attempt_at_utc");
         b.HasOne(x => x.DatasetSource).WithMany().HasForeignKey(x => x.DatasetSourceId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne(x => x.MappingTemplate).WithMany().HasForeignKey(x => x.MappingTemplateId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne(x => x.CreatedByUser).WithMany().HasForeignKey(x => x.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
         b.HasIndex(x => new { x.DatasetSourceId, x.DatasetVersion, x.FileChecksum }).IsUnique().HasFilter("status = 'Published'").HasDatabaseName("uq_territorial_import_published_artifact");
         b.HasIndex(x => new { x.DatasetSourceId, x.CreatedAtUtc }).HasDatabaseName("ix_territorial_import_source_created");
+        b.HasIndex(x => new { x.Status, x.NextAttemptAtUtc, x.LeaseExpiresAtUtc }).HasDatabaseName("ix_territorial_import_worker_queue");
+    }
+}
+
+public sealed class TerritorialImportArtifactConfiguration : IEntityTypeConfiguration<TerritorialImportArtifactRecord>
+{
+    public void Configure(EntityTypeBuilder<TerritorialImportArtifactRecord> b)
+    {
+        b.ToTable("territorial_import_artifacts");
+        b.HasKey(x => x.ImportId);
+        b.Property(x => x.ImportId).HasColumnName("import_id");
+        b.Property(x => x.Content).HasColumnName("content").HasColumnType("bytea").IsRequired();
+        b.Property(x => x.CreatedAtUtc).HasColumnName("created_at_utc").IsRequired();
+        b.HasOne(x => x.Import).WithOne(x => x.Artifact).HasForeignKey<TerritorialImportArtifactRecord>(x => x.ImportId).OnDelete(DeleteBehavior.Cascade);
     }
 }
 

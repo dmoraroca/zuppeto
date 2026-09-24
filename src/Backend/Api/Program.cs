@@ -277,6 +277,9 @@ await using (var scope = app.Services.CreateAsyncScope())
 
     var placesSeeder = scope.ServiceProvider.GetRequiredService<DevelopmentPlacesSeeder>();
     await placesSeeder.SeedAsync();
+
+    var territorialPilotSeeder = scope.ServiceProvider.GetRequiredService<TerritorialPilotConfigurationSeeder>();
+    await territorialPilotSeeder.SeedAsync();
 }
 
 app.UseExceptionHandler();

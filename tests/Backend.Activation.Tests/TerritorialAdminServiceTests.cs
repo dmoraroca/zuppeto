@@ -143,6 +143,8 @@ public sealed class TerritorialAdminServiceTests
             Task.FromResult(new PageResult<TerritorialImportIssueDto>([], query.Page, query.PageSize, 0));
         public Task<PageResult<TerritorialChangeItemDto>> ListChangesAsync(Guid importId, TerritorialChangeQuery query, CancellationToken cancellationToken = default) =>
             Task.FromResult(new PageResult<TerritorialChangeItemDto>([], query.Page, query.PageSize, 0));
+        public Task<TerritorialChangeHierarchyDto?> GetChangeHierarchyAsync(Guid importId, Guid changeId, TerritorialChangeHierarchyQuery query, CancellationToken cancellationToken = default) =>
+            Task.FromResult<TerritorialChangeHierarchyDto?>(null);
         public Task<PageResult<TerritorialSourcePreviewRowDto>> ListSourcePreviewAsync(Guid importId, TerritorialPreviewQuery query, CancellationToken cancellationToken = default) =>
             Task.FromResult(new PageResult<TerritorialSourcePreviewRowDto>([], query.Page, query.PageSize, 0));
         public Task<PageResult<TerritorialCanonicalPreviewRowDto>> ListCanonicalPreviewAsync(Guid importId, TerritorialPreviewQuery query, CancellationToken cancellationToken = default) =>

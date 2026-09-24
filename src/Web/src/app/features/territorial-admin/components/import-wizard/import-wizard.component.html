@@ -32,8 +32,8 @@
       </div>
       @if (source) {
         <div class="summary">
-          <strong>{{ source.publicationMode }}</strong>
-          <span>Estat: {{ source.approvalStatus }}</span>
+          <strong>{{ publicationModeLabel(source.publicationMode) }}</strong>
+          <span>Estat: {{ approvalLabel(source.approvalStatus) }}</span>
           <span>Llicència: {{ source.license || 'no informada' }}</span>
           <span>Atribució: {{ source.attribution || 'no informada' }}</span>
         </div>
@@ -62,6 +62,13 @@
           }
         </select>
       </label>
+
+      <h4>Mostra de l’origen abans del mapping</h4>
+      <div class="table-wrap"><table><thead><tr><th>Full</th><th>Fila</th><th>Valors originals</th></tr></thead>
+        <tbody>@for (row of inspection.sourcePreview; track row.sheet + row.rowNumber) {
+          <tr><td>{{ row.sheet }}</td><td>{{ row.rowNumber }}</td><td>@for (field of row.values | keyvalue; track field.key) { <span><strong>{{ field.key }}</strong>: {{ field.value }} · </span> }</td></tr>
+        } @empty { <tr><td colspan="3">No hi ha files de mostra.</td></tr> }</tbody>
+      </table></div>
 
       @if (!mappingId) {
         @for (draft of drafts; track $index; let index = $index) {
@@ -111,31 +118,54 @@
     </div>
   }
 
-  @if (detail && step >= 4) {
+  @if (detail && isProcessing) {
+    <div class="panel" aria-live="polite">
+      <div class="title-row"><h3>Processament asíncron</h3><span class="status">{{ statusLabel(detail.import.status) }}</span></div>
+      <p>Etapa: <strong>{{ stageLabel(detail.import.currentStage) }}</strong></p>
+      @if (detail.import.totalRows) {
+        <progress [value]="detail.import.processedRows || 0" [max]="detail.import.totalRows"></progress>
+        <p>{{ detail.import.processedRows || 0 }} / {{ detail.import.totalRows }} files ({{ progressPercent }}%)</p>
+      } @else { <p>El worker recollirà el treball de la cua persistent.</p> }
+      <p>Intent {{ detail.import.attemptCount }} · darrer heartbeat {{ detail.import.lastHeartbeatAtUtc || 'encara no disponible' }}</p>
+      @if (detail.import.cancellationRequested) { <div class="alert alert--warning">Cancel·lació sol·licitada; s’aplicarà al següent punt segur.</div> }
+      @if (detail.canCancel) { <button type="button" class="quiet" (click)="request('cancel')">Cancel·lar importació</button> }
+    </div>
+  }
+
+  @if (detail && step >= 4 && !isProcessing) {
     <div class="panel preview">
-      <div class="title-row"><div><p class="eyebrow">Data Preview</p><h3>Dades llegides i interpretades</h3></div><span class="status">No modifica el catàleg</span></div>
-      <p class="explanation"><strong>Origen</strong> mostra només els camps admesos pel mapping. <strong>Canonicalitzat</strong> mostra el resultat real i persistent del motor de Fase V. El ChangeSet posterior explica què canviaria en publicar.</p>
-      <div class="filters">
-        <input aria-label="Full del preview" [(ngModel)]="previewSheet" placeholder="Full (opcional)" />
+      <div class="title-row"><div><p class="eyebrow">Previsualització de dades</p><h3>Dades llegides i interpretades</h3></div><span class="status">No modifica el catàleg</span></div>
+      <p class="explanation"><strong>Origen</strong> mostra només els camps admesos pel mapping. <strong>Canonicalitzat</strong> mostra el resultat interpretat pel motor territorial. La secció posterior explica els canvis que es publicarien.</p>
+      <h4>Previsualització d’origen</h4>
+      <div class="filters" aria-label="Filtres de la previsualització d’origen">
+        <select aria-label="Full del preview" [(ngModel)]="previewSheet" (ngModelChange)="selectPreviewSheet()">
+          @if (requiresSourceSheet) { <option value="">Selecciona un full</option> }
+          @for (sheet of detail.sourceSheets || []; track sheet) { <option [value]="sheet">{{ sheet }}</option> }
+        </select>
         <input aria-label="Cerca del preview" [(ngModel)]="previewSearch" placeholder="Cerca" />
         <button type="button" class="quiet" (click)="filterPreview()">Aplicar filtres</button>
       </div>
-      <h4>Preview d’origen</h4>
-      <div class="table-wrap"><table><thead><tr><th>Full</th><th>Fila</th><th>Estat</th><th>Camps admesos</th></tr></thead>
-        <tbody>@for (row of sourcePreview.items; track row.id) { <tr><td>{{ row.sheet }}</td><td>{{ row.rowNumber }}</td><td>{{ row.readingStatus }}</td><td>@for (field of row.values | keyvalue; track field.key) { <span><strong>{{ field.key }}</strong>: {{ field.value }} · </span> }</td></tr> } @empty { <tr><td colspan="4">No hi ha files llegides.</td></tr> }</tbody>
+      @if (requiresSourceSheet && !previewSheet) {
+        <p class="source-sheet-prompt" role="status">Selecciona un full per previsualitzar-ne les dades.</p>
+      } @else {
+        <div class="table-wrap"><table class="source-preview-table"><thead><tr><th>Fila</th>@for (column of sourcePreviewColumns; track column) { <th>{{ column }}</th> }<th>Estat</th></tr></thead>
+          <tbody>@for (row of sourcePreview.items; track row.id) { <tr><td>{{ row.rowNumber }}</td>@for (column of sourcePreviewColumns; track column) { <td>{{ row.values[column] ?? '—' }}</td> }<td>{{ row.readingStatus }}</td></tr> } @empty { <tr><td [attr.colspan]="sourcePreviewColumns.length + 2">No hi ha files llegides.</td></tr> }</tbody>
+        </table></div>
+        <div class="pager"><button [disabled]="sourcePreview.page <= 1" (click)="previewPage('source', sourcePreview.page - 1)">Anterior</button><span>Pàgina {{ sourcePreview.page }} de {{ sourcePreview.totalPages || 1 }}</span><button [disabled]="sourcePreview.page >= sourcePreview.totalPages" (click)="previewPage('source', sourcePreview.page + 1)">Següent</button></div>
+      }
+      <h4>Previsualització canonicalitzada</h4>
+      <div class="table-wrap"><table class="canonical-preview-table"><thead><tr><th>Origen</th><th>Nom</th><th>Codi</th><th>Tipus</th><th>Locale</th><th>Coordenades</th><th>Estat</th><th>Incidències</th></tr></thead>
+        <tbody>@for (row of canonicalPreview.items; track row.id) { <tr><td>{{ row.sheet }} · fila {{ row.rowNumber }}</td><td>{{ row.name }}</td><td>{{ row.codes[0]?.value || '—' }}</td><td>{{ typeLabel(row.territorialUnitTypeCode) }}</td><td>{{ row.locale || '—' }}</td><td>{{ coordinates(row.latitude, row.longitude) }}</td><td>{{ row.status }}</td><td><strong>{{ row.issueCount }}</strong>
+          @if (row.issueCount > 0) { <details class="canonical-issues"><summary>Veure incidències</summary><ul>@for (issue of row.issues; track issue.rule + issue.sheet + issue.rowNumber + issue.field) { <li><dl><dt>Severitat</dt><dd>{{ severityLabel(issue.severity) }}</dd><dt>Regla</dt><dd>{{ issue.rule }}</dd><dt>Ubicació</dt><dd>{{ issue.sheet }} · fila {{ issue.rowNumber }}</dd><dt>Camp</dt><dd>{{ issue.field || '—' }}</dd><dt>Missatge</dt><dd>{{ issue.message }}</dd></dl></li> }</ul></details> }
+        </td></tr> } @empty { <tr><td colspan="8">No hi ha resultat canonicalitzat.</td></tr> }</tbody>
       </table></div>
-      <div class="pager"><button [disabled]="sourcePreview.page <= 1" (click)="previewPage('source', sourcePreview.page - 1)">Anterior</button><span>{{ sourcePreview.page }}/{{ sourcePreview.totalPages || 1 }}</span><button [disabled]="sourcePreview.page >= sourcePreview.totalPages" (click)="previewPage('source', sourcePreview.page + 1)">Següent</button></div>
-      <h4>Preview canonicalitzat</h4>
-      <div class="table-wrap"><table><thead><tr><th>Origen</th><th>Clau</th><th>Pare</th><th>Nom / locale</th><th>Tipus</th><th>Codis</th><th>Coordenades</th><th>Estat</th></tr></thead>
-        <tbody>@for (row of canonicalPreview.items; track row.id) { <tr><td>{{ row.sheet }}:{{ row.rowNumber }}</td><td>{{ row.canonicalUnitKey }}</td><td>{{ row.parentCanonicalUnitKey || '—' }}</td><td>{{ row.name }} · {{ row.locale || '—' }}</td><td>{{ row.territorialUnitTypeCode }}</td><td>@for (code of row.codes; track code.scheme + code.value) { {{ code.scheme }}:{{ code.value }} }</td><td>{{ row.latitude ?? '—' }}, {{ row.longitude ?? '—' }}</td><td>{{ row.status }} ({{ row.issueCount }})</td></tr> } @empty { <tr><td colspan="8">No hi ha resultat canonicalitzat.</td></tr> }</tbody>
-      </table></div>
-      <div class="pager"><button [disabled]="canonicalPreview.page <= 1" (click)="previewPage('canonical', canonicalPreview.page - 1)">Anterior</button><span>{{ canonicalPreview.page }}/{{ canonicalPreview.totalPages || 1 }}</span><button [disabled]="canonicalPreview.page >= canonicalPreview.totalPages" (click)="previewPage('canonical', canonicalPreview.page + 1)">Següent</button></div>
+      <div class="pager"><button [disabled]="canonicalPreview.page <= 1" (click)="previewPage('canonical', canonicalPreview.page - 1)">Anterior</button><span>Pàgina {{ canonicalPreview.page }} de {{ canonicalPreview.totalPages || 1 }}</span><button [disabled]="canonicalPreview.page >= canonicalPreview.totalPages" (click)="previewPage('canonical', canonicalPreview.page + 1)">Següent</button></div>
     </div>
 
     <div class="panel">
       <div class="title-row">
         <h3>4. Validació persistent</h3>
-        <span class="status">{{ detail.import.status }}</span>
+        <span class="status">{{ statusLabel(detail.import.status) }}</span>
       </div>
       <div class="metrics">
         <strong>{{ detail.import.counters.rows }}<small>files</small></strong>
@@ -143,9 +173,10 @@
         <strong class="warn">{{ detail.import.counters.warnings }}<small>avisos</small></strong>
       </div>
       @if (detail.failureReason) { <div class="alert alert--error">{{ detail.failureReason }}</div> }
+      @if (detail.import.lastErrorCode) { <div class="alert alert--error"><strong>{{ detail.import.lastErrorCode }}</strong> · {{ detail.import.lastErrorMessage }} @if (detail.import.isRecoverable) { <span>Es pot reintentar.</span> }</div> }
       <div class="filters" aria-label="Filtres d’incidències">
         <select aria-label="Severitat" [(ngModel)]="issueSeverity"><option value="">Totes les severitats</option><option>Error</option><option>Warning</option></select>
-        <input aria-label="Codi de regla" [(ngModel)]="issueRuleCode" placeholder="RuleCode" />
+        <input aria-label="Regla" [(ngModel)]="issueRuleCode" placeholder="Regla" />
         <input aria-label="Full" [(ngModel)]="issueSheet" placeholder="Full" />
         <input aria-label="Camp" [(ngModel)]="issueField" placeholder="Camp" />
         <button type="button" class="quiet" (click)="filterIssues()">Aplicar filtres</button>
@@ -153,18 +184,18 @@
       <div class="table-wrap">
         <table><thead><tr><th>Severitat</th><th>Regla</th><th>Ubicació</th><th>Missatge</th></tr></thead>
           <tbody>@for (issue of issues.items; track issue.id) {
-            <tr><td>{{ issue.severity }}</td><td>{{ issue.ruleCode }}</td><td>{{ issue.sheet }}:{{ issue.rowNumber }} {{ issue.field }}</td><td>{{ issue.message }}</td></tr>
+            <tr><td>{{ severityLabel(issue.severity) }}</td><td>{{ issue.ruleCode }}</td><td>{{ issue.sheet }}:{{ issue.rowNumber }} {{ issue.field }}</td><td>{{ issue.message }}</td></tr>
           } @empty { <tr><td colspan="4">No hi ha incidències.</td></tr> }</tbody>
         </table>
       </div>
-      <div class="pager"><button [disabled]="issues.page <= 1" (click)="issuePage(issues.page - 1)">Anterior</button><span>{{ issues.page }}/{{ issues.totalPages || 1 }}</span><button [disabled]="issues.page >= issues.totalPages" (click)="issuePage(issues.page + 1)">Següent</button></div>
-      @if (!detail.import.hasBlockingErrors) { <button type="button" class="primary" (click)="step = 5">Revisar ChangeSet</button> }
+      <div class="pager"><button [disabled]="issues.page <= 1" (click)="issuePage(issues.page - 1)">Anterior</button><span>Pàgina {{ issues.page }} de {{ issues.totalPages || 1 }}</span><button [disabled]="issues.page >= issues.totalPages" (click)="issuePage(issues.page + 1)">Següent</button></div>
+      @if (!detail.import.hasBlockingErrors) { <button type="button" class="primary" (click)="step = 5">Revisar canvis</button> }
     </div>
   }
 
-  @if (detail && step >= 5) {
+  @if (detail && step === 5) {
     <div class="panel">
-      <h3>5. Preview del ChangeSet</h3>
+      <h3>5. Canvis a publicar</h3>
       <div class="metrics">
         <strong>{{ detail.import.counters.create }}<small>altes</small></strong>
         <strong>{{ detail.import.counters.update }}<small>canvis</small></strong>
@@ -174,36 +205,86 @@
       @if (detail.import.counters.deactivate > 0) {
         <div class="alert alert--warning">Revisa especialment les inactivacions. Una desactivació massiva bloquejada pel motor no es pot publicar.</div>
       }
-      <div class="filters" aria-label="Filtres del ChangeSet">
-        <select aria-label="Tipus de canvi" [(ngModel)]="changeKind"><option value="">Tots els canvis</option><option>Create</option><option>Update</option><option>Deactivate</option><option>NoChange</option></select>
-        <input aria-label="Cerca per clau" [(ngModel)]="changeSearch" placeholder="Nom o codi canònic" />
+      <div class="filters" aria-label="Filtres dels canvis">
+        <select aria-label="Tipus de canvi" [(ngModel)]="changeKind"><option value="">Tots els canvis</option><option value="Create">Crear</option><option value="Update">Actualitzar</option><option value="Deactivate">Desactivar</option><option value="NoChange">Sense canvis</option></select>
+        <input aria-label="Cerca per nom o codi" [(ngModel)]="changeSearch" placeholder="Nom o codi" />
         <button type="button" class="quiet" (click)="filterChanges()">Aplicar filtres</button>
       </div>
-      <div class="table-wrap"><table><thead><tr><th>Acció</th><th>Clau territorial</th><th>Camps</th><th>Abans / després</th></tr></thead>
+      <div class="table-wrap"><table class="changes-table"><thead><tr><th>Acció</th><th>Nom</th><th>Codi</th><th>Tipus</th><th>Unitat superior</th><th>Detall</th></tr></thead>
         <tbody>@for (change of changes.items; track change.id) {
-          <tr><td>{{ change.kind }}</td><td>{{ change.canonicalUnitKey }}</td><td>{{ change.changedFields.join(', ') }}</td>
-          <td><details><summary>Veure detall</summary><pre>{{ { before: change.before, after: change.after } | json }}</pre></details></td></tr>
-        } @empty { <tr><td colspan="4">No hi ha canvis materials.</td></tr> }</tbody>
+          <tr><td><span class="change-action">{{ actionLabel(change.kind) }}</span></td><td><strong>{{ change.name }}</strong></td><td>{{ change.primaryCode || '—' }}</td><td>{{ change.territorialUnitType || typeLabel(change.territorialUnitTypeCode) }}</td><td>{{ change.parent || '—' }}</td>
+          <td><button type="button" class="detail-link" (click)="openChangeDetail(change, $event)">Veure detall</button></td></tr>
+        } @empty { <tr><td colspan="6">No hi ha canvis materials.</td></tr> }</tbody>
       </table></div>
-      <div class="pager"><button [disabled]="changes.page <= 1" (click)="changePage(changes.page - 1)">Anterior</button><span>{{ changes.page }}/{{ changes.totalPages || 1 }}</span><button [disabled]="changes.page >= changes.totalPages" (click)="changePage(changes.page + 1)">Següent</button></div>
+      <div class="pager"><button [disabled]="changes.page <= 1" (click)="changePage(changes.page - 1)">Anterior</button><span>Pàgina {{ changes.page }} de {{ changes.totalPages || 1 }}</span><button [disabled]="changes.page >= changes.totalPages" (click)="changePage(changes.page + 1)">Següent</button></div>
       <button type="button" class="primary" (click)="step = 6">Anar a publicació</button>
     </div>
   }
 
   @if (detail && step === 6) {
     <div class="panel">
-      <h3>6. Publicació i reversió controlada</h3>
-      <div class="summary">
-        <strong>{{ detail.import.countryName }} · {{ detail.import.datasetVersion }}</strong>
-        <span>Estat: {{ detail.import.status }}</span>
-        <span>Catàleg actual: v{{ detail.currentCatalogVersion }}</span>
-        <span>Checksum: {{ detail.import.fileChecksum.slice(0, 16) }}…</span>
+      <h3>6. Publicació del catàleg territorial</h3>
+      <dl class="publication-facts"><dt>País</dt><dd>{{ detail.import.countryName }}</dd><dt>Font</dt><dd>{{ detail.import.organisation }}</dd><dt>Dataset</dt><dd>{{ detail.import.dataset }}</dd><dt>Versió</dt><dd>{{ detail.import.datasetVersion }}</dd><dt>Mapping</dt><dd>Versió {{ detail.import.mappingVersion }}</dd></dl>
+      <h4>Resum</h4>
+      <div class="metrics publication-metrics">
+        <strong>{{ detail.import.counters.create }}<small>altes</small></strong><strong>{{ detail.import.counters.update }}<small>canvis</small></strong><strong class="bad">{{ detail.import.counters.deactivate }}<small>inactivacions</small></strong><strong>{{ detail.import.counters.noChange }}<small>sense canvi</small></strong><strong class="bad">{{ detail.import.counters.errors }}<small>errors</small></strong><strong class="warn">{{ detail.import.counters.warnings }}<small>avisos</small></strong><strong class="warn">{{ detail.manualConflictCount ?? 0 }}<small>conflictes</small></strong>
       </div>
+      <h4>Desglossament territorial</h4>
+      <div class="table-wrap"><table><thead><tr><th>Tipus</th><th>Altes</th><th>Canvis</th><th>Inactivacions</th><th>Sense canvi</th></tr></thead><tbody>@for (item of detail.territorialBreakdown || []; track item.territorialUnitTypeCode) { <tr><td>{{ item.territorialUnitType }}</td><td>{{ item.create }}</td><td>{{ item.update }}</td><td>{{ item.deactivate }}</td><td>{{ item.noChange }}</td></tr> } @empty { <tr><td colspan="5">No hi ha canvis territorials preparats.</td></tr> }</tbody></table></div>
+      <h4>Gate de font</h4>
+      @if (source?.approvalStatus === 'Pending') { <div class="alert alert--warning"><strong>Pendent d’aprovació</strong><p>La font encara no ha superat els requisits d’aprovació.</p></div> }
       <div class="actions">
-        @if (detail.canPublish) { <button type="button" class="primary" (click)="request('publish')">Publicar catàleg</button> }
+        <button type="button" class="quiet" (click)="step = 5">Tornar als canvis</button>
+        @if (detail.import.status === 'ReadyForReview') { <button type="button" class="primary" [disabled]="!detail.canPublish || source?.approvalStatus === 'Pending'" (click)="request('publish')">Publicar catàleg</button> }
         @if (detail.canCancel) { <button type="button" class="quiet" (click)="request('cancel')">Cancel·lar importació</button> }
         @if (detail.canRevert) { <button type="button" class="danger" (click)="request('revert')">Revertir última publicació</button> }
       </div>
+    </div>
+  }
+
+  @if (selectedChange; as change) {
+    <div class="change-detail-backdrop" (click)="closeChangeDetail()">
+      <section class="change-detail-modal" role="dialog" aria-modal="true" aria-labelledby="change-detail-title" (click)="$event.stopPropagation()">
+        <header class="change-detail-header"><div><p class="eyebrow">Detall del canvi territorial</p><h3 id="change-detail-title">{{ change.name }}</h3><p>{{ change.territorialUnitType || typeLabel(change.territorialUnitTypeCode) }} · {{ change.parent || 'Arrel territorial' }} · {{ change.primaryCode || 'Sense codi principal' }}</p><span class="change-action">{{ actionLabel(change.kind) }}</span></div><button #changeDialogClose type="button" class="quiet" (click)="closeChangeDetail()">Tancar</button></header>
+        <nav class="change-detail-tabs" aria-label="Seccions del detall del canvi">@for (tab of changeDetailTabs; track tab.id) { <button type="button" [class.active]="changeDetailTab === tab.id" [attr.aria-selected]="changeDetailTab === tab.id" (click)="selectChangeDetailTab(tab.id)">{{ tab.label }}</button> }</nav>
+        <div class="change-detail-content">
+          @if (changeDetailTab === 'general') { <section><h4>Informació general</h4><dl class="change-facts"><dt>Nom principal</dt><dd>{{ change.name }}</dd><dt>Codi principal</dt><dd>{{ change.primaryCode || 'Sense codi' }}</dd><dt>Tipus</dt><dd>{{ change.territorialUnitType || typeLabel(change.territorialUnitTypeCode) }}</dd><dt>País</dt><dd>{{ change.country }}</dd><dt>Pare</dt><dd>{{ change.parent || 'Arrel territorial' }}</dd><dt>Locale</dt><dd>{{ change.locale || 'Sense locale' }}</dd><dt>Estat</dt><dd>{{ change.isActive ? 'Activa' : 'Inactiva' }}</dd><dt>Seleccionabilitat</dt><dd>{{ change.isSelectableLocality ? 'Seleccionable com a localitat' : 'No seleccionable com a localitat' }}</dd><dt>Coordenades</dt><dd>{{ coordinates(change.latitude, change.longitude) }}</dd></dl></section> }
+          @if (changeDetailTab === 'hierarchy') {
+            <section aria-labelledby="change-hierarchy-title">
+              <h4 id="change-hierarchy-title">Ruta i ancestres</h4>
+              @if (hierarchyError) { <div class="alert alert--error" role="alert">{{ hierarchyError }}</div> }
+              @if (hierarchyBusy && !changeHierarchy) { <p aria-live="polite">Carregant la jerarquia del ChangeSet…</p> }
+              @if (changeHierarchy; as hierarchy) {
+                <ol class="change-hierarchy" aria-label="Ruta territorial">
+                  <li><span>{{ hierarchy.current.country }}</span></li>
+                  @for (ancestor of hierarchy.ancestors; track ancestor.changeId) {
+                    <li><button type="button" (click)="navigateChangeHierarchy(ancestor.changeId)">{{ ancestor.name }}</button><small>{{ ancestor.territorialUnitType }} · {{ actionLabel(ancestor.kind) }}</small>@if (ancestor.hasBlockingConflict) { <strong class="hierarchy-conflict">Conflicte: revisió obligatòria</strong> }</li>
+                  }
+                  <li class="current"><strong>{{ hierarchy.current.name }}</strong><small>{{ hierarchy.current.territorialUnitType }} · {{ actionLabel(hierarchy.current.kind) }}</small></li>
+                </ol>
+
+                <h4>Unitat actual</h4>
+                <div class="hierarchy-current"><div><strong>{{ hierarchy.current.name }}</strong><span>{{ hierarchy.current.primaryCode || 'Sense codi' }} · {{ hierarchy.current.territorialUnitType }}</span></div><span class="change-action">{{ actionLabel(hierarchy.current.kind) }}</span></div>
+                @if (hierarchy.current.hasManualConflict) { <div class="alert alert--warning"><strong>Conflicte jeràrquic o manual</strong><p>Aquesta branca necessita revisió ADMIN abans de publicar.</p></div> }
+
+                <div class="hierarchy-children-heading"><div><h4>Unitats filles directes</h4><p>Només es mostren les relacions directes del ChangeSet actual.</p></div><span>{{ hierarchy.children.totalCount }} fills</span></div>
+                <div class="filters hierarchy-filters" aria-label="Cerca de fills directes">
+                  <input aria-label="Cerca fills per nom o codi" [(ngModel)]="hierarchySearch" placeholder="Nom o codi" />
+                  <button type="button" class="quiet" [disabled]="hierarchyBusy" (click)="filterHierarchyChildren()">Cercar fills</button>
+                </div>
+                <div class="table-wrap"><table class="hierarchy-children-table"><thead><tr><th>Nom</th><th>Codi</th><th>Tipus</th><th>Acció</th><th>Revisió</th><th>Detall</th></tr></thead><tbody>
+                  @for (child of hierarchy.children.items; track child.changeId) { <tr><td><strong>{{ child.name }}</strong></td><td>{{ child.primaryCode || '—' }}</td><td>{{ child.territorialUnitType }}</td><td><span class="change-action">{{ actionLabel(child.kind) }}</span></td><td>@if (child.hasBlockingConflict) { <span class="hierarchy-conflict">Conflicte: revisió obligatòria</span> } @else { Sense conflictes }</td><td><button type="button" class="detail-link" (click)="navigateChangeHierarchy(child.changeId)">Veure detall</button></td></tr> }
+                  @empty { <tr><td colspan="6">Aquesta unitat no té fills directes amb els filtres actuals.</td></tr> }
+                </tbody></table></div>
+                <div class="pager"><button type="button" [disabled]="hierarchyBusy || hierarchy.children.page <= 1" (click)="hierarchyChildrenPage(hierarchy.children.page - 1)">Anterior</button><span>Pàgina {{ hierarchy.children.page }} de {{ hierarchy.children.totalPages || 1 }}</span><button type="button" [disabled]="hierarchyBusy || hierarchy.children.page >= hierarchy.children.totalPages" (click)="hierarchyChildrenPage(hierarchy.children.page + 1)">Següent</button></div>
+              }
+            </section>
+          }
+          @if (changeDetailTab === 'names') { <section class="change-detail-stack"><div><h4>Noms</h4><div class="table-wrap"><table><thead><tr><th>Nom</th><th>Locale</th><th>Tipus</th><th>Principal</th><th>Procedència</th></tr></thead><tbody>@for (name of change.names; track name.name + name.locale) { <tr><td>{{ name.name }}</td><td>{{ name.locale || '—' }}</td><td>{{ nameKindLabel(name.kind) }}</td><td>{{ name.isPrimary ? 'Sí' : 'No' }}</td><td>{{ name.source }}</td></tr> } @empty { <tr><td colspan="5">Sense noms informats.</td></tr> }</tbody></table></div></div><div><h4>Codis</h4><div class="table-wrap"><table><thead><tr><th>Esquema</th><th>Valor</th><th>Vigència</th><th>Principal</th><th>Procedència</th></tr></thead><tbody>@for (code of change.codes; track code.scheme + code.value) { <tr><td>{{ code.scheme }}</td><td>{{ code.value }}</td><td>{{ code.validFrom || '—' }} → {{ code.validTo || 'vigent' }}</td><td>{{ code.isPrimary ? 'Sí' : 'No' }}</td><td>{{ code.source }}</td></tr> } @empty { <tr><td colspan="5">Sense codis informats.</td></tr> }</tbody></table></div></div></section> }
+          @if (changeDetailTab === 'provenance') { <section><h4>Procedència</h4><dl class="change-facts"><dt>Organització</dt><dd>{{ change.provenance.organisation }}</dd><dt>Dataset</dt><dd>{{ change.provenance.dataset }}</dd><dt>Versió</dt><dd>{{ change.provenance.datasetVersion }}</dd><dt>Data</dt><dd>{{ formatDate(change.provenance.datasetDate) }}</dd><dt>Mapping</dt><dd>Versió {{ change.provenance.mappingVersion }}</dd><dt>Locale</dt><dd>{{ change.provenance.locale || 'Sense locale' }}</dd><dt>Font</dt><dd>@if (change.provenance.source) { <a [href]="change.provenance.source" target="_blank" rel="noopener noreferrer">Consultar font</a> } @else { No informada }</dd></dl></section> }
+          @if (changeDetailTab === 'changes') { <section><h4>Canvis proposats</h4>@if (change.hasManualConflict) { <div class="alert alert--warning"><strong>Conflicte amb modificació manual</strong><p>La proposta oficial no substitueix automàticament la decisió ADMIN; cal resoldre el conflicte abans de publicar.</p></div> }@if (change.kind === 'Create') { <dl class="change-facts"><dt>Abans</dt><dd>No existeix</dd><dt>Després</dt><dd>{{ change.name }} · {{ change.territorialUnitType || typeLabel(change.territorialUnitTypeCode) }} · {{ change.primaryCode || 'sense codi' }} · {{ change.isActive ? 'activa' : 'inactiva' }}</dd><dt>Motiu</dt><dd>{{ change.functionalReason || 'Alta incorporada pel dataset territorial.' }}</dd></dl> } @else if (change.kind === 'Deactivate') { <dl class="change-facts"><dt>Estat anterior</dt><dd>Activa</dd><dt>Estat proposat</dt><dd>Inactiva</dd><dt>Motiu</dt><dd>{{ change.functionalReason || 'La unitat ja no consta al dataset territorial actual.' }}</dd></dl> } @else if (change.differences.length) { <div class="table-wrap"><table><thead><tr><th>Camp</th><th>Abans</th><th>Després</th><th>Resolució</th></tr></thead><tbody>@for (difference of change.differences; track difference.field) { <tr><td>{{ fieldLabel(difference.field) }}</td><td>{{ difference.before || 'Sense valor' }}</td><td>{{ difference.after || 'Sense valor' }}</td><td>{{ difference.hasManualConflict ? 'Revisió ADMIN obligatòria' : 'Aplicar el valor oficial' }}</td></tr> }</tbody></table></div> } @else { <p>No hi ha diferències materials.</p> }</section> }
+        </div>
+      </section>
     </div>
   }
 

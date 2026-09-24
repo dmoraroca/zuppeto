@@ -21,6 +21,7 @@ internal static class TerritorialAdminEndpoints
         group.MapGet("/imports/{id:guid}", GetImportAsync);
         group.MapGet("/imports/{id:guid}/issues", ListIssuesAsync);
         group.MapGet("/imports/{id:guid}/changes", ListChangesAsync);
+        group.MapGet("/imports/{id:guid}/changes/{changeId:guid}/hierarchy", GetChangeHierarchyAsync);
         group.MapGet("/imports/{id:guid}/preview/source", ListSourcePreviewAsync);
         group.MapGet("/imports/{id:guid}/preview/canonical", ListCanonicalPreviewAsync);
         group.MapPost("/imports/{id:guid}/publish", PublishAsync);
@@ -75,7 +76,7 @@ internal static class TerritorialAdminEndpoints
             await using var stream = form.File.OpenReadStream();
             var item = await service.PrepareAsync(actor, form.DatasetSourceId, form.MappingTemplateId, form.DatasetVersion,
                 form.File.FileName, form.File.Length, stream, ct);
-            return TypedResults.Created($"/api/admin/territorial/imports/{item.Import.Id}", item);
+            return TypedResults.Accepted($"/api/admin/territorial/imports/{item.Import.Id}", item);
         }
         catch (Exception exception) { return SafeFailure(exception); }
     }
@@ -108,6 +109,17 @@ internal static class TerritorialAdminEndpoints
         TerritorialAdminService service, CancellationToken ct) =>
         await ExecuteAdmin(principal, actor => service.ListChangesAsync(actor, id,
             new TerritorialChangeQuery(kind, search, page == 0 ? 1 : page, pageSize == 0 ? 50 : pageSize), ct));
+
+    [Authorize]
+    private static async Task<IResult> GetChangeHierarchyAsync(
+        ClaimsPrincipal principal, Guid id, Guid changeId, string? search, int page, int pageSize,
+        TerritorialAdminService service, CancellationToken ct)
+    {
+        if (!TryAdmin(principal, out var actor)) return TypedResults.Forbid();
+        var item = await service.GetChangeHierarchyAsync(actor, id, changeId,
+            new TerritorialChangeHierarchyQuery(search, page == 0 ? 1 : page, pageSize == 0 ? 25 : pageSize), ct);
+        return item is null ? TypedResults.NotFound() : TypedResults.Ok(item);
+    }
 
     [Authorize]
     private static async Task<IResult> ListSourcePreviewAsync(

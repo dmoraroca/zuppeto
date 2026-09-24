@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, HostListener, input, output, signal
 import { FormsModule } from '@angular/forms';
 
 import { CatalogAudit, CatalogDetail } from '../../models/territorial-admin.model';
+import { territorialNameKindLabel } from '../../policies/territorial-presentation.policy';
 
 export interface TerritorialMaintenanceCommand {
   action: string;
@@ -22,6 +23,7 @@ type MaintenanceAction = 'activate' | 'deactivate' | 'set-selectable' | 'set-coo
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class TerritorialCatalogDetailComponent {
+  protected readonly nameKindLabel = territorialNameKindLabel;
   readonly detail = input.required<CatalogDetail>();
   readonly busy = input(false);
   readonly error = input('');

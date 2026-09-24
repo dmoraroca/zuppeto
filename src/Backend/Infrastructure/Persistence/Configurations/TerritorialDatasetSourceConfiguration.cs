@@ -17,6 +17,8 @@ public sealed class TerritorialDatasetSourceConfiguration : IEntityTypeConfigura
         builder.Property(item => item.CountryId).HasColumnName("country_id").IsRequired();
         builder.Property(item => item.Organisation).HasColumnName("organisation").HasMaxLength(240).IsRequired();
         builder.Property(item => item.Dataset).HasColumnName("dataset").HasMaxLength(240).IsRequired();
+        builder.Property(item => item.DatasetType).HasColumnName("dataset_type").HasMaxLength(80).IsRequired();
+        builder.Property(item => item.Locale).HasColumnName("locale").HasMaxLength(35);
         builder.Property(item => item.Url).HasColumnName("url").HasMaxLength(2048).IsRequired();
         builder.Property(item => item.DownloadUrl).HasColumnName("download_url").HasMaxLength(2048);
         builder.Property(item => item.License).HasColumnName("license").HasMaxLength(500);

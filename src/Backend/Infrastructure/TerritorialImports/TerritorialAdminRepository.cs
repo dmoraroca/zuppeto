@@ -13,8 +13,9 @@ internal sealed class TerritorialAdminRepository(ZuppetoDbContext db) : ITerrito
         var countries = await db.Countries.AsNoTracking().OrderBy(x => x.SortOrder).ThenBy(x => x.Name)
             .Select(x => new TerritorialAdminCountryDto(x.Id, x.Code, x.Name, x.Iso2, x.Iso3, x.IsActive)).ToArrayAsync(ct);
         var sources = await db.TerritorialDatasetSources.AsNoTracking().OrderBy(x => x.Country.Name).ThenBy(x => x.Dataset)
-            .Select(x => new TerritorialAdminSourceDto(x.Id, x.CountryId, x.Organisation, x.Dataset, x.ApprovalStatus,
-                x.IsActive, x.PublicationMode, x.DatasetVersion, x.DatasetDate, x.License, x.Attribution)).ToArrayAsync(ct);
+            .Select(x => new TerritorialAdminSourceDto(x.Id, x.CountryId, x.Organisation, x.Dataset,
+                x.DatasetType, x.Locale, x.ApprovalStatus, x.IsActive, x.PublicationMode, x.DatasetVersion,
+                x.DatasetDate, x.License, x.Attribution)).ToArrayAsync(ct);
         var types = await db.TerritorialUnitTypes.AsNoTracking().Where(x => x.IsActive).OrderBy(x => x.CountryId).ThenBy(x => x.DisplayOrder)
             .Select(x => new TerritorialAdminUnitTypeDto(x.Id, x.CountryId, x.Code, x.Name, x.DisplayOrder, x.IsSelectableLocality)).ToArrayAsync(ct);
         return new TerritorialAdminContextDto(countries, sources, types);
@@ -68,6 +69,9 @@ internal sealed class TerritorialAdminRepository(ZuppetoDbContext db) : ITerrito
                 x.DatasetSource.Dataset, x.DatasetVersion, x.MappingTemplateId, x.MappingTemplate.Version, x.Status,
                 x.HasBlockingErrors, x.CatalogVersion, x.ArtifactName, x.FileSize, x.FileChecksum, x.CreatedByUserId,
                 x.CreatedByUser.DisplayName ?? x.CreatedByUser.Email, x.CreatedAtUtc, x.UpdatedAtUtc, x.PublishedAtUtc,
+                x.CurrentStage, x.TotalRows, x.ProcessedRows, x.ProcessingStartedAtUtc, x.ProcessingCompletedAtUtc,
+                x.LastHeartbeatAtUtc, x.AttemptCount, x.LastErrorCode, x.LastErrorMessage, x.IsRecoverable,
+                x.CancellationRequested,
                 new TerritorialImportCountersDto(
                     x.Rows.Count,
                     x.Issues.Count(issue => issue.Severity == "Error"),
@@ -90,6 +94,9 @@ internal sealed class TerritorialAdminRepository(ZuppetoDbContext db) : ITerrito
                     x.DatasetSource.Dataset, x.DatasetVersion, x.MappingTemplateId, x.MappingTemplate.Version, x.Status,
                     x.HasBlockingErrors, x.CatalogVersion, x.ArtifactName, x.FileSize, x.FileChecksum, x.CreatedByUserId,
                     x.CreatedByUser.DisplayName ?? x.CreatedByUser.Email, x.CreatedAtUtc, x.UpdatedAtUtc, x.PublishedAtUtc,
+                    x.CurrentStage, x.TotalRows, x.ProcessedRows, x.ProcessingStartedAtUtc, x.ProcessingCompletedAtUtc,
+                    x.LastHeartbeatAtUtc, x.AttemptCount, x.LastErrorCode, x.LastErrorMessage, x.IsRecoverable,
+                    x.CancellationRequested,
                     new TerritorialImportCountersDto(
                         x.Rows.Count,
                         x.Issues.Count(issue => issue.Severity == "Error"),
@@ -107,10 +114,36 @@ internal sealed class TerritorialAdminRepository(ZuppetoDbContext db) : ITerrito
         if (item is null) return null;
         var changeSet = item.ChangeSet;
         var canRevert = item.Summary.Status == "Published" && changeSet is not null && item.CurrentCatalogVersion == changeSet.CatalogVersion + 1;
+        var sourceSheets = await db.TerritorialImportRows.AsNoTracking().Where(x => x.ImportId == id)
+            .Select(x => x.Sheet).Distinct().OrderBy(x => x).ToArrayAsync(ct);
+        var publicationItems = await db.TerritorialChangeSetItems.AsNoTracking()
+            .Where(x => x.ChangeSet.ImportId == id && x.ChangeSet.RevertsChangeSetId == null)
+            .Select(x => new { x.Kind, x.BeforeJson, x.AfterJson, x.ChangedFieldsJson }).ToArrayAsync(ct);
+        var typeNames = await db.TerritorialUnitTypes.AsNoTracking().Where(x => x.CountryId == item.Summary.CountryId)
+            .ToDictionaryAsync(x => x.Code, x => x.Name, StringComparer.OrdinalIgnoreCase, ct);
+        var breakdown = publicationItems.Select(x => new
+            {
+                x.Kind,
+                TypeCode = x.AfterJson != null
+                    ? JsonSerializer.Deserialize<CanonicalTerritorialUnit>(x.AfterJson, TerritorialImportJson.Options)?.TerritorialUnitTypeCode
+                    : x.BeforeJson != null
+                        ? JsonSerializer.Deserialize<TerritorialCatalogUnitSnapshot>(x.BeforeJson, TerritorialImportJson.Options)?.TerritorialUnitTypeCode
+                        : null
+            })
+            .Where(x => !string.IsNullOrWhiteSpace(x.TypeCode))
+            .GroupBy(x => x.TypeCode!, StringComparer.OrdinalIgnoreCase)
+            .Select(group => new TerritorialPublicationBreakdownDto(group.Key, typeNames.GetValueOrDefault(group.Key) ?? group.Key,
+                group.Count(x => x.Kind == "Create"), group.Count(x => x.Kind == "Update"),
+                group.Count(x => x.Kind == "Deactivate"), group.Count(x => x.Kind == "NoChange")))
+            .OrderBy(x => x.TerritorialUnitType).ToArray();
+        var conflictCount = publicationItems.Count(x =>
+            (JsonSerializer.Deserialize<string[]>(x.ChangedFieldsJson, TerritorialImportJson.Options) ?? [])
+                .Any(field => field.StartsWith("manualOverrideConflict:", StringComparison.Ordinal)));
         return new TerritorialImportDetailDto(item.Summary, item.PublicationMode, item.FailureReason, item.SchemaFingerprint,
             item.Summary.Status is not ("Published" or "Reverted" or "Cancelled"),
             item.Summary.Status == "ReadyForReview" && !item.Summary.HasBlockingErrors,
-            canRevert, item.CurrentCatalogVersion, changeSet?.Id, changeSet?.Status, changeSet?.CreatedAtUtc, changeSet?.PublishedAtUtc);
+            canRevert, item.CurrentCatalogVersion, changeSet?.Id, changeSet?.Status, changeSet?.CreatedAtUtc, changeSet?.PublishedAtUtc,
+            sourceSheets, conflictCount, breakdown);
     }
 
     public async Task<PageResult<TerritorialImportIssueDto>> ListIssuesAsync(Guid importId, TerritorialIssueQuery request, CancellationToken ct = default)
@@ -130,26 +163,281 @@ internal sealed class TerritorialAdminRepository(ZuppetoDbContext db) : ITerrito
 
     public async Task<PageResult<TerritorialChangeItemDto>> ListChangesAsync(Guid importId, TerritorialChangeQuery request, CancellationToken ct = default)
     {
-        var query = db.TerritorialChangeSetItems.AsNoTracking()
-            .Where(x => x.ChangeSet.ImportId == importId && x.ChangeSet.RevertsChangeSetId == null);
+        IQueryable<TerritorialChangeSetItemRecord> query;
+        if (!string.IsNullOrWhiteSpace(request.Search))
+        {
+            var pattern = $"%{EscapeLikePattern(request.Search.Trim())}%";
+            query = db.TerritorialChangeSetItems.FromSqlInterpolated($$"""
+                SELECT *
+                FROM territorial_change_set_items
+                WHERE canonical_unit_key ILIKE {{pattern}} ESCAPE '\'
+                   OR before_json::text ILIKE {{pattern}} ESCAPE '\'
+                   OR after_json::text ILIKE {{pattern}} ESCAPE '\'
+                """).AsNoTracking();
+        }
+        else query = db.TerritorialChangeSetItems.AsNoTracking();
+        query = query.Where(x => x.ChangeSet.ImportId == importId && x.ChangeSet.RevertsChangeSetId == null);
         if (!string.IsNullOrWhiteSpace(request.Kind)) query = query.Where(x => x.Kind == request.Kind.Trim());
-        if (!string.IsNullOrWhiteSpace(request.Search)) query = query.Where(x => x.CanonicalUnitKey.Contains(request.Search.Trim()));
         var total = await query.CountAsync(ct);
         var raw = await query.OrderBy(x => x.Kind == "Deactivate" ? 0 : x.Kind == "Update" ? 1 : x.Kind == "Create" ? 2 : 3)
             .ThenBy(x => x.CanonicalUnitKey).Skip((request.Page - 1) * request.PageSize).Take(request.PageSize)
-            .Select(x => new { x.Id, x.Kind, x.TerritorialUnitId, x.CanonicalUnitKey, x.BeforeJson, x.AfterJson, x.ChangedFieldsJson })
+            .Select(x => new RawChange(x.Id, x.Kind, x.TerritorialUnitId, x.CanonicalUnitKey, x.BeforeJson, x.AfterJson, x.ChangedFieldsJson))
             .ToArrayAsync(ct);
-        var rows = raw.Select(x => new TerritorialChangeItemDto(x.Id, x.Kind, x.TerritorialUnitId, x.CanonicalUnitKey,
-            ParseOptional(x.BeforeJson), ParseOptional(x.AfterJson),
-            JsonSerializer.Deserialize<string[]>(x.ChangedFieldsJson, TerritorialImportJson.Options) ?? [])).ToArray();
+
+        var rows = await BuildChangeDtos(importId, raw, ct);
         return new PageResult<TerritorialChangeItemDto>(rows, request.Page, request.PageSize, total);
+    }
+
+    public async Task<TerritorialChangeHierarchyDto?> GetChangeHierarchyAsync(
+        Guid importId, Guid changeId, TerritorialChangeHierarchyQuery request, CancellationToken ct = default)
+    {
+        var selected = await db.TerritorialChangeSetItems.AsNoTracking()
+            .Where(x => x.Id == changeId && x.ChangeSet.ImportId == importId && x.ChangeSet.RevertsChangeSetId == null)
+            .Select(x => new
+            {
+                x.ChangeSetId,
+                Change = new RawChange(x.Id, x.Kind, x.TerritorialUnitId, x.CanonicalUnitKey, x.BeforeJson, x.AfterJson, x.ChangedFieldsJson)
+            }).SingleOrDefaultAsync(ct);
+        if (selected is null) return null;
+
+        var ancestors = new List<RawChange>();
+        var currentMaterial = ToMaterial(selected.Change);
+        var visited = new HashSet<Guid> { currentMaterial.Id };
+        while (ancestors.Count < 32)
+        {
+            RawChange? parent = null;
+            if (currentMaterial.After?.ParentCanonicalUnitKey is { } parentKey)
+            {
+                parent = await db.TerritorialChangeSetItems.AsNoTracking()
+                    .Where(x => x.ChangeSetId == selected.ChangeSetId && x.CanonicalUnitKey == parentKey)
+                    .Select(x => new RawChange(x.Id, x.Kind, x.TerritorialUnitId, x.CanonicalUnitKey, x.BeforeJson, x.AfterJson, x.ChangedFieldsJson))
+                    .FirstOrDefaultAsync(ct);
+            }
+            else if (currentMaterial.Before?.ParentId is { } parentId)
+            {
+                parent = await db.TerritorialChangeSetItems.AsNoTracking()
+                    .Where(x => x.ChangeSetId == selected.ChangeSetId && x.TerritorialUnitId == parentId)
+                    .Select(x => new RawChange(x.Id, x.Kind, x.TerritorialUnitId, x.CanonicalUnitKey, x.BeforeJson, x.AfterJson, x.ChangedFieldsJson))
+                    .FirstOrDefaultAsync(ct);
+            }
+            if (parent is null || !visited.Add(parent.Id)) break;
+            ancestors.Insert(0, parent);
+            currentMaterial = ToMaterial(parent);
+        }
+
+        var childrenQuery = DirectChildrenQuery(selected.ChangeSetId, selected.Change.CanonicalUnitKey,
+            selected.Change.TerritorialUnitId, request.Search);
+        var total = await childrenQuery.CountAsync(ct);
+        var childRows = await childrenQuery.OrderBy(x => x.CanonicalUnitKey)
+            .Skip((request.Page - 1) * request.PageSize).Take(request.PageSize)
+            .Select(x => new RawChange(x.Id, x.Kind, x.TerritorialUnitId, x.CanonicalUnitKey, x.BeforeJson, x.AfterJson, x.ChangedFieldsJson))
+            .ToArrayAsync(ct);
+        var allRows = ancestors.Append(selected.Change).Concat(childRows).DistinctBy(x => x.Id).ToArray();
+        var presented = (await BuildChangeDtos(importId, allRows, ct)).ToDictionary(x => x.Id);
+        var children = childRows.Select(x => ToHierarchyNode(presented[x.Id])).ToArray();
+        return new TerritorialChangeHierarchyDto(
+            presented[selected.Change.Id], ancestors.Select(x => ToHierarchyNode(presented[x.Id])).ToArray(),
+            new PageResult<TerritorialChangeHierarchyNodeDto>(children, request.Page, request.PageSize, total));
+    }
+
+    private IQueryable<TerritorialChangeSetItemRecord> DirectChildrenQuery(
+        Guid changeSetId, string canonicalUnitKey, Guid? territorialUnitId, string? search)
+    {
+        var pattern = string.IsNullOrWhiteSpace(search) ? null : $"%{EscapeLikePattern(search.Trim())}%";
+        if (territorialUnitId is { } parentId)
+        {
+            var parentIdText = parentId.ToString();
+            return pattern is null
+                ? db.TerritorialChangeSetItems.FromSqlInterpolated($$"""
+                    SELECT * FROM territorial_change_set_items
+                    WHERE change_set_id = {{changeSetId}}
+                      AND ((after_json ->> 'parentCanonicalUnitKey') = {{canonicalUnitKey}}
+                           OR (after_json IS NULL AND (before_json ->> 'parentId') = {{parentIdText}}))
+                    """).AsNoTracking()
+                : db.TerritorialChangeSetItems.FromSqlInterpolated($$"""
+                    SELECT * FROM territorial_change_set_items
+                    WHERE change_set_id = {{changeSetId}}
+                      AND ((after_json ->> 'parentCanonicalUnitKey') = {{canonicalUnitKey}}
+                           OR (after_json IS NULL AND (before_json ->> 'parentId') = {{parentIdText}}))
+                      AND (canonical_unit_key ILIKE {{pattern}} ESCAPE '\'
+                           OR before_json::text ILIKE {{pattern}} ESCAPE '\'
+                           OR after_json::text ILIKE {{pattern}} ESCAPE '\')
+                    """).AsNoTracking();
+        }
+        return pattern is null
+            ? db.TerritorialChangeSetItems.FromSqlInterpolated($$"""
+                SELECT * FROM territorial_change_set_items
+                WHERE change_set_id = {{changeSetId}}
+                  AND (after_json ->> 'parentCanonicalUnitKey') = {{canonicalUnitKey}}
+                """).AsNoTracking()
+            : db.TerritorialChangeSetItems.FromSqlInterpolated($$"""
+                SELECT * FROM territorial_change_set_items
+                WHERE change_set_id = {{changeSetId}}
+                  AND (after_json ->> 'parentCanonicalUnitKey') = {{canonicalUnitKey}}
+                  AND (canonical_unit_key ILIKE {{pattern}} ESCAPE '\'
+                       OR after_json::text ILIKE {{pattern}} ESCAPE '\')
+                """).AsNoTracking();
+    }
+
+    private async Task<IReadOnlyCollection<TerritorialChangeItemDto>> BuildChangeDtos(
+        Guid importId, IReadOnlyCollection<RawChange> raw, CancellationToken ct)
+    {
+
+        var importContext = await db.TerritorialImports.AsNoTracking().Where(x => x.Id == importId)
+            .Select(x => new
+            {
+                x.DatasetSource.CountryId,
+                Country = x.DatasetSource.Country.Name,
+                Source = x.DatasetSource.Organisation + " · " + x.DatasetSource.Dataset,
+                x.DatasetSource.Organisation,
+                x.DatasetSource.Dataset,
+                x.DatasetVersion,
+                x.DatasetSource.DatasetDate,
+                MappingVersion = x.MappingTemplate.Version,
+                x.DatasetSource.Locale,
+                SourceUrl = x.DatasetSource.Url
+            }).SingleAsync(ct);
+        var types = await db.TerritorialUnitTypes.AsNoTracking().Where(x => x.CountryId == importContext.CountryId)
+            .ToDictionaryAsync(x => x.Code, StringComparer.OrdinalIgnoreCase, ct);
+
+        var materials = raw.Select(ToMaterial).ToArray();
+        var canonicalAncestors = await LoadCanonicalAncestors(importId,
+            materials.Select(x => x.After?.ParentCanonicalUnitKey).Where(x => x is not null).Select(x => x!).Distinct(), ct);
+        var canonicalParents = canonicalAncestors.ToDictionary(x => x.Key, x => x.Value.Name, StringComparer.Ordinal);
+        var existingAncestors = await LoadExistingAncestors(
+            materials.Select(x => x.Before?.ParentId).Where(x => x is not null).Select(x => x!.Value).Distinct(), ct);
+        var existingParents = existingAncestors.ToDictionary(x => x.Key, x => x.Value.Name);
+
+        return materials.Select(item =>
+        {
+            var names = item.After?.Names ?? item.Before?.Names ?? [];
+            var codes = item.After?.Codes ?? item.Before?.Codes ?? [];
+            var typeCode = item.After?.TerritorialUnitTypeCode ?? item.Before?.TerritorialUnitTypeCode ?? string.Empty;
+            var type = types.GetValueOrDefault(typeCode);
+            var parent = item.After?.ParentCanonicalUnitKey is { } parentKey
+                ? canonicalParents.GetValueOrDefault(parentKey)
+                : item.Before?.ParentId is { } parentId ? existingParents.GetValueOrDefault(parentId) : null;
+            var isActive = item.Kind == "Deactivate" ? false : item.After?.IsActive ?? item.Before?.IsActive ?? false;
+            var primaryName = names.FirstOrDefault(x => x.IsPrimary) ?? names.FirstOrDefault();
+            var primaryCode = codes.FirstOrDefault(x => x.IsPrimary) ?? codes.FirstOrDefault();
+            return new TerritorialChangeItemDto(
+                item.Id, item.Kind, item.TerritorialUnitId, primaryName?.Name ?? "Sense nom", primaryCode?.Value,
+                typeCode, type?.Name ?? typeCode, importContext.Country, parent, primaryName?.Locale, isActive,
+                type?.IsSelectableLocality ?? false, item.After?.Latitude ?? item.Before?.Latitude,
+                item.After?.Longitude ?? item.Before?.Longitude, importContext.Source,
+                BuildHierarchy(importContext.Country, primaryName?.Name ?? "Sense nom", item, canonicalAncestors, existingAncestors),
+                new TerritorialChangeProvenanceDto(importContext.Organisation, importContext.Dataset,
+                    importContext.DatasetVersion, importContext.DatasetDate, importContext.MappingVersion,
+                    importContext.Locale, string.IsNullOrWhiteSpace(importContext.SourceUrl) ? null : importContext.SourceUrl),
+                names.Select(x => new TerritorialChangeNameDto(x.Name, x.Locale, x.Kind, x.IsPrimary, importContext.Source)).ToArray(),
+                codes.Select(x => new TerritorialChangeCodeDto(x.Scheme, x.Value, x.IsPrimary, x.ValidFrom, x.ValidTo, importContext.Source)).ToArray(),
+                Differences(item, canonicalParents, existingParents),
+                item.Kind == "Create" ? "Aquesta unitat territorial encara no existeix i es crearà en publicar."
+                    : item.Kind == "Deactivate" ? "La unitat ja no apareix al dataset oficial actual."
+                    : null,
+                item.ChangedFields.Any(x => x.StartsWith("manualOverrideConflict:", StringComparison.Ordinal)));
+        }).ToArray();
+    }
+
+    private static ChangeMaterial ToMaterial(RawChange item) => new(
+        item.Id, item.Kind, item.TerritorialUnitId,
+        item.BeforeJson is null ? null : JsonSerializer.Deserialize<TerritorialCatalogUnitSnapshot>(item.BeforeJson, TerritorialImportJson.Options),
+        item.AfterJson is null ? null : JsonSerializer.Deserialize<CanonicalTerritorialUnit>(item.AfterJson, TerritorialImportJson.Options),
+        JsonSerializer.Deserialize<string[]>(item.ChangedFieldsJson, TerritorialImportJson.Options) ?? []);
+
+    private static TerritorialChangeHierarchyNodeDto ToHierarchyNode(TerritorialChangeItemDto item) => new(
+        item.Id, item.Name, item.PrimaryCode, item.TerritorialUnitType, item.Kind, item.HasManualConflict);
+
+    private async Task<Dictionary<string, CanonicalAncestor>> LoadCanonicalAncestors(
+        Guid importId, IEnumerable<string> initialKeys, CancellationToken ct)
+    {
+        var result = new Dictionary<string, CanonicalAncestor>(StringComparer.Ordinal);
+        var pending = initialKeys.Distinct(StringComparer.Ordinal).ToArray();
+        var attempted = new HashSet<string>(StringComparer.Ordinal);
+        while (pending.Length > 0)
+        {
+            foreach (var key in pending) attempted.Add(key);
+            var raw = await db.TerritorialImportRows.AsNoTracking()
+                .Where(x => x.ImportId == importId && pending.Contains(x.CanonicalUnitKey))
+                .Select(x => new { x.CanonicalUnitKey, x.CanonicalJson }).ToArrayAsync(ct);
+            foreach (var group in raw.GroupBy(x => x.CanonicalUnitKey, StringComparer.Ordinal))
+            {
+                var unit = JsonSerializer.Deserialize<CanonicalTerritorialUnit>(group.First().CanonicalJson, TerritorialImportJson.Options)!;
+                result[group.Key] = new CanonicalAncestor(PrimaryName(unit.Names), unit.ParentCanonicalUnitKey);
+            }
+            pending = result.Values.Select(x => x.ParentKey).Where(x => x is not null)
+                .Select(x => x!).Where(x => !attempted.Contains(x)).Distinct(StringComparer.Ordinal).ToArray();
+        }
+        return result;
+    }
+
+    private async Task<Dictionary<Guid, ExistingAncestor>> LoadExistingAncestors(
+        IEnumerable<Guid> initialIds, CancellationToken ct)
+    {
+        var result = new Dictionary<Guid, ExistingAncestor>();
+        var pending = initialIds.Distinct().ToArray();
+        var attempted = new HashSet<Guid>();
+        while (pending.Length > 0)
+        {
+            foreach (var id in pending) attempted.Add(id);
+            var rows = await db.TerritorialUnits.AsNoTracking().Where(x => pending.Contains(x.Id))
+                .Select(x => new
+                {
+                    x.Id,
+                    x.ParentId,
+                    Name = x.Names.Where(n => n.IsPrimary).Select(n => n.Name).FirstOrDefault()
+                        ?? x.Names.Select(n => n.Name).FirstOrDefault() ?? string.Empty
+                }).ToArrayAsync(ct);
+            foreach (var row in rows) result[row.Id] = new ExistingAncestor(row.Name, row.ParentId);
+            pending = result.Values.Select(x => x.ParentId).Where(x => x is not null).Select(x => x!.Value)
+                .Where(x => !attempted.Contains(x)).Distinct().ToArray();
+        }
+        return result;
+    }
+
+    private static IReadOnlyCollection<string> BuildHierarchy(
+        string country, string name, ChangeMaterial item,
+        IReadOnlyDictionary<string, CanonicalAncestor> canonicalAncestors,
+        IReadOnlyDictionary<Guid, ExistingAncestor> existingAncestors)
+    {
+        var hierarchy = new List<string> { country };
+        var ancestors = new List<string>();
+        if (item.After?.ParentCanonicalUnitKey is { } canonicalKey)
+        {
+            while (canonicalAncestors.TryGetValue(canonicalKey, out var ancestor))
+            {
+                ancestors.Insert(0, ancestor.Name);
+                if (ancestor.ParentKey is null) break;
+                canonicalKey = ancestor.ParentKey;
+            }
+        }
+        else if (item.Before?.ParentId is { } existingId)
+        {
+            while (existingAncestors.TryGetValue(existingId, out var ancestor))
+            {
+                ancestors.Insert(0, ancestor.Name);
+                if (ancestor.ParentId is null) break;
+                existingId = ancestor.ParentId.Value;
+            }
+        }
+        hierarchy.AddRange(ancestors.Where(x => !string.Equals(x, country, StringComparison.OrdinalIgnoreCase)));
+        if (!string.Equals(name, country, StringComparison.OrdinalIgnoreCase)) hierarchy.Add(name);
+        return hierarchy;
     }
 
     public async Task<PageResult<TerritorialSourcePreviewRowDto>> ListSourcePreviewAsync(Guid importId, TerritorialPreviewQuery request, CancellationToken ct = default)
     {
-        var query = db.TerritorialImportRows.AsNoTracking().Where(x => x.ImportId == importId);
+        IQueryable<TerritorialImportRowRecord> query;
+        if (!string.IsNullOrWhiteSpace(request.Search))
+        {
+            var pattern = $"%{EscapeLikePattern(request.Search.Trim())}%";
+            query = db.TerritorialImportRows.FromSqlInterpolated($$"""
+                SELECT * FROM territorial_import_rows WHERE source_json::text ILIKE {{pattern}} ESCAPE '\'
+                """).AsNoTracking();
+        }
+        else query = db.TerritorialImportRows.AsNoTracking();
+        query = query.Where(x => x.ImportId == importId);
         if (!string.IsNullOrWhiteSpace(request.Sheet)) query = query.Where(x => x.Sheet == request.Sheet.Trim());
-        if (!string.IsNullOrWhiteSpace(request.Search)) query = query.Where(x => x.SourceJson.Contains(request.Search.Trim()));
         var total = await query.CountAsync(ct);
         var raw = await query.OrderBy(x => x.Sheet).ThenBy(x => x.RowNumber)
             .Skip((request.Page - 1) * request.PageSize).Take(request.PageSize)
@@ -161,26 +449,42 @@ internal sealed class TerritorialAdminRepository(ZuppetoDbContext db) : ITerrito
 
     public async Task<PageResult<TerritorialCanonicalPreviewRowDto>> ListCanonicalPreviewAsync(Guid importId, TerritorialPreviewQuery request, CancellationToken ct = default)
     {
-        var query = db.TerritorialImportRows.AsNoTracking().Where(x => x.ImportId == importId);
-        if (!string.IsNullOrWhiteSpace(request.Sheet)) query = query.Where(x => x.Sheet == request.Sheet.Trim());
+        IQueryable<TerritorialImportRowRecord> query;
         if (!string.IsNullOrWhiteSpace(request.Search))
-            query = query.Where(x => x.CanonicalUnitKey.Contains(request.Search.Trim()) || x.CanonicalJson.Contains(request.Search.Trim()));
+        {
+            var pattern = $"%{EscapeLikePattern(request.Search.Trim())}%";
+            query = db.TerritorialImportRows.FromSqlInterpolated($$"""
+                SELECT *
+                FROM territorial_import_rows
+                WHERE canonical_unit_key ILIKE {{pattern}} ESCAPE '\'
+                   OR canonical_json::text ILIKE {{pattern}} ESCAPE '\'
+                """).AsNoTracking();
+        }
+        else query = db.TerritorialImportRows.AsNoTracking();
+        query = query.Where(x => x.ImportId == importId);
+        if (!string.IsNullOrWhiteSpace(request.Sheet)) query = query.Where(x => x.Sheet == request.Sheet.Trim());
         var total = await query.CountAsync(ct);
         var raw = await query.OrderBy(x => x.Sheet).ThenBy(x => x.RowNumber)
             .Skip((request.Page - 1) * request.PageSize).Take(request.PageSize)
-            .Select(x => new
-            {
-                x.Id, x.Sheet, x.RowNumber, x.CanonicalJson,
-                IssueCount = db.TerritorialImportIssues.Count(issue => issue.ImportId == importId &&
-                    issue.Sheet == x.Sheet && issue.RowNumber == x.RowNumber)
-            }).ToArrayAsync(ct);
+            .Select(x => new { x.Id, x.Sheet, x.RowNumber, x.CanonicalJson }).ToArrayAsync(ct);
+        var sheets = raw.Select(x => x.Sheet).Distinct().ToArray();
+        var rowNumbers = raw.Select(x => x.RowNumber).Distinct().ToArray();
+        var relatedIssues = raw.Length == 0 ? [] : await db.TerritorialImportIssues.AsNoTracking()
+            .Where(x => x.ImportId == importId && x.Sheet != null && x.RowNumber != null &&
+                sheets.Contains(x.Sheet) && rowNumbers.Contains(x.RowNumber.Value))
+            .OrderBy(x => x.Severity == "Error" ? 0 : 1).ThenBy(x => x.RuleCode)
+            .Select(x => new TerritorialCanonicalPreviewIssueDto(
+                x.Severity, x.RuleCode, x.Sheet!, x.RowNumber!.Value, x.Field, x.Message))
+            .ToArrayAsync(ct);
         var rows = raw.Select(x =>
         {
             var unit = JsonSerializer.Deserialize<CanonicalTerritorialUnit>(x.CanonicalJson, TerritorialImportJson.Options)!;
             var name = unit.Names.FirstOrDefault(item => item.IsPrimary) ?? unit.Names.FirstOrDefault();
+            var issues = relatedIssues.Where(issue => issue.Sheet == x.Sheet && issue.RowNumber == x.RowNumber).ToArray();
             return new TerritorialCanonicalPreviewRowDto(x.Id, x.Sheet, x.RowNumber, unit.CanonicalUnitKey,
                 unit.ParentCanonicalUnitKey, name?.Name ?? string.Empty, name?.Locale, unit.TerritorialUnitTypeCode,
-                unit.Codes, unit.Latitude, unit.Longitude, x.IssueCount == 0 ? "Vàlida" : "Amb incidències", x.IssueCount);
+                unit.Codes, unit.Latitude, unit.Longitude,
+                issues.Any(issue => issue.Severity == "Error") ? "Invàlida" : "Vàlida", issues.Length, issues);
         }).ToArray();
         return new PageResult<TerritorialCanonicalPreviewRowDto>(rows, request.Page, request.PageSize, total);
     }
@@ -303,7 +607,71 @@ internal sealed class TerritorialAdminRepository(ZuppetoDbContext db) : ITerrito
         new(record.Id, record.DatasetSourceId, record.Version, record.SchemaFingerprint, record.DefinitionChecksum,
             record.IsActive, record.CreatedAtUtc, JsonDocument.Parse(record.DefinitionJson).RootElement.Clone());
 
-    private static JsonElement? ParseOptional(string? json) => json is null ? null : JsonDocument.Parse(json).RootElement.Clone();
+    private static IReadOnlyCollection<TerritorialFieldDifferenceDto> Differences(
+        ChangeMaterial item,
+        IReadOnlyDictionary<string, string> canonicalParents,
+        IReadOnlyDictionary<Guid, string> existingParents)
+    {
+        if (item.Kind == "Create") return [];
+        if (item.Kind == "Deactivate") return [new("isActive", "Sí", "No", false)];
+        var result = new List<TerritorialFieldDifferenceDto>();
+        foreach (var rawField in item.ChangedFields)
+        {
+            var conflict = rawField.StartsWith("manualOverrideConflict:", StringComparison.Ordinal);
+            var field = conflict ? rawField["manualOverrideConflict:".Length..] : rawField;
+            if (result.Any(x => x.Field == field)) continue;
+            result.Add(new TerritorialFieldDifferenceDto(field,
+                FieldValue(field, item.Before, null, existingParents),
+                FieldValue(field, null, item.After, canonicalParents: canonicalParents), conflict));
+        }
+        return result;
+    }
+
+    private static string? FieldValue(
+        string field,
+        TerritorialCatalogUnitSnapshot? before,
+        CanonicalTerritorialUnit? after,
+        IReadOnlyDictionary<Guid, string>? existingParents = null,
+        IReadOnlyDictionary<string, string>? canonicalParents = null) => field switch
+    {
+        "names" => string.Join(" · ", (after?.Names ?? before?.Names ?? []).Where(x => x.IsPrimary).Select(x => x.Name)),
+        "codes" => string.Join(" · ", (after?.Codes ?? before?.Codes ?? []).Where(x => x.IsPrimary).Select(x => x.Value)),
+        "territorialUnitType" => after?.TerritorialUnitTypeCode ?? before?.TerritorialUnitTypeCode,
+        "isActive" => (after?.IsActive ?? before?.IsActive) is true ? "Sí" : "No",
+        "coordinates" => FormatCoordinates(after?.Latitude ?? before?.Latitude, after?.Longitude ?? before?.Longitude),
+        "parent" => after?.ParentCanonicalUnitKey is { } key ? canonicalParents?.GetValueOrDefault(key)
+            : before?.ParentId is { } id ? existingParents?.GetValueOrDefault(id) : "—",
+        _ => null
+    };
+
+    private static string FormatCoordinates(decimal? latitude, decimal? longitude) =>
+        latitude is null || longitude is null ? "—" : $"{latitude:0.######}, {longitude:0.######}";
+
+    private static string PrimaryName(IReadOnlyCollection<CanonicalTerritorialName> names) =>
+        (names.FirstOrDefault(x => x.IsPrimary) ?? names.FirstOrDefault())?.Name ?? "Sense nom";
+
+    private static string EscapeLikePattern(string value) => value.Replace("\\", "\\\\", StringComparison.Ordinal)
+        .Replace("%", "\\%", StringComparison.Ordinal).Replace("_", "\\_", StringComparison.Ordinal);
+
+    private sealed record ChangeMaterial(
+        Guid Id,
+        string Kind,
+        Guid? TerritorialUnitId,
+        TerritorialCatalogUnitSnapshot? Before,
+        CanonicalTerritorialUnit? After,
+        IReadOnlyCollection<string> ChangedFields);
+
+    private sealed record RawChange(
+        Guid Id,
+        string Kind,
+        Guid? TerritorialUnitId,
+        string CanonicalUnitKey,
+        string? BeforeJson,
+        string? AfterJson,
+        string ChangedFieldsJson);
+
+    private sealed record CanonicalAncestor(string Name, string? ParentKey);
+    private sealed record ExistingAncestor(string Name, Guid? ParentId);
 
     private static TerritorialCatalogUnitDto ToCatalogUnit(TerritorialUnitRecord x) => new(
         x.Id, x.CountryId, x.Country.Name, x.TerritorialUnitTypeId, x.TerritorialUnitType.Code, x.TerritorialUnitType.Name,

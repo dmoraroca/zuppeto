@@ -2,7 +2,7 @@
 
 ## Estat
 
-**FASE VI COMPLETADA DEFINITIVAMENT. FASE VII SEGÜENT.**
+**FASE VI COMPLETADA DEFINITIVAMENT. FASE VII EN CURS EN DOCUMENT SEPARAT.**
 
 La revisió del repositori va confirmar que la Fase VI era compatible amb el contracte territorial i el motor de Fase V. No s’ha canviat el contracte funcional ni s’ha duplicat el pipeline: la UI governa TerritorialImportService, els mappings, la validació, el ChangeSet, la publicació i la reversió existents.
 
@@ -115,4 +115,4 @@ La font de veritat és model EF Core + migracions. S’ha validat una instal·la
 
 El catàleg final concentra els filtres, mostra codi, nom, tipus, país, pare, locale, coordenades, estat i seleccionabilitat, i conserva pàgina i filtres en tancar el detall. El modal ocupa fins al 90% de l’amplada i el 88% de l’alçada útil, retorna el focus a l’origen i presenta sis pestanyes. Activar/desactivar, canviar seleccionabilitat i corregir coordenades obren diàlegs independents amb motiu obligatori de 3–500 caràcters; cada diàleg contextual ofereix únicament `Cancel·lar` i l’acció principal. `Cancel·lar` torna al detall sense emetre cap ordre, mentre que el modal gran conserva `Tancar` per tornar al catàleg. Els errors funcionals del backend es mostren sense mocks.
 
-La validació manual final és satisfactòria i accepta VI.24-A/B/C/D/E. Les fixtures persistents `País E2E À`, `País E2E B`, els seus tipus, unitats, noms, codis, estats i auditories s’han retirat de manera controlada. Fase VI queda completada definitivament; Fase VII és la següent i no s’ha executat.
+La validació manual final és satisfactòria i accepta VI.24-A/B/C/D/E. Les fixtures persistents `País E2E À`, `País E2E B`, els seus tipus, unitats, noms, codis, estats i auditories s’han retirat de manera controlada. Fase VI queda completada definitivament; l'estat posterior consta al document específic de Fase VII.

@@ -33,12 +33,36 @@ public sealed class TerritorialImportRecord
     public string? FailureReason { get; set; }
     public Guid CreatedByUserId { get; set; }
     public UserRecord CreatedByUser { get; set; } = null!;
+    public Guid? PublicationRequestedByUserId { get; set; }
     public DateTimeOffset CreatedAtUtc { get; set; }
     public DateTimeOffset UpdatedAtUtc { get; set; }
     public DateTimeOffset? PublishedAtUtc { get; set; }
+    public string? CurrentStage { get; set; }
+    public int? TotalRows { get; set; }
+    public int? ProcessedRows { get; set; }
+    public DateTimeOffset? ProcessingStartedAtUtc { get; set; }
+    public DateTimeOffset? ProcessingCompletedAtUtc { get; set; }
+    public DateTimeOffset? LastHeartbeatAtUtc { get; set; }
+    public int AttemptCount { get; set; }
+    public string? LastErrorCode { get; set; }
+    public string? LastErrorMessage { get; set; }
+    public bool IsRecoverable { get; set; }
+    public bool CancellationRequested { get; set; }
+    public string? LeaseOwner { get; set; }
+    public DateTimeOffset? LeaseExpiresAtUtc { get; set; }
+    public DateTimeOffset? NextAttemptAtUtc { get; set; }
+    public TerritorialImportArtifactRecord? Artifact { get; set; }
     public ICollection<TerritorialImportRowRecord> Rows { get; set; } = [];
     public ICollection<TerritorialImportIssueRecord> Issues { get; set; } = [];
     public ICollection<TerritorialChangeSetRecord> ChangeSets { get; set; } = [];
+}
+
+public sealed class TerritorialImportArtifactRecord
+{
+    public Guid ImportId { get; set; }
+    public TerritorialImportRecord Import { get; set; } = null!;
+    public byte[] Content { get; set; } = [];
+    public DateTimeOffset CreatedAtUtc { get; set; }
 }
 
 public sealed class TerritorialImportRowRecord

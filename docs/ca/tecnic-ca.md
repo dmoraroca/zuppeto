@@ -555,7 +555,7 @@ Resum del diagrama:
 
 ### Auditoria territorial i disseny objectiu europeu — Fase IV, Iteració 6
 
-**Estat global:** **FASE VI COMPLETADA DEFINITIVAMENT / FASE VII SEGÜENT**. La Fase VII encara no s’ha executat. Els datasets pilot no s’han publicat, no s’ha fet backfill i GeoNames continua operatiu com a compatibilitat interna.
+**Estat global:** **FASE VI COMPLETADA DEFINITIVAMENT / FASE VII EN CURS — VII.2–VII.7 COMPLETADES; VII.8 IMPLEMENTADA I PENDENT DE VALIDACIÓ MANUAL; VII.9 NO INICIADA**. Els datasets pilot no s’han publicat, no s’ha fet backfill i GeoNames continua operatiu com a compatibilitat interna.
 
 #### A. Model territorial auditat abans de la implementació
 
@@ -2461,5 +2461,19 @@ El filtre de Places propaga `countryId` i `territorialUnitId` des d’Angular fi
 La validació focalitzada real de ZUP-160 recorre Angular → API → Application → EF → PostgreSQL amb dades sintètiques controlades i acaba en PASS (`sim-20260923T202548369Z-35b2d77c`). A més del manteniment auditat, comprova l’autocomplete únic, el reset A → B, la inexistència de controls/textos transitoris a Perfil, Llocs, Favorits, ADMIN User, ADMIN Place i explorador públic, i el grid de filtres a 1280, 900 i 600 px. No publica Espanya ni Alemanya.
 
 El tancament definitiu retira de PostgreSQL totes les fixtures persistents VI.24 i confirma zero països, tipus, unitats, noms, codis, estats i auditories E2E. La regressió territorial autocontinguda posterior passa 7/7 (`sim-20260923T204748547Z-8368eb83`). Backend 69/69, incloses tres integracions PostgreSQL que creen i eliminen bases dedicades; Angular 61/61; runner 55/55; builds .NET i Angular PASS. EF Core no detecta canvis de model pendents i dues generacions de l’SQL idempotent produeixen el mateix SHA-256 `08a4ec011eee4a37c703e53b73f0a00b0d5c6ecf2955725f161d72d3510ef46b`.
+
+## Fase VII — worker durable i pilots previs a publicació
+
+La preparació deixa de dependre de la durada de la petició HTTP. L'API persisteix `TerritorialImport` en `Queued` i el binari XLSX a `territorial_import_artifacts`; `TerritorialImportWorker` reclama amb `FOR UPDATE SKIP LOCKED`, lease renovable i heartbeat. La cua conserva intent, següent intent, etapa, total/processades, error segur, recuperabilitat i cancel·lació. Un `Validated` sense errors és transitori i recuperable; un `Validated` bloquejant és terminal de revisió.
+
+La publicació també passa per `Publishing`; manté transacció serialitzable, `CatalogVersion`, idempotència i rollback ja implementats. La UI només fa polling per `Queued`, `Uploaded`, `Mapped`, `Validated` no bloquejant o `Publishing`.
+
+`TerritorialPilotConfigurationSeeder` configura ES/DE, tipus, fonts `Pending` i mappings v1 amb fingerprints reals. `TerritorialPilotMappings` produeix 8.201/8.199 per Espanya i 15.877/15.770 per Alemanya. GV-ISys consolida 107 rols, conserva 24 noms alternatius, tracta `Textkennzeichen` 41/42 i separa els territoris especials `KREIS=00` amb esquemes de codi no col·lidents. La coordenada `(0,0)` queda absent.
+
+Les migracions `AddTerritorialAsyncWorkerPhase7` i `AddTerritorialPublicationActorPhase7` incorporen cua, artefacte i actor de publicació durable; el model EF no té diferències pendents. La validació real API → worker → PostgreSQL deixa Espanya i Alemanya preparades per revisió amb zero errors, però no publica: ambdues fonts continuen `Pending`. Detall i gates a [Fase VII](iteracio-6-fase-vii-prerequisits-publicacio-ca.md).
+
+La recuperació s'ha provat amb una lease real activa: l'API es reinicia durant `Uploaded/Reading`, el nou worker espera el venciment, reclama el mateix `ImportId` i artefacte com a intent 2 i acaba en `ReadyForReview`. ZUP-160 valida també el circuit Angular → cua → worker → PostgreSQL → publicació sintètica → Catàleg (`sim-20260924T095208082Z-a542d324`) i elimina completament la fixture. La suite backend/PostgreSQL passa 71/71.
+
+VII.8 manté `CanonicalTerritorialUnit` i els snapshots JSON dins del motor, però el contracte administratiu projecta un DTO funcional tipat. `TerritorialAdminRepository` resol el nom principal, codi, tipus, país, pare humà, procedència i diferències abans d’arribar a Angular. La política compartida `territorial-presentation.policy.ts` centralitza les etiquetes catalanes; la UI no interpreta ni compara JSON cru.
 
 `scripts/generate-ef-migration-script.sh RUTA.sql` genera l’SQL idempotent de deploy des de les migracions EF; no hi ha un esquema SQL paral·lel.

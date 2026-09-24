@@ -1,4 +1,5 @@
 import { expect, type Locator, type Page } from '@playwright/test';
+import ExcelJS from 'exceljs';
 import type { ChromeScenarioContext } from './chrome-scenario.js';
 
 const sourceId = '10000000-0000-0000-0000-000000000001';
@@ -9,7 +10,7 @@ export async function executeTerritorialAdminScenario(code: number, context: Chr
   if (code === 155) return securityScenario(context);
   if (code === 160 && process.env['E2E_TERRITORIAL_REAL'] === 'true') return realTerritorialCircuit(context);
   const mode = code === 158 ? 'blocked' : 'ready';
-  await mockTerritorialApi(context, mode);
+  await mockTerritorialApi(context, mode, code === 157);
 
   if (code === 160) {
     await context.page.goto('/admin/territori');
@@ -71,18 +72,48 @@ export async function executeTerritorialAdminScenario(code: number, context: Chr
 
   if (code === 158) {
     await expect(context.page.getByText('DUPLICATE_CODE')).toBeVisible();
-    await expect(context.page.getByRole('button', { name: 'Revisar ChangeSet' })).toHaveCount(0);
+    await expect(context.page.getByRole('button', { name: 'Revisar canvis' })).toHaveCount(0);
     return;
   }
 
-  await expect(context.page.getByRole('heading', { name: '5. Preview del ChangeSet' })).toBeVisible();
-  await expect(context.page.getByText('synthetic:001').first()).toBeVisible();
+  await expect(context.page.getByRole('heading', { name: '5. Canvis a publicar' })).toBeVisible();
+  await expect(context.page.locator('.changes-table').getByRole('cell', { name: 'Àmbit sintètic', exact: true })).toBeVisible();
   if (code === 157) {
-    await expect(context.page.getByRole('heading', { name: 'Preview d’origen' })).toBeVisible();
-    await expect(context.page.getByRole('heading', { name: 'Preview canonicalitzat' })).toBeVisible();
-    await expect(context.page.getByText('CODI: 001')).toBeVisible();
-    await expect(context.page.getByText('Àmbit sintètic · ca-ES')).toBeVisible();
-    await expect(context.page.getByRole('heading', { name: '5. Preview del ChangeSet' })).toBeVisible();
+    await expect(context.page.getByRole('heading', { name: 'Previsualització d’origen' })).toBeVisible();
+    await expect(context.page.getByRole('heading', { name: 'Previsualització canonicalitzada' })).toBeVisible();
+    await expect(context.page.getByText('Selecciona un full per previsualitzar-ne les dades.')).toBeVisible();
+    await context.page.getByLabel('Full del preview').selectOption('Municipis');
+    const sourceTable = context.page.locator('.source-preview-table');
+    await expect(sourceTable.getByRole('columnheader', { name: 'CMUN' })).toBeVisible();
+    await expect(sourceTable.getByRole('columnheader', { name: 'CODAUTO' })).toBeVisible();
+    await expect(sourceTable.getByRole('columnheader', { name: 'CPRO' })).toBeVisible();
+    await expect(sourceTable.getByRole('columnheader', { name: 'NOMBRE' })).toBeVisible();
+    await expect(context.page.getByRole('columnheader', { name: 'Camps admesos', exact: true })).toHaveCount(0);
+    await context.page.getByLabel('Cerca del preview').fill('Àmbit');
+    await context.page.getByRole('button', { name: 'Aplicar filtres' }).first().click();
+    await expect(sourceTable.getByRole('cell', { name: 'Àmbit sintètic', exact: true })).toBeVisible();
+    await expect(context.page.getByRole('cell', { name: 'Àmbit sintètic', exact: true }).first()).toBeVisible();
+    await expect(context.page.getByRole('cell', { name: 'Municipi', exact: true }).first()).toBeVisible();
+    await expect(context.page.getByRole('cell', { name: 'Comunitats · fila 3', exact: true })).toBeVisible();
+    await expect(context.page.getByRole('cell', { name: 'Municipis · fila 31', exact: true })).toBeVisible();
+    await expect(context.page.getByText('Vàlida (0)')).toHaveCount(0);
+    await expect(context.page.getByText('Pàgina 1 de 165')).toBeVisible();
+    await expect(context.page.getByText('Pàgina 1 de 164')).toBeVisible();
+    await context.page.getByText('Veure incidències', { exact: true }).click();
+    const canonicalIssues = context.page.locator('.canonical-issues');
+    await expect(canonicalIssues).toContainText('Avís');
+    await expect(canonicalIssues).toContainText('COORDINATE_REVIEW');
+    await expect(canonicalIssues).toContainText('Municipis · fila 31');
+    await expect(canonicalIssues).toContainText('Cal revisar la procedència de les coordenades.');
+    await assertFunctionalChangeDetails(context.page);
+    await context.page.getByRole('button', { name: 'Anar a publicació' }).click();
+    await expect(context.page.getByRole('heading', { name: '5. Canvis a publicar' })).toHaveCount(0);
+    await expect(context.page.getByRole('heading', { name: '6. Publicació del catàleg territorial' })).toBeVisible();
+    await expect(context.page.getByText('Pendent d’aprovació')).toBeVisible();
+    await expect(context.page.getByRole('button', { name: 'Publicar catàleg' })).toBeDisabled();
+    await context.page.getByRole('button', { name: 'Tornar als canvis' }).click();
+    await expect(context.page.getByLabel('Cerca per nom o codi')).toHaveValue('Àmbit');
+    await expect(context.page.getByText('Pàgina 1 de 164')).toBeVisible();
     return;
   }
 
@@ -91,12 +122,14 @@ export async function executeTerritorialAdminScenario(code: number, context: Chr
     await context.page.getByRole('button', { name: 'Publicar catàleg' }).click();
     await expect(context.page.getByRole('alertdialog')).toBeVisible();
     await context.page.getByRole('button', { name: 'Confirmar' }).click();
-    await expect(context.page.getByText('Estat: Published')).toBeVisible();
+    await expect(context.page.getByText('Estat: Publicat')).toBeVisible();
   }
 }
 
 async function realTerritorialCircuit(context: ChromeScenarioContext): Promise<void> {
   if (!context.session.session) throw new Error('El circuit territorial real requereix sessió ADMIN.');
+
+  await realAsyncImportCircuit(context);
 
   await context.page.goto('/admin/territori');
   await context.page.getByRole('button', { name: 'Catàleg territorial' }).click();
@@ -193,12 +226,123 @@ async function realTerritorialCircuit(context: ChromeScenarioContext): Promise<v
   await expect(context.page.getByText(/Compatibilitat transitòria/i)).toHaveCount(0);
 }
 
+async function realAsyncImportCircuit(context: ChromeScenarioContext): Promise<void> {
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet('Data');
+  sheet.addRow(['CODE', 'NAME']);
+  for (let index = 1; index <= 250; index += 1) {
+    sheet.addRow([`E2E-${String(index).padStart(3, '0')}`, `Localitat worker E2E ${index}`]);
+  }
+  const content = Buffer.from(await workbook.xlsx.writeBuffer());
+
+  await context.page.goto('/admin/territori');
+  await context.page.getByLabel('Font oficial').selectOption({ label: 'Organisme E2E · Dataset worker E2E' });
+  await context.page.locator('input[type=file]').setInputFiles({
+    name: 'territori-worker-e2e.xlsx',
+    mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    buffer: content
+  });
+  await context.page.getByRole('button', { name: 'Inspeccionar esquema' }).click();
+  await expect(context.page.getByRole('heading', { name: '3. Mapping reutilitzable' })).toBeVisible();
+  await expect(context.page.getByText('B: Localitat worker E2E 1 ·', { exact: true })).toBeVisible();
+
+  await context.page.getByLabel('Columna de nom').selectOption({ label: 'NAME' });
+  await context.page.getByLabel('Columnes clau (separades per coma)').fill('CODE');
+  await context.page.getByLabel('Esquema del codi').fill('e2e:worker');
+  await context.page.getByLabel('Columnes del codi').fill('CODE');
+  await context.page.getByLabel('Locale del nom').fill('ca-ES');
+  await context.page.getByRole('button', { name: 'Desar nova versió de mapping' }).click();
+  await expect(context.page.getByRole('button', { name: 'Preparar validació i preview' })).toBeEnabled();
+
+  const queuedResponse = context.page.waitForResponse((response) =>
+    response.request().method() === 'POST' && response.url().endsWith('/api/admin/territorial/imports'));
+  await context.page.getByRole('button', { name: 'Preparar validació i preview' }).click();
+  const queued = await queuedResponse;
+  expect(queued.status()).toBe(202);
+  const queuedBody = await queued.json() as { import: { id: string; status: string } };
+  const queuedId = queuedBody.import.id;
+  expect(queuedBody.import.status).toBe('Queued');
+
+  // Angular pot desaparèixer: la cua, l'artefacte i el worker continuen sent la font de veritat.
+  await context.page.goto('/');
+  const token = context.session.session?.accessToken;
+  await expect.poll(async () => {
+    const response = await context.transport.send<{ import: { status: string } }>({
+      method: 'GET', path: `/api/admin/territorial/imports/${queuedId}`, accessToken: token
+    });
+    return response.body?.import.status;
+  }, { timeout: 45_000, intervals: [250, 500, 1000] }).toBe('ReadyForReview');
+
+  await context.page.goto('/admin/territori');
+  await context.page.reload();
+  await context.page.getByRole('button', { name: 'Historial' }).click();
+  const historyRow = context.page.getByRole('row').filter({ hasText: 'Dataset worker E2E' }).first();
+  await expect(historyRow).toContainText('Preparat per revisar');
+  await expect(historyRow).toContainText('250/250');
+  await historyRow.getByRole('button', { name: 'Obrir detall' }).click();
+  await expect(context.page).toHaveURL(new RegExp(`/admin/territori/${queuedId}$`));
+  await expect(context.page.getByRole('heading', { name: '5. Canvis a publicar' })).toBeVisible();
+  await context.page.getByRole('button', { name: 'Anar a publicació' }).click();
+  await context.page.getByRole('button', { name: 'Publicar catàleg' }).click();
+  await context.page.getByRole('alertdialog').getByRole('button', { name: 'Confirmar' }).click();
+  await expect(context.page.getByText('Estat: Publicat')).toBeVisible({ timeout: 45_000 });
+
+  await context.page.getByRole('button', { name: 'Catàleg territorial' }).click();
+  await context.page.getByLabel('País').selectOption({ label: 'País E2E Importació' });
+  await context.page.getByLabel('Cerca').fill('E2E-001');
+  await context.page.getByRole('button', { name: 'Cercar', exact: true }).click();
+  await expect(context.page.getByRole('cell', { name: 'Localitat worker E2E 1', exact: true })).toBeVisible();
+}
+
 async function assertSingleLocationAutocomplete(location: Locator): Promise<void> {
   await expect(location).toBeVisible();
   await expect(location.locator('select')).toHaveCount(1);
   await expect(location.getByRole('combobox')).toHaveCount(2);
   await expect(location.getByRole('button', { name: 'Cercar', exact: true })).toHaveCount(0);
   await expect(location.getByText(/Compatibilitat transitòria/i)).toHaveCount(0);
+}
+
+async function assertFunctionalChangeDetails(page: Page): Promise<void> {
+  const filters = page.locator('[aria-label="Filtres dels canvis"]');
+  await filters.getByLabel('Cerca per nom o codi').fill('Àmbit');
+  await filters.getByRole('button', { name: 'Aplicar filtres' }).click();
+  await expect(page.getByRole('cell', { name: 'Crear', exact: true }).first()).toBeVisible();
+  await expect(page.getByRole('cell', { name: 'Actualitzar', exact: true })).toBeVisible();
+  await expect(page.getByRole('cell', { name: 'Desactivar', exact: true })).toBeVisible();
+  await expect(page.locator('details.change-detail')).toHaveCount(0);
+  const firstDetail = page.getByRole('button', { name: 'Veure detall' }).first();
+  await firstDetail.click();
+  const modal = page.getByRole('dialog');
+  await expect(modal).toBeVisible();
+  await expect(modal.getByRole('heading', { name: 'Regió sintètica' })).toBeVisible();
+  await expect(modal.getByText('Regió · Arrel territorial · R1')).toBeVisible();
+  await expect(modal.getByRole('button', { name: 'General' })).toBeVisible();
+  await expect(modal.getByRole('button', { name: 'Jerarquia' })).toBeVisible();
+  await expect(modal.getByRole('button', { name: 'Noms i codis' })).toBeVisible();
+  await expect(modal.getByRole('button', { name: 'Procedència' })).toBeVisible();
+  await expect(modal.getByRole('button', { name: 'Canvis' })).toBeVisible();
+  await modal.getByRole('button', { name: 'Jerarquia' }).click();
+  await expect(modal).toContainText('País sintètic');
+  await expect(modal.locator('.hierarchy-current')).toContainText('Regió sintètica');
+  await expect(modal.locator('.hierarchy-children-table')).toContainText('Província sintètica');
+  await modal.locator('.hierarchy-children-table').getByRole('button', { name: 'Veure detall' }).click();
+  await expect(modal.locator('.hierarchy-current')).toContainText('Província sintètica');
+  await expect(modal.locator('.hierarchy-children-table')).toContainText('Àmbit sintètic');
+  await modal.locator('.hierarchy-children-table').getByRole('button', { name: 'Veure detall' }).click();
+  await expect(modal.locator('.hierarchy-current')).toContainText('Àmbit sintètic');
+  await modal.locator('.change-hierarchy').getByRole('button', { name: 'Província sintètica' }).click();
+  await expect(modal.locator('.hierarchy-current')).toContainText('Província sintètica');
+  await modal.locator('.change-hierarchy').getByRole('button', { name: 'Regió sintètica' }).click();
+  await expect(modal.locator('.hierarchy-current')).toContainText('Regió sintètica');
+  await modal.getByRole('button', { name: 'Canvis' }).click();
+  await expect(modal).toContainText('No existeix');
+  await expect(modal).toContainText('Aquesta unitat territorial encara no existeix i es crearà en publicar.');
+  await page.keyboard.press('Escape');
+  await expect(modal).toHaveCount(0);
+  await expect(firstDetail).toBeFocused();
+  await expect(filters.getByLabel('Cerca per nom o codi')).toHaveValue('Àmbit');
+  await expect(page.locator('pre')).toHaveCount(0);
+  await expect(page.getByText('canonicalUnitKey')).toHaveCount(0);
 }
 
 async function assertResponsiveFilterLayout(page: Page, filters: Locator, includesSort: boolean): Promise<void> {
@@ -261,14 +405,14 @@ async function securityScenario(context: ChromeScenarioContext): Promise<void> {
   expect(response.status).toBe(403);
 }
 
-async function mockTerritorialApi(context: ChromeScenarioContext, mode: 'ready' | 'blocked'): Promise<void> {
+async function mockTerritorialApi(context: ChromeScenarioContext, mode: 'ready' | 'blocked', pendingSource = false): Promise<void> {
   let catalogActive = true;
   const audit: Array<Record<string, unknown>> = [];
   const contextDto = {
     countries: [{ id: 'c0000000-0000-0000-0000-000000000001', code: 'synthetic', name: 'País sintètic', iso2: 'ZZ', iso3: 'ZZZ', isActive: true }],
     sources: [{
       id: sourceId, countryId: 'c0000000-0000-0000-0000-000000000001',
-      organisation: 'Institut sintètic', dataset: 'Àmbits de prova', approvalStatus: 'Approved',
+      organisation: 'Institut sintètic', dataset: 'Àmbits de prova', approvalStatus: pendingSource ? 'Pending' : 'Approved',
       isActive: true, publicationMode: 'FullSnapshot', datasetVersion: 'synthetic-v1',
       datasetDate: '2026-09-22', license: 'Test-only', attribution: 'Fixture E2E'
     }],
@@ -280,12 +424,12 @@ async function mockTerritorialApi(context: ChromeScenarioContext, mode: 'ready' 
   };
   const counters = mode === 'blocked'
     ? { rows: 2, errors: 1, warnings: 0, create: 0, update: 0, deactivate: 0, noChange: 0 }
-    : { rows: 2, errors: 0, warnings: 0, create: 1, update: 0, deactivate: 0, noChange: 0 };
+    : { rows: 4, errors: 0, warnings: 0, create: 2, update: 1, deactivate: 1, noChange: 0 };
   const summary = {
     id: importId, countryId: contextDto.countries[0].id, countryName: 'País sintètic',
     datasetSourceId: sourceId, organisation: 'Institut sintètic', dataset: 'Àmbits de prova',
     datasetVersion: 'synthetic-v1', mappingTemplateId: mappingId, mappingVersion: 1,
-    status: mode === 'blocked' ? 'ValidationFailed' : 'ReadyForReview',
+    status: mode === 'blocked' ? 'Validated' : 'ReadyForReview',
     hasBlockingErrors: mode === 'blocked', catalogVersion: null,
     artifactName: 'territori-sintetic.xlsx', fileSize: 20, fileChecksum: 'a'.repeat(64),
     actor: 'Admin E2E', createdAtUtc: '2026-09-22T10:00:00Z',
@@ -295,8 +439,57 @@ async function mockTerritorialApi(context: ChromeScenarioContext, mode: 'ready' 
     import: summary, publicationMode: 'FullSnapshot', failureReason: null,
     schemaFingerprint: 'b'.repeat(64), canCancel: true, canPublish: mode === 'ready',
     canRevert: false, currentCatalogVersion: 7, changeSetId: '50000000-0000-0000-0000-000000000001',
-    changeSetStatus: 'Preview'
+    changeSetStatus: 'Preview', sourceSheets: ['Comunitats', 'Municipis'], manualConflictCount: 0,
+    territorialBreakdown: [
+      { territorialUnitTypeCode: 'REGION', territorialUnitType: 'Regió', create: 1, update: 0, deactivate: 0, noChange: 0 },
+      { territorialUnitTypeCode: 'MUNICIPALITY', territorialUnitType: 'Municipi', create: 1, update: 1, deactivate: 1, noChange: 0 }
+    ]
   };
+  const functionalChanges = [
+    {
+      id: '70000000-0000-0000-0000-000000000010', kind: 'Create', territorialUnitId: null,
+      name: 'Regió sintètica', primaryCode: 'R1', territorialUnitTypeCode: 'REGION',
+      territorialUnitType: 'Regió', country: 'País sintètic', parent: null, locale: 'ca-ES',
+      isActive: true, isSelectableLocality: false, latitude: null, longitude: null,
+      source: 'Institut sintètic · Àmbits de prova', hierarchy: ['País sintètic', 'Regió sintètica'],
+      provenance: { organisation: 'Institut sintètic', dataset: 'Àmbits de prova', datasetVersion: 'synthetic-v1', datasetDate: '2026-09-22', mappingVersion: 1, locale: 'ca-ES', source: null },
+      names: [{ name: 'Regió sintètica', locale: 'ca-ES', kind: 'Official', isPrimary: true }],
+      codes: [{ scheme: 'synthetic:region', value: 'R1', isPrimary: true }], differences: [],
+      functionalReason: 'Aquesta unitat territorial encara no existeix i es crearà en publicar.', hasManualConflict: false
+    },
+    {
+      id: '70000000-0000-0000-0000-000000000001', kind: 'Create', territorialUnitId: null,
+      name: 'Àmbit sintètic', primaryCode: '001', territorialUnitTypeCode: 'MUNICIPALITY',
+      territorialUnitType: 'Municipi', country: 'País sintètic', parent: 'Regió sintètica', locale: 'ca-ES',
+      isActive: true, isSelectableLocality: true, latitude: 41.5, longitude: 2.1,
+      source: 'Institut sintètic · Àmbits de prova',
+      hierarchy: ['País sintètic', 'Regió sintètica', 'Àmbit sintètic'],
+      provenance: { organisation: 'Institut sintètic', dataset: 'Àmbits de prova', datasetVersion: 'synthetic-v1', datasetDate: '2026-09-22', mappingVersion: 1, locale: 'ca-ES', source: 'https://example.test/territori' },
+      names: [{ name: 'Àmbit sintètic', locale: 'ca-ES', kind: 'Official', isPrimary: true }],
+      codes: [{ scheme: 'synthetic:code', value: '001', isPrimary: true }], differences: [],
+      functionalReason: 'Aquesta unitat territorial encara no existeix i es crearà en publicar.', hasManualConflict: false
+    },
+    {
+      id: '70000000-0000-0000-0000-000000000002', kind: 'Update', territorialUnitId: '90000000-0000-0000-0000-000000000002',
+      name: 'Àmbit actualitzat', primaryCode: '002', territorialUnitTypeCode: 'MUNICIPALITY',
+      territorialUnitType: 'Municipi', country: 'País sintètic', parent: 'Regió sintètica', locale: 'ca-ES',
+      isActive: true, isSelectableLocality: true, latitude: 41.6, longitude: 2.2,
+      source: 'Institut sintètic · Àmbits de prova', hierarchy: ['País sintètic', 'Regió sintètica', 'Àmbit actualitzat'],
+      provenance: { organisation: 'Institut sintètic', dataset: 'Àmbits de prova', datasetVersion: 'synthetic-v1', datasetDate: '2026-09-22', mappingVersion: 1, locale: 'ca-ES', source: null }, names: [], codes: [],
+      differences: [{ field: 'names', before: 'Àmbit anterior', after: 'Àmbit actualitzat' }],
+      functionalReason: null, hasManualConflict: false
+    },
+    {
+      id: '70000000-0000-0000-0000-000000000003', kind: 'Deactivate', territorialUnitId: '90000000-0000-0000-0000-000000000003',
+      name: 'Àmbit antic', primaryCode: '003', territorialUnitTypeCode: 'MUNICIPALITY',
+      territorialUnitType: 'Municipi', country: 'País sintètic', parent: 'Regió sintètica', locale: 'ca-ES',
+      isActive: false, isSelectableLocality: true, latitude: null, longitude: null,
+      source: 'Institut sintètic · Àmbits de prova', hierarchy: ['País sintètic', 'Regió sintètica', 'Àmbit antic'],
+      provenance: { organisation: 'Institut sintètic', dataset: 'Àmbits de prova', datasetVersion: 'synthetic-v1', datasetDate: '2026-09-22', mappingVersion: 1, locale: 'ca-ES', source: null }, names: [], codes: [],
+      differences: [{ field: 'isActive', before: 'true', after: 'false' }],
+      functionalReason: 'La unitat ja no apareix al dataset oficial actual.', hasManualConflict: false
+    }
+  ];
   const page = <T>(items: T[]) => ({ items, page: 1, pageSize: 50, totalCount: items.length, totalPages: items.length ? 1 : 0 });
 
   await context.page.route('**/api/admin/territorial/**', async (route) => {
@@ -316,21 +509,53 @@ async function mockTerritorialApi(context: ChromeScenarioContext, mode: 'ready' 
       message: 'Codi territorial duplicat', sheet: 'Municipis', rowNumber: 2, field: 'CODI',
       problemValue: '001', canonicalUnitKey: 'synthetic:001'
     }] : []);
-    else if (path.endsWith('/changes')) body = page(mode === 'ready' ? [{
-      id: '70000000-0000-0000-0000-000000000001', kind: 'Create', territorialUnitId: null,
-      canonicalUnitKey: 'synthetic:001', before: null, after: { name: 'Àmbit sintètic' }, changedFields: ['name']
-    }] : []);
-    else if (path.endsWith('/preview/source')) body = page([{
-      id: '81000000-0000-0000-0000-000000000001', sheet: 'Municipis', rowNumber: 2,
-      values: { CODI: '001', NOM: 'Àmbit sintètic' }, readingStatus: 'Llegida'
-    }]);
-    else if (path.endsWith('/preview/canonical')) body = page([{
-      id: '82000000-0000-0000-0000-000000000001', sheet: 'Municipis', rowNumber: 2,
-      canonicalUnitKey: 'synthetic:001', parentCanonicalUnitKey: null, name: 'Àmbit sintètic',
-      locale: 'ca-ES', territorialUnitTypeCode: 'MUNICIPALITY',
-      codes: [{ scheme: 'synthetic:code', value: '001', isPrimary: true }],
-      latitude: 41.5, longitude: 2.1, status: 'Vàlida', issueCount: 0
-    }]);
+    else if (path.endsWith('/hierarchy')) {
+      const changeId = path.split('/').at(-2);
+      const hierarchyNode = (change: { id: string; name: string; primaryCode: string | null; territorialUnitType: string; kind: string }, conflict = false) => ({
+        changeId: change.id, name: change.name, primaryCode: change.primaryCode,
+        territorialUnitType: change.territorialUnitType, kind: change.kind, hasBlockingConflict: conflict
+      });
+      const region = functionalChanges[0]!;
+      const municipality = functionalChanges[1]!;
+      const province = {
+        ...region, id: '70000000-0000-0000-0000-000000000011', name: 'Província sintètica', primaryCode: 'P1',
+        territorialUnitTypeCode: 'PROVINCE', territorialUnitType: 'Província', parent: 'Regió sintètica',
+        hierarchy: ['País sintètic', 'Regió sintètica', 'Província sintètica']
+      };
+      if (changeId === region.id) body = { current: region, ancestors: [], children: page([hierarchyNode(province)]) };
+      else if (changeId === province.id) body = { current: province, ancestors: [hierarchyNode(region)], children: page([hierarchyNode(municipality)]) };
+      else body = { current: municipality, ancestors: [hierarchyNode(region), hierarchyNode(province)], children: page([]) };
+    }
+    else if (path.endsWith('/changes')) body = mode === 'ready'
+      ? { ...page(functionalChanges), totalCount: 8199, totalPages: 164 }
+      : page([]);
+    else if (path.endsWith('/preview/source')) {
+      const sheet = new URL(request.url()).searchParams.get('sheet');
+      body = page(sheet === 'Comunitats' ? [{
+        id: '81000000-0000-0000-0000-000000000002', sheet: 'Comunitats', rowNumber: 3,
+        values: { CODAUTO: '01', 'COMUNIDAD AUTÓNOMA': 'Andalucía' }, readingStatus: 'Llegida'
+      }] : [{
+        id: '81000000-0000-0000-0000-000000000001', sheet: 'Municipis', rowNumber: 31,
+        values: { CMUN: '051', CODAUTO: '16', CPRO: '01', NOMBRE: 'Àmbit sintètic' }, readingStatus: 'Llegida'
+      }]);
+    }
+    else if (path.endsWith('/preview/canonical')) body = {
+      ...page([{
+        id: '82000000-0000-0000-0000-000000000001', sheet: 'Comunitats', rowNumber: 3,
+        canonicalUnitKey: 'synthetic:region:01', parentCanonicalUnitKey: null, name: 'Andalucía',
+        locale: 'es-ES', territorialUnitTypeCode: 'AUTONOMOUS_COMMUNITY',
+        codes: [{ scheme: 'synthetic:code', value: '01', isPrimary: true }],
+        latitude: null, longitude: null, status: 'Vàlida', issueCount: 0, issues: []
+      }, {
+        id: '82000000-0000-0000-0000-000000000002', sheet: 'Municipis', rowNumber: 31,
+        canonicalUnitKey: 'synthetic:001', parentCanonicalUnitKey: 'synthetic:region:01', name: 'Àmbit sintètic',
+        locale: 'ca-ES', territorialUnitTypeCode: 'MUNICIPALITY',
+        codes: [{ scheme: 'synthetic:code', value: '001', isPrimary: true }],
+        latitude: 41.5, longitude: 2.1, status: 'Vàlida', issueCount: 1,
+        issues: [{ severity: 'Warning', rule: 'COORDINATE_REVIEW', sheet: 'Municipis', rowNumber: 31,
+          field: 'Coordenades', message: 'Cal revisar la procedència de les coordenades.' }]
+      }]), totalCount: 8201, totalPages: 165
+    };
     else if (path.endsWith('/catalog') && method === 'GET') body = page([catalogUnit(catalogActive)]);
     else if (path.endsWith('/catalog/90000000-0000-0000-0000-000000000001') && method === 'GET') body = catalogDetail(catalogActive, audit);
     else if (path.endsWith('/maintenance') && method === 'POST') {

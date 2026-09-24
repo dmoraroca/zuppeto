@@ -1093,4 +1093,24 @@ Chrome final autocontingut `sim-20260923T204748547Z-8368eb83`: 7 PASS, 0 FAIL/BL
 
 ZUP-160 incorpora, sota `E2E_TERRITORIAL_REAL=true`, un recorregut focalitzat Angular → API → Application → EF → PostgreSQL. Les fixtures SQL creen només països i localitats E2E sintètics, comproven catàleg, manteniment, before/after i el nou autocomplete a Perfil, Llocs, Favorits, ADMIN User, ADMIN Place i explorador públic. Verifica un únic `select` de País, un únic combobox de Localitat, absència del botó intern `Cercar`, preservació del `Cercar` general i absència de textos transitoris. VI.24-E afegeix a Llocs i Favorits comprovacions de columna ocupada al 100%, alçades equivalents, amplada relativa superior per Cerca i Localitat, absència de solapaments i overflow, una fila a 1280 px, dues columnes a 900 px i una columna a 600 px. El circuit real passa 1/1 a `sim-20260923T202548369Z-35b2d77c`. En el tancament definitiu, les dades persistents VI.24 es retiren completament; les proves que necessiten dades són autocontingudes i han de crear-les i eliminar-les dins del mateix cicle. L’Excel funcional s’ha preservat.
 
-La validació manual final accepta VI.24-A/B/C/D/E. Fase VI queda completada definitivament; Fase VII és la següent i no s’ha executat.
+La validació manual final accepta VI.24-A/B/C/D/E. Fase VI queda completada definitivament.
+
+## Fase VII territorial — 2026-09-24
+
+El canvi asíncron manté les especificacions Playwright primes: estat, API i fixtures continuen encapsulats als adaptadors territorials. El bloc Chrome `territorial-admin` s'ha reexecutat complet, sense fixtures persistents ni datasets oficials: ZUP-154–160, 7 PASS, 0 FAIL/BLOCKED/SKIP, run `sim-20260924T094953004Z-dd36e321`. El runner passa 55/55. L'Excel conserva l'historial tècnic append-only; els resultats funcionals protegits no es reinterpreten.
+
+ZUP-160 s'ha ampliat amb un XLSX generat dins la prova i un recorregut sense interceptar l'API: Angular → API → cua persistent → worker → PostgreSQL → `ReadyForReview` → publicació de fixture → Catàleg. La prova navega fora després del `202 Queued`, espera que el worker continuï, recarrega l'aplicació i recupera el mateix `ImportId` des d'Historial. Passa 1/1 al run `sim-20260924T095208082Z-a542d324`. La fixture crea una font sintètica aprovada només per al test i la neteja elimina 250 unitats i totes les dades relacionades; recompte residual: zero.
+
+L'entrada reproduïble és `scripts/run-territorial-real-e2e.sh`: neteja qualsevol residu previ, crea només la fixture requerida, executa ZUP-160 amb sincronització Excel diferida i aplica cleanup amb `trap` també en cas de fallada. El gate acaba comprovant que països, fonts, imports i unitats E2E tornen a zero; no existeix cap prerequisit persistent.
+
+La validació de restart també s'ha executat contra l'API real: treball capturat en `Uploaded/Reading` amb lease activa, reinici del procés, recuperació del mateix artefacte en l'intent 2 i final `ReadyForReview`. Les proves PostgreSQL autocontingudes cobreixen també retries, concurrència, múltiples Excel i rollback. En aquell tall previ a VII.8, la publicació oficial no s'havia executat.
+
+### VII.8 — validació i canvis a publicar funcionals
+
+ZUP-157 comprova amb fixtures petites `Create`, `Update` i `Deactivate`: Validació → Canvis a publicar → cerca per nom → detall estructurat, amb nom, codi, tipus, pare, diferències i motiu funcional, sense `<pre>`, JSON cru ni `canonicalUnitKey`. Els textos d’estat, etapa i acció es validen en català. El bloc complet ZUP-154–160 passa 7/7 en Chrome real al run `sim-20260924T105305565Z-a5b4af08`; el runner passa 55/55.
+
+L’addenda amplia ZUP-157 amb dues files canonicalitzades controlades: `Comunitats · fila 3` sense incidències i `Municipis · fila 31` amb un avís. Verifica estat sense recompte enganxat, columna Incidències, `Veure incidències` només per a la segona fila, detall funcional i paginacions independents 165/164. El bloc complet posterior passa 7/7 al run `sim-20260924T113802588Z-ddad84c2`.
+
+La correcció UX final amplia ZUP-157 mantenint l’especificació prima: selecciona `Municipis`, valida les columnes reals `CMUN`, `CODAUTO`, `CPRO` i `NOMBRE`, cerca dins del full, comprova que no existeix la columna concatenada, obre el modal de ChangeSet, recorre pestanyes, el tanca amb Escape, verifica focus i filtres preservats, avança exclusivament al pas 6, comprova el gate `Pending` i torna als canvis. La fixture jeràrquica recorre Regió → Província → Municipi dins d’un únic modal, torna a l’arrel per la ruta navegable i comprova que la cerca i la pàgina exterior continuen intactes. El focalitzat passa 1/1 al run `sim-20260924T133119211Z-dd6b4f59`; Angular 65/65 i runner 55/55. No publica cap dataset.
+
+La comprovació complementària contra API i PostgreSQL reals confirma cerca i DTO funcional per Arenys de Mar, Ceuta, Melilla i noms alemanys duplicats amb context. No publica cap pilot: Espanya i Alemanya romanen `ReadyForReview`, les fonts romanen `Pending` i el catàleg oficial ES/DE continua buit. VII.8 queda pendent només de la validació manual de l’ADMIN; VII.9 no s’ha iniciat.

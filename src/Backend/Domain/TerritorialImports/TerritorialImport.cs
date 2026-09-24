@@ -4,14 +4,27 @@ namespace Zuppeto.Domain.TerritorialImports;
 
 public enum TerritorialImportStatus
 {
+    Queued,
     Uploaded,
     Mapped,
     Validated,
     ReadyForReview,
+    Publishing,
     Published,
     Failed,
     Cancelled,
     Reverted
+}
+
+public enum TerritorialImportStage
+{
+    Artifact,
+    Reading,
+    Staging,
+    Canonicalization,
+    Validation,
+    ChangeSet,
+    Publication
 }
 
 public sealed class TerritorialImport : AggregateRoot<Guid>
@@ -48,11 +61,13 @@ public sealed class TerritorialImport : AggregateRoot<Guid>
     public Guid CreatedByUserId { get; }
     public DateTimeOffset CreatedAtUtc { get; }
     public DateTimeOffset UpdatedAtUtc { get; private set; }
-    public TerritorialImportStatus Status { get; private set; } = TerritorialImportStatus.Uploaded;
+    public TerritorialImportStatus Status { get; private set; } = TerritorialImportStatus.Queued;
     public bool HasBlockingErrors { get; private set; }
     public long? CatalogVersion { get; private set; }
     public DateTimeOffset? PublishedAtUtc { get; private set; }
     public string? FailureReason { get; private set; }
+
+    public void MarkUploaded(DateTimeOffset now) => Transition(TerritorialImportStatus.Queued, TerritorialImportStatus.Uploaded, now);
 
     public void MarkMapped(DateTimeOffset now) => Transition(TerritorialImportStatus.Uploaded, TerritorialImportStatus.Mapped, now);
 
@@ -79,15 +94,17 @@ public sealed class TerritorialImport : AggregateRoot<Guid>
 
     public void MarkPublished(DateTimeOffset now)
     {
-        Transition(TerritorialImportStatus.ReadyForReview, TerritorialImportStatus.Published, now);
+        Transition(TerritorialImportStatus.Publishing, TerritorialImportStatus.Published, now);
         PublishedAtUtc = now;
     }
+
+    public void MarkPublishing(DateTimeOffset now) => Transition(TerritorialImportStatus.ReadyForReview, TerritorialImportStatus.Publishing, now);
 
     public void MarkReverted(DateTimeOffset now) => Transition(TerritorialImportStatus.Published, TerritorialImportStatus.Reverted, now);
 
     public void Cancel(DateTimeOffset now)
     {
-        if (Status is TerritorialImportStatus.Published or TerritorialImportStatus.Reverted)
+        if (Status is TerritorialImportStatus.Published or TerritorialImportStatus.Reverted or TerritorialImportStatus.Publishing)
             throw new DomainRuleException("Una importació publicada no es pot cancel·lar.");
         Status = TerritorialImportStatus.Cancelled;
         UpdatedAtUtc = now;

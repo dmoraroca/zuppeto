@@ -28,6 +28,7 @@ internal sealed class AdminApplicationService(
         new("millores-pendents-ca", "Millores pendents"),
         new("e2e-automatitzacio-ca", "Automatització E2E"),
         new("iteracio-6-fase-vi", "Iteració 6 — Fase VI territorial"),
+        new("iteracio-6-fase-vii", "Iteració 6 — Fase VII territorial"),
         new("iteracio-6-inventari-pais-localitat", "Iteració 6 — Inventari País → Localitat")
     ];
 
@@ -388,6 +389,7 @@ internal sealed class AdminApplicationService(
             "millores-pendents-ca" => Path.Combine("docs", "ca", "millores-pendents-ca.md"),
             "e2e-automatitzacio-ca" => Path.Combine("docs", "ca", "e2e-automatitzacio-ca.md"),
             "iteracio-6-fase-vi" => Path.Combine("docs", "ca", "iteracio-6-fase-vi-gestio-territorial-admin-ca.md"),
+            "iteracio-6-fase-vii" => Path.Combine("docs", "ca", "iteracio-6-fase-vii-prerequisits-publicacio-ca.md"),
             "iteracio-6-inventari-pais-localitat" => Path.Combine("docs", "ca", "iteracio-6-inventari-pais-localitat-ca.md"),
             _ => string.Empty
         };

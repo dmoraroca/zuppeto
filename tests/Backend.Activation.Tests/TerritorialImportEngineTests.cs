@@ -10,13 +10,46 @@ namespace Backend.Activation.Tests;
 public sealed class TerritorialImportEngineTests
 {
     [Fact]
+    public void Worker_failure_classification_is_safe_and_distinguishes_retryable_errors()
+    {
+        var invalidXlsx = TerritorialWorkerFailureClassifier.Classify(new InvalidDataException("secret internal detail"));
+        Assert.Equal("XLSX_INVALID", invalidXlsx.Code);
+        Assert.False(invalidXlsx.Recoverable);
+        Assert.DoesNotContain("secret", invalidXlsx.SafeMessage);
+
+        var invalidContract = TerritorialWorkerFailureClassifier.Classify(new InvalidOperationException("secret mapping detail"));
+        Assert.Equal("IMPORT_CONTRACT_INVALID", invalidContract.Code);
+        Assert.False(invalidContract.Recoverable);
+        Assert.DoesNotContain("secret", invalidContract.SafeMessage);
+
+        var transient = TerritorialWorkerFailureClassifier.Classify(new IOException("database socket detail"));
+        Assert.Equal("WORKER_TRANSIENT", transient.Code);
+        Assert.True(transient.Recoverable);
+        Assert.DoesNotContain("socket", transient.SafeMessage);
+
+        var unexpected = TerritorialWorkerFailureClassifier.Classify(new Exception("stack and secret"));
+        Assert.Equal("WORKER_FAILED", unexpected.Code);
+        Assert.False(unexpected.Recoverable);
+        Assert.DoesNotContain("secret", unexpected.SafeMessage);
+    }
+
+    [Fact]
+    public async Task Xlsx_reader_rejects_a_corrupt_artifact()
+    {
+        await using var corrupt = new MemoryStream("not an xlsx"u8.ToArray());
+        await Assert.ThrowsAnyAsync<Exception>(() => new XlsxTerritorialReader().ReadAsync(corrupt));
+    }
+
+    [Fact]
     public void Import_state_machine_rejects_skipped_or_terminal_transitions()
     {
         var import = NewImport();
         Assert.Throws<DomainRuleException>(() => import.MarkPublished(DateTimeOffset.UtcNow));
+        import.MarkUploaded(DateTimeOffset.UtcNow);
         import.MarkMapped(DateTimeOffset.UtcNow);
         import.MarkValidated(false, DateTimeOffset.UtcNow);
         import.MarkReadyForReview(0, DateTimeOffset.UtcNow);
+        import.MarkPublishing(DateTimeOffset.UtcNow);
         import.MarkPublished(DateTimeOffset.UtcNow);
         Assert.Throws<DomainRuleException>(() => import.Cancel(DateTimeOffset.UtcNow));
     }
@@ -120,7 +153,8 @@ public sealed class TerritorialImportEngineTests
         Assert.Equal(7, germany.Sheets.Count);
         Assert.Equal("CODAUTO", spain.Sheets.Single(x => x.Name == "Municipis").Rows.Single(x => x.Number == 2).Values["A"]);
         Assert.Equal("AGS", germany.Sheets.Single(x => x.Name == "Municipis").Rows.Single(x => x.Number == 2).Values["G"]);
-        Assert.Equal(64, spain.SchemaFingerprint.Length);
+        Assert.Equal("485bd97e233d6aad7eb0ddddc017d0d0c4868358c28e8c512c92b9d328033a2b", spain.SchemaFingerprint);
+        Assert.Equal("ce4313b985261700f12dbef49dfc12925a90cbb0df6c4e97ffb49192c1ae7597", germany.SchemaFingerprint);
     }
 
     [Fact]
@@ -131,8 +165,8 @@ public sealed class TerritorialImportEngineTests
         var mapper = new TerritorialMappingEngine();
         await using var spainFile = File.OpenRead(Path.Combine(root, "docs/ca/Municipis/Petiloc_Espanya_20260101.xlsx"));
         await using var germanyFile = File.OpenRead(Path.Combine(root, "docs/ca/Municipis/PetiLoc_Alemanya_20260930.xlsx"));
-        var spainRows = mapper.Map(await reader.ReadAsync(spainFile), SpainMapping());
-        var germanyRows = mapper.Map(await reader.ReadAsync(germanyFile), GermanyMapping());
+        var spainRows = mapper.Map(await reader.ReadAsync(spainFile), TerritorialPilotMappings.SpainV1());
+        var germanyRows = mapper.Map(await reader.ReadAsync(germanyFile), TerritorialPilotMappings.GermanyGvIsysV1());
         var spain = new DefaultTerritorialCanonicalizer().Canonicalize(spainRows);
         var germany = new GvIsysCanonicalizer(new DefaultTerritorialCanonicalizer()).Canonicalize(germanyRows);
 
@@ -140,10 +174,21 @@ public sealed class TerritorialImportEngineTests
         Assert.Equal(8199, spain.Units.Count);
         Assert.Equal(2, spainRows.GroupBy(x => x.Candidate.CanonicalUnitKey).Count(group => group.Count() == 2));
         Assert.Empty(spain.Issues);
-        Assert.True(germanyRows.Count > 15000);
-        Assert.True(germany.Units.Count < germanyRows.Count);
+        Assert.Equal(15877, germanyRows.Count);
+        var independentCodes = germanyRows.Where(row => row.Sheet == "Municipis" && row.Candidate.TerritorialUnitTypeCode == "KREISFREIE_STADT")
+            .SelectMany(row => row.Candidate.Codes.Where(code => code.Scheme == "de:destatis:ags").Select(code => code.Value[..5])).ToHashSet();
+        var unmatchedIndependentClassifications = germanyRows.Where(row => row.Sheet == "Kreise" &&
+                independentCodes.Contains(row.Candidate.Codes.Single().Value) && row.Candidate.TerritorialUnitTypeCode != "KREISFREIE_STADT")
+            .Select(row => row.SourceValues.GetValueOrDefault("Textkennzeichen") ?? "<null>").Distinct().ToArray();
+        Assert.Empty(unmatchedIndependentClassifications);
+        Assert.Equal(15770, germany.Units.Count);
+        Assert.Equal(107, germanyRows.Count - germany.Units.Count);
+        Assert.Equal(24, germany.Units.Count(unit => unit.Names.Any(name => name.Kind == "Alternative")));
         Assert.Empty(germany.Issues);
         Assert.DoesNotContain(germany.Units, unit => unit.Latitude == 0 && unit.Longitude == 0);
+        var validator = new TerritorialImportValidator();
+        Assert.Empty(validator.Validate(spain.Units, Context("FullSnapshot", ["AUTONOMOUS_COMMUNITY", "PROVINCE", "MUNICIPALITY", "AUTONOMOUS_CITY_MUNICIPALITY"])));
+        Assert.Empty(validator.Validate(germany.Units, Context("FullSnapshot", ["BUNDESLAND", "REGIERUNGSBEZIRK", "REGION", "KREIS", "KREISFREIE_STADT", "GEMEINDEVERBAND", "GEMEINDE", "SPECIAL_TERRITORY"])));
     }
 
     internal static TerritorialMappingDefinition SpainMapping()

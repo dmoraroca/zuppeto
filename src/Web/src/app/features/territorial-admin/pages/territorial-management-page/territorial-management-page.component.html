@@ -6,7 +6,7 @@
       <h1>Gestió territorial</h1>
       <p>Prepara, valida, revisa i publica fonts oficials amb preview, concurrència i traçabilitat.</p>
     </div>
-    <div class="hero__rule"><strong>Cap XLSX modifica el catàleg directament.</strong><span>La publicació sempre parteix d’un ChangeSet revisable.</span></div>
+    <div class="hero__rule"><strong>Cap XLSX modifica el catàleg directament.</strong><span>La publicació sempre parteix d’uns canvis revisables.</span></div>
   </section>
 
   <nav class="tabs" aria-label="Seccions de gestió territorial">
@@ -29,7 +29,7 @@
     <section class="history-filters" aria-label="Filtres de l’historial">
       <label>País<select [(ngModel)]="historyCountryId" (ngModelChange)="resetHistorySource()"><option value="">Tots</option>@for (country of context?.countries || []; track country.id) { <option [value]="country.id">{{ country.name }}</option> }</select></label>
       <label>Font<select [(ngModel)]="historySourceId"><option value="">Totes</option>@for (source of historySources; track source.id) { <option [value]="source.id">{{ source.organisation }} · {{ source.dataset }}</option> }</select></label>
-      <label>Estat<select [(ngModel)]="historyStatus"><option value="">Tots</option><option>ReadyForReview</option><option>ValidationFailed</option><option>Published</option><option>Cancelled</option><option>Reverted</option></select></label>
+      <label>Estat<select [(ngModel)]="historyStatus"><option value="">Tots</option><option value="Queued">En cua</option><option value="Uploaded">Fitxer rebut</option><option value="Mapped">Mapping completat</option><option value="Validated">Validat</option><option value="ReadyForReview">Preparat per revisar</option><option value="Publishing">Publicant</option><option value="Published">Publicat</option><option value="Failed">Error</option><option value="Cancelled">Cancel·lat</option><option value="Reverted">Revertit</option></select></label>
       <button type="button" (click)="historyPage(1)">Aplicar filtres</button>
     </section>
     <app-territorial-import-history

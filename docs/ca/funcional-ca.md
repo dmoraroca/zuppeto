@@ -1002,7 +1002,7 @@ La geografia del producte no s'ha de deixar a text lliure ni a resolucio ad hoc 
 
 ### 3.15.1 Iteració 6 — Remodelació territorial europea multicultural i multilingüe
 
-**Estat global: FASE VI COMPLETADA DEFINITIVAMENT. FASE VII SEGÜENT.** La validació manual final accepta VI.24-A/B/C/D/E: Gestió Territorial ADMIN, Data Preview, Catàleg, manteniment auditat, País → Localitat, autocomplete únic i UX responsive. La Fase VII encara no s’ha executat i les subfases VIII–IX continuen pendents.
+**Estat global: FASE VI COMPLETADA DEFINITIVAMENT. FASE VII EN CURS — VII.2–VII.7 COMPLETADES; VII.8 IMPLEMENTADA I PENDENT DE VALIDACIÓ MANUAL; VII.9 NO INICIADA.** El worker durable, els mappings pilot i la validació contra API i PostgreSQL reals estan disponibles, però les fonts continuen `Pending`, no hi ha publicació oficial i les subfases VIII–IX no s'han iniciat.
 
 El contracte funcional detallat i oficial de la Iteració 6 és [Iteració 6 — Contracte funcional del model territorial](iteracio-6-model-territorial-ca.md). Aquest document general en conserva el resum, l'abast i els criteris d'alt nivell; en cas de detall territorial, s'ha de consultar el contracte específic.
 
@@ -1091,7 +1091,7 @@ La Iteració 6 construeix el catàleg i ja adapta l’API pròpia i el selector 
 | IV | Migració EF Core / PostgreSQL | **COMPLETADA / VALIDADA** |
 | V | Motor genèric d'importació | **COMPLETADA / VALIDADA** |
 | VI | Gestió Territorial ADMIN | **COMPLETADA DEFINITIVAMENT** |
-| VII | Primera importació real i validació | **SEGÜENT** |
+| VII | Primera importació real i validació | **EN CURS — VII.2–VII.7 COMPLETADES; VII.8 IMPLEMENTADA I PENDENT DE VALIDACIÓ MANUAL; VII.9 NO INICIADA** |
 | VIII | Backfill de les dades actuals | **PENDENT** |
 | IX | Regressió i tancament | **PENDENT** |
 
@@ -1340,7 +1340,7 @@ Per tant, l'estat oficial actual és de **5 punts 🔴, 12 punts 🟠, 4 punts �
 
 #### 3.18.5 Bloc B — Territori
 
-**6. Remodelació territorial europea multicultural/multilingüe — FASE VI COMPLETADA DEFINITIVAMENT / FASE VII SEGÜENT.** El nucli, el motor, Data Preview, Catàleg, manteniment auditat i País → Localitat estan implementats i validats. El catàleg presenta filtres compactes, taula completa i detall modal amb sis pestanyes i operacions contextuals; les pantalles consumidores comparteixen un únic autocomplete asíncron de Localitat. No s’han publicat datasets reals ni s’ha fet backfill. La Fase VII és la següent, però no s’ha executat. El contracte i els límits es defineixen al [contracte funcional territorial](iteracio-6-model-territorial-ca.md).
+**6. Remodelació territorial europea multicultural/multilingüe — FASE VII EN CURS; VII.2–VII.7 COMPLETADES / VII.8 IMPLEMENTADA I PENDENT DE VALIDACIÓ MANUAL / VII.9 NO INICIADA.** El nucli, motor, ADMIN, worker durable, mappings i pilots previs a publicació estan validats. No s’han publicat datasets reals ni s’ha fet backfill. El contracte i els límits es defineixen al [contracte funcional territorial](iteracio-6-model-territorial-ca.md).
 
 **7. API territorial sobre catàleg propi — IMPLEMENTADA.** Consulta `Country + TerritorialUnit`, valida la parella i integra `User`, `Place` i els filtres amb IDs. Els snapshots textuals i GeoNames encara no s’eliminen.
 
@@ -2106,7 +2106,13 @@ Document de fases:
 
 ## 14. Territori publicat i selecció País → Localitat
 
-La gestió Admin separa Nova importació, Historial i Catàleg territorial. Data Preview mostra el que s’ha llegit i canonicalitzat; ChangeSet mostra què canviaria; Catàleg mostra l’estat vigent.
+La gestió Admin separa Nova importació, Historial i Catàleg territorial. Previsualització mostra el que s’ha llegit i canonicalitzat; Canvis a publicar mostra què canviaria; Catàleg mostra l’estat vigent. L’ADMIN territorial no exposa representacions JSON ni terminologia interna com a interfície funcional: els ChangeSets es presenten mitjançant noms, codis, tipus, jerarquia i diferències Abans/Després comprensibles. La Previsualització d’origen exigeix seleccionar un full quan n’hi ha diversos i mostra els camps admesos com a columnes reals i dinàmiques, amb cerca i paginació del full; no concatena camps ni barreja esquemes. La Previsualització canonicalitzada presenta l’origen com a `Full · fila N`, separa l’estat del recompte real d’incidències i permet obrir-ne el detall funcional només quan n’hi ha.
+
+El detall d’un canvi s’obre en un modal gran amb General, Jerarquia, Noms i codis, Procedència i Canvis; conserva el context de la taula, es tanca amb `Tancar` o `Escape` i retorna el focus. Canvis a publicar i Publicació són passos exclusius: el pas 6 només apareix després d’`Anar a publicació`, permet tornar al pas 5 sense perdre estat i bloqueja la publicació amb una explicació quan la font és `Pending`.
+
+La pestanya Jerarquia del detall de Canvis a publicar permet navegar ancestres i fills directes del resultat canonicalitzat encara no publicat, respectant íntegrament la jerarquia territorial i mantenint el context de revisió. La ruta és navegable dins d’un únic modal; els fills directes disposen de cerca per nom o codi i paginació de servidor, i indiquen nom, codi, tipus, acció prevista i conflictes que requereixen revisió. La navegació segueix les relacions reals de cada mapping, sense aplanar nivells ni codificar una jerarquia específica d’Espanya o Alemanya.
+
+Els noms territorials es conserven tal com arriben del dataset. No es divideixen valors amb `/`, no es tradueixen i no es generen variants automàtiques. Els futurs datasets per locale aportaran noms diferents sobre identificadors estables; la traducció de la interfície correspon a la fase específica d’Internacionalització.
 
 Activar, desactivar, canviar seleccionabilitat o coordenades exigeix operació explícita, motiu i auditoria. Codis, noms i jerarquia oficials no tenen edició directa.
 

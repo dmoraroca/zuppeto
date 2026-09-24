@@ -7,6 +7,8 @@ public sealed class TerritorialDatasetSourceRecord
     public CountryRecord Country { get; set; } = null!;
     public string Organisation { get; set; } = string.Empty;
     public string Dataset { get; set; } = string.Empty;
+    public string DatasetType { get; set; } = "AdministrativeTerritory";
+    public string? Locale { get; set; }
     public string Url { get; set; } = string.Empty;
     public string? DownloadUrl { get; set; }
     public string? License { get; set; }
