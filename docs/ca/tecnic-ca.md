@@ -555,7 +555,7 @@ Resum del diagrama:
 
 ### Auditoria territorial i disseny objectiu europeu — Fase IV, Iteració 6
 
-**Estat global:** **FASE VI COMPLETADA DEFINITIVAMENT / FASE VII EN CURS — VII.2–VII.7 COMPLETADES; VII.8 IMPLEMENTADA I PENDENT DE VALIDACIÓ MANUAL; VII.9 NO INICIADA**. Els datasets pilot no s’han publicat, no s’ha fet backfill i GeoNames continua operatiu com a compatibilitat interna.
+**Estat global:** **FASE VI COMPLETADA DEFINITIVAMENT / FASE VII EN CURS — VII.2–VII.8 COMPLETADES; VII.9.1 COMPLETADA DOCUMENTALMENT I PENDENT DE REVISIÓ HUMANA; VII.9.2 NO INICIADA**. Els datasets pilot no s’han publicat, no s’ha fet backfill i GeoNames continua operatiu com a compatibilitat interna.
 
 #### A. Model territorial auditat abans de la implementació
 
@@ -692,7 +692,7 @@ Aquest registre de 35 països deixa de ser un gate de la Iteració 6. Espanya i 
 | Dinamarca | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
 | Eslovàquia | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
 | Eslovènia | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
-| Espanya | INE | Relació de municipis i codis per comunitats i províncies | Pàgina oficial INE identificada | Fitxers territorials / pilot XLSX | Comunitat → província → municipi verificada | 8.132 municipis | No incorporades; font pendent | PENDENT de verificació del dataset concret | PENDENT | PENDENT | `01.01.2026` | PILOT TANCAT PER AL DISSENY / FONT NO APROVADA ENCARA |
+| Espanya | INE, amb denominacions procedents del REL | Operació 30247 — Relación de Municipios y sus Códigos por Provincias | [INEbase](https://www.ine.es/dyngs/INEbase/operacion.htm?c=Estadistica_C&cid=1254736177031&idp=1254734710990&menu=ultiDatos) | XLSX pilot derivat de la relació oficial | Comunitat → província → municipi verificada | 8.132 municipis | No incorporades | CC BY 4.0; gate documental verificat | Permès documentalment | INE, data i transformació | `01.01.2026`, publicat `04.02.2026` | **A: APTE PER PROPOSAR APROVACIÓ / `DatasetSource` ENCARA `Pending`** |
 | Estònia | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
 | Finlàndia | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
 | França | Candidat: INSEE, per verificar | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT | PENDENT |
@@ -2475,5 +2475,7 @@ Les migracions `AddTerritorialAsyncWorkerPhase7` i `AddTerritorialPublicationAct
 La recuperació s'ha provat amb una lease real activa: l'API es reinicia durant `Uploaded/Reading`, el nou worker espera el venciment, reclama el mateix `ImportId` i artefacte com a intent 2 i acaba en `ReadyForReview`. ZUP-160 valida també el circuit Angular → cua → worker → PostgreSQL → publicació sintètica → Catàleg (`sim-20260924T095208082Z-a542d324`) i elimina completament la fixture. La suite backend/PostgreSQL passa 71/71.
 
 VII.8 manté `CanonicalTerritorialUnit` i els snapshots JSON dins del motor, però el contracte administratiu projecta un DTO funcional tipat. `TerritorialAdminRepository` resol el nom principal, codi, tipus, país, pare humà, procedència i diferències abans d’arribar a Angular. La política compartida `territorial-presentation.policy.ts` centralitza les etiquetes catalanes; la UI no interpreta ni compara JSON cru.
+
+VII.8 queda completada i validada manualment amb backend/PostgreSQL 71/71, Angular 65/65, runner 55/55, builds PASS, ZUP-157 PASS (`sim-20260924T133119211Z-dd6b4f59`), EF Core sense model pendent i `git diff --check` PASS. VII.9.1 documenta la font INE, CC BY 4.0, els usos i l’atribució a [Fonts territorials](iteracio-6-fonts-territorials-ca.md); la classificació A és només una proposta i la persistència continua `Pending`.
 
 `scripts/generate-ef-migration-script.sh RUTA.sql` genera l’SQL idempotent de deploy des de les migracions EF; no hi ha un esquema SQL paral·lel.

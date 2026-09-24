@@ -121,7 +121,7 @@ Separar clarament les zones públiques de les zones internes o controlades per p
 - autenticació pròpia i Google OAuth real (**FET**); `LinkedIn` queda descartat per decisió funcional de producte i `Facebook` continua pendent
 - rols i permisos (**FET**)
 - pàgines internes (**FET**): punt tancat amb el criteri definit per direcció de projecte, incloent base d'accés intern i manteniments d'administració ja operatius.
-- gestió de contingut o dades (**EN CURS**): `llocs` i després `favorits`; dins la Iteració 6 territorial, les subfases 0–VI estan completades i Fase VII està en curs amb VII.2–VII.7 completades i VII.8 pendent. VIII–IX no s'han iniciat.
+- gestió de contingut o dades (**EN CURS**): `llocs` i després `favorits`; dins la Iteració 6 territorial, les subfases 0–VI i VII.2–VII.8 estan completades, i VII.9.1 està pendent de revisió humana del gate documental. VII.9.2 i les fases VIII–IX no s'han iniciat.
 - accessos restringits a determinades funcionalitats (**PENDENT**)
 - revisió de documentació pendent (comprovar opcions i buits) (**PENDENT**)
 - canvi de contrasenya i operativa bàsica de credencials (**PENDENT**; tot el treball de contrasenya queda empaquetat aquí, sense escindir-lo en un altre punt)
@@ -136,7 +136,7 @@ La plataforma ja diferencia entre usuaris públics, usuaris autenticats i àrees
 - Fase IV, Iteració 4 — Google OAuth real: **🟢 VALIDADA I TANCADA el 2026-09-17**. Inclou alta Google nova amb rol `USER`, autovinculació segura d'un compte local activat per email verificat, `ExternalIdentity` única, TOTP sense bypass, logout/relogin, regressions, secrets, cleanup i registre Excel.
 - Fase IV, Iteració 5 — LinkedIn OAuth: **➖ DESCARTADA PER DECISIÓ FUNCIONAL DE PRODUCTE el 2026-09-18**. La integració es va estudiar i implementar tècnicament abans de la decisió; s'han retirat del producte UI, endpoints, adaptador OIDC i configuració LinkedIn, mantenint la infraestructura federada genèrica útil per Google i proveïdors futurs. No és `FAIL`, `PENDENT` ni `NO VALIDADA`.
 - La LinkedIn Page Petiloc es conserva com a canal corporatiu i queda separada del sistema d'autenticació.
-- Fase IV, Iteració 6 — **SUBFASE VII EN CURS — VII.2–VII.7 COMPLETADES / VII.8 PENDENT**. Hi ha worker durable, artefacte persistent, configuració i mappings pilot i validació controlada API-worker-PostgreSQL. Les fonts continuen `Pending`: no s’han publicat datasets reals, no s’ha fet backfill i City/GeoNames es preserven.
+- Fase IV, Iteració 6 — **SUBFASE VII EN CURS — VII.2–VII.8 COMPLETADES / VII.9.1 PENDENT DE REVISIÓ HUMANA / VII.9.2 NO INICIADA**. Hi ha worker durable, artefacte persistent, configuració i mappings pilot, validació controlada API-worker-PostgreSQL i gate documental INE completat. Les fonts continuen `Pending`: no s’han publicat datasets reals, no s’ha fet backfill i City/GeoNames es preserven.
 - Fase IV, Iteració 7 — **EN REVISIÓ**. Proposta pendent de confirmació: substituir «GeoNames + alta lazy» per una API territorial sobre catàleg propi (`Angular → API Petiloc → TerritorialService → PostgreSQL`). GeoNames no s'elimina encara.
 - Fase IV, Iteració 8 — **PLANIFICADA**. Selector territorial compartit sobre la futura API pròpia per a registre/login, Perfil, Admin Usuaris, Places, Admin Llocs i filtres.
 - login: destí per defecte **Inici** per a tots els rols (ZUP-004); ADMIN obre permisos des del menú, no a la primera pantalla

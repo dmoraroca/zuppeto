@@ -57,3 +57,5 @@ La preparació territorial és asíncrona. Angular rep `202 Accepted` amb el det
 VII.8 separa els valors interns de la seva presentació: una política compartida tradueix estats, etapes, accions i tipus. La resposta de canvis arriba tipada i Angular mostra **Canvis a publicar** amb nom, codi, tipus, pare i detall estructurat; no renderitza `BeforeJson`, `AfterJson`, claus canòniques ni propietats de DTO com a interfície funcional.
 
 La inspecció XLSX retorna també `sourcePreview`, una mostra limitada anterior al mapping. Angular no llegeix ni canonicalitza el workbook localment. `publish` retorna `Publishing` i segueix el mateix patró. Les fonts pilot `Pending` es poden validar però el backend n'impedeix la publicació.
+
+VII.8 queda completada i validada manualment. El detall de Canvis a publicar manté un únic modal amb cinc pestanyes; Jerarquia consulta ancestres i fills directes del ChangeSet no publicat, amb cerca i paginació servidor, sense perdre filtre, pàgina, scroll ni focus extern. VII.9.1 no modifica aquest contracte ni l’estat `Pending`.

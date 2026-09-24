@@ -17,7 +17,7 @@ No és una especificació d'Entity Framework ni fixa noms definitius de taules o
 | IV | Migració EF Core / PostgreSQL | **COMPLETADA / VALIDADA** |
 | V | Motor genèric d'importació | **COMPLETADA / VALIDADA** |
 | VI | Gestió Territorial ADMIN | **COMPLETADA DEFINITIVAMENT** |
-| VII | Primera importació real i validació | **EN CURS — VII.2–VII.7 COMPLETADES; VII.8 IMPLEMENTADA I PENDENT DE VALIDACIÓ MANUAL; VII.9 NO INICIADA** |
+| VII | Primera importació real i validació | **EN CURS — VII.2–VII.8 COMPLETADES; VII.9.1 PENDENT DE REVISIÓ HUMANA; VII.9.2 NO INICIADA** |
 | VIII | Backfill de dades actuals | **PENDENT** |
 | IX | Regressió i tancament | **PENDENT** |
 
@@ -562,7 +562,7 @@ Els casos executables i E2E només s'incorporaran quan existeixi implementació.
 
 ## 30. Estat d’implementació
 
-La revisió final no ha detectat cap bloqueig funcional. Les Fases III, IV, V i VI queden completades. La Fase VII està **EN CURS**: VII.2–VII.7 estan implementades i validades; VII.8 està implementada i pendent de validació manual; VII.9 no s’ha iniciat. El worker durable, la configuració `Pending`, els mappings versionats i la validació real dels dos pilots consten al [document específic de Fase VII](iteracio-6-fase-vii-prerequisits-publicacio-ca.md). No s'ha publicat cap pilot ni s'ha iniciat el backfill.
+La revisió final no ha detectat cap bloqueig funcional. Les Fases III, IV, V i VI queden completades. La Fase VII està **EN CURS**: VII.2–VII.8 estan completades i validades manualment; VII.9.1 està completada documentalment i pendent de revisió humana; VII.9.2 no s’ha iniciat. El worker durable, la configuració `Pending`, els mappings versionats i la validació real dels dos pilots consten al [document específic de Fase VII](iteracio-6-fase-vii-prerequisits-publicacio-ca.md), i l’evidència legal a [Fonts territorials](iteracio-6-fonts-territorials-ca.md). No s'ha publicat cap pilot ni s'ha iniciat el backfill.
 
 El detall territorial és una projecció funcional del mateix agregat: modal ampli, pestanyes General, Jerarquia, Noms i codis, Coordenades, Procedència i Auditoria. Les ordres d’activació, seleccionabilitat i coordenades continuen separades, exigeixen motiu propi i no alteren el contracte d’importació ni relaxen cap invariant.
 
