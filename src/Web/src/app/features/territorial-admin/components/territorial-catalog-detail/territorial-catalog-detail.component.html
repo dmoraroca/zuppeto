@@ -44,16 +44,12 @@
       }
 
       @if (activeTab() === 'hierarchy') {
-        <section aria-labelledby="hierarchy-title">
-          <h4 id="hierarchy-title">Camí territorial</h4>
-          <ol class="hierarchy-tree">
-            <li><span>{{ detail().unit.country }}</span></li>
-            @for (ancestor of detail().ancestors; track ancestor.id) {
-              <li><button type="button" (click)="openUnit.emit(ancestor.id)">{{ ancestor.name }} <small>{{ ancestor.type }}</small></button></li>
-            }
-            <li><strong>{{ detail().unit.primaryName }}</strong> <small>{{ detail().unit.type }}</small></li>
-          </ol>
-          <button class="secondary-action" type="button" (click)="filterChildren.emit({ id: detail().unit.id, name: detail().unit.primaryName })">Veure unitats filles al catàleg</button>
+        <section>
+          <app-territorial-hierarchy-explorer
+            [rootId]="detail().unit.id"
+            [countryName]="detail().unit.country"
+            (openUnit)="openUnit.emit($event)"
+          />
         </section>
       }
 

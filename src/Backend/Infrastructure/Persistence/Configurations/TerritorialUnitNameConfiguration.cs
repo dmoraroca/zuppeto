@@ -29,6 +29,7 @@ public sealed class TerritorialUnitNameConfiguration : IEntityTypeConfiguration<
             .HasForeignKey(item => item.DatasetSourceId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasIndex(item => item.TerritorialUnitId).HasDatabaseName("ix_territorial_unit_names_unit_id");
         builder.HasIndex(item => item.NormalizedName).HasDatabaseName("ix_territorial_unit_names_normalized_name");
         builder.HasIndex(item => new { item.TerritorialUnitId, item.Locale, item.Kind })
             .IsUnique()

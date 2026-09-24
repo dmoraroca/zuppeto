@@ -2,11 +2,11 @@
 
 ## Estat
 
-**FASE VII EN CURS. VII.2–VII.8 COMPLETADES I VALIDADES. VII.9.1 COMPLETADA DOCUMENTALMENT I PENDENT DE REVISIÓ HUMANA. VII.9.2 NO INICIADA.**
+**FASE VII EN CURS. VII.9.3 IMPLEMENTADA I VALIDADA TÈCNICAMENT. PENDENT DE VALIDACIÓ MANUAL FINAL DE L’EXPLORADOR TERRITORIAL.**
 
-Aquest document registra la preparació tècnica i funcional anterior a la primera publicació real. No autoritza la publicació dels pilots: Espanya i Alemanya continuen amb `ApprovalStatus = Pending`. Per Espanya, VII.9.1 deixa una proposta documental A pendent de decisió humana; per Alemanya continuen oberts els gates legal, de procedència i temporal.
+Espanya és el primer catàleg territorial oficial publicat: 8.199 unitats. VII.9.3 és exclusivament un refinament de consulta, navegació i UX sobre aquest catàleg; no ha creat cap nova publicació ni ha modificat unitats, noms, codis, jerarquia, locale, font, mapping, canonicalització o `CatalogVersion`. Alemanya continua `Pending` i no publicada, amb els gates legal, de procedència i temporal oberts.
 
-No s'ha iniciat la Fase VIII, no s'ha executat cap backfill de `User` o `Place`, no s'ha eliminat `City` ni GeoNames i no s'ha publicat cap dataset oficial.
+No s'ha iniciat la Fase VIII, no s'ha executat cap backfill de `User` o `Place`, i no s'ha eliminat `City` ni GeoNames. Durant VII.9.3 no s’ha publicat cap dataset: Espanya conserva la publicació oficial preexistent i Alemanya continua sense publicar.
 
 ## VII.2 — Execució asíncrona durable
 
@@ -32,11 +32,11 @@ El seeder idempotent de configuració incorpora, sense unitats territorials:
 
 - `ES / Espanya / ESP`, locale de font `es-ES`;
 - `DE / Alemanya / DEU`, locale de font `de-DE`;
-- fonts INE i GV-ISys actives però legalment `Pending`;
+- font INE activa i formalment `Approved` a VII.9.2; font GV-ISys activa però legalment `Pending`;
 - tipus territorials nacionals i seleccionabilitat funcional;
 - mappings v1 amb checksum i fingerprint exacte dels dos XLSX.
 
-El seeder força llicència, atribució, ús comercial i transformació a pendents quan encara no estan verificats. No crea cap actor de verificació, no aprova cap font i no publica cap unitat.
+El seeder inicia les fonts noves com a `Pending`, però preserva llicència, atribució, actor, timestamp i estat d’una aprovació humana existent. No aprova cap font per si sol ni publica cap unitat.
 
 ## VII.4–VII.5 — Mappings i casos reals
 
@@ -111,18 +111,46 @@ La correcció queda coberta per backend/PostgreSQL 71/71, Angular 65/65, runner 
 
 La investigació oficial del dataset espanyol, la llicència, els usos permesos, l’atribució, les restriccions i els valors preparats per a una futura aprovació són a [Fonts territorials i gates documentals](iteracio-6-fonts-territorials-ca.md).
 
-La classificació documental és **A. APTE PER PROPOSAR APROVACIÓ**, però no és una aprovació ni una autorització de publicació. A PostgreSQL, Espanya i Alemanya continuen `Pending`, amb 0 imports publicats i 0 unitats oficials; també hi ha 0 referències territorials a `User` i `Place`. VII.9.2 no s’ha iniciat.
+La classificació documental **A. APTE PER PROPOSAR APROVACIÓ** ha estat revisada i acceptada humanament. Les evidències, condicions i atribució consten al registre de fonts. Aquesta decisió no és una autorització de publicació.
 
-## Gates que bloquegen VII.9 i la publicació
+## VII.9.2 — Aprovació formal controlada de la font INE
 
-- decisió humana sobre la proposta documental A de la font INE; els futurs datasets regionals o per locale tindran gates propis;
+El `DatasetSource` INE `71000000-0000-0000-0000-000000000001` ha passat exclusivament de `Pending` a `Approved` el `24.09.2026 16:18:16.075075 UTC`, amb actor `admin@admin.adm`. L’auditoria documental conserva estat anterior/posterior, evidències i el motiu funcional exacte al [registre de fonts territorials](iteracio-6-fonts-territorials-ca.md).
+
+La font persisteix `30247 — Relación de Municipios y sus Códigos por Provincias`, versió/data `2026-01-01`, publicació documentada `04.02.2026`, locale `es-ES`, tipus `AdministrativeTerritory`, URL INEbase, URL `diccionario26.xlsx`, CC BY 4.0, atribució completa, ús comercial i transformació permesos, redistribució i restriccions documentades.
+
+Després de reiniciar l’API, PostgreSQL i `GET /api/admin/territorial/context` conserven `Approved`. `GET /api/admin/territorial/imports/a72a83bc-758b-476d-839d-4b4d8f7e3a3a` confirma `ReadyForReview`, ChangeSet `Prepared`, `CatalogVersion = 0`, checksum vigent, mapping v1 actiu, 0 errors bloquejants, 0 conflictes i 8.199 altes. El Pas 6 en Chrome real mostra `Estat de la font: Aprovada`, el resum correcte i `Publicar catàleg` habilitat; el botó no s’ha premut i l’endpoint de publicació no s’ha invocat.
+
+Els 8.199 canvis són 17 comunitats autònomes + 2 ciutats autònomes, 50 províncies + les 2 ciutats autònomes i 8.130 municipis + les 2 ciutats autònomes: 19, 52 i 8.132 respectivament. Espanya conserva 0 imports publicats i 0 unitats oficials. Alemanya continua `Pending`, `ReadyForReview` i no publicada. VII.9.3 queda pendent de validació humana final.
+
+Gates de VII.9.2: build backend PASS sense avisos ni errors; backend/PostgreSQL territorial 71/71 PASS; test Angular afectat 3/3 PASS; build Angular PASS; EF Core sense canvis de model pendents; API saludable després de restart; Chrome real PASS sense clicar publicació; `git diff --check` PASS. La suite completa va detectar una vinculació posicional errònia d’un UUID al `LIMIT` de la jerarquia; s’ha substituït per paràmetres PostgreSQL anomenats i tant el test focalitzat com els 71 tests finals passen.
+
+## VII.9.3 — Explorador del catàleg territorial publicat
+
+La pestanya Jerarquia mostra directament un **tree territorial autoexplorable per chevrons**, sense CTA intermedi. L’arbre integra país, ancestres, node corresponent al detall i fills directes mitjançant llistes HTML realment niades: cada relació pare-fill crea el seu grup, rail vertical i connector horitzontal. Cada node exposa un `data-depth` determinista, té aparença compacta pròpia, tipus, codi, recompte útil, chevron només quan té fills i focus visible. La unitat del detall es reconeix exclusivament pel títol i el ressaltat visual existent; no incorpora cap badge textual redundant. La posició horitzontal deriva exclusivament de parent-child i profunditat, sense codificar nivells espanyols. Cada primera expansió consulta només la pàgina de fills necessària; col·lapsar i reexpandir reutilitza la cache, i l’expansió d’un ancestre completa la mateixa branca sense duplicar el camí conegut.
+
+El tree no presenta la propietat funcional `Seleccionable`. Els nodes terminals no tenen chevron i mostren l’acció independent `Veure detall`, que emet el mateix identificador cap a `openById` i reutilitza el modal, la càrrega, els errors i la pila de navegació del botó `Detall` de Territori existent. La propietat, el filtre i la columna Seleccionable del catàleg es preserven sense canvis.
+
+Fills directes i descendents per tipus són contractes separats. Per `Cataluña`, els fills directes són Barcelona, Girona, Lleida i Tarragona; `Tots els municipis` consulta tots els descendents `MUNICIPALITY` del subarbre, amb cerca, total i paginació server-side. El llistat mostra nom, codi, província/context, estat, seleccionabilitat i accés al detall. Els detalls navegats es mantenen en una pila de presentació: en tancar-los reapareixen l’arbre, expansions, filtre, cerca i pàgina anteriors.
+
+L’API afegeix només `GET /catalog/{id}/hierarchy` i `GET /catalog/{id}/descendants`. PostgreSQL utilitza CTE recursives sobre la jerarquia persistent i un índex justificat per pla real sobre `territorial_unit_names(territorial_unit_id)`. La cerca de municipis descendents de Catalunya passa aproximadament de 647 ms a 22 ms en l’entorn local. No hi ha N+1 ni endpoint específic de Catalunya.
+
+Catàleg, detall, nodes i resultats tenen skeletons locals, `aria-busy`, moviment reduït i estratègia antiflicker. Un error de branca mostra `Reintentar` local sense destruir l’arbre. La data de heartbeat es presenta en format humà mantenint l’ISO original a `datetime`. La confirmació de publicació usa text funcional, `[Cancel·lar] [Confirmar]`, focus inicial a Cancel·lar i Escape equivalent; la UI no exposa `publish`.
+
+La validació real de només lectura confirma Catalunya → quatre províncies, Barcelona → Arenys de Mar `08006`, Catalunya → `Tots els municipis` → Arenys de Mar, i Canarias → `Palmas, Las` (`35`) → Arrecife `35004`. `Palmas, Las` és el literal oficial publicat i no s’ha reescrit per adaptar-lo a la prova. Arrecife és un node terminal. La fixture PostgreSQL separada cobreix una jerarquia alemanya de profunditat superior sense publicar Alemanya.
+
+Evidències tècniques de la correcció UX definitiva i l’ajust de terminals: backend/PostgreSQL no reexecutat perquè no s’ha modificat backend; tests Angular afectats finals 9/9 PASS; suite Angular completa 75/75 PASS; build Angular production PASS; compilació del runner PASS; E2E Chrome real de només lectura 1/1 PASS al run `sim-20260924T221411732Z-a8e3b0e1`. El run comprova quatre profunditats a Adra, Aragón amb Huesca/Teruel/Zaragoza, Teruel amb municipis sense duplicació, Andalucía → Almería dins del mateix tree, cache després de col·lapse/reexpansió, absència dels textos i badges retirats, `Veure detall` amb cursor interactiu i Ababuj obert amb el mateix modal i camí territorial correcte. Les captures [A](evidencies/vii-9-3-tree/A-adra-quatre-profunditats.png), [B](evidencies/vii-9-3-tree/B-aragon-provincies.png), [C](evidencies/vii-9-3-tree/C-teruel-municipis.png), [D](evidencies/vii-9-3-tree/D-andalucia-almeria.png) i [E](evidencies/vii-9-3-tree/E-teruel-veure-detall.png) queden conservades per a la porta humana. La validació manual visual final continua pendent i Fase VII no es dona per completada.
+
+## Gates que bloquegen el tancament de VII.9
+
+- validació humana final de l’explorador de VII.9.3; els futurs datasets regionals o per locale tindran gates propis;
 - validar definitivament la llicència i atribució concretes del fitxer alemany;
 - verificar la data alemanya `30.09.2026`, posterior a la data d'aquesta validació (`24.09.2026`);
 - revisió ADMIN final dels ChangeSet;
-- autorització explícita per avançar a VII.9.2 i, separadament, per aprovar la font o publicar.
+- qualsevol futura republicació d’Espanya requereix una ordre explícita i separada; VII.9.3 no la concedeix.
 
-Fins que aquests gates no es tanquin, el backend rebutja la publicació perquè les fonts són `Pending`.
+La font alemanya continua bloquejada per `Pending`. Espanya conserva el catàleg publicat actual; la porta humana VII.9.3 impedeix tancar la fase, no autoritza una nova publicació.
 
 ## Límit d'execució
 
-El treball s’atura després de VII.9.1. No s’inicia VII.9.2 ni la Fase VIII, no es canvia cap `DatasetSource`, no es publica cap pilot i no s’executa backfill.
+El treball s’atura després dels gates automàtics de VII.9.3 i abans de la seva validació manual. No es completa Fase VII, no s’inicia Fase VIII, no es republica Espanya, no es publica Alemanya i no s’executa backfill.

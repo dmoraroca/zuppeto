@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 
 import { CatalogAudit, CatalogDetail } from '../../models/territorial-admin.model';
 import { territorialNameKindLabel } from '../../policies/territorial-presentation.policy';
+import { TerritorialHierarchyExplorerComponent } from '../territorial-hierarchy-explorer/territorial-hierarchy-explorer.component';
 
 export interface TerritorialMaintenanceCommand {
   action: string;
@@ -17,7 +18,7 @@ type MaintenanceAction = 'activate' | 'deactivate' | 'set-selectable' | 'set-coo
 
 @Component({
   selector: 'app-territorial-catalog-detail',
-  imports: [FormsModule],
+  imports: [FormsModule, TerritorialHierarchyExplorerComponent],
   templateUrl: './territorial-catalog-detail.component.html',
   styleUrl: './territorial-catalog-detail.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush

@@ -1,0 +1,128 @@
+<section class="explorer" [class.reduced-motion]="reducedMotion" aria-labelledby="territorial-explorer-title">
+  <div class="explorer-heading">
+    <div><h4 id="territorial-explorer-title">Explorador territorial</h4><p>Catàleg publicat · càrrega progressiva per nivells</p></div>
+    @if (hierarchy) { <span>{{ hierarchy.current.name }}</span> }
+  </div>
+
+  @if (rootLoading) {
+    <div class="tree-skeleton" aria-busy="true" aria-label="Carregant la jerarquia territorial">
+      @for (depth of [0,1,2,3]; track depth) {
+        <span class="skeleton skeleton--tree-node" [attr.data-depth]="depth" [style.--depth]="depth"></span>
+      }
+    </div>
+  } @else if (rootError) {
+    <div class="local-error" role="alert"><p>{{ rootError }}</p><button type="button" (click)="loadRoot()">Reintentar</button></div>
+  } @else if (hierarchy) {
+    <div class="tree-shell" aria-label="Jerarquia territorial publicada" [attr.aria-busy]="rootLoading">
+      <div class="tree-node tree-node--country" data-depth="0">
+        <span class="country-mark" aria-hidden="true"></span>
+        <span class="node-copy"><strong>{{ countryName() }}</strong><small>País</small></span>
+      </div>
+      @if (treeRoot; as root) {
+        <ul class="tree-group tree-group--root">
+          <ng-container *ngTemplateOutlet="treeNode; context: { $implicit: root }"></ng-container>
+        </ul>
+      }
+    </div>
+
+    <ng-template #treeNode let-entry>
+      <li class="tree-item">
+        <div class="tree-node"
+          [class.tree-node--current]="entry.node.id === rootId()"
+          [class.tree-node--selected]="entry.node.id === selectedNodeId"
+          [attr.data-depth]="entry.depth"
+          [attr.aria-current]="entry.node.id === rootId() ? 'true' : null">
+          @if (entry.node.directChildCount) {
+            <button class="toggle" type="button" (click)="$event.stopPropagation(); toggle(entry.node)"
+              [attr.aria-expanded]="isExpanded(entry.node.id)"
+              [attr.aria-label]="(isExpanded(entry.node.id) ? 'Contraure ' : 'Expandir ') + entry.node.name">
+              <span class="chevron" [class.chevron--expanded]="isExpanded(entry.node.id)" aria-hidden="true"></span>
+            </button>
+          } @else { <span class="leaf" aria-hidden="true"></span> }
+          @if (entry.node.directChildCount) {
+            <button class="node-main" type="button" (click)="$event.stopPropagation(); openUnit.emit(entry.node.id)">
+              <strong>{{ entry.node.name }}</strong>
+              <span>{{ entry.node.type }}@if (entry.node.primaryCode) { · {{ entry.node.primaryCode }} }</span>
+            </button>
+          } @else {
+            <span class="node-main node-main--static">
+              <strong>{{ entry.node.name }}</strong>
+              <span>{{ entry.node.type }}@if (entry.node.primaryCode) { · {{ entry.node.primaryCode }} }</span>
+            </span>
+          }
+          @if (entry.node.directChildCount) {
+            <span class="count">{{ childCountLabel(entry.node) }}@if (descendantSummary(entry.node); as summary) { · {{ summary }} }</span>
+          }
+          @if (!entry.node.isActive) { <span class="badge badge--inactive">Inactiva</span> }
+          @if (!entry.node.directChildCount) {
+            <button class="node-detail" type="button" (click)="$event.stopPropagation(); openUnit.emit(entry.node.id)"
+              [attr.aria-label]="'Veure detall de ' + entry.node.name">Veure detall</button>
+          }
+        </div>
+
+        @if (isLoading(entry.node.id) && showsSkeleton(entry.node.id)) {
+          <ul class="tree-group tree-group--feedback" aria-busy="true" aria-label="Carregant unitats filles">
+            @for (placeholder of [1,2,3]; track placeholder) {
+              <li class="tree-item tree-item--feedback">
+                <span class="skeleton skeleton--node" [attr.data-depth]="entry.depth + 1"></span>
+              </li>
+            }
+          </ul>
+        }
+        @if (children.get(entry.node.id)?.error; as loadError) {
+          <ul class="tree-group tree-group--feedback">
+            <li class="tree-item tree-item--feedback">
+              <div class="local-error node-error" role="alert" [attr.data-depth]="entry.depth + 1">
+                <p>No s’han pogut carregar les unitats. {{ loadError }}</p><button type="button" (click)="retryChildren(entry.node.id)">Reintentar</button>
+              </div>
+            </li>
+          </ul>
+        }
+        @if (entry.children.length) {
+          <ul class="tree-group">
+            @for (child of entry.children; track child.node.id) {
+              <ng-container *ngTemplateOutlet="treeNode; context: { $implicit: child }"></ng-container>
+            }
+          </ul>
+        }
+      </li>
+    </ng-template>
+
+    @if (selectedNode; as selected) {
+      <section class="children-tools" [attr.aria-busy]="isLoading(selected.id)">
+        <div><strong>Fills directes de {{ selected.name }}</strong><span>{{ selected.directChildCount }} en total</span></div>
+        @if (selected.directChildCount) {
+          <form (ngSubmit)="searchChildren()"><label>Cerca fills<input [(ngModel)]="childSearch" name="childSearch" placeholder="Nom o codi" /></label><button type="submit">Cercar fills</button></form>
+          @if (selectedChildren; as childState) {
+            <div class="pager"><button type="button" [disabled]="childState.page.page <= 1 || isLoading(selected.id)" (click)="childrenPage(childState.page.page - 1)">Anterior</button><span>Pàgina {{ childState.page.page }} de {{ childState.page.totalPages || 1 }}</span><button type="button" [disabled]="childState.page.page >= childState.page.totalPages || isLoading(selected.id)" (click)="childrenPage(childState.page.page + 1)">Següent</button></div>
+          }
+        } @else { <p>Aquesta unitat no té fills.</p> }
+      </section>
+    }
+
+    @if (hierarchy.descendantTypes.length) {
+      <div class="descendant-actions" aria-label="Consultes de descendents per tipus">
+        @for (type of hierarchy.descendantTypes; track type.territorialUnitTypeId) {
+          @if (type.isSelectableLocality) { <button type="button" (click)="showDescendants(type)">{{ descendantActionLabel(type) }} <span>{{ type.count }}</span></button> }
+        }
+      </div>
+    }
+
+    @if (descendantType) {
+      <section class="descendants" [attr.aria-busy]="descendantLoading">
+        <header><div><h5>{{ descendantActionLabel(descendantType) }}</h5><p>Descendents de {{ hierarchy.current.name }}, no només fills directes.</p></div><button type="button" (click)="closeDescendants()">Tancar llistat</button></header>
+        <form (ngSubmit)="searchDescendants()"><label>Cerca per nom o codi<input [(ngModel)]="descendantSearch" name="descendantSearch" /></label><button type="submit" [disabled]="descendantLoading">Cercar</button></form>
+        @if (descendantError) { <div class="local-error" role="alert"><p>{{ descendantError }}</p><button type="button" (click)="loadDescendants(descendants.page)">Reintentar</button></div> }
+        @if (descendantLoading && descendantSkeleton) {
+          <div class="result-skeleton" aria-label="Carregant descendents">@for (row of [1,2,3,4]; track row) { <span class="skeleton"></span> }</div>
+        } @else {
+          <div class="table-wrap"><table><thead><tr><th>Nom</th><th>Codi</th><th>Província / context</th><th>Estat</th><th>Seleccionable</th><th>Detall</th></tr></thead><tbody>
+            @for (unit of descendants.items; track unit.id) { <tr><td><strong>{{ unit.primaryName }}</strong></td><td>{{ unit.primaryCode || '—' }}</td><td>{{ unit.parent || unit.country }}</td><td>{{ unit.isActive ? 'Activa' : 'Inactiva' }}</td><td>{{ unit.isSelectableLocality ? 'Sí' : 'No' }}</td><td><button type="button" (click)="openUnit.emit(unit.id)">Veure detall</button></td></tr> }
+            @empty { <tr><td colspan="6">No hi ha descendents que coincideixin amb la cerca.</td></tr> }
+          </tbody></table></div>
+          <div class="pager"><button type="button" [disabled]="descendants.page <= 1" (click)="descendantsPage(descendants.page - 1)">Anterior</button><span>{{ descendants.totalCount }} resultats · pàgina {{ descendants.page }} de {{ descendants.totalPages || 1 }}</span><button type="button" [disabled]="descendants.page >= descendants.totalPages" (click)="descendantsPage(descendants.page + 1)">Següent</button></div>
+        }
+      </section>
+    }
+  }
+</section>

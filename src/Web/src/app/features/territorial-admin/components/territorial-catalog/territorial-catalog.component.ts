@@ -28,13 +28,21 @@ export class TerritorialCatalogComponent implements OnInit {
   protected parentId = '';
   protected parentName = '';
   protected busy = false;
+  protected initialLoading = true;
+  protected tableLoading = false;
+  protected detailLoading = false;
+  protected detailStack: CatalogDetail[] = [];
   protected error = '';
 
   private readonly api = inject(TerritorialAdminApiService);
   private readonly cdr = inject(ChangeDetectorRef);
   private returnFocus: HTMLElement | null = null;
 
-  async ngOnInit(): Promise<void> { await this.load(); }
+  async ngOnInit(): Promise<void> {
+    try { this.page = await this.fetchPage(1); }
+    catch (reason) { this.error = this.failureMessage(reason); }
+    finally { this.initialLoading = false; this.cdr.markForCheck(); }
+  }
 
   protected get types() {
     return this.context().unitTypes.filter((item) => !this.countryId || item.countryId === this.countryId);
@@ -47,7 +55,7 @@ export class TerritorialCatalogComponent implements OnInit {
   protected resetType(): void { this.typeId = ''; }
 
   protected async load(page = 1): Promise<void> {
-    await this.run(async () => { this.page = await this.fetchPage(page); });
+    await this.runTable(async () => { this.page = await this.fetchPage(page); });
   }
 
   protected async clearFilters(): Promise<void> {
@@ -64,14 +72,28 @@ export class TerritorialCatalogComponent implements OnInit {
 
   protected async open(item: CatalogUnit): Promise<void> {
     this.returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    await this.openById(item.id);
+    this.detailStack = [];
+    await this.loadDetail(item.id);
   }
 
   protected async openById(id: string): Promise<void> {
-    await this.run(async () => { this.detail = await this.api.catalogDetail(id); });
+    const current = this.detailStack.at(-1) ?? this.detail;
+    if (!current || current.unit.id === id) return;
+    this.detailLoading = true;
+    this.error = '';
+    this.cdr.markForCheck();
+    try { this.detailStack = [...this.detailStack, await this.api.catalogDetail(id)]; }
+    catch (reason) { this.error = this.failureMessage(reason); }
+    finally { this.detailLoading = false; this.cdr.markForCheck(); }
   }
 
   protected close(): void {
+    if (this.detailStack.length) {
+      this.detailStack = this.detailStack.slice(0, -1);
+      this.error = '';
+      this.cdr.markForCheck();
+      return;
+    }
     this.detail = null;
     this.error = '';
     const target = this.returnFocus;
@@ -93,9 +115,12 @@ export class TerritorialCatalogComponent implements OnInit {
   }
 
   protected async maintain(request: TerritorialMaintenanceCommand): Promise<void> {
-    if (!this.detail) return;
+    const current = this.detailStack.at(-1) ?? this.detail;
+    if (!current) return;
     await this.run(async () => {
-      this.detail = await this.api.maintain(this.detail!.unit.id, request);
+      const updated = await this.api.maintain(current.unit.id, request);
+      if (this.detailStack.length) this.detailStack = [...this.detailStack.slice(0, -1), updated];
+      else this.detail = updated;
       this.page = await this.fetchPage(this.page.page);
     });
   }
@@ -119,11 +144,51 @@ export class TerritorialCatalogComponent implements OnInit {
     this.cdr.markForCheck();
     try { await action(); }
     catch (reason) {
-      const failure = reason as { error?: { message?: string }; message?: string };
-      this.error = failure.error?.message ?? failure.message ?? 'No s’ha pogut completar l’operació territorial.';
+      this.error = this.failureMessage(reason);
     } finally {
       this.busy = false;
       this.cdr.markForCheck();
     }
+  }
+
+  private async runTable(action: () => Promise<void>): Promise<void> {
+    this.error = '';
+    let shown = false;
+    let shownAt = 0;
+    const timer = window.setTimeout(() => {
+      shown = true;
+      shownAt = Date.now();
+      this.tableLoading = true;
+      this.cdr.markForCheck();
+    }, 120);
+    try { await action(); }
+    catch (reason) { this.error = this.failureMessage(reason); }
+    finally {
+      window.clearTimeout(timer);
+      if (shown) {
+        const remaining = 180 - (Date.now() - shownAt);
+        if (remaining > 0) await new Promise<void>((resolve) => window.setTimeout(resolve, remaining));
+        this.tableLoading = false;
+      }
+      this.cdr.markForCheck();
+    }
+  }
+
+  private async loadDetail(id: string): Promise<void> {
+    this.detailLoading = true;
+    this.detail = null;
+    this.error = '';
+    this.cdr.markForCheck();
+    try { this.detail = await this.api.catalogDetail(id); }
+    catch (reason) { this.error = this.failureMessage(reason); }
+    finally {
+      this.detailLoading = false;
+      this.cdr.markForCheck();
+    }
+  }
+
+  private failureMessage(reason: unknown): string {
+    const failure = reason as { error?: { message?: string }; message?: string };
+    return failure.error?.message ?? failure.message ?? 'No s’ha pogut completar l’operació territorial.';
   }
 }

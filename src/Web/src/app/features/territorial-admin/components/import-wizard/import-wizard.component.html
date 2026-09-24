@@ -126,7 +126,7 @@
         <progress [value]="detail.import.processedRows || 0" [max]="detail.import.totalRows"></progress>
         <p>{{ detail.import.processedRows || 0 }} / {{ detail.import.totalRows }} files ({{ progressPercent }}%)</p>
       } @else { <p>El worker recollirà el treball de la cua persistent.</p> }
-      <p>Intent {{ detail.import.attemptCount }} · darrer heartbeat {{ detail.import.lastHeartbeatAtUtc || 'encara no disponible' }}</p>
+      <p>Intent {{ detail.import.attemptCount }} · darrer heartbeat @if (detail.import.lastHeartbeatAtUtc) { <time [attr.datetime]="detail.import.lastHeartbeatAtUtc">{{ formatDateTime(detail.import.lastHeartbeatAtUtc) }}</time> } @else { encara no disponible }</p>
       @if (detail.import.cancellationRequested) { <div class="alert alert--warning">Cancel·lació sol·licitada; s’aplicarà al següent punt segur.</div> }
       @if (detail.canCancel) { <button type="button" class="quiet" (click)="request('cancel')">Cancel·lar importació</button> }
     </div>
@@ -224,7 +224,7 @@
   @if (detail && step === 6) {
     <div class="panel">
       <h3>6. Publicació del catàleg territorial</h3>
-      <dl class="publication-facts"><dt>País</dt><dd>{{ detail.import.countryName }}</dd><dt>Font</dt><dd>{{ detail.import.organisation }}</dd><dt>Dataset</dt><dd>{{ detail.import.dataset }}</dd><dt>Versió</dt><dd>{{ detail.import.datasetVersion }}</dd><dt>Mapping</dt><dd>Versió {{ detail.import.mappingVersion }}</dd></dl>
+      <dl class="publication-facts"><dt>País</dt><dd>{{ detail.import.countryName }}</dd><dt>Font</dt><dd>{{ detail.import.organisation }}</dd><dt>Estat de la font</dt><dd>{{ approvalLabel(source?.approvalStatus || 'Pending') }}</dd><dt>Dataset</dt><dd>{{ detail.import.dataset }}</dd><dt>Versió</dt><dd>{{ detail.import.datasetVersion }}</dd><dt>Mapping</dt><dd>Versió {{ detail.import.mappingVersion }}</dd></dl>
       <h4>Resum</h4>
       <div class="metrics publication-metrics">
         <strong>{{ detail.import.counters.create }}<small>altes</small></strong><strong>{{ detail.import.counters.update }}<small>canvis</small></strong><strong class="bad">{{ detail.import.counters.deactivate }}<small>inactivacions</small></strong><strong>{{ detail.import.counters.noChange }}<small>sense canvi</small></strong><strong class="bad">{{ detail.import.counters.errors }}<small>errors</small></strong><strong class="warn">{{ detail.import.counters.warnings }}<small>avisos</small></strong><strong class="warn">{{ detail.manualConflictCount ?? 0 }}<small>conflictes</small></strong>
@@ -232,10 +232,10 @@
       <h4>Desglossament territorial</h4>
       <div class="table-wrap"><table><thead><tr><th>Tipus</th><th>Altes</th><th>Canvis</th><th>Inactivacions</th><th>Sense canvi</th></tr></thead><tbody>@for (item of detail.territorialBreakdown || []; track item.territorialUnitTypeCode) { <tr><td>{{ item.territorialUnitType }}</td><td>{{ item.create }}</td><td>{{ item.update }}</td><td>{{ item.deactivate }}</td><td>{{ item.noChange }}</td></tr> } @empty { <tr><td colspan="5">No hi ha canvis territorials preparats.</td></tr> }</tbody></table></div>
       <h4>Gate de font</h4>
-      @if (source?.approvalStatus === 'Pending') { <div class="alert alert--warning"><strong>Pendent d’aprovació</strong><p>La font encara no ha superat els requisits d’aprovació.</p></div> }
+      @if (source?.approvalStatus !== 'Approved') { <div class="alert alert--warning"><strong>Pendent d’aprovació</strong><p>La font encara no ha superat els requisits d’aprovació.</p></div> }
       <div class="actions">
         <button type="button" class="quiet" (click)="step = 5">Tornar als canvis</button>
-        @if (detail.import.status === 'ReadyForReview') { <button type="button" class="primary" [disabled]="!detail.canPublish || source?.approvalStatus === 'Pending'" (click)="request('publish')">Publicar catàleg</button> }
+        @if (detail.import.status === 'ReadyForReview') { <button type="button" class="primary" [disabled]="!detail.canPublish || source?.approvalStatus !== 'Approved'" (click)="request('publish')">Publicar catàleg</button> }
         @if (detail.canCancel) { <button type="button" class="quiet" (click)="request('cancel')">Cancel·lar importació</button> }
         @if (detail.canRevert) { <button type="button" class="danger" (click)="request('revert')">Revertir última publicació</button> }
       </div>
@@ -289,11 +289,11 @@
   }
 
   @if (confirmAction) {
-    <div class="modal-backdrop" role="presentation">
-      <section class="modal" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title">
+    <div class="modal-backdrop" role="presentation" (click)="confirmAction = null">
+      <section class="modal" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" (click)="$event.stopPropagation()">
         <h3 id="confirm-title">Confirma l’operació</h3>
-        <p>L’acció <strong>{{ confirmAction }}</strong> quedarà auditada i pot modificar l’estat del catàleg.</p>
-        <div class="actions"><button class="quiet" (click)="confirmAction = null">Tornar</button><button class="danger" [disabled]="busy" (click)="confirm()">Confirmar</button></div>
+        <p>{{ confirmationMessage }}</p>
+        <div class="actions confirm-actions"><button class="quiet" autofocus (click)="confirmAction = null">Cancel·lar</button><button class="danger" [disabled]="busy" (click)="confirm()">Confirmar</button></div>
       </section>
     </div>
   }

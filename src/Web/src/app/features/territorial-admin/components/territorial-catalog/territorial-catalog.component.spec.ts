@@ -51,6 +51,39 @@ describe('TerritorialCatalogComponent', () => {
     });
     expect(api.catalog).toHaveBeenCalledTimes(2);
   });
+
+  it('preserves the explorer context while opening and closing a nested unit detail', async () => {
+    const { fixture, api } = await setup();
+    (fixture.nativeElement.querySelector('tbody tr') as HTMLTableRowElement).click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    button(fixture, 'Jerarquia').click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const explorer = fixture.nativeElement.querySelector('app-territorial-hierarchy-explorer') as HTMLElement;
+    const childDetail = explorer.querySelector('[aria-label="Veure detall de Fill territorial"]') as HTMLButtonElement;
+    expect(explorer.textContent).not.toContain('Seleccionable');
+    childDetail.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(api.catalogDetail).toHaveBeenLastCalledWith('child');
+    expect(fixture.nativeElement.textContent).toContain('Detall fill territorial');
+
+    buttons(fixture, 'Jerarquia').at(-1)!.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const nestedExplorer = [...fixture.nativeElement.querySelectorAll('app-territorial-hierarchy-explorer')].at(-1) as HTMLElement;
+    expect(nestedExplorer.querySelector('.tree-node--current')?.textContent).toContain('Fill territorial');
+    expect(nestedExplorer.textContent).toContain('Vila E2E À');
+
+    const visibleClose = [...fixture.nativeElement.querySelectorAll('.close-button')].at(-1) as HTMLButtonElement;
+    visibleClose.click();
+    fixture.detectChanges();
+    expect(explorer.isConnected).toBe(true);
+    expect(explorer.closest('[hidden]')).toBeNull();
+    expect(explorer.textContent).toContain('Explorador territorial');
+  });
 });
 
 async function setup() {
@@ -67,7 +100,40 @@ async function setup() {
   };
   const api = {
     catalog: vi.fn().mockResolvedValue({ items: [unit], page: 1, pageSize: 50, totalCount: 1, totalPages: 1 }),
-    catalogDetail: vi.fn().mockResolvedValue(detail),
+    catalogDetail: vi.fn().mockImplementation((id: string) => Promise.resolve(id === 'child'
+      ? { ...detail, unit: { ...unit, id: 'child', primaryName: 'Detall fill territorial', primaryCode: 'E2E-002' } }
+      : detail)),
+    catalogHierarchy: vi.fn().mockImplementation((id: string) => Promise.resolve(id === 'child' ? {
+      current: {
+        id: 'child', countryId: 'country', parentId: 'unit', territorialUnitTypeId: 'type', typeCode: 'LOCALITY',
+        type: 'Localitat E2E', name: 'Fill territorial', primaryCode: 'E2E-002', isActive: true,
+        isSelectableLocality: true, directChildCount: 0
+      },
+      ancestors: [{
+        id: 'unit', countryId: 'country', parentId: 'region', territorialUnitTypeId: 'type', typeCode: 'LOCALITY',
+        type: 'Localitat E2E', name: 'Vila E2E À', primaryCode: 'E2E-001', isActive: true,
+        isSelectableLocality: true, directChildCount: 1
+      }],
+      children: { items: [], page: 1, pageSize: 50, totalCount: 0, totalPages: 0 },
+      descendantTypes: []
+    } : {
+      current: {
+        id: 'unit', countryId: 'country', parentId: 'region', territorialUnitTypeId: 'type', typeCode: 'LOCALITY',
+        type: 'Localitat E2E', name: 'Vila E2E À', primaryCode: 'E2E-001', isActive: true,
+        isSelectableLocality: true, directChildCount: 1
+      },
+      ancestors: [],
+      children: {
+        items: [{
+          id: 'child', countryId: 'country', parentId: 'unit', territorialUnitTypeId: 'type', typeCode: 'LOCALITY',
+          type: 'Localitat E2E', name: 'Fill territorial', primaryCode: 'E2E-002', isActive: true,
+          isSelectableLocality: true, directChildCount: 0
+        }],
+        page: 1, pageSize: 50, totalCount: 1, totalPages: 1
+      },
+      descendantTypes: []
+    })),
+    catalogDescendants: vi.fn(),
     maintain: vi.fn().mockResolvedValue({ ...detail, unit: { ...unit, isActive: false, hasManualOverride: true } })
   };
   await TestBed.configureTestingModule({
@@ -89,4 +155,9 @@ function button(fixture: { nativeElement: HTMLElement }, label: string, last = f
   const matches = [...fixture.nativeElement.querySelectorAll('button')]
     .filter((item) => item.textContent?.trim() === label) as HTMLButtonElement[];
   return last ? matches.at(-1)! : matches[0];
+}
+
+function buttons(fixture: { nativeElement: HTMLElement }, label: string): HTMLButtonElement[] {
+  return [...fixture.nativeElement.querySelectorAll('button')]
+    .filter((item) => item.textContent?.trim() === label) as HTMLButtonElement[];
 }

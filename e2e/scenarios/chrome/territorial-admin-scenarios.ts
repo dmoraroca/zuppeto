@@ -1,5 +1,7 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 import ExcelJS from 'exceljs';
+import { mkdir } from 'node:fs/promises';
+import { join } from 'node:path';
 import type { ChromeScenarioContext } from './chrome-scenario.js';
 
 const sourceId = '10000000-0000-0000-0000-000000000001';
@@ -8,6 +10,7 @@ const importId = '30000000-0000-0000-0000-000000000001';
 
 export async function executeTerritorialAdminScenario(code: number, context: ChromeScenarioContext): Promise<void> {
   if (code === 155) return securityScenario(context);
+  if (code === 160 && process.env['E2E_TERRITORIAL_CATALOG_REAL'] === 'true') return realPublishedSpainCatalogExplorer(context);
   if (code === 160 && process.env['E2E_TERRITORIAL_REAL'] === 'true') return realTerritorialCircuit(context);
   const mode = code === 158 ? 'blocked' : 'ready';
   await mockTerritorialApi(context, mode, code === 157);
@@ -124,6 +127,162 @@ export async function executeTerritorialAdminScenario(code: number, context: Chr
     await context.page.getByRole('button', { name: 'Confirmar' }).click();
     await expect(context.page.getByText('Estat: Publicat')).toBeVisible();
   }
+}
+
+async function realPublishedSpainCatalogExplorer(context: ChromeScenarioContext): Promise<void> {
+  if (!context.session.session) throw new Error('L’explorador territorial real requereix sessió ADMIN.');
+  const page = context.page;
+  let delayedInitialCatalog = false;
+  await page.route('**/api/admin/territorial/catalog?**', async (route) => {
+    const url = new URL(route.request().url());
+    if (!delayedInitialCatalog && url.searchParams.get('page') === '1') {
+      delayedInitialCatalog = true;
+      await new Promise((resolve) => setTimeout(resolve, 220));
+    }
+    await route.continue();
+  });
+
+  await page.goto('/admin/territori');
+  await page.getByRole('button', { name: 'Catàleg territorial' }).click();
+  await expect(page.locator('.catalog-skeleton')).toBeVisible();
+  await expect(page.getByText('8199 unitats')).toBeVisible();
+
+  await page.locator('select[name="country"]').selectOption({ label: 'Espanya' });
+  await page.locator('input[name="search"]').fill('Adra');
+  await page.getByRole('button', { name: 'Cercar', exact: true }).click();
+  await page.locator('.catalog tbody tr').filter({ hasText: 'Adra' }).filter({ hasText: 'Municipi' }).first().click();
+  await page.getByRole('button', { name: 'Jerarquia' }).click();
+  const adraExplorer = page.locator('app-territorial-hierarchy-explorer');
+  const pathNodes = adraExplorer.locator('.tree-node[data-depth]');
+  await expect(pathNodes).toHaveCount(4);
+  await expect(pathNodes.nth(0)).toHaveAttribute('data-depth', '0');
+  await expect(pathNodes.nth(1)).toHaveAttribute('data-depth', '1');
+  await expect(pathNodes.nth(2)).toHaveAttribute('data-depth', '2');
+  await expect(pathNodes.nth(3)).toHaveAttribute('data-depth', '3');
+  const pathPositions = await pathNodes.evaluateAll((nodes) => nodes.map((node) => node.getBoundingClientRect().x));
+  expect(pathPositions[1]).toBeGreaterThan(pathPositions[0]);
+  expect(pathPositions[2]).toBeGreaterThan(pathPositions[1]);
+  expect(pathPositions[3]).toBeGreaterThan(pathPositions[2]);
+  await expect(pathNodes.nth(1)).toContainText('Andalucía');
+  await expect(pathNodes.nth(2)).toContainText('Almería');
+  await expect(pathNodes.nth(3)).toContainText('Adra');
+  await expect(pathNodes.nth(3)).toHaveClass(/tree-node--current/);
+  await expect(adraExplorer.getByText('Unitat actual', { exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Explorar jerarquia' })).toHaveCount(0);
+  await captureTree(page, 'A-adra-quatre-profunditats.png');
+  await page.getByRole('button', { name: 'Tancar el detall territorial' }).click();
+
+  await page.locator('input[name="search"]').fill('Aragón');
+  await page.getByRole('button', { name: 'Cercar', exact: true }).click();
+  await page.locator('.catalog tbody tr').filter({ hasText: 'Aragón' }).filter({ hasText: 'Comunitat autònoma' }).click();
+  await page.getByRole('button', { name: 'Jerarquia' }).click();
+  const aragonExplorer = page.getByRole('dialog', { name: 'Aragón', exact: true })
+    .locator('app-territorial-hierarchy-explorer');
+  for (const province of ['Huesca', 'Teruel', 'Zaragoza']) {
+    await expect(aragonExplorer.getByText(province, { exact: true })).toBeVisible();
+  }
+  const aragonProvinces = aragonExplorer.locator('.tree-node[data-depth="2"]');
+  await expect(aragonProvinces).toHaveCount(3);
+  await expect(aragonExplorer.getByRole('button', { name: 'Expandir Teruel' })).toBeVisible();
+  expect(await aragonExplorer.getByRole('button', { name: 'Expandir Teruel' })
+    .evaluate((button) => getComputedStyle(button).cursor)).toBe('pointer');
+  expect(await aragonExplorer.locator('.node-main').filter({ hasText: 'Teruel' })
+    .evaluate((button) => getComputedStyle(button).cursor)).toBe('pointer');
+  await expect(page.getByRole('button', { name: 'Explorar jerarquia' })).toHaveCount(0);
+  await captureTree(page, 'B-aragon-provincies.png');
+
+  await aragonExplorer.getByRole('button', { name: 'Expandir Teruel' }).click();
+  const teruelMunicipalities = aragonExplorer.locator('.tree-node[data-depth="3"]');
+  await expect(teruelMunicipalities.first()).toBeVisible();
+  await expect(aragonExplorer.locator('.node-main strong').filter({ hasText: /^Teruel$/ })).toHaveCount(1);
+  await expect(aragonExplorer.getByText('Seleccionable', { exact: true })).toHaveCount(0);
+  await expect(aragonExplorer.getByRole('button', { name: /Veure detall de / })).toHaveCount(50);
+  await captureTree(page, 'C-teruel-municipis.png');
+  await captureTree(page, 'E-teruel-veure-detall.png');
+
+  await aragonExplorer.getByRole('button', { name: 'Veure detall de Ababuj' }).click();
+  await expect(page.getByRole('heading', { name: 'Ababuj', exact: true })).toBeVisible();
+  await expect(page.getByText('Municipi · Espanya · 44001', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Jerarquia' }).last().click();
+  const ababujExplorer = page.locator('app-territorial-hierarchy-explorer').last();
+  const ababujPath = ababujExplorer.locator('.tree-node[data-depth]');
+  await expect(ababujPath).toHaveCount(4);
+  await expect(ababujPath.nth(1)).toContainText('Aragón');
+  await expect(ababujPath.nth(2)).toContainText('Teruel');
+  await expect(ababujPath.nth(3)).toContainText('Ababuj');
+  await page.getByRole('button', { name: 'Tancar el detall territorial' }).last().click();
+  await expect(aragonExplorer).toBeVisible();
+  await aragonExplorer.getByRole('button', { name: 'Contraure Teruel' }).click();
+  await expect(teruelMunicipalities).toHaveCount(0);
+  await aragonExplorer.getByRole('button', { name: 'Expandir Teruel' }).click();
+  await expect(aragonExplorer.locator('.tree-node[data-depth="3"]').first()).toBeVisible();
+  await page.getByRole('button', { name: 'Tancar el detall territorial' }).click();
+
+  await page.locator('input[name="search"]').fill('Andalucía');
+  await page.getByRole('button', { name: 'Cercar', exact: true }).click();
+  await page.locator('.catalog tbody tr').filter({ hasText: 'Andalucía' }).filter({ hasText: 'Comunitat autònoma' }).click();
+  await page.getByRole('button', { name: 'Jerarquia' }).click();
+  const andalusiaExplorer = page.locator('app-territorial-hierarchy-explorer');
+  await andalusiaExplorer.getByRole('button', { name: 'Expandir Almería' }).click();
+  await expect(andalusiaExplorer.locator('.tree-node[data-depth="3"]').first()).toBeVisible();
+  await captureTree(page, 'D-andalucia-almeria.png');
+  await page.getByRole('button', { name: 'Tancar el detall territorial' }).click();
+
+  await page.locator('input[name="search"]').fill('Cataluña');
+  await page.getByRole('button', { name: 'Cercar', exact: true }).click();
+  await page.locator('.catalog tbody tr').filter({ hasText: 'Cataluña' }).filter({ hasText: 'Comunitat autònoma' }).click();
+  await page.getByRole('button', { name: 'Jerarquia' }).click();
+
+  const explorer = page.locator('app-territorial-hierarchy-explorer');
+  for (const province of ['Barcelona', 'Girona', 'Lleida', 'Tarragona']) {
+    await expect(explorer.getByText(province, { exact: true })).toBeVisible();
+  }
+  const countryNode = explorer.locator('.tree-node[data-depth="0"]');
+  const currentNode = explorer.locator('.tree-node[data-depth="1"]');
+  const provinceNodes = explorer.locator('.tree-node[data-depth="2"]');
+  await expect(provinceNodes).toHaveCount(4);
+  const countryX = (await countryNode.boundingBox())?.x ?? 0;
+  const currentX = (await currentNode.boundingBox())?.x ?? 0;
+  const provinceX = (await provinceNodes.first().boundingBox())?.x ?? 0;
+  expect(currentX).toBeGreaterThan(countryX);
+  expect(provinceX).toBeGreaterThan(currentX);
+  expect(await provinceNodes.first().evaluate((node) => getComputedStyle(node.parentElement!, '::before').width)).not.toBe('0px');
+  await explorer.getByRole('button', { name: 'Expandir Barcelona' }).click();
+  const arenysNode = explorer.locator('.tree-node').filter({ hasText: 'Arenys de Mar' });
+  await expect(arenysNode).toContainText('08006');
+  await expect(arenysNode).toHaveAttribute('data-depth', '3');
+  const municipalityX = (await arenysNode.boundingBox())?.x ?? 0;
+  expect(municipalityX).toBeGreaterThan(provinceX);
+  await arenysNode.getByRole('button', { name: 'Veure detall de Arenys de Mar' }).click();
+  await expect(page.getByRole('heading', { name: 'Arenys de Mar' })).toBeVisible();
+  await page.getByRole('button', { name: 'Tancar el detall territorial' }).last().click();
+  await expect(explorer).toBeVisible();
+  await expect(arenysNode).toBeVisible();
+
+  await explorer.getByRole('button', { name: /Tots els municipis/ }).click();
+  await explorer.locator('.descendants input').fill('Arenys de Mar');
+  await explorer.locator('.descendants').getByRole('button', { name: 'Cercar', exact: true }).click();
+  const descendantRow = explorer.locator('.descendants tbody tr').filter({ hasText: 'Arenys de Mar' });
+  await expect(descendantRow).toContainText('08006');
+  await expect(descendantRow).toContainText('Barcelona');
+
+  await page.getByRole('button', { name: 'Tancar el detall territorial' }).click();
+  await page.locator('input[name="search"]').fill('Canarias');
+  await page.getByRole('button', { name: 'Cercar', exact: true }).click();
+  await page.locator('.catalog tbody tr').filter({ hasText: 'Canarias' }).filter({ hasText: 'Comunitat autònoma' }).click();
+  await page.getByRole('button', { name: 'Jerarquia' }).click();
+  const canariasExplorer = page.locator('app-territorial-hierarchy-explorer');
+  await canariasExplorer.getByRole('button', { name: 'Expandir Palmas, Las' }).click();
+  const arrecife = canariasExplorer.locator('.node-main').filter({ hasText: 'Arrecife' });
+  await expect(arrecife).toContainText('35004');
+  await expect(canariasExplorer.getByRole('button', { name: 'Expandir Arrecife' })).toHaveCount(0);
+}
+
+async function captureTree(page: Page, fileName: string): Promise<void> {
+  const directory = process.env['E2E_TERRITORIAL_CAPTURE_DIR'];
+  if (!directory) return;
+  await mkdir(directory, { recursive: true });
+  await page.locator('.detail-modal').last().screenshot({ path: join(directory, fileName), animations: 'disabled' });
 }
 
 async function realTerritorialCircuit(context: ChromeScenarioContext): Promise<void> {

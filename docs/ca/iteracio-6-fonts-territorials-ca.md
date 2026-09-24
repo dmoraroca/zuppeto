@@ -2,9 +2,9 @@
 
 ## Estat
 
-**VII.9 EN CURS. VII.9.1 COMPLETADA DOCUMENTALMENT I PENDENT DE REVISIÓ HUMANA.**
+**VII.9 EN CURS. VII.9.3 IMPLEMENTADA I VALIDADA TÈCNICAMENT, PENDENT DE VALIDACIÓ MANUAL FINAL.** Espanya conserva una única publicació oficial de 8.199 unitats; Alemanya continua `Pending` i no publicada.
 
-Aquest document és la font de veritat sobre procedència, llicència, reutilització i atribució dels datasets territorials. Una conclusió documental favorable no modifica `DatasetSource.ApprovalStatus`, no autoritza la publicació i no substitueix l’aprovació humana posterior.
+Aquest document és la font de veritat sobre procedència, llicència, reutilització, atribució i aprovació dels datasets territorials. L’aprovació del `DatasetSource` INE registrada a VII.9.2 supera exclusivament el gate legal de la font: no autoritza ni executa la publicació de l’import.
 
 Data de verificació documental: **24.09.2026**.
 
@@ -85,26 +85,26 @@ La publicació final haurà d’enllaçar la pàgina específica del dataset i l
 
 ### Informació preparada per a `DatasetSource`
 
-| Propietat | Valor proposat per a una futura ordre d’aprovació |
+| Propietat | Valor aprovat i persistit a VII.9.2 |
 |---|---|
-| `Organisation` | `Instituto Nacional de Estadística` |
-| `Dataset` | `Relación de Municipios y sus Códigos por Provincias` |
+| `Organisation` | `Instituto Nacional de Estadística (INE)` |
+| `Dataset` | `30247 — Relación de Municipios y sus Códigos por Provincias` |
 | `Url` | URL específica d’INEbase indicada a les evidències |
 | `DownloadUrl` | `https://www.ine.es/daco/daco42/codmun/diccionario26.xlsx` |
 | `DatasetVersion` | `2026-01-01` |
 | `DatasetDate` | `2026-01-01` |
 | `Locale` | `es-ES` |
 | `DatasetType` | `AdministrativeTerritory` |
-| `License` | `Creative Commons Reconocimiento 4.0 Internacional (CC BY 4.0)` |
+| `License` | `Creative Commons Reconeixement 4.0 Internacional (CC BY 4.0)` |
 | `LicenseUrl` | `https://creativecommons.org/licenses/by/4.0/` |
 | `Attribution` | Text preparat a l’apartat anterior |
-| `CommercialUseAllowed` | `true` proposat |
-| `TransformationAllowed` | `true` proposat |
-| `ThirdPartyData` | `true` proposat per traçabilitat de les denominacions procedents del REL |
+| `CommercialUseAllowed` | `true` |
+| `TransformationAllowed` | `true` |
+| `ThirdPartyData` | Denominacions procedents del REL, integrades i publicades per l’INE en l’operació `30247` |
 | `Restrictions` | Atribució, data, canvis, no aval/patrocini, no desnaturalització, metadades i responsabilitat del reutilitzador |
-| `VerifiedAtUtc` | No assignar fins a l’ordre humana d’aprovació |
-| `VerifiedByUserId` | No assignar fins a l’ordre humana d’aprovació |
-| `ApprovalStatus` | **`Pending` — sense canvis en VII.9.1** |
+| `VerifiedAtUtc` | `2026-09-24 16:18:16.075075+00` |
+| `VerifiedByUserId` | `admin@admin.adm` (`16c1f7da-7c4e-40bc-b3f9-88b76f9232a1`) |
+| `ApprovalStatus` | **`Approved` — canvi formal `Pending → Approved` a VII.9.2** |
 
 ### Classificació VII.9.1
 
@@ -112,13 +112,23 @@ La publicació final haurà d’enllaçar la pàgina específica del dataset i l
 
 La classificació es fonamenta en la fitxa oficial del dataset, l’avís legal específic del publicador i CC BY 4.0. No és una aprovació operativa: cal una ordre humana nova per decidir si s’apliquen els valors preparats a `DatasetSource`.
 
+### Aprovació formal VII.9.2
+
+La revisió humana de VII.9.1 ha acceptat la classificació A i ha autoritzat exclusivament l’aprovació de la font INE `30247`. El 24.09.2026 a les `16:18:16.075075 UTC`, l’actor `admin@admin.adm` ha aplicat el canvi `Pending → Approved` al `DatasetSource` `71000000-0000-0000-0000-000000000001`.
+
+Motiu auditat: **«Font oficial INE 30247 revisada documentalment. Reutilització compatible amb CC BY 4.0 i requisits d'atribució documentats.»**
+
+L’evidència vinculada és la de l’apartat «Evidències oficials» d’aquest document: fitxa INEbase, fitxer tabular i checksum, operació `30247`, metodologia, dades.gob.es, avís legal INE, CC BY 4.0 i marc estatal. La data de publicació `04.02.2026` continua governada documentalment perquè el model persistent no disposa d’un camp específic i no se n’ha inventat cap.
+
+La persistència conserva de manera estructurada organisme, dataset i identificador, URL oficial, URL de descàrrega, data/versió, locale, tipus, llicència i URL, atribució, ús comercial, transformació, restriccions, procedència REL, estat, actor i timestamp. El seeder idempotent actualitza la identitat oficial però preserva qualsevol aprovació humana existent; un reinici de l’API no pot tornar aquesta font a `Pending`.
+
 ## Estat operatiu verificat
 
-Consulta de només lectura a PostgreSQL del 24.09.2026:
+Consulta de PostgreSQL i API real posterior a l’aprovació del 24.09.2026:
 
-- Espanya: `DatasetSource = Pending`, 1 import `ReadyForReview`, 0 imports publicats i 0 unitats oficials.
+- Espanya: `DatasetSource = Approved`, 1 import `ReadyForReview`, ChangeSet `Prepared`, `CatalogVersion = 0`, 0 imports publicats i 0 unitats oficials.
 - Alemanya: `DatasetSource = Pending`, 1 import `ReadyForReview`, 0 imports publicats i 0 unitats oficials.
 - `User` amb referència territorial: 0.
 - `Place` amb referència territorial: 0.
 
-Per tant, VII.9.1 no ha aprovat fonts, no ha habilitat publicació, no ha publicat cap dataset i no ha executat cap backfill.
+Al tancament de VII.9.2, el Pas 6 real mostrava `Estat de la font: Aprovada`, 8.199 altes, 0 canvis, 0 inactivacions, 0 sense canvi, 0 errors i 0 conflictes; en aquella subfase no es va prémer el botó ni invocar l’endpoint. Una ordre humana posterior va publicar Espanya una única vegada. VII.9.3 no ha repetit aquesta publicació, no ha modificat la font i no ha executat cap backfill.

@@ -1,0 +1,291 @@
+:host {
+  display: block;
+}
+
+.explorer {
+  --tree-indent: 2.65rem;
+  --tree-line: #a9c4bb;
+  --tree-surface: #f8fbfa;
+  display: grid;
+  gap: 1rem;
+}
+
+.explorer-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.explorer-heading h4 { margin: 0 !important; }
+.explorer-heading p { margin: .25rem 0 0; color: #667b83; }
+.explorer-heading > span {
+  padding: .35rem .55rem;
+  border-radius: 999px;
+  background: #e4f3ee;
+  color: #225e4e;
+  font-weight: 800;
+}
+
+.tree-shell {
+  min-width: 680px;
+  overflow: auto;
+  padding: .85rem;
+  border: 1px solid #d7e4df;
+  border-radius: 14px;
+  background: var(--tree-surface);
+}
+
+.tree-group {
+  position: relative;
+  margin: .2rem 0 0 1rem;
+  padding: 0 0 0 var(--tree-indent);
+  list-style: none;
+}
+
+.tree-group::before {
+  content: '';
+  position: absolute;
+  left: .85rem;
+  top: -.2rem;
+  bottom: 1.75rem;
+  width: 1px;
+  background: var(--tree-line);
+}
+
+.tree-group--root { margin-top: .25rem; }
+.tree-item { position: relative; padding: .2rem 0; }
+
+.tree-item::before {
+  content: '';
+  position: absolute;
+  left: calc(-1 * var(--tree-indent) + .85rem);
+  top: 1.85rem;
+  width: calc(var(--tree-indent) - .85rem);
+  height: 1px;
+  background: var(--tree-line);
+}
+
+.tree-item:last-child::after {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  left: calc(-1 * var(--tree-indent) + .8rem);
+  top: calc(1.85rem + 1px);
+  bottom: 0;
+  width: 3px;
+  background: var(--tree-surface);
+}
+
+.tree-node {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  min-height: 52px;
+  width: min(100%, 860px);
+  padding: .38rem .6rem;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: var(--tree-surface);
+  transition: background-color 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.tree-node:hover,
+.tree-node--selected {
+  border-color: #c8ddd6;
+  background: #eef7f4;
+}
+
+.tree-node:focus-within {
+  outline: 3px solid rgba(24, 115, 93, .28);
+  outline-offset: 2px;
+}
+
+.tree-node--current {
+  border-color: #7eaa9c;
+  background: #e7f4ef;
+  box-shadow: inset 3px 0 #24705c;
+}
+
+.tree-node--country {
+  width: min(100%, 860px);
+  border-color: #c8ddd6;
+  background: #e9f4f0;
+}
+
+.country-mark {
+  width: .8rem;
+  height: .8rem;
+  flex: 0 0 .8rem;
+  border: 3px solid #d6ebe4;
+  border-radius: 50%;
+  background: #286c5c;
+  box-shadow: 0 0 0 1px #286c5c;
+}
+
+.node-copy,
+.node-main {
+  display: grid;
+  flex: 1;
+  min-width: 150px;
+  text-align: left;
+}
+
+.node-main:focus-visible,
+.toggle:focus-visible,
+.node-detail:focus-visible {
+  outline: 2px solid #24705c;
+  outline-offset: 2px;
+}
+
+.node-copy strong,
+.node-main strong { color: #173d49; font-size: .96rem; }
+.node-copy small,
+.node-main span { margin-top: .12rem; color: #697d85; font-size: .78rem; }
+
+.node-main {
+  border: 0;
+  padding: .12rem .18rem;
+  background: transparent;
+  cursor: pointer;
+}
+
+.node-main:hover strong { text-decoration: underline; text-underline-offset: 3px; }
+.node-main--static { cursor: default; }
+.node-main--static:hover strong { text-decoration: none; }
+.node-detail {
+  margin-left: auto;
+  border: 1px solid #9db7af;
+  border-radius: 8px;
+  padding: .42rem .58rem;
+  background: #fff;
+  color: #28584e;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.node-detail:hover { border-color: #6d9a8c; background: #f0f7f4; }
+
+.toggle,
+.leaf {
+  display: grid;
+  place-items: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  flex: 0 0 1.85rem;
+}
+
+.toggle {
+  border: 1px solid #9ebbb1;
+  border-radius: 7px;
+  background: #fff;
+  color: #205f50;
+  cursor: pointer;
+}
+
+.toggle:hover { background: #f0f7f4; border-color: #6d9a8c; }
+.leaf::before { content: ''; width: .48rem; height: .48rem; border-radius: 50%; background: #6f978b; }
+
+.chevron {
+  width: .48rem;
+  height: .48rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 120ms ease;
+}
+
+.chevron--expanded { transform: rotate(45deg) translate(-1px, -1px); }
+.count { color: #516b74; font-size: .78rem; white-space: nowrap; }
+.badge {
+  padding: .2rem .42rem;
+  border-radius: 999px;
+  background: #dcefe8;
+  color: #1f614f;
+  font-size: .7rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.badge--inactive { background: #eceeef; color: #5d6368; }
+
+.children-tools,
+.descendants {
+  display: grid;
+  gap: .75rem;
+  padding: .85rem;
+  border: 1px solid #d8e5e1;
+  border-radius: 12px;
+  background: #fbfdfc;
+}
+
+.children-tools > div:first-child { display: flex; justify-content: space-between; gap: 1rem; }
+.children-tools span { color: #687c84; }
+.children-tools form,
+.descendants form { display: flex; align-items: end; gap: .6rem; }
+.children-tools label,
+.descendants label { display: grid; flex: 1; gap: .25rem; color: #38515c; font-size: .8rem; font-weight: 800; }
+.children-tools input,
+.descendants input { border: 1px solid #afc1bb; border-radius: 8px; padding: .58rem; }
+.children-tools button,
+.descendants button,
+.descendant-actions button,
+.local-error button,
+.pager button { border: 1px solid #9db7af; border-radius: 8px; padding: .52rem .7rem; background: #fff; color: #28584e; font-weight: 800; cursor: pointer; }
+.descendant-actions { display: flex; flex-wrap: wrap; gap: .6rem; padding: .75rem; border: 1px solid #c8ddd6; border-radius: 11px; background: #f0f7f4; }
+.descendant-actions::before { content: 'Explora el subarbre'; align-self: center; margin-right: .2rem; color: #506b74; font-size: .8rem; font-weight: 800; }
+.descendant-actions button { background: #286c5c; color: #fff; }
+.descendant-actions span { margin-left: .35rem; padding: .1rem .4rem; border-radius: 999px; background: rgba(255, 255, 255, .2); }
+.descendants header { display: flex; justify-content: space-between; gap: 1rem; }
+.descendants h5 { margin: 0; color: #183c48; font-size: 1.05rem; }
+.descendants header p { margin: .2rem 0; color: #667b83; }
+.table-wrap { overflow: auto; border: 1px solid #dbe5e2; border-radius: 10px; }
+table { width: 100%; min-width: 760px; border-collapse: collapse; }
+th, td { text-align: left; padding: .6rem; border-bottom: 1px solid #e1eae7; }
+th { background: #eff6f3; color: #38525d; font-size: .72rem; text-transform: uppercase; }
+.pager { display: flex !important; justify-content: center !important; align-items: center; gap: .7rem; }
+.pager button:disabled { opacity: .45; cursor: not-allowed; }
+.local-error { padding: .75rem; border-left: 3px solid #b7483f; border-radius: 8px; background: #fdecea; color: #842e27; }
+.local-error p { margin: 0 0 .55rem; }
+
+.tree-group--feedback { margin-top: 0; }
+.tree-item--feedback { min-height: 50px; }
+.node-error { position: relative; z-index: 1; max-width: 720px; }
+.tree-skeleton,
+.result-skeleton { display: grid; gap: .55rem; padding: .75rem; }
+.skeleton {
+  display: block;
+  height: 1rem;
+  border-radius: 7px;
+  background: linear-gradient(90deg, #e5ece9 25%, #f5f8f7 50%, #e5ece9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.25s infinite;
+}
+.skeleton--tree-node { width: min(86%, 720px); height: 2.8rem; margin-left: calc(var(--depth) * var(--tree-indent)); }
+.skeleton--node { position: relative; z-index: 1; width: min(78%, 680px); height: 2.8rem; }
+.result-skeleton .skeleton { height: 2.8rem; }
+.reduced-motion .skeleton { animation: none; background: #e5ece9; }
+
+@keyframes shimmer { to { background-position: -200% 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .tree-node,
+  .chevron { transition: none; }
+  .skeleton { animation: none; background: #e5ece9; }
+}
+
+@media (max-width: 760px) {
+  .explorer { --tree-indent: 2rem; overflow-x: auto; }
+  .tree-shell { min-width: 570px; }
+  .tree-group { margin-left: .65rem; }
+  .tree-group::before { left: .6rem; }
+  .tree-item::before { left: calc(-1 * var(--tree-indent) + .6rem); width: calc(var(--tree-indent) - .6rem); }
+  .tree-item:last-child::after { left: calc(-1 * var(--tree-indent) + .55rem); }
+  .count,
+  .badge { display: none; }
+  .children-tools form,
+  .descendants form,
+  .descendants header { align-items: stretch; flex-direction: column; }
+}

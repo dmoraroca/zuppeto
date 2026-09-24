@@ -212,6 +212,20 @@ export interface CatalogDetail {
   codes: Array<{ id: string; scheme: string; value: string; validFrom: string | null; validTo: string | null; isPrimary: boolean; source: string | null }>;
   coordinateSource: string | null; datasetSources: string[]; importIds: string[]; audit: CatalogAudit[];
 }
+export interface CatalogHierarchyNode {
+  id: string; countryId: string; parentId: string | null; territorialUnitTypeId: string;
+  typeCode: string; type: string; name: string; primaryCode: string | null;
+  isActive: boolean; isSelectableLocality: boolean; directChildCount: number;
+}
+export interface CatalogDescendantType {
+  territorialUnitTypeId: string; typeCode: string; type: string; count: number; isSelectableLocality: boolean;
+}
+export interface CatalogHierarchy {
+  current: CatalogHierarchyNode;
+  ancestors: CatalogHierarchyNode[];
+  children: PageResult<CatalogHierarchyNode>;
+  descendantTypes: CatalogDescendantType[];
+}
 
 export interface PageResult<T> {
   items: T[];

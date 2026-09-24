@@ -88,7 +88,14 @@ export class TerritorialImportWizardComponent implements OnChanges, OnDestroy {
 
   @HostListener('document:keydown.escape')
   protected onEscape(): void {
-    if (this.selectedChange) this.closeChangeDetail();
+    if (this.confirmAction) this.confirmAction = null;
+    else if (this.selectedChange) this.closeChangeDetail();
+  }
+
+  protected get confirmationMessage(): string {
+    if (this.confirmAction === 'publish') return 'La publicació quedarà auditada i pot modificar l’estat del catàleg.';
+    if (this.confirmAction === 'revert') return 'La reversió quedarà auditada i pot modificar l’estat del catàleg.';
+    return 'La cancel·lació quedarà auditada i aturarà aquesta importació.';
   }
 
   protected get isProcessing(): boolean {
@@ -293,6 +300,13 @@ export class TerritorialImportWizardComponent implements OnChanges, OnDestroy {
   protected formatDate(value: string | null): string {
     if (!value) return 'No informada';
     return new Intl.DateTimeFormat('ca-ES', { dateStyle: 'medium' }).format(new Date(`${value}T00:00:00`));
+  }
+
+  protected formatDateTime(value: string | null): string {
+    if (!value) return 'encara no disponible';
+    return new Intl.DateTimeFormat('ca-ES', {
+      day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit'
+    }).format(new Date(value));
   }
 
   protected request(action: 'publish' | 'cancel' | 'revert'): void {

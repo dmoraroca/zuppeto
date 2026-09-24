@@ -29,6 +29,8 @@ internal static class TerritorialAdminEndpoints
         group.MapPost("/imports/{id:guid}/revert", RevertAsync);
         group.MapGet("/catalog", ListCatalogAsync);
         group.MapGet("/catalog/{id:guid}", GetCatalogUnitAsync);
+        group.MapGet("/catalog/{id:guid}/hierarchy", GetCatalogHierarchyAsync);
+        group.MapGet("/catalog/{id:guid}/descendants", ListCatalogDescendantsAsync);
         group.MapPost("/catalog/{id:guid}/maintenance", MaintainAsync);
         return app;
     }
@@ -152,6 +154,25 @@ internal static class TerritorialAdminEndpoints
         var item = await service.GetCatalogUnitAsync(actor, id, ct);
         return item is null ? TypedResults.NotFound() : TypedResults.Ok(item);
     }
+
+    [Authorize]
+    private static async Task<IResult> GetCatalogHierarchyAsync(
+        ClaimsPrincipal principal, Guid id, string? search, int page, int pageSize,
+        TerritorialAdminService service, CancellationToken ct)
+    {
+        if (!TryAdmin(principal, out var actor)) return TypedResults.Forbid();
+        var item = await service.GetCatalogHierarchyAsync(actor, id,
+            new TerritorialCatalogHierarchyQuery(search, page == 0 ? 1 : page, pageSize == 0 ? 50 : pageSize), ct);
+        return item is null ? TypedResults.NotFound() : TypedResults.Ok(item);
+    }
+
+    [Authorize]
+    private static async Task<IResult> ListCatalogDescendantsAsync(
+        ClaimsPrincipal principal, Guid id, Guid territorialUnitTypeId, string? search, int page, int pageSize,
+        TerritorialAdminService service, CancellationToken ct) =>
+        await ExecuteAdmin(principal, actor => service.ListCatalogDescendantsAsync(actor, id,
+            new TerritorialCatalogDescendantQuery(territorialUnitTypeId, search,
+                page == 0 ? 1 : page, pageSize == 0 ? 50 : pageSize), ct));
 
     [Authorize]
     private static async Task<IResult> MaintainAsync(

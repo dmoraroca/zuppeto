@@ -217,6 +217,18 @@ public sealed record TerritorialCatalogDetailDto(
     IReadOnlyCollection<TerritorialCatalogNameDto> Names, IReadOnlyCollection<TerritorialCatalogCodeDto> Codes,
     string? CoordinateSource, IReadOnlyCollection<string> DatasetSources, IReadOnlyCollection<Guid> ImportIds,
     IReadOnlyCollection<TerritorialMaintenanceAuditDto> Audit);
+public sealed record TerritorialCatalogHierarchyQuery(string? Search, int Page = 1, int PageSize = 50);
+public sealed record TerritorialCatalogDescendantQuery(Guid TerritorialUnitTypeId, string? Search, int Page = 1, int PageSize = 50);
+public sealed record TerritorialCatalogHierarchyNodeDto(
+    Guid Id, Guid CountryId, Guid? ParentId, Guid TerritorialUnitTypeId, string TypeCode, string Type,
+    string Name, string? PrimaryCode, bool IsActive, bool IsSelectableLocality, int DirectChildCount);
+public sealed record TerritorialCatalogDescendantTypeDto(
+    Guid TerritorialUnitTypeId, string TypeCode, string Type, int Count, bool IsSelectableLocality);
+public sealed record TerritorialCatalogHierarchyDto(
+    TerritorialCatalogHierarchyNodeDto Current,
+    IReadOnlyCollection<TerritorialCatalogHierarchyNodeDto> Ancestors,
+    PageResult<TerritorialCatalogHierarchyNodeDto> Children,
+    IReadOnlyCollection<TerritorialCatalogDescendantTypeDto> DescendantTypes);
 public sealed record TerritorialMaintenanceRequest(string Action, string Reason, bool? IsSelectableLocality = null, decimal? Latitude = null, decimal? Longitude = null);
 
 public sealed record TerritorialLocalityOptionDto(Guid Id, Guid CountryId, string Name, string Context, string? Locale);
@@ -238,6 +250,8 @@ public interface ITerritorialAdminRepository
     Task<PageResult<TerritorialCanonicalPreviewRowDto>> ListCanonicalPreviewAsync(Guid importId, TerritorialPreviewQuery query, CancellationToken cancellationToken = default);
     Task<PageResult<TerritorialCatalogUnitDto>> ListCatalogAsync(TerritorialCatalogQuery query, CancellationToken cancellationToken = default);
     Task<TerritorialCatalogDetailDto?> GetCatalogUnitAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<TerritorialCatalogHierarchyDto?> GetCatalogHierarchyAsync(Guid id, TerritorialCatalogHierarchyQuery query, CancellationToken cancellationToken = default);
+    Task<PageResult<TerritorialCatalogUnitDto>> ListCatalogDescendantsAsync(Guid id, TerritorialCatalogDescendantQuery query, CancellationToken cancellationToken = default);
     Task<TerritorialCatalogDetailDto> MaintainAsync(Guid id, Guid actorUserId, TerritorialMaintenanceRequest request, CancellationToken cancellationToken = default);
 }
 

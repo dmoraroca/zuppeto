@@ -154,6 +154,20 @@ public sealed class TerritorialAdminService(
         return await repository.GetCatalogUnitAsync(id, ct);
     }
 
+    public async Task<TerritorialCatalogHierarchyDto?> GetCatalogHierarchyAsync(
+        Guid actorUserId, Guid id, TerritorialCatalogHierarchyQuery query, CancellationToken ct = default)
+    {
+        await authorizer.EnsureAdminAsync(actorUserId, ct);
+        return await repository.GetCatalogHierarchyAsync(id, Normalize(query), ct);
+    }
+
+    public async Task<PageResult<TerritorialCatalogUnitDto>> ListCatalogDescendantsAsync(
+        Guid actorUserId, Guid id, TerritorialCatalogDescendantQuery query, CancellationToken ct = default)
+    {
+        await authorizer.EnsureAdminAsync(actorUserId, ct);
+        return await repository.ListCatalogDescendantsAsync(id, Normalize(query), ct);
+    }
+
     public async Task<TerritorialCatalogDetailDto> MaintainAsync(Guid actorUserId, Guid id, TerritorialMaintenanceRequest request, CancellationToken ct = default)
     {
         await authorizer.EnsureAdminAsync(actorUserId, ct);
@@ -221,6 +235,8 @@ public sealed class TerritorialAdminService(
     private static TerritorialChangeHierarchyQuery Normalize(TerritorialChangeHierarchyQuery query) => query with { Page = Math.Max(1, query.Page), PageSize = Math.Clamp(query.PageSize, 1, 100) };
     private static TerritorialPreviewQuery Normalize(TerritorialPreviewQuery query) => query with { Page = Math.Max(1, query.Page), PageSize = Math.Clamp(query.PageSize, 1, 100) };
     private static TerritorialCatalogQuery Normalize(TerritorialCatalogQuery query) => query with { Page = Math.Max(1, query.Page), PageSize = Math.Clamp(query.PageSize, 1, 100) };
+    private static TerritorialCatalogHierarchyQuery Normalize(TerritorialCatalogHierarchyQuery query) => query with { Page = Math.Max(1, query.Page), PageSize = Math.Clamp(query.PageSize, 1, 100) };
+    private static TerritorialCatalogDescendantQuery Normalize(TerritorialCatalogDescendantQuery query) => query with { Page = Math.Max(1, query.Page), PageSize = Math.Clamp(query.PageSize, 1, 100) };
 }
 
 public sealed class TerritorialLocationService(ITerritorialLocationRepository repository)

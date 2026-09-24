@@ -1,4 +1,11 @@
-<section class="catalog" [attr.aria-busy]="busy">
+@if (initialLoading) {
+  <section class="catalog catalog-skeleton" aria-busy="true" aria-label="Carregant el catàleg territorial">
+    <div class="skeleton skeleton--title"></div>
+    <div class="skeleton-filters">@for (item of [1,2,3,4,5,6]; track item) { <span class="skeleton"></span> }</div>
+    <div class="skeleton-table">@for (row of [1,2,3,4,5,6]; track row) { <span class="skeleton"></span> }</div>
+  </section>
+} @else {
+<section class="catalog" [attr.aria-busy]="busy || tableLoading">
   <header class="catalog-header">
     <div><p class="eyebrow">Catàleg publicat</p><h2>Territori existent</h2><p>Consulta el catàleg operatiu actual sense modificar importacions ni canvis preparats.</p></div>
     <strong>{{ page.totalCount }} unitats</strong>
@@ -21,6 +28,9 @@
     <table>
       <thead><tr><th>Codi</th><th>Nom</th><th>Tipus</th><th>País</th><th>Pare</th><th>Locale</th><th>Coordenades</th><th>Estat</th><th>Seleccionable</th><th><span class="visually-hidden">Accions</span></th></tr></thead>
       <tbody>
+        @if (tableLoading) {
+          @for (row of [1,2,3,4,5]; track row) { <tr class="loading-row"><td colspan="10"><span class="skeleton"></span></td></tr> }
+        } @else {
         @for (item of page.items; track item.id) {
           <tr tabindex="0" (click)="open(item)" (keydown.enter)="open(item)">
             <td>{{ item.primaryCode || '—' }}</td>
@@ -35,21 +45,47 @@
             <td><button class="open-action" type="button" (click)="$event.stopPropagation(); open(item)" [attr.aria-label]="'Obrir detall de ' + item.primaryName">Detall</button></td>
           </tr>
         } @empty { <tr><td colspan="10" class="empty-state">No hi ha unitats que coincideixin amb els filtres.</td></tr> }
+        }
       </tbody>
     </table>
   </div>
 
   <div class="pager"><button type="button" [disabled]="page.page <= 1" (click)="load(page.page - 1)">Anterior</button><span>Pàgina {{ page.page }} de {{ page.totalPages || 1 }}</span><button type="button" [disabled]="page.page >= page.totalPages" (click)="load(page.page + 1)">Següent</button></div>
 </section>
+}
+
+@if (detailLoading) {
+  <div class="detail-loading-backdrop">
+    <section class="detail-loading-modal" role="dialog" aria-modal="true" aria-label="Carregant el detall territorial" aria-busy="true">
+      <header><div class="skeleton skeleton--detail-title"></div><div class="skeleton skeleton--detail-subtitle"></div></header>
+      <nav>@for (tab of [1,2,3,4,5,6]; track tab) { <span class="skeleton"></span> }</nav>
+      <div class="detail-loading-content">@for (row of [1,2,3,4,5]; track row) { <span class="skeleton"></span> }</div>
+    </section>
+  </div>
+}
 
 @if (detail) {
+  <div [hidden]="detailStack.length > 0">
   <app-territorial-catalog-detail
     [detail]="detail"
     [busy]="busy"
     [error]="error"
     (closeDetail)="close()"
     (openUnit)="openById($event)"
-    (filterChildren)="showChildren($event)"
     (maintenance)="maintain($event)"
   />
+  </div>
+}
+
+@for (nestedDetail of detailStack; track nestedDetail.unit.id; let last = $last) {
+  <div [hidden]="!last">
+    <app-territorial-catalog-detail
+      [detail]="nestedDetail"
+      [busy]="busy"
+      [error]="error"
+      (closeDetail)="close()"
+      (openUnit)="openById($event)"
+      (maintenance)="maintain($event)"
+    />
+  </div>
 }

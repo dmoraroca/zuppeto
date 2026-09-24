@@ -1002,7 +1002,7 @@ La geografia del producte no s'ha de deixar a text lliure ni a resolucio ad hoc 
 
 ### 3.15.1 Iteració 6 — Remodelació territorial europea multicultural i multilingüe
 
-**Estat global: FASE VI COMPLETADA DEFINITIVAMENT. FASE VII EN CURS — VII.2–VII.8 COMPLETADES I VALIDADES; VII.9.1 COMPLETADA DOCUMENTALMENT I PENDENT DE REVISIÓ HUMANA; VII.9.2 NO INICIADA.** El worker durable, els mappings pilot i la validació contra API i PostgreSQL reals estan disponibles, però les fonts continuen `Pending`, no hi ha publicació oficial i les subfases VIII–IX no s'han iniciat.
+**Estat global: FASE VI COMPLETADA DEFINITIVAMENT. FASE VII EN CURS — VII.2–VII.8 COMPLETADES I VALIDADES; VII.9.1–VII.9.2 COMPLETADES; VII.9.3 IMPLEMENTADA I VALIDADA TÈCNICAMENT, PENDENT DE VALIDACIÓ MANUAL.** Espanya és el primer catàleg territorial oficial publicat amb 8.199 unitats; el refinament VII.9.3 no l’ha republicat ni modificat. Alemanya continua `Pending` i no publicada; no s’ha executat backfill i les subfases VIII–IX no s'han iniciat.
 
 El contracte funcional detallat i oficial de la Iteració 6 és [Iteració 6 — Contracte funcional del model territorial](iteracio-6-model-territorial-ca.md). Aquest document general en conserva el resum, l'abast i els criteris d'alt nivell; en cas de detall territorial, s'ha de consultar el contracte específic.
 
@@ -1091,7 +1091,7 @@ La Iteració 6 construeix el catàleg i ja adapta l’API pròpia i el selector 
 | IV | Migració EF Core / PostgreSQL | **COMPLETADA / VALIDADA** |
 | V | Motor genèric d'importació | **COMPLETADA / VALIDADA** |
 | VI | Gestió Territorial ADMIN | **COMPLETADA DEFINITIVAMENT** |
-| VII | Primera importació real i validació | **EN CURS — VII.2–VII.8 COMPLETADES; VII.9.1 PENDENT DE REVISIÓ HUMANA; VII.9.2 NO INICIADA** |
+| VII | Primera importació real i validació | **EN CURS — VII.9.3 IMPLEMENTADA I VALIDADA TÈCNICAMENT; PENDENT DE VALIDACIÓ MANUAL FINAL** |
 | VIII | Backfill de les dades actuals | **PENDENT** |
 | IX | Regressió i tancament | **PENDENT** |
 
@@ -1340,7 +1340,7 @@ Per tant, l'estat oficial actual és de **5 punts 🔴, 12 punts 🟠, 4 punts �
 
 #### 3.18.5 Bloc B — Territori
 
-**6. Remodelació territorial europea multicultural/multilingüe — FASE VII EN CURS; VII.2–VII.8 COMPLETADES / VII.9.1 COMPLETADA DOCUMENTALMENT I PENDENT DE REVISIÓ HUMANA / VII.9.2 NO INICIADA.** El nucli, motor, ADMIN, worker durable, mappings i pilots previs a publicació estan validats. No s’han publicat datasets reals ni s’ha fet backfill. El contracte i els límits es defineixen al [contracte funcional territorial](iteracio-6-model-territorial-ca.md) i el gate legal al [registre de fonts territorials](iteracio-6-fonts-territorials-ca.md).
+**6. Remodelació territorial europea multicultural/multilingüe — FASE VII EN CURS; VII.9.3 IMPLEMENTADA I VALIDADA TÈCNICAMENT, PENDENT DE VALIDACIÓ MANUAL FINAL.** Espanya té el primer catàleg oficial publicat amb 8.199 unitats i un explorador jeràrquic lazy; aquesta tasca no ha repetit la publicació. Alemanya continua no publicada i no s’ha fet backfill. El contracte i els límits es defineixen al [contracte funcional territorial](iteracio-6-model-territorial-ca.md) i el gate legal al [registre de fonts territorials](iteracio-6-fonts-territorials-ca.md).
 
 **7. API territorial sobre catàleg propi — IMPLEMENTADA.** Consulta `Country + TerritorialUnit`, valida la parella i integra `User`, `Place` i els filtres amb IDs. Els snapshots textuals i GeoNames encara no s’eliminen.
 
@@ -2114,7 +2114,13 @@ La pestanya Jerarquia del detall de Canvis a publicar permet navegar ancestres i
 
 Els noms territorials es conserven tal com arriben del dataset. No es divideixen valors amb `/`, no es tradueixen i no es generen variants automàtiques. Els futurs datasets per locale aportaran noms diferents sobre identificadors estables; la traducció de la interfície correspon a la fase específica d’Internacionalització.
 
-VII.8 està completada i validada manualment. El gate documental VII.9.1 classifica la font INE com a apta per proposar aprovació sota CC BY 4.0, amb atribució, data i transformacions documentades; aquesta proposta no canvia l’estat `Pending` ni autoritza publicar. La decisió humana i els detalls oficials són al [registre de fonts territorials](iteracio-6-fonts-territorials-ca.md).
+VII.8 està completada i validada manualment. VII.9.1 classifica documentalment la font INE com a apta i VII.9.2 registra l’acceptació humana i el canvi `Pending → Approved` sota CC BY 4.0. Una ordre humana posterior va publicar Espanya una sola vegada: 8.199 unitats oficials. VII.9.3 treballa exclusivament sobre aquest catàleg publicat, sense republicació ni manteniment manual de les unitats, i queda pendent de validació manual final de l’explorador.
+
+La pestanya Jerarquia presenta directament un tree territorial autoexplorable per chevrons, sense CTA separat ni badge textual per a la unitat del detall. El títol i el ressaltat visual existent identifiquen aquesta unitat. El tree usa grups pare-fill niats, profunditat explícita, connectors verticals i horitzontals per branca, ancestres navegables, fills directes, tipus, codi, recomptes i càrrega lazy. La indentació depèn només de parent-child i `depth`, de manera que admet jerarquies de més nivells sense fixar Comunitat/Província/Municipi. Expandir un ancestre completa la mateixa branca sense duplicar nodes; col·lapsar i reexpandir reutilitza les dades carregades. `Tots els municipis` continua sent una drecera diferenciada que retorna descendents del tipus Municipi dins del subarbre, amb total, cerca i paginació de servidor. El client no carrega les 8.199 unitats ni usa Angular com a font de veritat. En obrir un detall descendent i tornar, conserva l’arbre expandit, la unitat origen, la cerca i la pàgina.
+
+La seleccionabilitat no es mostra dins del tree. Els nodes terminals, especialment municipis, presenten `Veure detall` com a botó independent i no tenen chevron. Aquesta acció obre exactament el mateix detall territorial que `Detall` a Territori existent; no crea cap pantalla ni flux alternatiu. El filtre i la columna Seleccionable del catàleg continuen vigents.
+
+Catàleg, detall, expansió i resultats utilitzen skeletons locals, `aria-busy`, un llindar antiflicker i moviment desactivat amb `prefers-reduced-motion`. Els errors d’un node es resolen localment amb `Reintentar` sense destruir l’arbre. El modal de confirmació mostra text funcional català, `[Cancel·lar] [Confirmar]`, posa el focus inicial a Cancel·lar i tracta Escape com una cancel·lació; no exposa l’acció interna `publish`.
 
 Activar, desactivar, canviar seleccionabilitat o coordenades exigeix operació explícita, motiu i auditoria. Codis, noms i jerarquia oficials no tenen edició directa.
 

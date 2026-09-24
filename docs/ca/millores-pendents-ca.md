@@ -29,7 +29,7 @@ No substitueix `docs/project-phases.md` ni el joc de proves Excel: aquí només 
 
 El refinament visual del catàleg territorial també està implementat i validat: filtres compactes, taula completa, detall modal ampli, sis pestanyes funcionals, badges, jerarquia navegable, auditoria llegible i diàlegs contextuals separats. El selector País → Localitat usa un únic autocomplete asíncron compartit i el grid de Llocs i Favorits està equilibrat. La Fase VI queda completada definitivament; aquesta entrada no inicia la Fase VII.
 
-La Fase VII ja disposa de worker i pilots preparats. VII.8 està completada i validada manualment; VII.9.1 ha preparat la proposta documental A per a la font INE, però la revisió humana, l’aprovació efectiva i els gates alemanys continuen pendents. El mapa/explorador públic continua sent una decisió ajornada: al final de les iteracions funcionals es decidirà explícitament si es manté, es redissenya, se substitueix o s'elimina. Aquesta decisió no es pren a Fase VII.
+La Fase VII ja disposa de worker i del primer catàleg oficial publicat: Espanya, 8.199 unitats. VII.9.3 ha implementat i validat tècnicament l’explorador ADMIN del catàleg publicat, sense republicar Espanya; queda pendent la validació manual final i els gates alemanys. El mapa/explorador públic continua sent una decisió ajornada: al final de les iteracions funcionals es decidirà explícitament si es manté, es redissenya, se substitueix o s'elimina. Aquesta decisió no es pren a Fase VII.
 
 ---
 

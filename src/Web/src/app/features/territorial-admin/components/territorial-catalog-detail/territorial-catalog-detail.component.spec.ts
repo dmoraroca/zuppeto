@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { describe, expect, it, vi } from 'vitest';
 
+import { TerritorialAdminApiService } from '../../services/territorial-admin-api.service';
 import { TerritorialCatalogDetailComponent } from './territorial-catalog-detail.component';
 
 describe('TerritorialCatalogDetailComponent', () => {
@@ -106,6 +107,48 @@ describe('TerritorialCatalogDetailComponent', () => {
     expect(fixture.nativeElement.querySelector('[role="alertdialog"]')).toBeNull();
     expect(fixture.nativeElement.querySelector('[role="dialog"]')).not.toBeNull();
     expect(emitted).not.toHaveBeenCalled();
+  });
+
+  it('shows the self-explorable tree directly without redundant current-unit text or CTA', async () => {
+    const api = {
+      catalogHierarchy: vi.fn().mockResolvedValue({
+        current: {
+          id: 'unit', countryId: 'country', parentId: 'region', territorialUnitTypeId: 'type', typeCode: 'LOCALITY',
+          type: 'Localitat E2E', name: 'Vila E2E À', primaryCode: 'E2E-001', isActive: true,
+          isSelectableLocality: true, directChildCount: 0
+        },
+        ancestors: [{
+          id: 'region', countryId: 'country', parentId: null, territorialUnitTypeId: 'region-type', typeCode: 'REGION',
+          type: 'Regió E2E', name: 'Regió E2E À', primaryCode: 'R-E2E', isActive: true,
+          isSelectableLocality: false, directChildCount: 1
+        }],
+        children: { items: [], page: 1, pageSize: 50, totalCount: 0, totalPages: 0 },
+        descendantTypes: []
+      }),
+      catalogDescendants: vi.fn()
+    };
+    await TestBed.configureTestingModule({
+      imports: [TerritorialCatalogDetailComponent],
+      providers: [{ provide: TerritorialAdminApiService, useValue: api }]
+    }).compileComponents();
+    const fixture = TestBed.createComponent(TerritorialCatalogDetailComponent);
+    fixture.componentRef.setInput('detail', detail());
+    const opened = vi.fn();
+    fixture.componentInstance.openUnit.subscribe(opened);
+    fixture.detectChanges();
+
+    click(fixture, 'Jerarquia');
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const explorer = fixture.nativeElement.querySelector('app-territorial-hierarchy-explorer') as HTMLElement;
+    const nodes = [...explorer.querySelectorAll('.tree-node[data-depth]')] as HTMLElement[];
+    expect(nodes.map((node) => node.dataset['depth'])).toEqual(['0', '1', '2']);
+    expect(explorer.textContent).toContain('País E2E À');
+    expect(explorer.textContent).not.toContain('Unitat actual');
+    expect(explorer.textContent).not.toContain('Explorar jerarquia');
+    expect(explorer.querySelector('.tree-node--current')?.textContent).toContain('Vila E2E À');
+    (nodes[1].querySelector('.node-main') as HTMLButtonElement).click();
+    expect(opened).toHaveBeenCalledWith('region');
   });
 });
 

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using Zuppeto.Application.TerritorialImports;
 using Zuppeto.Infrastructure.Persistence;
 using Zuppeto.Infrastructure.Persistence.Entities;
@@ -108,6 +109,9 @@ internal sealed class TerritorialAdminRepository(ZuppetoDbContext db) : ITerrito
                 x.PublicationMode,
                 x.FailureReason,
                 x.MappingTemplate.SchemaFingerprint,
+                SourceApprovalStatus = x.DatasetSource.ApprovalStatus,
+                SourceIsActive = x.DatasetSource.IsActive,
+                MappingIsActive = x.MappingTemplate.IsActive,
                 CurrentCatalogVersion = db.TerritorialCatalogStates.Where(state => state.CountryId == x.DatasetSource.CountryId).Select(state => (long?)state.Version).FirstOrDefault() ?? 0,
                 ChangeSet = x.ChangeSets.Where(set => set.RevertsChangeSetId == null).Select(set => new { set.Id, set.Status, set.CatalogVersion, set.CreatedAtUtc, set.PublishedAtUtc }).FirstOrDefault()
             }).SingleOrDefaultAsync(ct);
@@ -139,9 +143,17 @@ internal sealed class TerritorialAdminRepository(ZuppetoDbContext db) : ITerrito
         var conflictCount = publicationItems.Count(x =>
             (JsonSerializer.Deserialize<string[]>(x.ChangedFieldsJson, TerritorialImportJson.Options) ?? [])
                 .Any(field => field.StartsWith("manualOverrideConflict:", StringComparison.Ordinal)));
+        var canPublish = item.Summary.Status == "ReadyForReview"
+            && !item.Summary.HasBlockingErrors
+            && item.SourceIsActive
+            && item.SourceApprovalStatus == "Approved"
+            && item.MappingIsActive
+            && changeSet?.Status == "Prepared"
+            && item.Summary.CatalogVersion == item.CurrentCatalogVersion
+            && conflictCount == 0;
         return new TerritorialImportDetailDto(item.Summary, item.PublicationMode, item.FailureReason, item.SchemaFingerprint,
             item.Summary.Status is not ("Published" or "Reverted" or "Cancelled"),
-            item.Summary.Status == "ReadyForReview" && !item.Summary.HasBlockingErrors,
+            canPublish,
             canRevert, item.CurrentCatalogVersion, changeSet?.Id, changeSet?.Status, changeSet?.CreatedAtUtc, changeSet?.PublishedAtUtc,
             sourceSheets, conflictCount, breakdown);
     }
@@ -244,39 +256,50 @@ internal sealed class TerritorialAdminRepository(ZuppetoDbContext db) : ITerrito
         Guid changeSetId, string canonicalUnitKey, Guid? territorialUnitId, string? search)
     {
         var pattern = string.IsNullOrWhiteSpace(search) ? null : $"%{EscapeLikePattern(search.Trim())}%";
+        var parameters = new List<object>
+        {
+            new NpgsqlParameter("change_set_id", changeSetId),
+            new NpgsqlParameter("canonical_unit_key", canonicalUnitKey)
+        };
+        string sql;
         if (territorialUnitId is { } parentId)
         {
-            var parentIdText = parentId.ToString();
-            return pattern is null
-                ? db.TerritorialChangeSetItems.FromSqlInterpolated($$"""
-                    SELECT * FROM territorial_change_set_items
-                    WHERE change_set_id = {{changeSetId}}
-                      AND ((after_json ->> 'parentCanonicalUnitKey') = {{canonicalUnitKey}}
-                           OR (after_json IS NULL AND (before_json ->> 'parentId') = {{parentIdText}}))
-                    """).AsNoTracking()
-                : db.TerritorialChangeSetItems.FromSqlInterpolated($$"""
-                    SELECT * FROM territorial_change_set_items
-                    WHERE change_set_id = {{changeSetId}}
-                      AND ((after_json ->> 'parentCanonicalUnitKey') = {{canonicalUnitKey}}
-                           OR (after_json IS NULL AND (before_json ->> 'parentId') = {{parentIdText}}))
-                      AND (canonical_unit_key ILIKE {{pattern}} ESCAPE '\'
-                           OR before_json::text ILIKE {{pattern}} ESCAPE '\'
-                           OR after_json::text ILIKE {{pattern}} ESCAPE '\')
-                    """).AsNoTracking();
+            parameters.Add(new NpgsqlParameter("parent_id", parentId.ToString()));
+            sql = """
+                SELECT * FROM territorial_change_set_items
+                WHERE change_set_id = @change_set_id
+                  AND ((after_json ->> 'parentCanonicalUnitKey') = @canonical_unit_key
+                       OR (after_json IS NULL AND (before_json ->> 'parentId') = @parent_id))
+                """;
+            if (pattern is not null)
+            {
+                parameters.Add(new NpgsqlParameter("pattern", pattern));
+                sql += """
+
+                      AND (canonical_unit_key ILIKE @pattern ESCAPE '\'
+                           OR before_json::text ILIKE @pattern ESCAPE '\'
+                           OR after_json::text ILIKE @pattern ESCAPE '\')
+                    """;
+            }
         }
-        return pattern is null
-            ? db.TerritorialChangeSetItems.FromSqlInterpolated($$"""
+        else
+        {
+            sql = """
                 SELECT * FROM territorial_change_set_items
-                WHERE change_set_id = {{changeSetId}}
-                  AND (after_json ->> 'parentCanonicalUnitKey') = {{canonicalUnitKey}}
-                """).AsNoTracking()
-            : db.TerritorialChangeSetItems.FromSqlInterpolated($$"""
-                SELECT * FROM territorial_change_set_items
-                WHERE change_set_id = {{changeSetId}}
-                  AND (after_json ->> 'parentCanonicalUnitKey') = {{canonicalUnitKey}}
-                  AND (canonical_unit_key ILIKE {{pattern}} ESCAPE '\'
-                       OR after_json::text ILIKE {{pattern}} ESCAPE '\')
-                """).AsNoTracking();
+                WHERE change_set_id = @change_set_id
+                  AND (after_json ->> 'parentCanonicalUnitKey') = @canonical_unit_key
+                """;
+            if (pattern is not null)
+            {
+                parameters.Add(new NpgsqlParameter("pattern", pattern));
+                sql += """
+
+                      AND (canonical_unit_key ILIKE @pattern ESCAPE '\'
+                           OR after_json::text ILIKE @pattern ESCAPE '\')
+                    """;
+            }
+        }
+        return db.TerritorialChangeSetItems.FromSqlRaw(sql, parameters.ToArray()).AsNoTracking();
     }
 
     private async Task<IReadOnlyCollection<TerritorialChangeItemDto>> BuildChangeDtos(
@@ -524,6 +547,128 @@ internal sealed class TerritorialAdminRepository(ZuppetoDbContext db) : ITerrito
         return new PageResult<TerritorialCatalogUnitDto>(rows, request.Page, request.PageSize, total);
     }
 
+    public async Task<TerritorialCatalogHierarchyDto?> GetCatalogHierarchyAsync(
+        Guid id, TerritorialCatalogHierarchyQuery request, CancellationToken ct = default)
+    {
+        var path = await db.Database.SqlQueryRaw<CatalogPathRow>("""
+            WITH RECURSIVE path AS (
+                SELECT id, parent_id, 0 AS depth
+                FROM territorial_units
+                WHERE id = @unit_id
+                UNION ALL
+                SELECT parent.id, parent.parent_id, path.depth + 1
+                FROM territorial_units parent
+                JOIN path ON path.parent_id = parent.id
+            )
+            SELECT id AS "Id", depth AS "Depth" FROM path
+            """, new NpgsqlParameter("unit_id", id)).ToArrayAsync(ct);
+        if (path.Length == 0) return null;
+
+        var pathIds = path.Select(x => x.Id).ToArray();
+        var pathNodes = await CatalogHierarchyNodes(db.TerritorialUnits.AsNoTracking().Where(x => pathIds.Contains(x.Id)))
+            .ToDictionaryAsync(x => x.Id, ct);
+        var current = pathNodes[id];
+        var ancestors = path.Where(x => x.Depth > 0).OrderByDescending(x => x.Depth)
+            .Select(x => pathNodes[x.Id]).ToArray();
+
+        var childrenQuery = db.TerritorialUnits.AsNoTracking().Where(x => x.ParentId == id);
+        if (!string.IsNullOrWhiteSpace(request.Search))
+        {
+            var value = request.Search.Trim();
+            childrenQuery = childrenQuery.Where(x => x.Names.Any(n => n.Name.Contains(value)) || x.Codes.Any(c => c.Value.Contains(value)));
+        }
+        var total = await childrenQuery.CountAsync(ct);
+        var childrenPage = childrenQuery
+            .OrderBy(x => x.TerritorialUnitType.DisplayOrder)
+            .ThenBy(x => x.Names.Where(n => n.IsPrimary).Select(n => n.Name).FirstOrDefault())
+            .Skip((request.Page - 1) * request.PageSize).Take(request.PageSize);
+        var children = await CatalogHierarchyNodes(childrenPage).ToArrayAsync(ct);
+
+        var descendantTypes = await db.Database.SqlQueryRaw<CatalogDescendantTypeRow>("""
+            WITH RECURSIVE subtree AS (
+                SELECT id, parent_id, territorial_unit_type_id, 0 AS depth
+                FROM territorial_units
+                WHERE id = @unit_id
+                UNION ALL
+                SELECT child.id, child.parent_id, child.territorial_unit_type_id, subtree.depth + 1
+                FROM territorial_units child
+                JOIN subtree ON child.parent_id = subtree.id
+            )
+            SELECT type.id AS "TerritorialUnitTypeId", type.code AS "TypeCode", type.name AS "Type",
+                   count(*)::int AS "Count", type.is_selectable_locality AS "IsSelectableLocality"
+            FROM subtree
+            JOIN territorial_unit_types type ON type.id = subtree.territorial_unit_type_id
+            WHERE subtree.depth > 0
+            GROUP BY type.id, type.code, type.name, type.display_order, type.is_selectable_locality
+            ORDER BY type.display_order, type.name
+            """, new NpgsqlParameter("unit_id", id)).ToArrayAsync(ct);
+
+        return new TerritorialCatalogHierarchyDto(current, ancestors,
+            new PageResult<TerritorialCatalogHierarchyNodeDto>(children, request.Page, request.PageSize, total),
+            descendantTypes.Select(x => new TerritorialCatalogDescendantTypeDto(
+                x.TerritorialUnitTypeId, x.TypeCode, x.Type, x.Count, x.IsSelectableLocality)).ToArray());
+    }
+
+    public async Task<PageResult<TerritorialCatalogUnitDto>> ListCatalogDescendantsAsync(
+        Guid id, TerritorialCatalogDescendantQuery request, CancellationToken ct = default)
+    {
+        var pattern = $"%{EscapeLikePattern(request.Search?.Trim() ?? string.Empty)}%";
+        var offset = (request.Page - 1) * request.PageSize;
+        var rows = await db.Database.SqlQueryRaw<CatalogDescendantRow>("""
+            WITH RECURSIVE subtree AS (
+                SELECT id, parent_id, country_id, territorial_unit_type_id, 0 AS depth
+                FROM territorial_units
+                WHERE id = @unit_id
+                UNION ALL
+                SELECT child.id, child.parent_id, child.country_id, child.territorial_unit_type_id, subtree.depth + 1
+                FROM territorial_units child
+                JOIN subtree ON child.parent_id = subtree.id
+            ), matches AS (
+                SELECT unit.id AS "Id", unit.country_id AS "CountryId", country.name AS "Country",
+                       unit.territorial_unit_type_id AS "TerritorialUnitTypeId", type.code AS "TypeCode", type.name AS "Type",
+                       unit.parent_id AS "ParentId", parent_name.name AS "Parent", code.value AS "PrimaryCode",
+                       name.name AS "PrimaryName", name.locale AS "Locale", unit.latitude AS "Latitude",
+                       unit.longitude AS "Longitude", unit.is_active AS "IsActive",
+                       COALESCE(unit.manual_selectable_locality, type.is_selectable_locality) AS "IsSelectableLocality",
+                       (unit.has_manual_active_override OR unit.manual_selectable_locality IS NOT NULL OR unit.has_manual_coordinate_override) AS "HasManualOverride",
+                       unit.has_manual_active_override AS "HasManualActiveOverride",
+                       (unit.manual_selectable_locality IS NOT NULL) AS "HasManualSelectableOverride",
+                       unit.has_manual_coordinate_override AS "HasManualCoordinateOverride"
+                FROM subtree
+                JOIN territorial_units unit ON unit.id = subtree.id
+                JOIN countries country ON country.id = unit.country_id
+                JOIN territorial_unit_types type ON type.id = unit.territorial_unit_type_id
+                LEFT JOIN LATERAL (
+                    SELECT n.name, n.locale FROM territorial_unit_names n
+                    WHERE n.territorial_unit_id = unit.id ORDER BY n.is_primary DESC, n.id LIMIT 1
+                ) name ON TRUE
+                LEFT JOIN LATERAL (
+                    SELECT c.value FROM territorial_unit_codes c
+                    WHERE c.territorial_unit_id = unit.id ORDER BY c.is_primary DESC, c.id LIMIT 1
+                ) code ON TRUE
+                LEFT JOIN LATERAL (
+                    SELECT n.name FROM territorial_unit_names n
+                    WHERE n.territorial_unit_id = unit.parent_id ORDER BY n.is_primary DESC, n.id LIMIT 1
+                ) parent_name ON TRUE
+                WHERE subtree.depth > 0
+                  AND unit.territorial_unit_type_id = @type_id
+                  AND (COALESCE(name.name, '') ILIKE @pattern ESCAPE '\'
+                       OR COALESCE(code.value, '') ILIKE @pattern ESCAPE '\')
+            )
+            SELECT matches.*, count(*) OVER()::int AS "TotalCount"
+            FROM matches
+            ORDER BY "PrimaryName", "PrimaryCode"
+            LIMIT @page_size OFFSET @offset
+            """,
+            new NpgsqlParameter("unit_id", id),
+            new NpgsqlParameter("type_id", request.TerritorialUnitTypeId),
+            new NpgsqlParameter("pattern", pattern),
+            new NpgsqlParameter("page_size", request.PageSize),
+            new NpgsqlParameter("offset", offset)).ToArrayAsync(ct);
+        var total = rows.FirstOrDefault()?.TotalCount ?? 0;
+        return new PageResult<TerritorialCatalogUnitDto>(rows.Select(ToCatalogUnit).ToArray(), request.Page, request.PageSize, total);
+    }
+
     public async Task<TerritorialCatalogDetailDto?> GetCatalogUnitAsync(Guid id, CancellationToken ct = default)
     {
         var unit = await db.TerritorialUnits.AsNoTracking()
@@ -682,4 +827,55 @@ internal sealed class TerritorialAdminRepository(ZuppetoDbContext db) : ITerrito
         x.ManualSelectableLocality ?? x.TerritorialUnitType.IsSelectableLocality,
         x.HasManualActiveOverride || x.ManualSelectableLocality != null || x.HasManualCoordinateOverride,
         x.HasManualActiveOverride, x.ManualSelectableLocality != null, x.HasManualCoordinateOverride);
+
+    private static IQueryable<TerritorialCatalogHierarchyNodeDto> CatalogHierarchyNodes(IQueryable<TerritorialUnitRecord> query) =>
+        query.Select(x => new TerritorialCatalogHierarchyNodeDto(
+            x.Id, x.CountryId, x.ParentId, x.TerritorialUnitTypeId, x.TerritorialUnitType.Code, x.TerritorialUnitType.Name,
+            x.Names.Where(n => n.IsPrimary).Select(n => n.Name).FirstOrDefault() ?? x.Names.Select(n => n.Name).FirstOrDefault() ?? string.Empty,
+            x.Codes.Where(c => c.IsPrimary).Select(c => c.Value).FirstOrDefault() ?? x.Codes.Select(c => c.Value).FirstOrDefault(),
+            x.IsActive, x.ManualSelectableLocality ?? x.TerritorialUnitType.IsSelectableLocality, x.Children.Count));
+
+    private static TerritorialCatalogUnitDto ToCatalogUnit(CatalogDescendantRow x) => new(
+        x.Id, x.CountryId, x.Country, x.TerritorialUnitTypeId, x.TypeCode, x.Type, x.ParentId, x.Parent,
+        x.PrimaryCode, x.PrimaryName, x.Locale, x.Latitude, x.Longitude, x.IsActive, x.IsSelectableLocality,
+        x.HasManualOverride, x.HasManualActiveOverride, x.HasManualSelectableOverride, x.HasManualCoordinateOverride);
+
+    private sealed class CatalogPathRow
+    {
+        public Guid Id { get; init; }
+        public int Depth { get; init; }
+    }
+
+    private sealed class CatalogDescendantTypeRow
+    {
+        public Guid TerritorialUnitTypeId { get; init; }
+        public string TypeCode { get; init; } = string.Empty;
+        public string Type { get; init; } = string.Empty;
+        public int Count { get; init; }
+        public bool IsSelectableLocality { get; init; }
+    }
+
+    private sealed class CatalogDescendantRow
+    {
+        public Guid Id { get; init; }
+        public Guid CountryId { get; init; }
+        public string Country { get; init; } = string.Empty;
+        public Guid TerritorialUnitTypeId { get; init; }
+        public string TypeCode { get; init; } = string.Empty;
+        public string Type { get; init; } = string.Empty;
+        public Guid? ParentId { get; init; }
+        public string? Parent { get; init; }
+        public string? PrimaryCode { get; init; }
+        public string PrimaryName { get; init; } = string.Empty;
+        public string? Locale { get; init; }
+        public decimal? Latitude { get; init; }
+        public decimal? Longitude { get; init; }
+        public bool IsActive { get; init; }
+        public bool IsSelectableLocality { get; init; }
+        public bool HasManualOverride { get; init; }
+        public bool HasManualActiveOverride { get; init; }
+        public bool HasManualSelectableOverride { get; init; }
+        public bool HasManualCoordinateOverride { get; init; }
+        public int TotalCount { get; init; }
+    }
 }

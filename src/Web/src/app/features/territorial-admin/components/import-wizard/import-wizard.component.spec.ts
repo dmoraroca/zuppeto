@@ -32,6 +32,86 @@ describe('TerritorialImportWizardComponent functional change presentation', () =
     expect(fixture.nativeElement.textContent).toContain('5. Canvis a publicar');
   });
 
+  it('enables publication only when the approved source and all backend gates pass', async () => {
+    const approvedContext = context();
+    approvedContext.sources[0] = { ...approvedContext.sources[0], approvalStatus: 'Approved' };
+    const publishableDetail = { ...detail(), canPublish: true };
+    const api = {
+      detail: vi.fn().mockResolvedValue(publishableDetail), issues: vi.fn().mockResolvedValue(page([])),
+      changes: vi.fn().mockResolvedValue(page([])), sourcePreview: vi.fn().mockResolvedValue(page([])),
+      canonicalPreview: vi.fn().mockResolvedValue(page([]))
+    };
+    await TestBed.configureTestingModule({
+      imports: [TerritorialImportWizardComponent],
+      providers: [{ provide: TerritorialAdminApiService, useValue: api }]
+    }).compileComponents();
+    const fixture = TestBed.createComponent(TerritorialImportWizardComponent);
+    fixture.componentRef.setInput('context', approvedContext);
+    fixture.detectChanges();
+
+    await (fixture.componentInstance as unknown as { open(id: string): Promise<void> }).open('import-1');
+    fixture.detectChanges();
+    const publicationButton = [...fixture.nativeElement.querySelectorAll('button')]
+      .find((button: Element) => button.textContent?.trim() === 'Anar a publicació') as HTMLButtonElement;
+    publicationButton.click();
+    fixture.detectChanges();
+
+    const publishButton = [...fixture.nativeElement.querySelectorAll('button')]
+      .find((button: Element) => button.textContent?.trim() === 'Publicar catàleg') as HTMLButtonElement;
+    expect(publishButton.disabled).toBe(false);
+    expect(fixture.nativeElement.textContent).toContain('Estat de la font');
+    expect(fixture.nativeElement.textContent).toContain('Aprovada');
+    expect(fixture.nativeElement.textContent).not.toContain('Pendent d’aprovació');
+  });
+
+  it('uses a functional publication confirmation and a human heartbeat without exposing internal actions', async () => {
+    const approvedContext = context();
+    approvedContext.sources[0] = { ...approvedContext.sources[0], approvalStatus: 'Approved' };
+    const publishableDetail = detail();
+    publishableDetail.canPublish = true;
+    publishableDetail.import.lastHeartbeatAtUtc = '2026-09-24T17:31:45Z';
+    const api = {
+      detail: vi.fn().mockResolvedValue(publishableDetail), issues: vi.fn().mockResolvedValue(page([])),
+      changes: vi.fn().mockResolvedValue(page([])), sourcePreview: vi.fn().mockResolvedValue(page([])),
+      canonicalPreview: vi.fn().mockResolvedValue(page([])), publish: vi.fn()
+    };
+    await TestBed.configureTestingModule({
+      imports: [TerritorialImportWizardComponent],
+      providers: [{ provide: TerritorialAdminApiService, useValue: api }]
+    }).compileComponents();
+    const fixture = TestBed.createComponent(TerritorialImportWizardComponent);
+    fixture.componentRef.setInput('context', approvedContext);
+    fixture.detectChanges();
+    await (fixture.componentInstance as unknown as { open(id: string): Promise<void> }).open('import-1');
+    fixture.detectChanges();
+
+    const formattedHeartbeat = (fixture.componentInstance as unknown as { formatDateTime(value: string): string })
+      .formatDateTime('2026-09-24T17:31:45Z');
+    expect(formattedHeartbeat).toContain('24/09/2026');
+    expect(formattedHeartbeat).not.toContain('T');
+
+    const publicationStep = [...fixture.nativeElement.querySelectorAll('button')]
+      .find((button: Element) => button.textContent?.trim() === 'Anar a publicació') as HTMLButtonElement;
+    publicationStep.click();
+    fixture.detectChanges();
+    const publish = [...fixture.nativeElement.querySelectorAll('button')]
+      .find((button: Element) => button.textContent?.trim() === 'Publicar catàleg') as HTMLButtonElement;
+    publish.click();
+    fixture.detectChanges();
+
+    const dialog = fixture.nativeElement.querySelector('[role="alertdialog"]') as HTMLElement;
+    expect(dialog.textContent).toContain('La publicació quedarà auditada');
+    expect(dialog.textContent).not.toContain('publish');
+    const actions = [...dialog.querySelectorAll('button')].map((button) => button.textContent?.trim());
+    expect(actions).toEqual(['Cancel·lar', 'Confirmar']);
+    expect(dialog.querySelector('button[autofocus]')?.textContent?.trim()).toBe('Cancel·lar');
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="alertdialog"]')).toBeNull();
+    expect(api.publish).not.toHaveBeenCalled();
+  });
+
   it('renders translated status, human rows and structured Create/Update/Deactivate details without raw JSON', async () => {
     const changes = [
       change('Create', 'Arenys de Mar', '08006', 'Municipi', 'Maresme', [], 'Aquesta unitat territorial encara no existeix i es crearà en publicar.'),

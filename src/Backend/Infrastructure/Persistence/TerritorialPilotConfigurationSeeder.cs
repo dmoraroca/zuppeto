@@ -8,7 +8,8 @@ using Zuppeto.Infrastructure.Persistence.Entities;
 namespace Zuppeto.Infrastructure.Persistence;
 
 /// <summary>
-/// Seeds configuration only. It deliberately leaves both legal approvals pending and never publishes territorial units.
+/// Seeds configuration only. New sources start pending; an existing human approval is never overwritten.
+/// This seeder never publishes territorial units.
 /// </summary>
 public sealed class TerritorialPilotConfigurationSeeder(ZuppetoDbContext db)
 {
@@ -23,12 +24,15 @@ public sealed class TerritorialPilotConfigurationSeeder(ZuppetoDbContext db)
 
         var spainSource = await UpsertSource(
             new Guid("71000000-0000-0000-0000-000000000001"), spain.Id,
-            "Instituto Nacional de Estadística", "Relació oficial de municipis i províncies",
-            "es-ES", "https://www.ine.es/", "2026-01-01", new DateOnly(2026, 1, 1), now, ct);
+            "Instituto Nacional de Estadística (INE)", "30247 — Relación de Municipios y sus Códigos por Provincias",
+            "es-ES", "https://www.ine.es/dyngs/INEbase/operacion.htm?c=Estadistica_C&cid=1254736177031&idp=1254734710990&menu=ultiDatos",
+            "https://www.ine.es/daco/daco42/codmun/diccionario26.xlsx",
+            "2026-01-01", new DateOnly(2026, 1, 1), now, ct);
         var germanySource = await UpsertSource(
             new Guid("71000000-0000-0000-0000-000000000002"), germany.Id,
             "Statistische Ämter des Bundes und der Länder", "Gemeindeverzeichnis-Informationssystem GV-ISys",
-            "de-DE", "https://www.statistikportal.de/", "2026-09-30", new DateOnly(2026, 9, 30), now, ct);
+            "de-DE", "https://www.statistikportal.de/", null,
+            "2026-09-30", new DateOnly(2026, 9, 30), now, ct);
 
         await UpsertTypes(spain.Id, [
             ("AUTONOMOUS_COMMUNITY", "Comunitat autònoma", 10, false),
@@ -69,23 +73,23 @@ public sealed class TerritorialPilotConfigurationSeeder(ZuppetoDbContext db)
     }
 
     private async Task<TerritorialDatasetSourceRecord> UpsertSource(Guid configuredId, Guid countryId,
-        string organisation, string dataset, string locale, string url, string version, DateOnly datasetDate,
+        string organisation, string dataset, string locale, string url, string? downloadUrl, string version, DateOnly datasetDate,
         DateTimeOffset now, CancellationToken ct)
     {
-        var source = await db.TerritorialDatasetSources.SingleOrDefaultAsync(x =>
-            x.CountryId == countryId && x.Organisation == organisation && x.Dataset == dataset, ct);
+        var source = await db.TerritorialDatasetSources.SingleOrDefaultAsync(x => x.Id == configuredId, ct);
         if (source is null)
         {
-            source = new TerritorialDatasetSourceRecord { Id = configuredId, CountryId = countryId, CreatedAtUtc = now };
+            source = new TerritorialDatasetSourceRecord
+            {
+                Id = configuredId, CountryId = countryId, CreatedAtUtc = now,
+                ApprovalStatus = "Pending",
+                Restrictions = "Pendent de validació legal i de procedència abans de qualsevol publicació."
+            };
             db.TerritorialDatasetSources.Add(source);
         }
         source.Organisation = organisation; source.Dataset = dataset; source.DatasetType = "AdministrativeTerritory";
-        source.Locale = locale; source.Url = url; source.DownloadUrl = null;
-        source.License = null; source.LicenseUrl = null; source.Attribution = null;
-        source.CommercialUseAllowed = null; source.TransformationAllowed = null;
-        source.Restrictions = "Pendent de validació legal i de procedència abans de qualsevol publicació.";
-        source.ThirdPartyData = null; source.ApprovalStatus = "Pending"; source.VerifiedAtUtc = null;
-        source.VerifiedByUserId = null; source.IsActive = true; source.PublicationMode = "FullSnapshot";
+        source.Locale = locale; source.Url = url; source.DownloadUrl = downloadUrl;
+        source.IsActive = true; source.PublicationMode = "FullSnapshot";
         source.DatasetVersion = version; source.DatasetDate = datasetDate; source.UpdatedAtUtc = now;
         return source;
     }

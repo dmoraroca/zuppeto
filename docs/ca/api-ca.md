@@ -76,7 +76,7 @@ La decisió funcional posterior va retirar aquestes rutes i el handoff d'un sol 
 
 ### Gestió Territorial ADMIN — Iteració 6 / Fase VI
 
-**Estat:** Fase VI completada definitivament; Fase VII està en curs amb VII.2–VII.8 completades i validades, VII.9.1 completada documentalment i pendent de revisió humana, i VII.9.2 no iniciada.
+**Estat:** Fase VI completada definitivament; Fase VII està en curs amb VII.9.3 implementada i validada tècnicament, pendent de validació manual final. Espanya és el primer catàleg oficial publicat amb 8.199 unitats i no s’ha republicat en aquest refinament. Alemanya continua no publicada.
 
 El grup `/api/admin/territorial` exigeix JWT i rol exacte `Admin`. Exposa context, inspecció XLSX, mappings versionats, preparació d’importacions, historial/detall, incidències i ChangeSet paginats, i ordres de publicació, cancel·lació i reversió limitada. Els DTO no exposen EF Records, staging complet, paths ni excepcions internes. El contracte complet és [Iteració 6 — Fase VI](iteracio-6-fase-vi-gestio-territorial-admin-ca.md).
 
@@ -91,6 +91,8 @@ El detall `GET /imports/{id}` exposa `sourceSheets`, `manualConflictCount` i `te
 Des de Fase VII, `POST /api/admin/territorial/imports` retorna `202 Accepted` després de persistir importació i artefacte; no espera reader, staging ni ChangeSet. El detall i l'historial exposen `currentStage`, progrés, timestamps de procés/heartbeat, intents, error funcional, recuperabilitat i cancel·lació. `POST .../publish` posa en cua `Publishing`; `cancel` és cooperatiu si hi ha lease. La inspecció de workbook inclou una mostra d'origen anterior al mapping. Els detalls són a [Fase VII](iteracio-6-fase-vii-prerequisits-publicacio-ca.md).
 
 El refinament afegeix `GET /imports/{id}/preview/source`, `GET /preview/canonical`, `GET /catalog`, `GET /catalog/{id}` i `POST /catalog/{id}/maintenance` dins el mateix grup Admin. Els previews i el catàleg són paginats al servidor; el manteniment rep acció, motiu i valor específic i pot retornar 400, 403, 404 o 409.
+
+VII.9.3 afegeix exclusivament lectures: `GET /catalog/{id}/hierarchy?search=&page=&pageSize=` retorna unitat actual, ancestres ordenats, fills directes paginats i recompte de descendents agrupat per tipus; `GET /catalog/{id}/descendants?territorialUnitTypeId=&search=&page=&pageSize=` retorna els descendents del subarbre filtrats per tipus, amb total real i context de pare. Ambdues rutes exigeixen ADMIN, consulten només `territorial_units` publicades i no reutilitzen ChangeSet ni modifiquen `CatalogVersion`.
 
 La projecció resum del catàleg diferencia `hasManualActiveOverride`, `hasManualSelectableOverride` i `hasManualCoordinateOverride`, a més de l’indicador agregat. Això permet que la UI atribueixi cada override al camp correcte sense inferir-lo. Les ordres `activate`, `deactivate`, `set-selectable` i `set-coordinates` continuen explícites i el motiu és obligatori (3–500 caràcters).
 

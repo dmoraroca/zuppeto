@@ -4,7 +4,7 @@ import { firstValueFrom } from 'rxjs';
 
 import { API_BASE_URL } from '../../../core/config/api.config';
 import {
-  ChangeHierarchy,
+  ChangeHierarchy, CatalogHierarchy,
   CanonicalPreviewRow, CatalogDetail, CatalogUnit, ChangeItem, ImportDetail, ImportIssue,
   MappingSummary, PageResult, SourcePreviewRow, TerritorialContext, TerritorialImport, WorkbookInspection
 } from '../models/territorial-admin.model';
@@ -107,6 +107,20 @@ export class TerritorialAdminApiService {
 
   catalogDetail(id: string): Promise<CatalogDetail> {
     return firstValueFrom(this.http.get<CatalogDetail>(`${this.url}/catalog/${id}`));
+  }
+
+  catalogHierarchy(id: string, filters: { search?: string; page?: number; pageSize?: number } = {}): Promise<CatalogHierarchy> {
+    let params = this.pageParams(filters.page, filters.pageSize ?? 50);
+    if (filters.search) params = params.set('search', filters.search);
+    return firstValueFrom(this.http.get<CatalogHierarchy>(`${this.url}/catalog/${id}/hierarchy`, { params }));
+  }
+
+  catalogDescendants(id: string, territorialUnitTypeId: string,
+    filters: { search?: string; page?: number; pageSize?: number } = {}): Promise<PageResult<CatalogUnit>> {
+    let params = this.pageParams(filters.page, filters.pageSize ?? 50)
+      .set('territorialUnitTypeId', territorialUnitTypeId);
+    if (filters.search) params = params.set('search', filters.search);
+    return firstValueFrom(this.http.get<PageResult<CatalogUnit>>(`${this.url}/catalog/${id}/descendants`, { params }));
   }
 
   maintain(id: string, request: { action: string; reason: string; isSelectableLocality?: boolean; latitude?: number; longitude?: number }): Promise<CatalogDetail> {

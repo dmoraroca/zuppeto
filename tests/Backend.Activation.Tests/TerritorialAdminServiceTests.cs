@@ -153,6 +153,10 @@ public sealed class TerritorialAdminServiceTests
             Task.FromResult(new PageResult<TerritorialCatalogUnitDto>([], query.Page, query.PageSize, 0));
         public Task<TerritorialCatalogDetailDto?> GetCatalogUnitAsync(Guid id, CancellationToken cancellationToken = default) =>
             Task.FromResult<TerritorialCatalogDetailDto?>(null);
+        public Task<TerritorialCatalogHierarchyDto?> GetCatalogHierarchyAsync(Guid id, TerritorialCatalogHierarchyQuery query, CancellationToken cancellationToken = default) =>
+            Task.FromResult<TerritorialCatalogHierarchyDto?>(null);
+        public Task<PageResult<TerritorialCatalogUnitDto>> ListCatalogDescendantsAsync(Guid id, TerritorialCatalogDescendantQuery query, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new PageResult<TerritorialCatalogUnitDto>([], query.Page, query.PageSize, 0));
         public Task<TerritorialCatalogDetailDto> MaintainAsync(Guid id, Guid actorUserId, TerritorialMaintenanceRequest request, CancellationToken cancellationToken = default) =>
             throw new KeyNotFoundException();
     }
