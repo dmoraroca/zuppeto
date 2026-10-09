@@ -7,6 +7,81 @@ No substitueix `docs/project-phases.md` ni el joc de proves Excel: aquí només 
 
 ---
 
+## 2026-10-09 — Monetització, model freemium i gamificació
+
+**Àmbit:** model de negoci, fidelització d'usuaris i serveis vinculats al mapa territorial de Petiloc.
+
+**Estat:** **PENDENT D'ANÀLISI I DEFINICIÓ FUNCIONAL**. Proposta en fase d'ideació, encara no aprovada. No inicia cap implementació, no modifica el roadmap actual i no queda assignada a cap fase ni iteració.
+
+**Objectiu:** estudiar fonts d'ingressos sostenibles i mecanismes de fidelització sense eliminar ni perjudicar l'experiència gratuïta actual.
+
+### Model freemium per estudiar
+
+Valorar tres modalitats inicials, sense concretar-ne encara les condicions definitives:
+
+- **Gratuït:** manteniment de les funcionalitats gratuïtes actuals.
+- **VIP:** accés potencial a paquets de resultats, serveis o funcionalitats addicionals.
+- **UltraVIP:** accés potencial a paquets i funcionalitats de valor superior.
+
+No s'han definit preus, límits, durades ni funcionalitats associades a cada modalitat.
+
+### Pagaments i gestió comercial per estudiar
+
+Analitzar la incorporació futura d'una passarel·la de pagament per adquirir paquets d'ofertes, serveis o avantatges VIP i UltraVIP, sense seleccionar encara cap proveïdor. L'estudi haurà de considerar:
+
+- compres puntuals de paquets;
+- subscripcions, només si tenen sentit comercial;
+- pagaments segurs;
+- historial de compres;
+- gestió d'accessos i caducitats;
+- cancel·lacions i reemborsaments.
+
+### Paquets vinculats al mapa per estudiar
+
+Valorar la comercialització de paquets de resultats i serveis relacionats amb el mapa territorial. El mapa gratuït actual s'ha de mantenir. Com a exemples inicials, pendents de definició:
+
+- paquets de llocs seleccionats;
+- cerques avançades;
+- rutes personalitzades;
+- serveis relacionats amb mascotes;
+- ofertes de comerços i establiments;
+- paquets especials segons la zona geogràfica.
+
+### Gamificació i progressió per estudiar
+
+Explorar un sistema inspirat en mecàniques de progressió com les de Duolingo, amb possibles punts d'experiència (XP), nivells d'usuari, recompenses, bonificacions, desbloqueig d'avantatges, beneficis VIP temporals i incentius per utilitzar Petiloc.
+
+Com a hipòtesi inicial, determinades activitats, com ara les cerques, podrien generar XP i, en assolir certes quantitats, donar accés a bonificacions. Caldrà definir posteriorment les regles, quantitats, límits i recompenses, així com mecanismes contra l'acumulació artificial d'XP mitjançant cerques repetitives.
+
+### Vies de monetització per estudiar
+
+Analitzar com es podrien combinar:
+
+- venda de paquets;
+- funcionalitats VIP i UltraVIP;
+- ofertes comercials;
+- comissions per reserves o compres;
+- acords amb establiments i proveïdors;
+- bonificacions obtingudes mitjançant XP.
+
+### Decisions expressament ajornades
+
+No decidir ni fixar encara:
+
+- preus;
+- subscripció o compra puntual;
+- quantitats d'XP;
+- nivells i recompenses;
+- contingut exacte dels paquets;
+- proveïdor de pagaments;
+- percentatges de comissió;
+- arquitectura definitiva;
+- fase o iteració d'implementació.
+
+Totes aquestes decisions requereixen un estudi posterior de la proposta amb l'usuari i una aprovació explícita abans d'iniciar qualsevol implementació.
+
+---
+
 ## 2026-09-23 — Explorador/mapa públic sense sessió
 
 **Àmbit:** explorador i mapa públic sense sessió.
