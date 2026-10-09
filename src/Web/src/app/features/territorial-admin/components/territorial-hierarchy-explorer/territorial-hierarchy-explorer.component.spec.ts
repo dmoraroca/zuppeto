@@ -92,6 +92,25 @@ describe('TerritorialHierarchyExplorerComponent', () => {
     expect(fixture.nativeElement.querySelector('[data-depth="3"] .toggle')).toBeNull();
   });
 
+  it('does not offer a redundant detail action for the terminal unit already open', async () => {
+    const current = node('arenys', 'Arenys de Mar', '08006', 'MUNICIPALITY', 'Municipi', 0, true);
+    const { fixture } = await setup({
+      catalogHierarchy: vi.fn().mockResolvedValue({
+        current,
+        ancestors: [node('barcelona', 'Barcelona', '08', 'PROVINCE', 'Província', 311, false)],
+        children: page([]),
+        descendantTypes: []
+      }),
+      catalogDescendants: vi.fn()
+    }, current.id);
+
+    const currentNode = fixture.nativeElement.querySelector('.tree-node--current') as HTMLElement;
+    expect(currentNode.textContent).toContain('Arenys de Mar');
+    expect(currentNode.querySelector('.toggle')).toBeNull();
+    expect(currentNode.querySelector('.node-detail')).toBeNull();
+    expect(fixture.nativeElement.querySelector('[aria-label="Veure detall de Arenys de Mar"]')).toBeNull();
+  });
+
   it('renders a nested accessible tree with deterministic depth and no false leaf chevron', async () => {
     const { fixture } = await setup({
       catalogHierarchy: vi.fn().mockResolvedValue(rootHierarchy()),

@@ -147,6 +147,7 @@ describe('TerritorialCatalogDetailComponent', () => {
     expect(explorer.textContent).not.toContain('Unitat actual');
     expect(explorer.textContent).not.toContain('Explorar jerarquia');
     expect(explorer.querySelector('.tree-node--current')?.textContent).toContain('Vila E2E À');
+    expect(explorer.querySelector('[aria-label="Veure detall de Vila E2E À"]')).toBeNull();
     (nodes[1].querySelector('.node-main') as HTMLButtonElement).click();
     expect(opened).toHaveBeenCalledWith('region');
   });

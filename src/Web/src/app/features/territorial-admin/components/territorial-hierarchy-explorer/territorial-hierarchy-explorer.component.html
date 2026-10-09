@@ -54,7 +54,7 @@
             <span class="count">{{ childCountLabel(entry.node) }}@if (descendantSummary(entry.node); as summary) { · {{ summary }} }</span>
           }
           @if (!entry.node.isActive) { <span class="badge badge--inactive">Inactiva</span> }
-          @if (!entry.node.directChildCount) {
+          @if (!entry.node.directChildCount && entry.node.id !== rootId()) {
             <button class="node-detail" type="button" (click)="$event.stopPropagation(); openUnit.emit(entry.node.id)"
               [attr.aria-label]="'Veure detall de ' + entry.node.name">Veure detall</button>
           }
