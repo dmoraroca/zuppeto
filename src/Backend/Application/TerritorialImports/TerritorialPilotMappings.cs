@@ -29,8 +29,14 @@ public static class TerritorialPilotMappings
     public static TerritorialMappingDefinition GermanyGvIsysV1() => new([
         new("Bundeslaender", 2, [Projection("BUNDESLAND", Concat(Const("de:land:"), Col("LAND")), null,
             Col("Nom"), "de-DE", [Code("de:destatis:land", Col("LAND"))])]),
-        new("Regierungsbezirke", 2, [Projection("REGIERUNGSBEZIRK", Concat(Const("de:rb:"), Col("LAND"), Col("RB")),
-            Concat(Const("de:land:"), Col("LAND")), Col("Nom"), "de-DE", [Code("de:destatis:rb", Concat(Col("LAND"), Col("RB")))])]),
+        new("Regierungsbezirke", 2, [
+            Projection("REGIERUNGSBEZIRK", Concat(Const("de:rb:"), Col("LAND"), Col("RB")),
+                Concat(Const("de:land:"), Col("LAND")), Col("Nom"), "de-DE", [Code("de:destatis:rb", Concat(Col("LAND"), Col("RB")))],
+                [In("LAND", ["05", "06", "08", "09"])]),
+            Projection("STATISTISCHE_REGION", Concat(Const("de:rb:"), Col("LAND"), Col("RB")),
+                Concat(Const("de:land:"), Col("LAND")), Col("Nom"), "de-DE", [Code("de:destatis:rb", Concat(Col("LAND"), Col("RB")))],
+                [In("LAND", ["03", "07", "14"])])
+        ]),
         new("Regionen", 2, [Projection("REGION", Concat(Const("de:region:"), Col("LAND"), Col("RB"), Col("REGION")),
             Concat(Const("de:rb:"), Col("LAND"), Col("RB")), Col("Nom"), "de-DE",
             [Code("de:destatis:region", Concat(Col("LAND"), Col("RB"), Col("REGION")))])]),

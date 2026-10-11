@@ -24,15 +24,43 @@ public sealed class TerritorialPilotConfigurationSeeder(ZuppetoDbContext db)
 
         var spainSource = await UpsertSource(
             new Guid("71000000-0000-0000-0000-000000000001"), spain.Id,
+            "ES-INE-30247",
             "Instituto Nacional de Estadística (INE)", "30247 — Relación de Municipios y sus Códigos por Provincias",
             "es-ES", "https://www.ine.es/dyngs/INEbase/operacion.htm?c=Estadistica_C&cid=1254736177031&idp=1254734710990&menu=ultiDatos",
             "https://www.ine.es/daco/daco42/codmun/diccionario26.xlsx",
             "2026-01-01", new DateOnly(2026, 1, 1), now, ct);
         var germanySource = await UpsertSource(
             new Guid("71000000-0000-0000-0000-000000000002"), germany.Id,
+            "DE-DESTATIS-GVISYS",
             "Statistische Ämter des Bundes und der Länder", "Gemeindeverzeichnis-Informationssystem GV-ISys",
-            "de-DE", "https://www.statistikportal.de/", null,
+            "de-DE", "https://www.destatis.de/DE/Themen/Laender-Regionen/Regionales/Gemeindeverzeichnis/Administrativ/Archiv/GVAuszugQ/AuszugGV3QAktuell.html",
+            "https://www.destatis.de/DE/Themen/Laender-Regionen/Regionales/Gemeindeverzeichnis/Administrativ/Archiv/GVAuszugQ/AuszugGV3QAktuell.xlsx?__blob=publicationFile",
             "2026-09-30", new DateOnly(2026, 9, 30), now, ct);
+        germanySource.License = "Destatis: Vervielfältigung und Verbreitung, auch auszugsweise, mit Quellennachweis gestattet";
+        germanySource.LicenseUrl = "https://www.destatis.de/DE/Service/Impressum/copyright-allgemein.html";
+        germanySource.Attribution = "Quelle: Gemeindeverzeichnis-Informationssystem (GV-ISys), Gebietsstand 30.09.2026, Statistisches Bundesamt (Destatis), 2026; für Petiloc bearbeitet.";
+        germanySource.CommercialUseAllowed = true;
+        germanySource.TransformationAllowed = true;
+        germanySource.Restrictions = "Destatis és obligatori al crèdit de font; qualsevol modificació, omissió, càlcul o representació transformada s'ha d'identificar com a tal. Cal revisar separadament qualsevol dret de tercers indicat al producte.";
+        germanySource.ThirdPartyData = null;
+        var cnigSource = await UpsertSource(
+            new Guid("71000000-0000-0000-0000-000000000003"), spain.Id,
+            "CNIG_NGMEP_2026",
+            "Instituto Geográfico Nacional (IGN) / Centro Nacional de Información Geográfica (CNIG)",
+            "Nomenclátor Geográfico de Municipios y Entidades de Población",
+            "es-ES", "https://centrodedescargas.cnig.es/CentroDescargas/detalleArchivo?sec=9000004", null,
+            "2026", new DateOnly(2026, 1, 1), now, ct);
+        cnigSource.License = "Llicència d'ús dels productes i serveis de dades geogràfiques de l'IGN, compatible amb CC BY 4.0";
+        cnigSource.LicenseUrl = "https://www.ign.es/resources/licencia/Condiciones_licenciaUso_IGN.pdf";
+        cnigSource.Attribution = "Obra derivada de NGMEP CC-BY 4.0 ign.es";
+        cnigSource.CommercialUseAllowed = true;
+        cnigSource.TransformationAllowed = true;
+        cnigSource.Restrictions = "Cal mostrar l'atribució de l'obra derivada de manera visible i conservar-la també a les metadades; l'IGN i el CNIG no avalen el producte derivat.";
+        cnigSource.ThirdPartyData = "Fonts de referència del NGMEP: Registro de Entidades Locales, Instituto Nacional de Estadística i bases de dades cartogràfiques de l'IGN.";
+
+        // source_key també es conserva a la relació per fer auditable cada import històric.
+        await db.TerritorialImportSources.Where(item => item.DatasetSourceId == cnigSource.Id && item.SourceKey != cnigSource.SourceKey)
+            .ExecuteUpdateAsync(update => update.SetProperty(item => item.SourceKey, cnigSource.SourceKey), ct);
 
         await UpsertTypes(spain.Id, [
             ("AUTONOMOUS_COMMUNITY", "Comunitat autònoma", 10, false),
@@ -43,6 +71,7 @@ public sealed class TerritorialPilotConfigurationSeeder(ZuppetoDbContext db)
         await UpsertTypes(germany.Id, [
             ("BUNDESLAND", "Land", 10, false),
             ("REGIERUNGSBEZIRK", "Regierungsbezirk", 20, false),
+            ("STATISTISCHE_REGION", "Statistische Region / antic Regierungsbezirk", 20, false),
             ("REGION", "Regió", 30, false),
             ("KREIS", "Kreis", 40, false),
             ("KREISFREIE_STADT", "Kreisfreie Stadt", 40, true),
@@ -72,7 +101,7 @@ public sealed class TerritorialPilotConfigurationSeeder(ZuppetoDbContext db)
         return country;
     }
 
-    private async Task<TerritorialDatasetSourceRecord> UpsertSource(Guid configuredId, Guid countryId,
+    private async Task<TerritorialDatasetSourceRecord> UpsertSource(Guid configuredId, Guid countryId, string sourceKey,
         string organisation, string dataset, string locale, string url, string? downloadUrl, string version, DateOnly datasetDate,
         DateTimeOffset now, CancellationToken ct)
     {
@@ -87,7 +116,7 @@ public sealed class TerritorialPilotConfigurationSeeder(ZuppetoDbContext db)
             };
             db.TerritorialDatasetSources.Add(source);
         }
-        source.Organisation = organisation; source.Dataset = dataset; source.DatasetType = "AdministrativeTerritory";
+        source.SourceKey = sourceKey; source.Organisation = organisation; source.Dataset = dataset; source.DatasetType = "AdministrativeTerritory";
         source.Locale = locale; source.Url = url; source.DownloadUrl = downloadUrl;
         source.IsActive = true; source.PublicationMode = "FullSnapshot";
         source.DatasetVersion = version; source.DatasetDate = datasetDate; source.UpdatedAtUtc = now;

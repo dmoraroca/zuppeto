@@ -161,6 +161,7 @@ public static class DependencyInjection
         services.AddScoped<ITerritorialCatalogImportGateway, TerritorialCatalogImportGateway>();
         services.AddScoped<ITerritorialAdminRepository, TerritorialAdminRepository>();
         services.AddScoped<ITerritorialLocationRepository, TerritorialLocationRepository>();
+        services.AddScoped<ITerritorialContractSourceResolver, TerritorialContractSourceResolver>();
         services.AddHostedService<TerritorialImportWorker>();
 
         return services;

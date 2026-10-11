@@ -2125,3 +2125,26 @@ Catàleg, detall, expansió i resultats utilitzen skeletons locals, `aria-busy`,
 Activar, desactivar, canviar seleccionabilitat o coordenades exigeix operació explícita, motiu i auditoria. Codis, noms i jerarquia oficials no tenen edició directa.
 
 Una nova localitat requereix país. Sense país, l’únic autocomplete de Localitat queda deshabilitat amb `Selecciona primer un país`; amb país mostra `Cerca una localitat`. Canviar país neteja selecció, text, resultats i cerques anteriors. Només es retornen unitats actives i seleccionables del país, amb validació backend. La transició de pantalles existents és a [Inventari País → Localitat](iteracio-6-inventari-pais-localitat-ca.md). User/Place conserven snapshots fins a Fase VIII; City i GeoNames no s’eliminen, però no exposen terminologia tècnica a la UI.
+## Addenda 2026-10-11 — importació territorial normalitzada
+
+L'assistent territorial reconeix automàticament `PETILOC_TERRITORIAL 1.0`. En aquest cas mostra país, versió, mode, data, fonts i camps afectats, i no demana mapping manual. Els XLSX externs mantenen el circuit anterior. `FULL` descriu una fotografia completa; `PATCH` preserva tot camp fora de `field_scope`, no crea ni inactiva unitats i respecta overrides manuals. El primer cas real és el pedaç de coordenades dels 8.132 municipis d'Espanya, publicat posteriorment per una ordre humana després de l'aprovació documental de CNIG.
+
+## Addenda 2026-10-12 — auditoria d'incidències territorials
+
+El filtre `Locale` del catàleg publicat ofereix les locales del context territorial complet i no només les de les 50 files de la pàgina visible. Amb tots els països mostra `de-DE` i `es-ES`; amb Espanya, només `es-ES`; amb Alemanya, només `de-DE`. Canviar de país reinicia també un locale seleccionat prèviament.
+
+El catàleg operatiu conté 8.199 unitats espanyoles i 15.770 d'alemanyes. Després d'una aprovació i publicació humanes posteriors a l'auditoria inicial, Espanya és a v2 i Abadín (`27001`) té coordenades `43.363587, -7.474996`: noms, codis i estructura conserven procedència INE, mentre les coordenades indiquen `CNIG_NGMEP_2026`.
+
+Alemanya es va publicar el `2026-10-11T21:22:32.042281Z`. Les unitats intermèdies sense coordenades són esperables. Hi ha 10.939 localitats seleccionables amb coordenades —10.832 Gemeinden i 107 Kreisfreie Städte— i una `GEMEINDE` seleccionable sense coordenades, el territori especial Deutsch-luxemburgisches Hoheitsgebiet. Els codis especials coneguts es preserven sense inventar coordenades. No hi ha coordenades parcials ni `(0,0)`.
+
+## Addenda 2026-10-12 — Fase IX i compatibilitat territorial
+
+El catàleg europeu cobreix totes les seleccions noves, però el model antic encara no es pot retirar. `countries` és ara una arrel compartida pel model territorial nou i `cities` continua alimentant el manteniment ADMIN i suggeriments textuals de compatibilitat. La base conté 119 User/Place amb snapshots i sense FK territorial. La simulació estricta resol 77 correspondències exactes i deixa 42 casos per revisar; no s'ha executat el backfill. El detall i els criteris de retirada consten a [Fase IX](iteracio-6-fase-ix-tancament-ca.md).
+
+## Addenda 2026-10-12 — classificació funcional europea
+
+El catàleg conserva els tipus oficials propis de cada país, però els filtres d'usuari treballen amb categories funcionals comunes. `Municipi` inclou `MUNICIPALITY`, `AUTONOMOUS_CITY_MUNICIPALITY`, `GEMEINDE` i `KREISFREIE_STADT`; per tant una consulta conjunta no obliga l'usuari a conèixer la terminologia alemanya. `KREISFREIE_STADT` també pertany a `Província o districte`, perquè exerceix simultàniament la funció municipal i la de districte. Aquesta classificació no modifica identitats, codis, noms ni jerarquies oficials.
+
+Les altres categories comunes són `Divisió administrativa principal`, `Província o districte`, `Regió administrativa`, `Regió estadística`, `Regió de planificació`, `Agrupació municipal` i `Territori especial`. El backend és l'única font de veritat de les equivalències i retorna al client només les categories disponibles per país.
+
+El selector de països de Gestió territorial només mostra països actius amb ISO alpha-2 i configuració o dades territorials. El registre històric `catalunya` (`CATALUNYA1K`) es conserva perquè té tres ciutats del model antic, però no és un país territorial ni apareix al selector. Catalunya continua representada dins Espanya per la unitat oficial de tipus comunitat autònoma.

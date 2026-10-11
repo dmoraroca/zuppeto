@@ -12,7 +12,8 @@ public sealed record TerritorialChange(
     string CanonicalUnitKey,
     string? BeforeJson,
     string? AfterJson,
-    IReadOnlyCollection<string> ChangedFields);
+    IReadOnlyCollection<string> ChangedFields,
+    IReadOnlyDictionary<string, string>? FieldOperations = null);
 
 public sealed class TerritorialChangeSet : AggregateRoot<Guid>
 {

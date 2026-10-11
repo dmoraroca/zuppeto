@@ -16,7 +16,7 @@
 
   @if (step === 1 || step === 2) {
     <div class="panel">
-      <h3>1. Context funcional</h3>
+      <h3>1. Context funcional <small>(opcional per al contracte PETILOC)</small></h3>
       <div class="grid">
         <label>Font oficial
           <select [(ngModel)]="sourceId" (ngModelChange)="selectSource()">
@@ -49,11 +49,21 @@
 
   @if (step === 3 && inspection) {
     <div class="panel">
-      <h3>3. Mapping reutilitzable</h3>
+      <h3>3. {{ isNormalized ? 'Contracte territorial detectat' : 'Mapping reutilitzable' }}</h3>
       <div class="summary">
         <span>{{ inspection.artifactName }} · {{ inspection.fileSize }} bytes</span>
         <span>{{ inspection.sheets.length }} fulls · fingerprint {{ inspection.schemaFingerprint.slice(0, 12) }}…</span>
       </div>
+      @if (inspection.contract; as contract) {
+        <div class="summary">
+          <strong>{{ contract.contractId }} · v{{ contract.contractVersion }}</strong>
+          <span>País: {{ contract.countryIso2 }} · mode {{ contract.importMode }}</span>
+          <span>Versió: {{ contract.datasetVersion }} · data territorial {{ contract.territorialDate }}</span>
+          <span>Àmbit: {{ contract.fieldScope.join(', ') || 'catàleg complet' }}</span>
+          <span>Fonts: {{ contract.sourceKeys.join(', ') }}</span>
+        </div>
+        @if (!contract.isValid) { <div class="alert alert--error">El contracte conté errors i no es pot preparar.</div> }
+      } @else {
       <label>Mapping compatible
         <select [(ngModel)]="mappingId">
           <option value="">Crea’n un de nou visualment</option>
@@ -114,7 +124,8 @@
           <button type="button" class="primary" [disabled]="busy" (click)="saveMapping()">Desar nova versió de mapping</button>
         </div>
       }
-      <button type="button" class="primary" [disabled]="busy || !mappingId" (click)="prepare()">Preparar validació i preview</button>
+      }
+      <button type="button" class="primary" [disabled]="busy || (isNormalized ? !inspection.contract?.isValid : !mappingId)" (click)="prepare()">Preparar validació i preview</button>
     </div>
   }
 
@@ -224,7 +235,7 @@
   @if (detail && step === 6) {
     <div class="panel">
       <h3>6. Publicació del catàleg territorial</h3>
-      <dl class="publication-facts"><dt>País</dt><dd>{{ detail.import.countryName }}</dd><dt>Font</dt><dd>{{ detail.import.organisation }}</dd><dt>Estat de la font</dt><dd>{{ approvalLabel(source?.approvalStatus || 'Pending') }}</dd><dt>Dataset</dt><dd>{{ detail.import.dataset }}</dd><dt>Versió</dt><dd>{{ detail.import.datasetVersion }}</dd><dt>Mapping</dt><dd>Versió {{ detail.import.mappingVersion }}</dd></dl>
+      <dl class="publication-facts"><dt>País</dt><dd>{{ detail.import.countryName }}</dd><dt>Font</dt><dd>{{ detail.import.organisation }}</dd><dt>Estat de la font</dt><dd>{{ approvalLabel(source?.approvalStatus || 'Pending') }}</dd><dt>Dataset</dt><dd>{{ detail.import.dataset }}</dd><dt>Versió</dt><dd>{{ detail.import.datasetVersion }}</dd><dt>Mapping</dt><dd>Versió {{ detail.import.mappingVersion }}</dd><dt>Estat</dt><dd>Estat: {{ statusLabel(detail.import.status) }}</dd></dl>
       <h4>Resum</h4>
       <div class="metrics publication-metrics">
         <strong>{{ detail.import.counters.create }}<small>altes</small></strong><strong>{{ detail.import.counters.update }}<small>canvis</small></strong><strong class="bad">{{ detail.import.counters.deactivate }}<small>inactivacions</small></strong><strong>{{ detail.import.counters.noChange }}<small>sense canvi</small></strong><strong class="bad">{{ detail.import.counters.errors }}<small>errors</small></strong><strong class="warn">{{ detail.import.counters.warnings }}<small>avisos</small></strong><strong class="warn">{{ detail.manualConflictCount ?? 0 }}<small>conflictes</small></strong>
@@ -232,15 +243,23 @@
       <h4>Desglossament territorial</h4>
       <div class="table-wrap"><table><thead><tr><th>Tipus</th><th>Altes</th><th>Canvis</th><th>Inactivacions</th><th>Sense canvi</th></tr></thead><tbody>@for (item of detail.territorialBreakdown || []; track item.territorialUnitTypeCode) { <tr><td>{{ item.territorialUnitType }}</td><td>{{ item.create }}</td><td>{{ item.update }}</td><td>{{ item.deactivate }}</td><td>{{ item.noChange }}</td></tr> } @empty { <tr><td colspan="5">No hi ha canvis territorials preparats.</td></tr> }</tbody></table></div>
       <h4>Gate de font</h4>
-      @if (source?.approvalStatus !== 'Approved') { <div class="alert alert--warning"><strong>Pendent d’aprovació</strong><p>La font encara no ha superat els requisits d’aprovació.</p></div> }
+      @for (gate of detail.sourceGates || []; track gate.sourceKey) {
+        <div class="source-gate" [class.source-gate--blocked]="gate.contributesPublishedFields && (!gate.isActive || gate.approvalStatus !== 'Approved')">
+          <div><strong>{{ gate.dataset || gate.sourceKey }}</strong><span>{{ gate.organisation }} · {{ approvalLabel(gate.approvalStatus) }} · {{ gate.contributesPublishedFields ? 'Aporta camps' : 'Referència' }}</span><p>{{ gateReason(gate) }}</p></div>
+          @if (gate.approvalStatus === 'Pending') { <button type="button" class="quiet" (click)="reviewSource(gate.datasetSourceId)">Revisar i aprovar font</button> }
+        </div>
+      }
+      @if (source?.approvalStatus !== 'Approved' || hasBlockedContributingSource) { <div class="alert alert--warning"><strong>Pendent d’aprovació</strong><p>Una o més fonts que aporten camps encara no han superat els requisits d’aprovació.</p></div> }
       <div class="actions">
         <button type="button" class="quiet" (click)="step = 5">Tornar als canvis</button>
-        @if (detail.import.status === 'ReadyForReview') { <button type="button" class="primary" [disabled]="!detail.canPublish || source?.approvalStatus !== 'Approved'" (click)="request('publish')">Publicar catàleg</button> }
+        @if (detail.import.status === 'ReadyForReview') { <button type="button" class="primary" [disabled]="!detail.canPublish" (click)="request('publish')">Publicar catàleg</button> }
         @if (detail.canCancel) { <button type="button" class="quiet" (click)="request('cancel')">Cancel·lar importació</button> }
         @if (detail.canRevert) { <button type="button" class="danger" (click)="request('revert')">Revertir última publicació</button> }
       </div>
     </div>
   }
+
+  <app-territorial-source-review [sourceId]="reviewedSourceId" (closed)="closeSourceReview()" (sourceChanged)="sourceDecisionChanged()" />
 
   @if (selectedChange; as change) {
     <div class="change-detail-backdrop" (click)="closeChangeDetail()">

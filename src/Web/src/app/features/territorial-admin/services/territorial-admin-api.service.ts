@@ -6,7 +6,7 @@ import { API_BASE_URL } from '../../../core/config/api.config';
 import {
   ChangeHierarchy, CatalogHierarchy,
   CanonicalPreviewRow, CatalogDetail, CatalogUnit, ChangeItem, ImportDetail, ImportIssue,
-  MappingSummary, PageResult, SourcePreviewRow, TerritorialContext, TerritorialImport, WorkbookInspection
+  MappingSummary, PageResult, SourcePreviewRow, TerritorialContext, TerritorialImport, TerritorialSourceDetail, WorkbookInspection
 } from '../models/territorial-admin.model';
 
 @Injectable({ providedIn: 'root' })
@@ -18,9 +18,26 @@ export class TerritorialAdminApiService {
     return firstValueFrom(this.http.get<TerritorialContext>(`${this.url}/context`));
   }
 
-  inspect(sourceId: string, file: File): Promise<WorkbookInspection> {
+  sources(filters: { countryId?: string; approvalStatus?: string; page?: number; pageSize?: number } = {}): Promise<PageResult<TerritorialSourceDetail>> {
+    let params = this.pageParams(filters.page, filters.pageSize ?? 25);
+    if (filters.countryId) params = params.set('countryId', filters.countryId);
+    if (filters.approvalStatus) params = params.set('approvalStatus', filters.approvalStatus);
+    return firstValueFrom(this.http.get<PageResult<TerritorialSourceDetail>>(`${this.url}/sources`, { params }));
+  }
+
+  source(id: string): Promise<TerritorialSourceDetail> {
+    return firstValueFrom(this.http.get<TerritorialSourceDetail>(`${this.url}/sources/${id}`));
+  }
+
+  decideSource(id: string, decision: 'approve' | 'reject', expectedStatus: string, reason: string): Promise<TerritorialSourceDetail> {
+    return firstValueFrom(this.http.post<TerritorialSourceDetail>(`${this.url}/sources/${id}/decision`, {
+      decision, expectedStatus, reason
+    }));
+  }
+
+  inspect(sourceId: string | null, file: File): Promise<WorkbookInspection> {
     return firstValueFrom(this.http.post<WorkbookInspection>(
-      `${this.url}/workbooks/inspect`, this.fileBody(file, { datasetSourceId: sourceId })));
+      `${this.url}/workbooks/inspect`, this.fileBody(file, sourceId ? { datasetSourceId: sourceId } : {})));
   }
 
   mappings(sourceId: string, fingerprint?: string): Promise<MappingSummary[]> {
@@ -35,9 +52,11 @@ export class TerritorialAdminApiService {
     }));
   }
 
-  prepare(sourceId: string, mappingId: string, datasetVersion: string, file: File): Promise<ImportDetail> {
+  prepare(sourceId: string | null, mappingId: string | null, datasetVersion: string | null, file: File): Promise<ImportDetail> {
     const body = this.fileBody(file, {
-      datasetSourceId: sourceId, mappingTemplateId: mappingId, datasetVersion
+      ...(sourceId ? { datasetSourceId: sourceId } : {}),
+      ...(mappingId ? { mappingTemplateId: mappingId } : {}),
+      ...(datasetVersion ? { datasetVersion } : {})
     });
     return firstValueFrom(this.http.post<ImportDetail>(`${this.url}/imports`, body));
   }
@@ -95,7 +114,7 @@ export class TerritorialAdminApiService {
   }
 
   catalog(filters: {
-    countryId?: string; territorialUnitTypeId?: string; status?: string; locale?: string;
+    countryId?: string; territorialUnitTypeId?: string; functionalTypeCode?: string; status?: string; locale?: string;
     parentId?: string; search?: string; selectableLocality?: boolean; page?: number;
   } = {}): Promise<PageResult<CatalogUnit>> {
     let params = this.pageParams(filters.page, 50);

@@ -29,12 +29,17 @@ public sealed class TerritorialImportConfiguration : IEntityTypeConfiguration<Te
         {
             t.HasCheckConstraint("ck_territorial_import_status", "status IN ('Queued','Uploaded','Mapped','Validated','ReadyForReview','Publishing','Published','Failed','Cancelled','Reverted')");
             t.HasCheckConstraint("ck_territorial_import_size", "file_size > 0");
+            t.HasCheckConstraint("ck_territorial_import_input_kind", "input_kind IN ('ExternalMapped','PetilocNormalized')");
+            t.HasCheckConstraint("ck_territorial_import_mode", "import_mode IN ('Full','Patch')");
+            t.HasCheckConstraint("ck_territorial_import_mapping_contract", "(input_kind = 'ExternalMapped' AND mapping_template_id IS NOT NULL) OR (input_kind = 'PetilocNormalized' AND contract_version IS NOT NULL)");
         });
         b.HasKey(x => x.Id); b.Property(x => x.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()");
         b.Property(x => x.DatasetSourceId).HasColumnName("dataset_source_id"); b.Property(x => x.MappingTemplateId).HasColumnName("mapping_template_id");
         b.Property(x => x.ArtifactName).HasColumnName("artifact_name").HasMaxLength(500); b.Property(x => x.ArtifactStorageKey).HasColumnName("artifact_storage_key").HasMaxLength(1000);
         b.Property(x => x.FileChecksum).HasColumnName("file_checksum").HasMaxLength(64); b.Property(x => x.FileSize).HasColumnName("file_size");
         b.Property(x => x.DatasetVersion).HasColumnName("dataset_version").HasMaxLength(120); b.Property(x => x.PublicationMode).HasColumnName("publication_mode").HasMaxLength(20);
+        b.Property(x => x.InputKind).HasColumnName("input_kind").HasMaxLength(32).HasDefaultValue("ExternalMapped"); b.Property(x => x.ContractVersion).HasColumnName("contract_version").HasMaxLength(20);
+        b.Property(x => x.ImportMode).HasColumnName("import_mode").HasMaxLength(16).HasDefaultValue("Full"); b.Property(x => x.FieldScopeJson).HasColumnName("field_scope_json").HasColumnType("jsonb").HasDefaultValueSql("'[]'::jsonb");
         b.Property(x => x.Status).HasColumnName("status").HasMaxLength(24); b.Property(x => x.HasBlockingErrors).HasColumnName("has_blocking_errors");
         b.Property(x => x.CatalogVersion).HasColumnName("catalog_version"); b.Property(x => x.SummaryJson).HasColumnName("summary_json").HasColumnType("jsonb");
         b.Property(x => x.FailureReason).HasColumnName("failure_reason").HasMaxLength(2000); b.Property(x => x.CreatedByUserId).HasColumnName("created_by_user_id");
@@ -54,6 +59,23 @@ public sealed class TerritorialImportConfiguration : IEntityTypeConfiguration<Te
         b.HasIndex(x => new { x.DatasetSourceId, x.DatasetVersion, x.FileChecksum }).IsUnique().HasFilter("status = 'Published'").HasDatabaseName("uq_territorial_import_published_artifact");
         b.HasIndex(x => new { x.DatasetSourceId, x.CreatedAtUtc }).HasDatabaseName("ix_territorial_import_source_created");
         b.HasIndex(x => new { x.Status, x.NextAttemptAtUtc, x.LeaseExpiresAtUtc }).HasDatabaseName("ix_territorial_import_worker_queue");
+    }
+}
+
+public sealed class TerritorialImportSourceConfiguration : IEntityTypeConfiguration<TerritorialImportSourceRecord>
+{
+    public void Configure(EntityTypeBuilder<TerritorialImportSourceRecord> b)
+    {
+        b.ToTable("territorial_import_sources");
+        b.HasKey(x => new { x.ImportId, x.DatasetSourceId });
+        b.Property(x => x.ImportId).HasColumnName("import_id");
+        b.Property(x => x.DatasetSourceId).HasColumnName("dataset_source_id");
+        b.Property(x => x.SourceKey).HasColumnName("source_key").HasMaxLength(120);
+        b.Property(x => x.Role).HasColumnName("role").HasMaxLength(40);
+        b.Property(x => x.ContributesPublishedFields).HasColumnName("contributes_published_fields");
+        b.HasOne(x => x.Import).WithMany(x => x.Sources).HasForeignKey(x => x.ImportId).OnDelete(DeleteBehavior.Cascade);
+        b.HasOne(x => x.DatasetSource).WithMany(x => x.Imports).HasForeignKey(x => x.DatasetSourceId).OnDelete(DeleteBehavior.Restrict);
+        b.HasIndex(x => x.DatasetSourceId).HasDatabaseName("ix_territorial_import_sources_source");
     }
 }
 
@@ -78,6 +100,7 @@ public sealed class TerritorialImportRowConfiguration : IEntityTypeConfiguration
         b.Property(x => x.ImportId).HasColumnName("import_id"); b.Property(x => x.Sheet).HasColumnName("sheet").HasMaxLength(200); b.Property(x => x.RowNumber).HasColumnName("row_number");
         b.Property(x => x.SourceJson).HasColumnName("source_json").HasColumnType("jsonb"); b.Property(x => x.CanonicalJson).HasColumnName("canonical_json").HasColumnType("jsonb");
         b.Property(x => x.CanonicalUnitKey).HasColumnName("canonical_unit_key").HasMaxLength(300); b.Property(x => x.ParentCanonicalUnitKey).HasColumnName("parent_canonical_unit_key").HasMaxLength(300);
+        b.Property(x => x.FieldOperationsJson).HasColumnName("field_operations_json").HasColumnType("jsonb").HasDefaultValueSql("'{}'::jsonb");
         b.HasOne(x => x.Import).WithMany(x => x.Rows).HasForeignKey(x => x.ImportId).OnDelete(DeleteBehavior.Cascade);
         b.HasIndex(x => new { x.ImportId, x.CanonicalUnitKey }).HasDatabaseName("ix_territorial_import_rows_key");
     }
@@ -130,6 +153,7 @@ public sealed class TerritorialChangeSetItemConfiguration : IEntityTypeConfigura
         b.Property(x => x.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()"); b.Property(x => x.ChangeSetId).HasColumnName("change_set_id"); b.Property(x => x.Kind).HasColumnName("kind").HasMaxLength(20);
         b.Property(x => x.TerritorialUnitId).HasColumnName("territorial_unit_id"); b.Property(x => x.CanonicalUnitKey).HasColumnName("canonical_unit_key").HasMaxLength(300);
         b.Property(x => x.BeforeJson).HasColumnName("before_json").HasColumnType("jsonb"); b.Property(x => x.AfterJson).HasColumnName("after_json").HasColumnType("jsonb"); b.Property(x => x.ChangedFieldsJson).HasColumnName("changed_fields_json").HasColumnType("jsonb");
+        b.Property(x => x.FieldOperationsJson).HasColumnName("field_operations_json").HasColumnType("jsonb").HasDefaultValueSql("'{}'::jsonb");
         b.HasOne(x => x.ChangeSet).WithMany(x => x.Items).HasForeignKey(x => x.ChangeSetId).OnDelete(DeleteBehavior.Cascade);
         b.HasIndex(x => new { x.ChangeSetId, x.CanonicalUnitKey }).HasDatabaseName("ix_territorial_change_items_key");
     }

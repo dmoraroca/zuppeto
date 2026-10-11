@@ -18,6 +18,8 @@ public sealed class TerritorialUnitRecord
     public decimal? Longitude { get; set; }
     public Guid? CoordinateSourceId { get; set; }
     public TerritorialDatasetSourceRecord? CoordinateSource { get; set; }
+    public Guid? StructureSourceId { get; set; }
+    public TerritorialDatasetSourceRecord? StructureSource { get; set; }
     public DateTimeOffset CreatedAtUtc { get; set; }
     public DateTimeOffset UpdatedAtUtc { get; set; }
     public ICollection<TerritorialUnitNameRecord> Names { get; set; } = [];

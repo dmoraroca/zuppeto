@@ -15,8 +15,8 @@
   @if (parentId) { <div class="parent-filter">Mostrant filles de <strong>{{ parentName }}</strong><button type="button" (click)="clearParent()">Treure filtre de pare</button></div> }
 
   <form class="filters" (ngSubmit)="load(1)" aria-label="Filtres del catàleg territorial">
-    <label>País<select [(ngModel)]="countryId" name="country" (ngModelChange)="resetType()"><option value="">Tots</option>@for (country of context().countries; track country.id) { <option [value]="country.id">{{ country.name }}</option> }</select></label>
-    <label>Tipus<select [(ngModel)]="typeId" name="type"><option value="">Tots</option>@for (type of types; track type.id) { <option [value]="type.id">{{ type.name }}</option> }</select></label>
+    <label>País<select [(ngModel)]="countryId" name="country" (ngModelChange)="countryChanged()"><option value="">Tots</option>@for (country of context().countries; track country.id) { <option [value]="country.id">{{ country.name }}</option> }</select></label>
+    <label>Categoria funcional<select [(ngModel)]="functionalTypeCode" name="type"><option value="">Totes</option>@for (type of types; track type.code) { <option [value]="type.code">{{ type.name }}</option> }</select></label>
     <label>Estat<select [(ngModel)]="status" name="status"><option value="">Tots</option><option value="active">Actius</option><option value="inactive">Inactius</option></select></label>
     <label>Seleccionable<select [(ngModel)]="selectable" name="selectable"><option value="">Tots</option><option value="true">Sí</option><option value="false">No</option></select></label>
     <label>Locale<select [(ngModel)]="locale" name="locale"><option value="">Tots</option>@for (item of locales; track item) { <option [value]="item">{{ item }}</option> }</select></label>

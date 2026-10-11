@@ -18,10 +18,11 @@ export const territorialActionLabel = (value: string): string => fallback(value,
 
 export const territorialTypeLabel = (value: string): string => fallback(value, {
   AUTONOMOUS_COMMUNITY: 'Comunitat autònoma', AUTONOMOUS_CITY_MUNICIPALITY: 'Ciutat autònoma',
-  PROVINCE: 'Província', MUNICIPALITY: 'Municipi', BUNDESLAND: 'Bundesland',
-  REGIERUNGSBEZIRK: 'Regierungsbezirk', REGION: 'Regió', KREIS: 'Kreis',
-  KREISFREIE_STADT: 'Ciutat independent', GEMEINDEVERBAND: 'Gemeindeverband',
-  GEMEINDE: 'Gemeinde', SPECIAL_TERRITORY: 'Territori especial'
+  PROVINCE: 'Província', MUNICIPALITY: 'Municipi', BUNDESLAND: 'Estat federat',
+  REGIERUNGSBEZIRK: 'Districte governamental', STATISTISCHE_REGION: 'Regió estadística',
+  REGION: 'Regió de planificació', KREIS: 'Districte',
+  KREISFREIE_STADT: 'Ciutat independent', GEMEINDEVERBAND: 'Agrupació municipal',
+  GEMEINDE: 'Municipi', SPECIAL_TERRITORY: 'Territori especial'
 });
 
 export const territorialFieldLabel = (value: string): string => fallback(value, {

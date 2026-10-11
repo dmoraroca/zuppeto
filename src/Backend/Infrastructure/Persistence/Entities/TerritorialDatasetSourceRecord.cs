@@ -4,6 +4,7 @@ public sealed class TerritorialDatasetSourceRecord
 {
     public Guid Id { get; set; }
     public Guid CountryId { get; set; }
+    public string SourceKey { get; set; } = string.Empty;
     public CountryRecord Country { get; set; } = null!;
     public string Organisation { get; set; } = string.Empty;
     public string Dataset { get; set; } = string.Empty;
@@ -32,4 +33,7 @@ public sealed class TerritorialDatasetSourceRecord
     public ICollection<TerritorialUnitNameRecord> Names { get; set; } = [];
     public ICollection<TerritorialUnitCodeRecord> Codes { get; set; } = [];
     public ICollection<TerritorialLocaleAssignmentRecord> LocaleAssignments { get; set; } = [];
+    public ICollection<TerritorialImportSourceRecord> Imports { get; set; } = [];
+    public ICollection<TerritorialUnitRecord> StructureUnits { get; set; } = [];
+    public ICollection<TerritorialSourceApprovalAuditRecord> ApprovalHistory { get; set; } = [];
 }

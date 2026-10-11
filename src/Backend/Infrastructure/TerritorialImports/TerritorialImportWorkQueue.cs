@@ -1,6 +1,8 @@
 using System.Data;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Zuppeto.Application.TerritorialImports;
+using Zuppeto.Domain.TerritorialImports;
 using Zuppeto.Infrastructure.Persistence;
 using Zuppeto.Infrastructure.Persistence.Entities;
 
@@ -156,5 +158,9 @@ internal sealed class TerritorialImportWorkQueue(ZuppetoDbContext db) : ITerrito
         new(record.Id, record.DatasetSourceId, record.MappingTemplateId, record.ArtifactName,
             record.FileChecksum, record.FileSize, record.DatasetVersion,
             isPublication ? record.PublicationRequestedByUserId ?? record.CreatedByUserId : record.CreatedByUserId,
-            isPublication, owner);
+            isPublication, owner,
+            Enum.TryParse<TerritorialInputKind>(record.InputKind, out var inputKind) ? inputKind : TerritorialInputKind.ExternalMapped,
+            record.ContractVersion,
+            Enum.TryParse<TerritorialImportMode>(record.ImportMode, out var importMode) ? importMode : TerritorialImportMode.Full,
+            JsonSerializer.Deserialize<string[]>(record.FieldScopeJson, TerritorialImportJson.Options) ?? []);
 }

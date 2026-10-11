@@ -18,14 +18,18 @@ public sealed class TerritorialImportRecord
     public Guid Id { get; set; }
     public Guid DatasetSourceId { get; set; }
     public TerritorialDatasetSourceRecord DatasetSource { get; set; } = null!;
-    public Guid MappingTemplateId { get; set; }
-    public TerritorialMappingTemplateRecord MappingTemplate { get; set; } = null!;
+    public Guid? MappingTemplateId { get; set; }
+    public TerritorialMappingTemplateRecord? MappingTemplate { get; set; }
     public string ArtifactName { get; set; } = string.Empty;
     public string? ArtifactStorageKey { get; set; }
     public string FileChecksum { get; set; } = string.Empty;
     public long FileSize { get; set; }
     public string DatasetVersion { get; set; } = string.Empty;
     public string PublicationMode { get; set; } = string.Empty;
+    public string InputKind { get; set; } = "ExternalMapped";
+    public string? ContractVersion { get; set; }
+    public string ImportMode { get; set; } = "Full";
+    public string FieldScopeJson { get; set; } = "[]";
     public string Status { get; set; } = string.Empty;
     public bool HasBlockingErrors { get; set; }
     public long? CatalogVersion { get; set; }
@@ -55,6 +59,18 @@ public sealed class TerritorialImportRecord
     public ICollection<TerritorialImportRowRecord> Rows { get; set; } = [];
     public ICollection<TerritorialImportIssueRecord> Issues { get; set; } = [];
     public ICollection<TerritorialChangeSetRecord> ChangeSets { get; set; } = [];
+    public ICollection<TerritorialImportSourceRecord> Sources { get; set; } = [];
+}
+
+public sealed class TerritorialImportSourceRecord
+{
+    public Guid ImportId { get; set; }
+    public TerritorialImportRecord Import { get; set; } = null!;
+    public Guid DatasetSourceId { get; set; }
+    public TerritorialDatasetSourceRecord DatasetSource { get; set; } = null!;
+    public string SourceKey { get; set; } = string.Empty;
+    public string Role { get; set; } = string.Empty;
+    public bool ContributesPublishedFields { get; set; }
 }
 
 public sealed class TerritorialImportArtifactRecord
@@ -76,6 +92,7 @@ public sealed class TerritorialImportRowRecord
     public string CanonicalJson { get; set; } = "{}";
     public string CanonicalUnitKey { get; set; } = string.Empty;
     public string? ParentCanonicalUnitKey { get; set; }
+    public string FieldOperationsJson { get; set; } = "{}";
 }
 
 public sealed class TerritorialImportIssueRecord
@@ -129,4 +146,5 @@ public sealed class TerritorialChangeSetItemRecord
     public string? BeforeJson { get; set; }
     public string? AfterJson { get; set; }
     public string ChangedFieldsJson { get; set; } = "[]";
+    public string FieldOperationsJson { get; set; } = "{}";
 }

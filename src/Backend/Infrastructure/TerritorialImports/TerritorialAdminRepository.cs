@@ -11,15 +11,98 @@ internal sealed class TerritorialAdminRepository(ZuppetoDbContext db) : ITerrito
 {
     public async Task<TerritorialAdminContextDto> GetContextAsync(CancellationToken ct = default)
     {
-        var countries = await db.Countries.AsNoTracking().OrderBy(x => x.SortOrder).ThenBy(x => x.Name)
+        var countries = await db.Countries.AsNoTracking().WithTerritorialCatalog()
+            .OrderBy(x => x.SortOrder).ThenBy(x => x.Name)
             .Select(x => new TerritorialAdminCountryDto(x.Id, x.Code, x.Name, x.Iso2, x.Iso3, x.IsActive)).ToArrayAsync(ct);
         var sources = await db.TerritorialDatasetSources.AsNoTracking().OrderBy(x => x.Country.Name).ThenBy(x => x.Dataset)
-            .Select(x => new TerritorialAdminSourceDto(x.Id, x.CountryId, x.Organisation, x.Dataset,
+            .Select(x => new TerritorialAdminSourceDto(x.Id, x.CountryId, x.SourceKey, x.Organisation, x.Dataset,
                 x.DatasetType, x.Locale, x.ApprovalStatus, x.IsActive, x.PublicationMode, x.DatasetVersion,
                 x.DatasetDate, x.License, x.Attribution)).ToArrayAsync(ct);
         var types = await db.TerritorialUnitTypes.AsNoTracking().Where(x => x.IsActive).OrderBy(x => x.CountryId).ThenBy(x => x.DisplayOrder)
             .Select(x => new TerritorialAdminUnitTypeDto(x.Id, x.CountryId, x.Code, x.Name, x.DisplayOrder, x.IsSelectableLocality)).ToArrayAsync(ct);
-        return new TerritorialAdminContextDto(countries, sources, types);
+        return new TerritorialAdminContextDto(countries, sources, types, TerritorialFunctionalTypeCatalog.AvailableFor(types));
+    }
+
+    public async Task<PageResult<TerritorialSourceDetailDto>> ListSourcesAsync(
+        TerritorialSourceQuery request, CancellationToken ct = default)
+    {
+        var query = db.TerritorialDatasetSources.AsNoTracking().AsQueryable();
+        if (request.CountryId is not null) query = query.Where(source => source.CountryId == request.CountryId);
+        if (!string.IsNullOrWhiteSpace(request.ApprovalStatus))
+            query = query.Where(source => source.ApprovalStatus == request.ApprovalStatus.Trim());
+        var total = await query.CountAsync(ct);
+        var ids = await query.OrderBy(source => source.Country.Name).ThenBy(source => source.Dataset)
+            .Skip((request.Page - 1) * request.PageSize).Take(request.PageSize)
+            .Select(source => source.Id).ToArrayAsync(ct);
+        var items = new List<TerritorialSourceDetailDto>(ids.Length);
+        foreach (var id in ids)
+            if (await GetSourceAsync(id, ct) is { } source) items.Add(source);
+        return new PageResult<TerritorialSourceDetailDto>(items, request.Page, request.PageSize, total);
+    }
+
+    public async Task<TerritorialSourceDetailDto?> GetSourceAsync(Guid id, CancellationToken ct = default)
+    {
+        var source = await db.TerritorialDatasetSources.AsNoTracking()
+            .Include(item => item.Country)
+            .Include(item => item.VerifiedByUser)
+            .Include(item => item.ApprovalHistory).ThenInclude(item => item.ActorUser)
+            .SingleOrDefaultAsync(item => item.Id == id, ct);
+        if (source is null) return null;
+        var history = source.ApprovalHistory.OrderByDescending(item => item.CreatedAtUtc)
+            .Select(item => new TerritorialSourceApprovalHistoryDto(item.Id, item.PreviousStatus, item.NewStatus,
+                item.Reason, item.ActorUserId, item.ActorUser.DisplayName ?? item.ActorUser.Email, item.CreatedAtUtc))
+            .ToList();
+        if (history.Count == 0 && source.ApprovalStatus != "Pending" && source.VerifiedAtUtc is { } verifiedAt &&
+            source.VerifiedByUserId is { } verifiedBy)
+            history.Add(new TerritorialSourceApprovalHistoryDto(source.Id, "Pending", source.ApprovalStatus,
+                "Decisió registrada abans de l'historial detallat d'aprovacions.", verifiedBy,
+                source.VerifiedByUser?.DisplayName ?? source.VerifiedByUser?.Email ?? "Actor registrat", verifiedAt));
+        var missing = MissingApprovalMetadata(source);
+        var evidence = new List<TerritorialSourceEvidenceDto> { new("Fitxa oficial", source.Url) };
+        if (!string.IsNullOrWhiteSpace(source.DownloadUrl)) evidence.Add(new("Descàrrega oficial", source.DownloadUrl));
+        if (!string.IsNullOrWhiteSpace(source.LicenseUrl)) evidence.Add(new("Llicència i reutilització", source.LicenseUrl));
+        return new TerritorialSourceDetailDto(source.Id, source.CountryId, source.Country.Name, source.SourceKey,
+            source.Organisation, source.Dataset, source.DatasetType, source.Locale, source.ApprovalStatus,
+            source.IsActive, source.PublicationMode, source.DatasetVersion, source.DatasetDate, source.Url,
+            source.DownloadUrl, source.License, source.LicenseUrl, source.Attribution,
+            source.CommercialUseAllowed, source.TransformationAllowed, source.Restrictions, source.ThirdPartyData,
+            missing.Count == 0, missing, evidence, history);
+    }
+
+    public async Task<TerritorialSourceDetailDto> DecideSourceAsync(
+        Guid id, Guid actorUserId, TerritorialSourceDecisionRequest request, CancellationToken ct = default)
+    {
+        await using var transaction = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
+        var source = await db.TerritorialDatasetSources.AsNoTracking().SingleOrDefaultAsync(item => item.Id == id, ct)
+            ?? throw new KeyNotFoundException("No s'ha trobat la font territorial.");
+        if (!string.Equals(source.ApprovalStatus, request.ExpectedStatus, StringComparison.Ordinal))
+            throw new DbUpdateConcurrencyException("La font ha canviat mentre s'estava revisant.");
+        var target = request.Decision == "approve" ? "Approved" : "Rejected";
+        if (source.ApprovalStatus == target)
+            throw new InvalidOperationException($"La font ja està en estat {target}.");
+        if (target == "Approved")
+        {
+            var missing = MissingApprovalMetadata(source);
+            if (missing.Count > 0)
+                throw new InvalidOperationException($"No es pot aprovar la font. Falten metadades obligatòries: {string.Join(", ", missing)}.");
+        }
+        var now = DateTimeOffset.UtcNow;
+        var updated = await db.TerritorialDatasetSources
+            .Where(item => item.Id == id && item.ApprovalStatus == request.ExpectedStatus)
+            .ExecuteUpdateAsync(update => update
+                .SetProperty(item => item.ApprovalStatus, target)
+                .SetProperty(item => item.VerifiedAtUtc, now)
+                .SetProperty(item => item.VerifiedByUserId, actorUserId)
+                .SetProperty(item => item.UpdatedAtUtc, now), ct);
+        if (updated != 1) throw new DbUpdateConcurrencyException("La font ha canviat mentre s'estava revisant.");
+        db.TerritorialSourceApprovalAudit.Add(new TerritorialSourceApprovalAuditRecord
+        {
+            Id = Guid.NewGuid(), DatasetSourceId = id, PreviousStatus = source.ApprovalStatus,
+            NewStatus = target, Reason = request.Reason, ActorUserId = actorUserId, CreatedAtUtc = now
+        });
+        await db.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
+        return await GetSourceAsync(id, ct) ?? throw new InvalidOperationException("No s'ha pogut recuperar la font territorial.");
     }
 
     public async Task<IReadOnlyCollection<TerritorialMappingTemplateSummaryDto>> ListMappingsAsync(
@@ -67,7 +150,7 @@ internal sealed class TerritorialAdminRepository(ZuppetoDbContext db) : ITerrito
             .Skip((request.Page - 1) * request.PageSize).Take(request.PageSize)
             .Select(x => new TerritorialImportListItemDto(
                 x.Id, x.DatasetSource.CountryId, x.DatasetSource.Country.Name, x.DatasetSourceId, x.DatasetSource.Organisation,
-                x.DatasetSource.Dataset, x.DatasetVersion, x.MappingTemplateId, x.MappingTemplate.Version, x.Status,
+                x.DatasetSource.Dataset, x.DatasetVersion, x.MappingTemplateId, x.MappingTemplate == null ? 0 : x.MappingTemplate.Version, x.Status,
                 x.HasBlockingErrors, x.CatalogVersion, x.ArtifactName, x.FileSize, x.FileChecksum, x.CreatedByUserId,
                 x.CreatedByUser.DisplayName ?? x.CreatedByUser.Email, x.CreatedAtUtc, x.UpdatedAtUtc, x.PublishedAtUtc,
                 x.CurrentStage, x.TotalRows, x.ProcessedRows, x.ProcessingStartedAtUtc, x.ProcessingCompletedAtUtc,
@@ -92,7 +175,7 @@ internal sealed class TerritorialAdminRepository(ZuppetoDbContext db) : ITerrito
             {
                 Summary = new TerritorialImportListItemDto(
                     x.Id, x.DatasetSource.CountryId, x.DatasetSource.Country.Name, x.DatasetSourceId, x.DatasetSource.Organisation,
-                    x.DatasetSource.Dataset, x.DatasetVersion, x.MappingTemplateId, x.MappingTemplate.Version, x.Status,
+                    x.DatasetSource.Dataset, x.DatasetVersion, x.MappingTemplateId, x.MappingTemplate == null ? 0 : x.MappingTemplate.Version, x.Status,
                     x.HasBlockingErrors, x.CatalogVersion, x.ArtifactName, x.FileSize, x.FileChecksum, x.CreatedByUserId,
                     x.CreatedByUser.DisplayName ?? x.CreatedByUser.Email, x.CreatedAtUtc, x.UpdatedAtUtc, x.PublishedAtUtc,
                     x.CurrentStage, x.TotalRows, x.ProcessedRows, x.ProcessingStartedAtUtc, x.ProcessingCompletedAtUtc,
@@ -108,10 +191,10 @@ internal sealed class TerritorialAdminRepository(ZuppetoDbContext db) : ITerrito
                         x.ChangeSets.Where(set => set.RevertsChangeSetId == null).SelectMany(set => set.Items).Count(change => change.Kind == "NoChange"))),
                 x.PublicationMode,
                 x.FailureReason,
-                x.MappingTemplate.SchemaFingerprint,
+                SchemaFingerprint = x.MappingTemplate == null ? "PETILOC_TERRITORIAL:" + x.ContractVersion : x.MappingTemplate.SchemaFingerprint,
                 SourceApprovalStatus = x.DatasetSource.ApprovalStatus,
                 SourceIsActive = x.DatasetSource.IsActive,
-                MappingIsActive = x.MappingTemplate.IsActive,
+                MappingIsActive = x.MappingTemplate == null || x.MappingTemplate.IsActive,
                 CurrentCatalogVersion = db.TerritorialCatalogStates.Where(state => state.CountryId == x.DatasetSource.CountryId).Select(state => (long?)state.Version).FirstOrDefault() ?? 0,
                 ChangeSet = x.ChangeSets.Where(set => set.RevertsChangeSetId == null).Select(set => new { set.Id, set.Status, set.CatalogVersion, set.CreatedAtUtc, set.PublishedAtUtc }).FirstOrDefault()
             }).SingleOrDefaultAsync(ct);
@@ -143,11 +226,20 @@ internal sealed class TerritorialAdminRepository(ZuppetoDbContext db) : ITerrito
         var conflictCount = publicationItems.Count(x =>
             (JsonSerializer.Deserialize<string[]>(x.ChangedFieldsJson, TerritorialImportJson.Options) ?? [])
                 .Any(field => field.StartsWith("manualOverrideConflict:", StringComparison.Ordinal)));
+        var sourceGates = await db.TerritorialImportSources.AsNoTracking().Where(source => source.ImportId == id)
+            .OrderByDescending(source => source.ContributesPublishedFields).ThenBy(source => source.SourceKey)
+            .Select(source => new TerritorialImportSourceGateDto(source.DatasetSourceId, source.SourceKey,
+                source.DatasetSource.Organisation, source.DatasetSource.Dataset,
+                source.DatasetSource.ApprovalStatus, source.DatasetSource.IsActive, source.ContributesPublishedFields))
+            .ToArrayAsync(ct);
+        var allContributingSourcesApproved = sourceGates.All(source => !source.ContributesPublishedFields ||
+            source.IsActive && source.ApprovalStatus == "Approved");
         var canPublish = item.Summary.Status == "ReadyForReview"
             && !item.Summary.HasBlockingErrors
             && item.SourceIsActive
             && item.SourceApprovalStatus == "Approved"
             && item.MappingIsActive
+            && allContributingSourcesApproved
             && changeSet?.Status == "Prepared"
             && item.Summary.CatalogVersion == item.CurrentCatalogVersion
             && conflictCount == 0;
@@ -155,7 +247,7 @@ internal sealed class TerritorialAdminRepository(ZuppetoDbContext db) : ITerrito
             item.Summary.Status is not ("Published" or "Reverted" or "Cancelled"),
             canPublish,
             canRevert, item.CurrentCatalogVersion, changeSet?.Id, changeSet?.Status, changeSet?.CreatedAtUtc, changeSet?.PublishedAtUtc,
-            sourceSheets, conflictCount, breakdown);
+            sourceSheets, conflictCount, breakdown, sourceGates);
     }
 
     public async Task<PageResult<TerritorialImportIssueDto>> ListIssuesAsync(Guid importId, TerritorialIssueQuery request, CancellationToken ct = default)
@@ -316,7 +408,7 @@ internal sealed class TerritorialAdminRepository(ZuppetoDbContext db) : ITerrito
                 x.DatasetSource.Dataset,
                 x.DatasetVersion,
                 x.DatasetSource.DatasetDate,
-                MappingVersion = x.MappingTemplate.Version,
+                MappingVersion = x.MappingTemplate == null ? 0 : x.MappingTemplate.Version,
                 x.DatasetSource.Locale,
                 SourceUrl = x.DatasetSource.Url
             }).SingleAsync(ct);
@@ -517,6 +609,12 @@ internal sealed class TerritorialAdminRepository(ZuppetoDbContext db) : ITerrito
         var query = db.TerritorialUnits.AsNoTracking().AsQueryable();
         if (request.CountryId is not null) query = query.Where(x => x.CountryId == request.CountryId);
         if (request.TerritorialUnitTypeId is not null) query = query.Where(x => x.TerritorialUnitTypeId == request.TerritorialUnitTypeId);
+        if (!string.IsNullOrWhiteSpace(request.FunctionalTypeCode))
+        {
+            if (!TerritorialFunctionalTypeCatalog.TryOfficialTypeCodes(request.FunctionalTypeCode, out var officialTypeCodes))
+                throw new InvalidOperationException("La categoria territorial funcional no és vàlida.");
+            query = query.Where(x => officialTypeCodes.Contains(x.TerritorialUnitType.Code));
+        }
         if (request.ParentId is not null) query = query.Where(x => x.ParentId == request.ParentId);
         if (request.Status == "active") query = query.Where(x => x.IsActive);
         if (request.Status == "inactive") query = query.Where(x => !x.IsActive);
@@ -544,7 +642,7 @@ internal sealed class TerritorialAdminRepository(ZuppetoDbContext db) : ITerrito
                 x.ManualSelectableLocality ?? x.TerritorialUnitType.IsSelectableLocality,
                 x.HasManualActiveOverride || x.ManualSelectableLocality != null || x.HasManualCoordinateOverride,
                 x.HasManualActiveOverride, x.ManualSelectableLocality != null, x.HasManualCoordinateOverride)).ToArrayAsync(ct);
-        return new PageResult<TerritorialCatalogUnitDto>(rows, request.Page, request.PageSize, total);
+        return new PageResult<TerritorialCatalogUnitDto>(rows.Select(Localize).ToArray(), request.Page, request.PageSize, total);
     }
 
     public async Task<TerritorialCatalogHierarchyDto?> GetCatalogHierarchyAsync(
@@ -567,9 +665,9 @@ internal sealed class TerritorialAdminRepository(ZuppetoDbContext db) : ITerrito
         var pathIds = path.Select(x => x.Id).ToArray();
         var pathNodes = await CatalogHierarchyNodes(db.TerritorialUnits.AsNoTracking().Where(x => pathIds.Contains(x.Id)))
             .ToDictionaryAsync(x => x.Id, ct);
-        var current = pathNodes[id];
+        var current = Localize(pathNodes[id]);
         var ancestors = path.Where(x => x.Depth > 0).OrderByDescending(x => x.Depth)
-            .Select(x => pathNodes[x.Id]).ToArray();
+            .Select(x => Localize(pathNodes[x.Id])).ToArray();
 
         var childrenQuery = db.TerritorialUnits.AsNoTracking().Where(x => x.ParentId == id);
         if (!string.IsNullOrWhiteSpace(request.Search))
@@ -582,7 +680,7 @@ internal sealed class TerritorialAdminRepository(ZuppetoDbContext db) : ITerrito
             .OrderBy(x => x.TerritorialUnitType.DisplayOrder)
             .ThenBy(x => x.Names.Where(n => n.IsPrimary).Select(n => n.Name).FirstOrDefault())
             .Skip((request.Page - 1) * request.PageSize).Take(request.PageSize);
-        var children = await CatalogHierarchyNodes(childrenPage).ToArrayAsync(ct);
+        var children = (await CatalogHierarchyNodes(childrenPage).ToArrayAsync(ct)).Select(Localize).ToArray();
 
         var descendantTypes = await db.Database.SqlQueryRaw<CatalogDescendantTypeRow>("""
             WITH RECURSIVE subtree AS (
@@ -606,7 +704,9 @@ internal sealed class TerritorialAdminRepository(ZuppetoDbContext db) : ITerrito
         return new TerritorialCatalogHierarchyDto(current, ancestors,
             new PageResult<TerritorialCatalogHierarchyNodeDto>(children, request.Page, request.PageSize, total),
             descendantTypes.Select(x => new TerritorialCatalogDescendantTypeDto(
-                x.TerritorialUnitTypeId, x.TypeCode, x.Type, x.Count, x.IsSelectableLocality)).ToArray());
+                x.TerritorialUnitTypeId, x.TypeCode,
+                TerritorialFunctionalTypeCatalog.CatalanTypeLabel(x.TypeCode, x.Type),
+                x.Count, x.IsSelectableLocality)).ToArray());
     }
 
     public async Task<PageResult<TerritorialCatalogUnitDto>> ListCatalogDescendantsAsync(
@@ -666,7 +766,7 @@ internal sealed class TerritorialAdminRepository(ZuppetoDbContext db) : ITerrito
             new NpgsqlParameter("page_size", request.PageSize),
             new NpgsqlParameter("offset", offset)).ToArrayAsync(ct);
         var total = rows.FirstOrDefault()?.TotalCount ?? 0;
-        return new PageResult<TerritorialCatalogUnitDto>(rows.Select(ToCatalogUnit).ToArray(), request.Page, request.PageSize, total);
+        return new PageResult<TerritorialCatalogUnitDto>(rows.Select(ToCatalogUnit).Select(Localize).ToArray(), request.Page, request.PageSize, total);
     }
 
     public async Task<TerritorialCatalogDetailDto?> GetCatalogUnitAsync(Guid id, CancellationToken ct = default)
@@ -684,9 +784,10 @@ internal sealed class TerritorialAdminRepository(ZuppetoDbContext db) : ITerrito
         while (parentId is not null)
         {
             var parent = await db.TerritorialUnits.AsNoTracking().Where(x => x.Id == parentId)
-                .Select(x => new { x.Id, x.ParentId, Name = x.Names.Where(n => n.IsPrimary).Select(n => n.Name).FirstOrDefault() ?? x.Names.Select(n => n.Name).FirstOrDefault() ?? string.Empty, Type = x.TerritorialUnitType.Name })
+                .Select(x => new { x.Id, x.ParentId, Name = x.Names.Where(n => n.IsPrimary).Select(n => n.Name).FirstOrDefault() ?? x.Names.Select(n => n.Name).FirstOrDefault() ?? string.Empty, TypeCode = x.TerritorialUnitType.Code, Type = x.TerritorialUnitType.Name })
                 .SingleAsync(ct);
-            ancestors.Insert(0, new TerritorialAncestorDto(parent.Id, parent.Name, parent.Type));
+            ancestors.Insert(0, new TerritorialAncestorDto(parent.Id, parent.Name,
+                TerritorialFunctionalTypeCatalog.CatalanTypeLabel(parent.TypeCode, parent.Type)));
             parentId = parent.ParentId;
         }
         var summary = await ListCatalogAsync(new TerritorialCatalogQuery(null, null, null, null, null, id.ToString(), null, 1, 1), ct);
@@ -751,6 +852,22 @@ internal sealed class TerritorialAdminRepository(ZuppetoDbContext db) : ITerrito
     private static TerritorialMappingTemplateDetailDto MappingDetail(TerritorialMappingTemplateRecord record) =>
         new(record.Id, record.DatasetSourceId, record.Version, record.SchemaFingerprint, record.DefinitionChecksum,
             record.IsActive, record.CreatedAtUtc, JsonDocument.Parse(record.DefinitionJson).RootElement.Clone());
+
+    private static IReadOnlyCollection<string> MissingApprovalMetadata(TerritorialDatasetSourceRecord source)
+    {
+        var missing = new List<string>();
+        if (string.IsNullOrWhiteSpace(source.Organisation)) missing.Add("organisme");
+        if (string.IsNullOrWhiteSpace(source.Dataset)) missing.Add("dataset");
+        if (string.IsNullOrWhiteSpace(source.DatasetVersion)) missing.Add("versió");
+        if (source.DatasetDate is null) missing.Add("data del dataset");
+        if (string.IsNullOrWhiteSpace(source.Url)) missing.Add("URL oficial");
+        if (string.IsNullOrWhiteSpace(source.License)) missing.Add("llicència");
+        if (string.IsNullOrWhiteSpace(source.LicenseUrl)) missing.Add("evidència de la llicència");
+        if (string.IsNullOrWhiteSpace(source.Attribution)) missing.Add("atribució");
+        if (source.CommercialUseAllowed is null) missing.Add("reutilització comercial");
+        if (source.TransformationAllowed is null) missing.Add("transformació");
+        return missing;
+    }
 
     private static IReadOnlyCollection<TerritorialFieldDifferenceDto> Differences(
         ChangeMaterial item,
@@ -827,6 +944,12 @@ internal sealed class TerritorialAdminRepository(ZuppetoDbContext db) : ITerrito
         x.ManualSelectableLocality ?? x.TerritorialUnitType.IsSelectableLocality,
         x.HasManualActiveOverride || x.ManualSelectableLocality != null || x.HasManualCoordinateOverride,
         x.HasManualActiveOverride, x.ManualSelectableLocality != null, x.HasManualCoordinateOverride);
+
+    private static TerritorialCatalogUnitDto Localize(TerritorialCatalogUnitDto item) =>
+        item with { Type = TerritorialFunctionalTypeCatalog.CatalanTypeLabel(item.TypeCode, item.Type) };
+
+    private static TerritorialCatalogHierarchyNodeDto Localize(TerritorialCatalogHierarchyNodeDto item) =>
+        item with { Type = TerritorialFunctionalTypeCatalog.CatalanTypeLabel(item.TypeCode, item.Type) };
 
     private static IQueryable<TerritorialCatalogHierarchyNodeDto> CatalogHierarchyNodes(IQueryable<TerritorialUnitRecord> query) =>
         query.Select(x => new TerritorialCatalogHierarchyNodeDto(

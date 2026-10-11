@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using Zuppeto.Domain.TerritorialImports;
 
 namespace Zuppeto.Application.TerritorialImports;
 
@@ -9,7 +10,9 @@ public sealed class TerritorialAdminService(
     ITerritorialWorkbookReader reader,
     ITerritorialAdminRepository repository,
     TerritorialImportService importService,
-    IEnumerable<ITerritorialCanonicalizer> canonicalizers)
+    IEnumerable<ITerritorialCanonicalizer> canonicalizers,
+    ITerritorialNormalizedContractInterpreter normalizedInterpreter,
+    ITerritorialContractSourceResolver sourceResolver)
 {
     public const long MaximumArtifactSize = 25 * 1024 * 1024;
 
@@ -17,6 +20,39 @@ public sealed class TerritorialAdminService(
     {
         await authorizer.EnsureAdminAsync(actorUserId, ct);
         return await repository.GetContextAsync(ct);
+    }
+
+    public async Task<PageResult<TerritorialSourceDetailDto>> ListSourcesAsync(
+        Guid actorUserId, TerritorialSourceQuery query, CancellationToken ct = default)
+    {
+        await authorizer.EnsureAdminAsync(actorUserId, ct);
+        return await repository.ListSourcesAsync(query with
+        {
+            Page = Math.Max(1, query.Page),
+            PageSize = Math.Clamp(query.PageSize, 1, 100)
+        }, ct);
+    }
+
+    public async Task<TerritorialSourceDetailDto?> GetSourceAsync(Guid actorUserId, Guid id, CancellationToken ct = default)
+    {
+        await authorizer.EnsureAdminAsync(actorUserId, ct);
+        return await repository.GetSourceAsync(id, ct);
+    }
+
+    public async Task<TerritorialSourceDetailDto> DecideSourceAsync(
+        Guid actorUserId, Guid id, TerritorialSourceDecisionRequest request, CancellationToken ct = default)
+    {
+        await authorizer.EnsureAdminAsync(actorUserId, ct);
+        var decision = request.Decision?.Trim().ToLowerInvariant();
+        if (decision is not ("approve" or "reject"))
+            throw new InvalidOperationException("La decisió ha de ser aprovar o rebutjar.");
+        var reason = request.Reason?.Trim() ?? string.Empty;
+        if (reason.Length < 3 || reason.Length > 500)
+            throw new InvalidOperationException("El motiu és obligatori i ha de tenir entre 3 i 500 caràcters.");
+        if (request.ExpectedStatus is not ("Pending" or "Approved" or "Rejected"))
+            throw new InvalidOperationException("L'estat esperat de la font no és vàlid.");
+        return await repository.DecideSourceAsync(id, actorUserId,
+            request with { Decision = decision, Reason = reason }, ct);
     }
 
     public async Task<TerritorialWorkbookInspectionDto> InspectAsync(
@@ -35,7 +71,19 @@ public sealed class TerritorialAdminService(
         var bytes = buffer.ToArray();
         buffer.Position = 0;
         var workbook = await reader.ReadAsync(buffer, ct);
-        var mappings = await repository.ListMappingsAsync(datasetSourceId, workbook.SchemaFingerprint, ct);
+        TerritorialContractInspectionDto? contractInspection = null;
+        IReadOnlyCollection<TerritorialMappingTemplateSummaryDto> mappings = [];
+        if (normalizedInterpreter.IsNormalized(workbook))
+        {
+            var contract = normalizedInterpreter.Interpret(workbook);
+            contractInspection = new TerritorialContractInspectionDto(
+                contract.Manifest.ContractId, contract.Manifest.ContractVersion, contract.Manifest.CountryIso2,
+                contract.Manifest.ImportMode.ToString(), contract.Manifest.DatasetVersion, contract.Manifest.TerritorialDate,
+                contract.Manifest.PrimarySourceKey, contract.Manifest.FieldScope,
+                contract.Sources.Select(source => source.SourceKey).ToArray(),
+                !contract.Issues.Any(issue => issue.Severity == TerritorialIssueSeverity.Error), contract.Issues);
+        }
+        else mappings = await repository.ListMappingsAsync(datasetSourceId, workbook.SchemaFingerprint, ct);
         return new TerritorialWorkbookInspectionDto(
             SafeArtifactName(artifactName),
             fileSize,
@@ -45,7 +93,8 @@ public sealed class TerritorialAdminService(
             workbook.Sheets.Select(ToSheetMetadata).ToArray(),
             workbook.Sheets.SelectMany(sheet => sheet.Rows.Skip(1).Take(20).Select(row =>
                 new TerritorialWorkbookPreviewRowDto(sheet.Name, row.Number, row.Values))).ToArray(),
-            mappings);
+            mappings,
+            contractInspection);
     }
 
     public async Task<IReadOnlyCollection<TerritorialMappingTemplateSummaryDto>> ListMappingsAsync(
@@ -83,7 +132,7 @@ public sealed class TerritorialAdminService(
     public async Task<TerritorialImportDetailDto> PrepareAsync(
         Guid actorUserId,
         Guid datasetSourceId,
-        Guid mappingTemplateId,
+        Guid? mappingTemplateId,
         string datasetVersion,
         string artifactName,
         long fileSize,
@@ -91,12 +140,52 @@ public sealed class TerritorialAdminService(
         CancellationToken ct = default)
     {
         ValidateArtifact(artifactName, fileSize);
-        if (string.IsNullOrWhiteSpace(datasetVersion) || datasetVersion.Length > 120)
-            throw new InvalidOperationException("La versió del dataset és obligatòria i no pot superar 120 caràcters.");
-        var importId = await importService.QueueAsync(new PrepareTerritorialImportRequest(
-            datasetSourceId, mappingTemplateId, SafeArtifactName(artifactName), datasetVersion.Trim(), artifact, actorUserId), ct);
+        await using var buffer = new MemoryStream();
+        await artifact.CopyToAsync(buffer, ct);
+        if (buffer.Length != fileSize) throw new InvalidDataException("La mida rebuda no coincideix amb la declarada.");
+        buffer.Position = 0;
+        var workbook = await reader.ReadAsync(buffer, ct);
+        buffer.Position = 0;
+        PrepareTerritorialImportRequest request;
+        if (normalizedInterpreter.IsNormalized(workbook))
+        {
+            var contract = normalizedInterpreter.Interpret(workbook);
+            if (contract.Issues.Any(issue => issue.Severity == TerritorialIssueSeverity.Error))
+                throw new InvalidDataException($"El contracte territorial conté {contract.Issues.Count(issue => issue.Severity == TerritorialIssueSeverity.Error)} errors.");
+            var contributingKeys = ContributingSourceKeys(contract);
+            var resolved = await sourceResolver.ResolveAsync(contract.Manifest.CountryIso2,
+                contract.Sources.Select(source => source.SourceKey).ToArray(), contributingKeys, ct);
+            var primary = resolved.Sources.SingleOrDefault(source => source.SourceKey == contract.Manifest.PrimarySourceKey)
+                ?? throw new InvalidOperationException("La font principal del Manifest no existeix al país.");
+            request = new PrepareTerritorialImportRequest(primary.DatasetSourceId, null, SafeArtifactName(artifactName),
+                contract.Manifest.DatasetVersion, buffer, actorUserId, TerritorialInputKind.PetilocNormalized,
+                contract.Manifest.ContractVersion, contract.Manifest.ImportMode, contract.Manifest.FieldScope, resolved.Sources);
+        }
+        else
+        {
+            if (mappingTemplateId is null || mappingTemplateId == Guid.Empty)
+                throw new InvalidOperationException("El mapping és obligatori per a un XLSX extern.");
+            if (string.IsNullOrWhiteSpace(datasetVersion) || datasetVersion.Length > 120)
+                throw new InvalidOperationException("La versió del dataset és obligatòria i no pot superar 120 caràcters.");
+            request = new PrepareTerritorialImportRequest(datasetSourceId, mappingTemplateId, SafeArtifactName(artifactName),
+                datasetVersion.Trim(), buffer, actorUserId);
+        }
+        var importId = await importService.QueueAsync(request, ct);
         return await repository.GetImportAsync(importId, ct)
             ?? throw new InvalidOperationException("No s'ha pogut recuperar la importació en cua.");
+    }
+
+    private static IReadOnlyCollection<string> ContributingSourceKeys(TerritorialNormalizedContract contract)
+    {
+        var keys = new HashSet<string>(StringComparer.Ordinal);
+        if (contract.Manifest.ImportMode == TerritorialImportMode.Full)
+            foreach (var key in contract.Units.Select(unit => unit.StructureSourceKey).Where(key => key is not null)) keys.Add(key!);
+        if (contract.Manifest.FieldScope.Contains("coordinates") || contract.Manifest.ImportMode == TerritorialImportMode.Full)
+            foreach (var key in contract.Units.Where(unit => unit.CoordinateOperation != TerritorialFieldOperation.Keep)
+                         .Select(unit => unit.CoordinateSourceKey).Where(key => key is not null)) keys.Add(key!);
+        foreach (var key in contract.Names.Where(name => name.Operation != TerritorialFieldOperation.Keep).Select(name => name.SourceKey)) keys.Add(key);
+        foreach (var key in contract.Codes.Where(code => code.Operation != TerritorialFieldOperation.Keep).Select(code => code.SourceKey)) keys.Add(key);
+        return keys;
     }
 
     public async Task<PageResult<TerritorialImportListItemDto>> ListImportsAsync(Guid actorUserId, TerritorialImportQuery query, CancellationToken ct = default)

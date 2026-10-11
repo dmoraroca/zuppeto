@@ -13,10 +13,11 @@ import {
   territorialPublicationModeLabel, territorialSeverityLabel, territorialStageLabel, territorialStatusLabel,
   territorialTypeLabel
 } from '../../policies/territorial-presentation.policy';
+import { TerritorialSourceReviewComponent } from '../territorial-source-review/territorial-source-review.component';
 
 @Component({
   selector: 'app-territorial-import-wizard',
-  imports: [FormsModule, KeyValuePipe],
+  imports: [FormsModule, KeyValuePipe, TerritorialSourceReviewComponent],
   templateUrl: './import-wizard.component.html',
   styleUrl: './import-wizard.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -35,6 +36,7 @@ export class TerritorialImportWizardComponent implements OnChanges, OnDestroy {
   @Input({ required: true }) context!: TerritorialContext;
   @Input() requestedImportId: string | null = null;
   @Output() readonly importChanged = new EventEmitter<string>();
+  @Output() readonly contextRefresh = new EventEmitter<void>();
 
   protected step = 1;
   protected sourceId = '';
@@ -65,6 +67,7 @@ export class TerritorialImportWizardComponent implements OnChanges, OnDestroy {
   protected hierarchyError = '';
   protected changeDetailTab: 'general' | 'hierarchy' | 'names' | 'provenance' | 'changes' = 'general';
   protected drafts: MappingProjectionDraft[] = [];
+  protected reviewedSourceId: string | null = null;
 
   private readonly api = inject(TerritorialAdminApiService);
   private readonly cdr = inject(ChangeDetectorRef);
@@ -117,6 +120,30 @@ export class TerritorialImportWizardComponent implements OnChanges, OnDestroy {
     return this.context.sources.find((item) => item.id === this.sourceId) ?? null;
   }
 
+  protected get isNormalized(): boolean { return !!this.inspection?.contract; }
+
+  protected get hasBlockedContributingSource(): boolean {
+    return this.detail?.sourceGates?.some((gate) => gate.contributesPublishedFields &&
+      (!gate.isActive || gate.approvalStatus !== 'Approved')) ?? false;
+  }
+
+  protected gateReason(gate: { approvalStatus: string; isActive: boolean }): string {
+    if (!gate.isActive) return 'La font està inactiva.';
+    if (gate.approvalStatus === 'Pending') return 'La revisió documental encara no s’ha completat.';
+    if (gate.approvalStatus === 'Rejected') return 'La revisió documental ha rebutjat aquesta font.';
+    return 'La font no bloqueja la publicació.';
+  }
+
+  protected reviewSource(id: string): void { this.reviewedSourceId = id; }
+  protected closeSourceReview(): void { this.reviewedSourceId = null; }
+  protected async sourceDecisionChanged(): Promise<void> {
+    this.reviewedSourceId = null;
+    await this.run(async () => {
+      if (this.detail) this.detail = await this.api.detail(this.detail.import.id);
+      this.contextRefresh.emit();
+    });
+  }
+
   protected get sourcePreviewColumns(): string[] {
     const columns = new Set<string>();
     for (const row of this.sourcePreview.items) Object.keys(row.values).forEach((key) => columns.add(key));
@@ -144,14 +171,15 @@ export class TerritorialImportWizardComponent implements OnChanges, OnDestroy {
 
   protected async inspect(): Promise<void> {
     const invalid = territorialFileError(this.file);
-    if (!this.sourceId || invalid) {
-      this.error = !this.sourceId ? 'Selecciona una font territorial.' : invalid!;
+    if (invalid) {
+      this.error = invalid!;
       return;
     }
     await this.run(async () => {
-      this.inspection = await this.api.inspect(this.sourceId, this.file!);
+      this.inspection = await this.api.inspect(this.sourceId || null, this.file!);
       this.mappingId = this.inspection.compatibleMappings[0]?.id ?? '';
-      this.drafts = [this.newDraft()];
+      if (this.inspection.contract) this.datasetVersion = this.inspection.contract.datasetVersion;
+      this.drafts = this.inspection.contract ? [] : [this.newDraft()];
       this.step = 3;
     });
   }
@@ -192,12 +220,12 @@ export class TerritorialImportWizardComponent implements OnChanges, OnDestroy {
   }
 
   protected async prepare(): Promise<void> {
-    if (!this.file || !this.mappingId || !this.datasetVersion.trim()) {
-      this.error = 'Fitxer, mapping compatible i versió del dataset són obligatoris.';
+    if (!this.file || (!this.isNormalized && (!this.sourceId || !this.mappingId || !this.datasetVersion.trim()))) {
+      this.error = 'Per a un XLSX extern, font, mapping compatible i versió del dataset són obligatoris.';
       return;
     }
     await this.run(async () => {
-      this.detail = await this.api.prepare(this.sourceId, this.mappingId, this.datasetVersion.trim(), this.file!);
+      this.detail = await this.api.prepare(this.sourceId || null, this.mappingId || null, this.datasetVersion.trim() || null, this.file!);
       this.initializeSourceSheet();
       this.step = 4;
       this.importChanged.emit(this.detail!.import.id);
@@ -331,7 +359,7 @@ export class TerritorialImportWizardComponent implements OnChanges, OnDestroy {
     this.step = 1; this.file = null; this.inspection = null; this.mappingId = '';
     this.detail = null; this.issues = this.emptyPage(); this.changes = this.emptyPage();
     this.sourcePreview = this.emptyPage(); this.canonicalPreview = this.emptyPage();
-    this.error = ''; this.confirmAction = null; this.selectedChange = null; this.previewSheet = ''; this.previewSearch = ''; this.drafts = [];
+    this.error = ''; this.confirmAction = null; this.selectedChange = null; this.reviewedSourceId = null; this.previewSheet = ''; this.previewSearch = ''; this.drafts = [];
   }
 
   private async loadEvidence(): Promise<void> {

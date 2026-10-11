@@ -28,7 +28,7 @@ internal sealed class TerritorialImportStore(ZuppetoDbContext db) : ITerritorial
             item.DefinitionJson, item.SchemaFingerprint, item.DefinitionChecksum, item.CreatedAtUtc, item.IsActive);
     }
 
-    public async Task CreateAsync(TerritorialImport import, byte[] artifact, CancellationToken ct = default)
+    public async Task CreateAsync(TerritorialImport import, byte[] artifact, IReadOnlyCollection<TerritorialImportSourceReference>? sources = null, CancellationToken ct = default)
     {
         var mode = await db.TerritorialDatasetSources.Where(x => x.Id == import.DatasetSourceId).Select(x => x.PublicationMode).SingleAsync(ct);
         db.TerritorialImports.Add(new TerritorialImportRecord
@@ -36,10 +36,19 @@ internal sealed class TerritorialImportStore(ZuppetoDbContext db) : ITerritorial
             Id = import.Id, DatasetSourceId = import.DatasetSourceId, MappingTemplateId = import.MappingTemplateId,
             ArtifactName = import.ArtifactName, FileChecksum = import.FileChecksum, FileSize = import.FileSize,
             DatasetVersion = import.DatasetVersion, PublicationMode = mode, Status = import.Status.ToString(),
+            InputKind = import.InputKind.ToString(), ContractVersion = import.ContractVersion,
+            ImportMode = import.ImportMode.ToString(), FieldScopeJson = JsonSerializer.Serialize(import.FieldScope, TerritorialImportJson.Options),
             CreatedByUserId = import.CreatedByUserId, CreatedAtUtc = import.CreatedAtUtc, UpdatedAtUtc = import.UpdatedAtUtc,
             CurrentStage = TerritorialImportStage.Artifact.ToString(), NextAttemptAtUtc = import.CreatedAtUtc,
             Artifact = new TerritorialImportArtifactRecord { ImportId = import.Id, Content = artifact, CreatedAtUtc = import.CreatedAtUtc }
         });
+        db.TerritorialImportSources.AddRange((sources ?? [new TerritorialImportSourceReference(import.DatasetSourceId, string.Empty, string.Empty, true, true)])
+            .DistinctBy(source => source.DatasetSourceId).Select(source => new TerritorialImportSourceRecord
+            {
+                ImportId = import.Id, DatasetSourceId = source.DatasetSourceId, SourceKey = source.SourceKey,
+                Role = source.ContributesPublishedFields ? "PublishedFields" : "Reference",
+                ContributesPublishedFields = source.ContributesPublishedFields
+            }));
         await db.SaveChangesAsync(ct);
     }
 
@@ -90,7 +99,8 @@ internal sealed class TerritorialImportStore(ZuppetoDbContext db) : ITerritorial
                 Id = Guid.NewGuid(), ImportId = import.Id, Sheet = row.Sheet, RowNumber = row.RowNumber,
                 SourceJson = JsonSerializer.Serialize(row.SourceValues, TerritorialImportJson.Options),
                 CanonicalJson = JsonSerializer.Serialize(row.Candidate, TerritorialImportJson.Options),
-                CanonicalUnitKey = row.Candidate.CanonicalUnitKey, ParentCanonicalUnitKey = row.Candidate.ParentCanonicalUnitKey
+                CanonicalUnitKey = row.Candidate.CanonicalUnitKey, ParentCanonicalUnitKey = row.Candidate.ParentCanonicalUnitKey,
+                FieldOperationsJson = JsonSerializer.Serialize(row.FieldOperations ?? new Dictionary<string, TerritorialFieldOperation>(), TerritorialImportJson.Options)
             }));
             processed += batch.Length;
             var record = await db.TerritorialImports.SingleAsync(x => x.Id == import.Id, ct);
@@ -121,7 +131,8 @@ internal sealed class TerritorialImportStore(ZuppetoDbContext db) : ITerritorial
             {
                 Id = change.Id, Kind = change.Kind.ToString(), TerritorialUnitId = change.TerritorialUnitId,
                 CanonicalUnitKey = change.CanonicalUnitKey, BeforeJson = change.BeforeJson, AfterJson = change.AfterJson,
-                ChangedFieldsJson = JsonSerializer.Serialize(change.ChangedFields, TerritorialImportJson.Options)
+                ChangedFieldsJson = JsonSerializer.Serialize(change.ChangedFields, TerritorialImportJson.Options),
+                FieldOperationsJson = JsonSerializer.Serialize(change.FieldOperations ?? new Dictionary<string, string>(), TerritorialImportJson.Options)
             }).ToList()
         });
         await UpdateImport(import, new { changes = changeSet.Changes.Count, actionable = changeSet.Changes.Count(x => x.Kind != TerritorialChangeKind.NoChange) }, ct);
@@ -176,13 +187,19 @@ internal sealed class TerritorialCatalogImportGateway(ZuppetoDbContext db) : ITe
     public async Task PublishAsync(Guid importId, Guid actorUserId, CancellationToken ct = default)
     {
         await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
-        var import = await db.TerritorialImports.Include(x => x.DatasetSource).Include(x => x.ChangeSets).ThenInclude(x => x.Items)
+        var import = await db.TerritorialImports.Include(x => x.DatasetSource)
+            .Include(x => x.Sources).ThenInclude(x => x.DatasetSource)
+            .Include(x => x.ChangeSets).ThenInclude(x => x.Items)
             .SingleAsync(x => x.Id == importId, ct);
         var changeSet = import.ChangeSets.SingleOrDefault(x => x.RevertsChangeSetId == null);
         if (import.Status != "Publishing" || changeSet is null || import.HasBlockingErrors) throw new InvalidOperationException("La importació no està preparada per publicar.");
         var sourceGate = await db.TerritorialDatasetSources.AsNoTracking().Where(x => x.Id == import.DatasetSourceId)
             .Select(x => new { x.IsActive, x.ApprovalStatus }).SingleAsync(ct);
         if (!sourceGate.IsActive || sourceGate.ApprovalStatus != "Approved") throw new InvalidOperationException("La font territorial no està aprovada.");
+        var blockedSources = import.Sources.Where(x => x.ContributesPublishedFields &&
+            (!x.DatasetSource.IsActive || x.DatasetSource.ApprovalStatus != "Approved")).Select(x => x.SourceKey).ToArray();
+        if (blockedSources.Length > 0)
+            throw new InvalidOperationException($"No es pot publicar: hi ha fonts contribuïdores pendents d'aprovació ({string.Join(", ", blockedSources)}).");
         if (actorUserId == Guid.Empty) throw new InvalidOperationException("L'actor de publicació és obligatori.");
         if (await db.TerritorialImports.AnyAsync(x => x.Id != import.Id && x.DatasetSourceId == import.DatasetSourceId &&
                 x.DatasetVersion == import.DatasetVersion && x.FileChecksum == import.FileChecksum && x.Status == "Published", ct))
@@ -211,7 +228,7 @@ internal sealed class TerritorialCatalogImportGateway(ZuppetoDbContext db) : ITe
             if (updatedStates != 1) throw new DbUpdateConcurrencyException("El preview territorial ha quedat obsolet.");
         }
 
-        await ApplyItems(changeSet.Items, import.DatasetSource, ct);
+        await ApplyItems(changeSet.Items, import, ct);
         import.Status = "Published"; import.PublishedAtUtc = publishedAtUtc; import.UpdatedAtUtc = publishedAtUtc;
         import.ProcessingCompletedAtUtc = publishedAtUtc; import.LastHeartbeatAtUtc = publishedAtUtc;
         changeSet.Status = "Published"; changeSet.PublishedAtUtc = import.PublishedAtUtc;
@@ -269,7 +286,8 @@ internal sealed class TerritorialCatalogImportGateway(ZuppetoDbContext db) : ITe
             Items = changeSet.Items.Select(item => new TerritorialChangeSetItemRecord
             {
                 Id = Guid.NewGuid(), Kind = item.Kind, TerritorialUnitId = item.TerritorialUnitId, CanonicalUnitKey = item.CanonicalUnitKey,
-                BeforeJson = item.AfterJson, AfterJson = item.BeforeJson, ChangedFieldsJson = item.ChangedFieldsJson
+                BeforeJson = item.AfterJson, AfterJson = item.BeforeJson, ChangedFieldsJson = item.ChangedFieldsJson,
+                FieldOperationsJson = item.FieldOperationsJson
             }).ToList()
         };
         db.TerritorialChangeSets.Add(reversal);
@@ -286,9 +304,29 @@ internal sealed class TerritorialCatalogImportGateway(ZuppetoDbContext db) : ITe
         await transaction.CommitAsync(ct);
     }
 
-    private async Task ApplyItems(ICollection<TerritorialChangeSetItemRecord> items, TerritorialDatasetSourceRecord source, CancellationToken ct)
+    private async Task ApplyItems(ICollection<TerritorialChangeSetItemRecord> items, TerritorialImportRecord import, CancellationToken ct)
     {
+        var source = import.DatasetSource;
         var actionable = items.Where(x => x.Kind != "NoChange").ToArray();
+        if (import.InputKind == "PetilocNormalized" && import.ImportMode == "Patch")
+        {
+            if (actionable.Any(item => item.Kind != "Update" ||
+                JsonSerializer.Deserialize<string[]>(item.ChangedFieldsJson, TerritorialImportJson.Options)?.Any(field => field != "coordinates") == true))
+                throw new InvalidOperationException("Un PATCH normalitzat només pot actualitzar camps declarats.");
+            foreach (var item in actionable)
+            {
+                var model = JsonSerializer.Deserialize<CanonicalTerritorialUnit>(item.AfterJson!, TerritorialImportJson.Options)!;
+                var unit = await LoadUnit(item.TerritorialUnitId!.Value, ct);
+                if (!unit.HasManualCoordinateOverride)
+                {
+                    unit.Latitude = model.Latitude;
+                    unit.Longitude = model.Longitude;
+                    unit.CoordinateSourceId = model.CoordinateSourceId;
+                    unit.UpdatedAtUtc = DateTimeOffset.UtcNow;
+                }
+            }
+            return;
+        }
         var canonical = actionable.Where(x => x.AfterJson is not null).ToDictionary(x => x.CanonicalUnitKey,
             x => JsonSerializer.Deserialize<CanonicalTerritorialUnit>(x.AfterJson!, TerritorialImportJson.Options)!, StringComparer.Ordinal);
         var ids = items.Where(x => x.TerritorialUnitId is not null).ToDictionary(x => x.CanonicalUnitKey, x => x.TerritorialUnitId!.Value, StringComparer.Ordinal);
@@ -325,6 +363,7 @@ internal sealed class TerritorialCatalogImportGateway(ZuppetoDbContext db) : ITe
     private static void ApplyCanonical(TerritorialUnitRecord unit, CanonicalTerritorialUnit model, Guid typeId, Guid? parentId, Guid sourceId)
     {
         unit.TerritorialUnitTypeId = typeId; unit.ParentId = parentId;
+        unit.StructureSourceId = model.StructureSourceId ?? sourceId;
         if (!unit.HasManualActiveOverride) unit.IsActive = model.IsActive;
         if (!unit.HasManualCoordinateOverride)
         {
@@ -345,6 +384,7 @@ internal sealed class TerritorialCatalogImportGateway(ZuppetoDbContext db) : ITe
     private static void RestoreSnapshot(TerritorialUnitRecord unit, TerritorialCatalogUnitSnapshot before, Guid fallbackSourceId)
     {
         unit.ParentId = before.ParentId;
+        unit.StructureSourceId = before.StructureSourceId;
         if (!unit.HasManualActiveOverride) unit.IsActive = before.IsActive;
         if (!unit.HasManualCoordinateOverride)
         {
@@ -384,5 +424,5 @@ internal sealed class TerritorialCatalogImportGateway(ZuppetoDbContext db) : ITe
         unit.Names.Select(x => new CanonicalTerritorialName(x.Name, x.Locale, x.Kind, x.IsPrimary, x.DatasetSourceId)).ToArray(),
         unit.Codes.Select(x => new CanonicalTerritorialCode(x.Scheme, x.Value, x.IsPrimary, x.ValidFrom, x.ValidTo, x.DatasetSourceId)).ToArray(),
         unit.Latitude, unit.Longitude, unit.IsActive, unit.CoordinateSourceId,
-        unit.HasManualActiveOverride, unit.HasManualCoordinateOverride);
+        unit.HasManualActiveOverride, unit.HasManualCoordinateOverride, unit.StructureSourceId);
 }

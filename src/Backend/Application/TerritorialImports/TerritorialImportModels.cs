@@ -68,13 +68,15 @@ public sealed record CanonicalTerritorialUnit(
     decimal? Latitude,
     decimal? Longitude,
     bool IsActive = true,
-    Guid? CoordinateSourceId = null);
+    Guid? CoordinateSourceId = null,
+    Guid? StructureSourceId = null);
 
 public sealed record TerritorialMappedRow(
     string Sheet,
     int RowNumber,
     IReadOnlyDictionary<string, string?> SourceValues,
-    CanonicalTerritorialUnit Candidate);
+    CanonicalTerritorialUnit Candidate,
+    IReadOnlyDictionary<string, TerritorialFieldOperation>? FieldOperations = null);
 
 public enum TerritorialIssueSeverity { Warning, Error }
 
@@ -99,7 +101,8 @@ public sealed record TerritorialCatalogUnitSnapshot(
     bool IsActive,
     Guid? CoordinateSourceId = null,
     bool HasManualActiveOverride = false,
-    bool HasManualCoordinateOverride = false);
+    bool HasManualCoordinateOverride = false,
+    Guid? StructureSourceId = null);
 
 public sealed record TerritorialImportContext(
     Guid DatasetSourceId,
@@ -110,13 +113,94 @@ public sealed record TerritorialImportContext(
     IReadOnlyCollection<string> TerritorialUnitTypeCodes,
     IReadOnlyCollection<TerritorialCatalogUnitSnapshot> CurrentUnits);
 
+public sealed record TerritorialImportSourceReference(
+    Guid DatasetSourceId,
+    string SourceKey,
+    string ApprovalStatus,
+    bool IsActive,
+    bool ContributesPublishedFields);
+
+public sealed record TerritorialContractSource(
+    string SourceKey,
+    string Organisation,
+    string Dataset,
+    string? DatasetVersion,
+    DateOnly? TerritorialDate,
+    string? Url,
+    string? License,
+    string? LicenseUrl,
+    string? Attribution);
+
+public sealed record TerritorialContractManifest(
+    string ContractId,
+    string ContractVersion,
+    string CountryIso2,
+    TerritorialImportMode ImportMode,
+    string DatasetVersion,
+    DateOnly TerritorialDate,
+    string PrimarySourceKey,
+    IReadOnlyCollection<string> FieldScope,
+    string Coverage);
+
+public enum TerritorialFieldOperation { Keep, Set, Clear }
+
+public sealed record TerritorialContractUnit(
+    string UnitKey,
+    string IdentityScheme,
+    string IdentityValue,
+    string? TypeCode,
+    string? ParentUnitKey,
+    string? PrimaryName,
+    string? PrimaryLocale,
+    bool? IsActive,
+    string? StructureSourceKey,
+    decimal? Latitude,
+    decimal? Longitude,
+    string? CoordinateSourceKey,
+    TerritorialFieldOperation CoordinateOperation,
+    int RowNumber);
+
+public sealed record TerritorialContractName(
+    string UnitKey,
+    string Name,
+    string? Locale,
+    string Kind,
+    bool IsPrimary,
+    string SourceKey,
+    TerritorialFieldOperation Operation,
+    int RowNumber);
+
+public sealed record TerritorialContractCode(
+    string UnitKey,
+    string Scheme,
+    string Value,
+    bool IsPrimary,
+    DateOnly? ValidFrom,
+    DateOnly? ValidTo,
+    string SourceKey,
+    TerritorialFieldOperation Operation,
+    int RowNumber);
+
+public sealed record TerritorialNormalizedContract(
+    TerritorialContractManifest Manifest,
+    IReadOnlyCollection<TerritorialContractSource> Sources,
+    IReadOnlyCollection<TerritorialContractUnit> Units,
+    IReadOnlyCollection<TerritorialContractName> Names,
+    IReadOnlyCollection<TerritorialContractCode> Codes,
+    IReadOnlyCollection<TerritorialImportIssue> Issues);
+
 public sealed record PrepareTerritorialImportRequest(
     Guid DatasetSourceId,
-    Guid MappingTemplateId,
+    Guid? MappingTemplateId,
     string ArtifactName,
     string DatasetVersion,
     Stream Artifact,
-    Guid ActorUserId);
+    Guid ActorUserId,
+    TerritorialInputKind InputKind = TerritorialInputKind.ExternalMapped,
+    string? ContractVersion = null,
+    TerritorialImportMode ImportMode = TerritorialImportMode.Full,
+    IReadOnlyCollection<string>? FieldScope = null,
+    IReadOnlyCollection<TerritorialImportSourceReference>? Sources = null);
 
 public sealed record PreparedTerritorialImport(
     TerritorialImport Import,
@@ -128,14 +212,18 @@ public sealed record PreparedTerritorialImport(
 public sealed record TerritorialImportWorkItem(
     Guid ImportId,
     Guid DatasetSourceId,
-    Guid MappingTemplateId,
+    Guid? MappingTemplateId,
     string ArtifactName,
     string FileChecksum,
     long FileSize,
     string DatasetVersion,
     Guid ActorUserId,
     bool IsPublication,
-    string LeaseOwner);
+    string LeaseOwner,
+    TerritorialInputKind InputKind = TerritorialInputKind.ExternalMapped,
+    string? ContractVersion = null,
+    TerritorialImportMode ImportMode = TerritorialImportMode.Full,
+    IReadOnlyCollection<string>? FieldScope = null);
 
 public interface ITerritorialWorkbookReader
 {
@@ -150,7 +238,7 @@ public interface ITerritorialImportAuthorizer
 public interface ITerritorialImportStore
 {
     Task<TerritorialMappingTemplate?> GetMappingAsync(Guid mappingTemplateId, CancellationToken cancellationToken = default);
-    Task CreateAsync(TerritorialImport import, byte[] artifact, CancellationToken cancellationToken = default);
+    Task CreateAsync(TerritorialImport import, byte[] artifact, IReadOnlyCollection<TerritorialImportSourceReference>? sources = null, CancellationToken cancellationToken = default);
     Task<Stream> OpenArtifactAsync(Guid importId, CancellationToken cancellationToken = default);
     Task BeginPreparationAsync(TerritorialImport import, CancellationToken cancellationToken = default);
     Task SetStageAsync(Guid importId, TerritorialImportStage stage, int? totalRows = null, int? processedRows = null, CancellationToken cancellationToken = default);
@@ -160,6 +248,21 @@ public interface ITerritorialImportStore
     Task SaveReadyAsync(TerritorialImport import, TerritorialChangeSet changeSet, CancellationToken cancellationToken = default);
     Task CancelAsync(Guid importId, CancellationToken cancellationToken = default);
     Task MarkFailedAsync(TerritorialImport import, CancellationToken cancellationToken = default);
+}
+
+public interface ITerritorialNormalizedContractInterpreter
+{
+    bool IsNormalized(TerritorialSourceWorkbook workbook);
+    TerritorialNormalizedContract Interpret(TerritorialSourceWorkbook workbook);
+}
+
+public interface ITerritorialContractSourceResolver
+{
+    Task<(Guid CountryId, IReadOnlyCollection<TerritorialImportSourceReference> Sources)> ResolveAsync(
+        string countryIso2,
+        IReadOnlyCollection<string> sourceKeys,
+        IReadOnlyCollection<string> contributingSourceKeys,
+        CancellationToken cancellationToken = default);
 }
 
 public interface ITerritorialImportWorkQueue

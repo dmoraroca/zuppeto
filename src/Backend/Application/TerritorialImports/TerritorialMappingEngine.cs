@@ -157,11 +157,30 @@ public sealed class DefaultTerritorialCanonicalizer : ITerritorialCanonicalizer
 
 public sealed class GvIsysCanonicalizer(DefaultTerritorialCanonicalizer inner) : ITerritorialCanonicalizer
 {
+    private static readonly HashSet<string> RegionsWithDistrictGrouping = ["03", "05", "06", "07", "09", "14"];
+    private static readonly IReadOnlyDictionary<string, string> BadenWuerttembergRegions = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["08111"] = "08101", ["08115"] = "08101", ["08116"] = "08101", ["08117"] = "08101", ["08118"] = "08101", ["08119"] = "08101",
+        ["08121"] = "08102", ["08125"] = "08102", ["08126"] = "08102", ["08127"] = "08102", ["08128"] = "08102",
+        ["08135"] = "08103", ["08136"] = "08103",
+        ["08211"] = "08201", ["08212"] = "08201", ["08215"] = "08201", ["08216"] = "08201",
+        ["08221"] = "08202", ["08222"] = "08202", ["08225"] = "08202", ["08226"] = "08202",
+        ["08231"] = "08203", ["08235"] = "08203", ["08236"] = "08203", ["08237"] = "08203",
+        ["08311"] = "08301", ["08315"] = "08301", ["08316"] = "08301", ["08317"] = "08301",
+        ["08325"] = "08302", ["08326"] = "08302", ["08327"] = "08302",
+        ["08335"] = "08303", ["08336"] = "08303", ["08337"] = "08303",
+        ["08415"] = "08401", ["08416"] = "08401", ["08417"] = "08401",
+        ["08421"] = "08402", ["08425"] = "08402", ["08426"] = "08402",
+        ["08435"] = "08403", ["08436"] = "08403", ["08437"] = "08403"
+    };
+
     public string Key => "gv-isys";
     public (IReadOnlyCollection<CanonicalTerritorialUnit> Units, IReadOnlyCollection<TerritorialImportIssue> Issues) Canonicalize(IReadOnlyCollection<TerritorialMappedRow> rows)
     {
-        var result = inner.Canonicalize(rows);
-        var preferredNames = rows
+        var hierarchyIssues = new List<TerritorialImportIssue>();
+        var hierarchyRows = rows.Select(row => ReparentDistrict(row, hierarchyIssues)).ToArray();
+        var result = inner.Canonicalize(hierarchyRows);
+        var preferredNames = hierarchyRows
             .GroupBy(row => row.Candidate.CanonicalUnitKey, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.Last().Candidate.Names.First().Name, StringComparer.Ordinal);
         var units = result.Units.Select(unit =>
@@ -178,7 +197,33 @@ public sealed class GvIsysCanonicalizer(DefaultTerritorialCanonicalizer inner) :
                 .ToArray();
             return unit with { Names = names };
         }).ToArray();
-        return (units, result.Issues);
+        return (units, result.Issues.Concat(hierarchyIssues).ToArray());
+    }
+
+    private static TerritorialMappedRow ReparentDistrict(TerritorialMappedRow row, ICollection<TerritorialImportIssue> issues)
+    {
+        var unit = row.Candidate;
+        if (unit.TerritorialUnitTypeCode is not ("KREIS" or "KREISFREIE_STADT")) return row;
+        var districtCode = unit.Codes.FirstOrDefault(code => code.Scheme == "de:destatis:kreis")?.Value
+            ?? unit.CanonicalUnitKey.Split(':').LastOrDefault();
+        if (districtCode is null || districtCode.Length != 5) return row;
+
+        string? parent = null;
+        if (districtCode.StartsWith("08", StringComparison.Ordinal))
+        {
+            if (!BadenWuerttembergRegions.TryGetValue(districtCode, out var regionCode))
+            {
+                issues.Add(new TerritorialImportIssue("GVISYS_BW_REGION_MISSING", TerritorialIssueSeverity.Error,
+                    "El Kreis de Baden-Württemberg no consta a la correspondència oficial Kreis→Region.",
+                    row.Sheet, row.RowNumber, "KREIS", districtCode, unit.CanonicalUnitKey));
+                return row;
+            }
+            parent = $"de:region:{regionCode}";
+        }
+        else if (RegionsWithDistrictGrouping.Contains(districtCode[..2]))
+            parent = $"de:rb:{districtCode[..3]}";
+
+        return parent is null ? row : row with { Candidate = unit with { ParentCanonicalUnitKey = parent } };
     }
 
     private sealed class NameLocaleComparer : IEqualityComparer<(string Name, string? Locale)>

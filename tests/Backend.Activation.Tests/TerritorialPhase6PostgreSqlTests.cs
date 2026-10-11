@@ -29,9 +29,10 @@ public sealed class TerritorialPhase6PostgreSqlTests
             var now = DateTimeOffset.UtcNow;
             var spain = Country("ES", "España", "ES", "ESP", now);
             var germany = Country("DE", "Deutschland", "DE", "DEU", now);
+            var historicalCountry = Country("CATALUNYA1K", "catalunya", null, null, now);
             var provinceType = Type(spain.Id, "PROVINCE", "Província", false, 1, now);
             var municipalityType = Type(spain.Id, "MUNICIPALITY", "Municipi", true, 2, now);
-            var germanMunicipalityType = Type(germany.Id, "MUNICIPALITY", "Gemeinde", true, 1, now);
+            var germanMunicipalityType = Type(germany.Id, "GEMEINDE", "Gemeinde", true, 1, now);
             var province = Unit(spain.Id, provinceType.Id, null, true, now);
             var avila = Unit(spain.Id, municipalityType.Id, province.Id, true, now);
             var inactive = Unit(spain.Id, municipalityType.Id, province.Id, false, now);
@@ -49,7 +50,7 @@ public sealed class TerritorialPhase6PostgreSqlTests
                 Id = Guid.NewGuid(), Email = $"phase6-{Guid.NewGuid():N}@example.test", Role = "Admin",
                 DisplayName = "Admin territorial", PrivacyAccepted = true, PrivacyAcceptedAtUtc = now, CreatedAtUtc = now
             };
-            db.AddRange(spain, germany, provinceType, municipalityType, germanMunicipalityType,
+            db.AddRange(spain, germany, historicalCountry, provinceType, municipalityType, germanMunicipalityType,
                 province, avila, inactive, notSelectable, munich, actor,
                 new TerritorialCatalogStateRecord { CountryId = spain.Id, Version = 7, UpdatedAtUtc = now },
                 new TerritorialCatalogStateRecord { CountryId = germany.Id, Version = 3, UpdatedAtUtc = now });
@@ -62,8 +63,24 @@ public sealed class TerritorialPhase6PostgreSqlTests
             Assert.Equal(province.Id, page.Items.Single().ParentId);
             var unicode = await catalog.ListCatalogAsync(new(germany.Id, null, "active", "de-DE", null, "München", true, 1, 50));
             Assert.Equal(munich.Id, Assert.Single(unicode.Items).Id);
+            var commonMunicipalities = await catalog.ListCatalogAsync(new(null, null, "active", null, null, null, true, 1, 50, "MUNICIPALITY"));
+            Assert.Equal(2, commonMunicipalities.TotalCount);
+            Assert.Contains(commonMunicipalities.Items, item => item.CountryId == spain.Id);
+            Assert.Contains(commonMunicipalities.Items, item => item.CountryId == germany.Id && item.Type == "Municipi");
+            var spanishMunicipalities = await catalog.ListCatalogAsync(new(spain.Id, null, "active", null, null, null, true, 1, 50, "MUNICIPALITY"));
+            Assert.Single(spanishMunicipalities.Items);
+            var germanMunicipalities = await catalog.ListCatalogAsync(new(germany.Id, null, "active", null, null, null, true, 1, 50, "MUNICIPALITY"));
+            Assert.Single(germanMunicipalities.Items);
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                catalog.ListCatalogAsync(new(null, null, null, null, null, null, null, 1, 50, "UNKNOWN")));
+
+            var context = await catalog.GetContextAsync();
+            Assert.Equal(2, context.Countries.Count);
+            Assert.DoesNotContain(context.Countries, country => country.Name == "catalunya");
+            Assert.Equal(2, Assert.Single(context.FunctionalTypes, item => item.Code == "MUNICIPALITY").CountryIds.Count);
 
             var locations = new TerritorialLocationRepository(db);
+            Assert.Equal(2, (await locations.ListCountriesAsync()).Count);
             var resolved = await locations.ResolveSelectionAsync(germany.Id, munich.Id);
             Assert.Equal("Deutschland", resolved.Country);
             Assert.Equal("München", resolved.Locality);
@@ -115,7 +132,7 @@ public sealed class TerritorialPhase6PostgreSqlTests
         }
     }
 
-    private static CountryRecord Country(string code, string name, string iso2, string iso3, DateTimeOffset now) =>
+    private static CountryRecord Country(string code, string name, string? iso2, string? iso3, DateTimeOffset now) =>
         new() { Id = Guid.NewGuid(), Code = code, Name = name, Iso2 = iso2, Iso3 = iso3, IsActive = true, CreatedAtUtc = now, UpdatedAtUtc = now };
 
     private static TerritorialUnitTypeRecord Type(Guid countryId, string code, string name, bool selectable, int order, DateTimeOffset now) =>

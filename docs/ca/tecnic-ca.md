@@ -2489,3 +2489,50 @@ Els terminals projecten nom/tipus/codi com a informació estàtica i, quan no s�
 La presentació del heartbeat conserva el valor ISO a `datetime` i mostra data/hora local humana. El modal de confirmació no canvia cap contracte backend: només substitueix text intern per text funcional i agrupa `Cancel·lar`/`Confirmar` amb focus segur. L’E2E opt-in `E2E_TERRITORIAL_CATALOG_REAL=true` recorre Chrome → Angular → API → PostgreSQL sobre Espanya exclusivament en lectura.
 
 `scripts/generate-ef-migration-script.sh RUTA.sql` genera l’SQL idempotent de deploy des de les migracions EF; no hi ha un esquema SQL paral·lel.
+## Addenda Fase VIII — pipeline PETILOC_TERRITORIAL 1.0
+
+El detector de `Manifest` deriva al `PetilocTerritorialContractInterpreter`; les entrades no normalitzades continuen per `TerritorialMappingEngine`. Ambdós recorreguts convergeixen en el mateix staging persistent, validador, ChangeSet, worker i gateway de publicació. El PATCH de coordenades resol cada unitat per codi oficial exacte, genera només `Update/NoChange` i el gateway aplica exclusivament latitud, longitud i font, preservant l'override manual. El gate consulta totes les relacions `territorial_import_sources` contribuïdores.
+
+La migració `20261011164758_AddNormalizedTerritorialContractPhase8` afegeix `source_key`, metadades de contracte/mode/scope, procedència estructural, operacions persistents i la relació multifont. Els imports històrics reben valors compatibles i una relació amb la font original; no es reescriuen files ni ChangeSets. El lector XLSX limita 32 fulls, 250.000 files per full, 1.000.000 shared strings, 256 MiB descomprimits totals i 128 MiB per XML, prohibeix DTD i fórmules i rebutja corrupció.
+
+El registre estable `71000000-0000-0000-0000-000000000003` correspon a `CNIG_NGMEP_2026`. El seeder reconcilia sobre aquest ID qualsevol clau històrica, actualitza les còpies auditables de `territorial_import_sources`, completa les metadades oficials NGMEP 2026 i no assigna ni reverteix `approval_status`, `verified_at_utc` o `verified_by_user_id`. Això fa l'operació idempotent i preserva les decisions humanes.
+
+`TerritorialIdentityScheme` centralitza les equivalències contractuals d'identitat abans del matching exacte. La primera regla és deliberadament estreta: país `ES`, esquema `INE` i valor format per cinc dígits es converteixen en `es:ine:municipality`. No hi ha matching per nom, sufix ni heurística; els casos desconeguts es mantenen i la validació falla tancada.
+
+### Auditoria alemanya i jerarquia GV-ISys
+
+`GvIsysCanonicalizer` aplica abans de consolidar una jerarquia documentada del dataset. Els registres de `Regierungsbezirke` es projecten com 19 `REGIERUNGSBEZIRK` vigents (`05`, `06`, `08`, `09`) i 10 `STATISTISCHE_REGION` o antics districtes (`03`, `07`, `14`). Un Kreis usa el node regional derivat del seu codi oficial ARS quan existeix; en cas contrari depèn directament del Land. Per a Baden-Württemberg, un diccionari exhaustiu de 44 codis de Kreis aplica la correspondència oficial del Statistisches Landesamt cap a una de les 12 Planungsregionen. Un codi `08` desconegut falla amb `GVISYS_BW_REGION_MISSING`; no hi ha matching per nom.
+
+El generador reproduïble `scripts/generate-territorial-contract-germany.mjs` llegeix només el llibre revisat, rebutja coordenades parcials o `(0,0)`, valida tots els pares i els recomptes per tipus, consolida les 107 Kreisfreie Städte i escriu un `FULL` autodetectable de 15.770 unitats. L'artefacte resultant és `docs/idiomes/municipis per pais/PetiLoc_Alemanya_20260930_Contracte_1_0.xlsx`; originals i revisat no es sobreescriuen. `scripts/audit-germany-territorial.mjs` conserva l'auditoria llegible dels fulls, `Textkennzeichen`, excepcions de coordenades i territoris especials.
+
+La font `DE-DESTATIS-GVISYS` incorpora la fitxa i descàrrega oficials del 30.09.2026, les condicions generals Destatis, l'atribució amb indicació de transformació i els permisos comercial/transformació. El seeder només completa metadades i tipus; conserva qualsevol decisió humana i no eleva l'estat per si mateix. Una decisió ADMIN posterior, registrada el `2026-10-11T21:18:16.750602Z`, va efectuar la transició auditada `Pending → Approved`; aquesta decisió no publica cap ChangeSet.
+
+## Fase VIII — aprovació administrativa de fonts
+
+`TerritorialAdminService` exposa els casos d'ús de consulta i decisió sobre fonts darrere del mateix `ITerritorialImportAuthorizer` ADMIN. `TerritorialAdminRepository` aplica cada canvi en transacció serialitzable i amb actualització condicional sobre l'estat esperat; una revisió concurrent retorna `409 territorial_source_conflict`. L'aprovació valida organisme, dataset, versió/data, URL oficial, llicència i evidència, atribució i permisos de reutilització. El rebuig i l'aprovació exigeixen motiu de 3–500 caràcters.
+
+La migració `AddTerritorialSourceApprovalWorkflow` crea `territorial_source_approval_audit`: font, estat anterior/posterior, actor autenticat, timestamp UTC i motiu. La decisió i l'auditoria es persisteixen atòmicament; el seeder continua preservant l'estat humà. El gate de publicació no s'ha duplicat: després de la decisió, Angular torna a demanar el detall de l'import i `CanPublish` es recalcula al backend sobre totes les fonts contribuïdores.
+
+Angular incorpora el component reutilitzable `TerritorialSourceReviewComponent`, consumit tant pel pas 6 com per la pestanya `Fonts oficials`. Un error HTTP no actualitza l'estat local ni emet cap canvi. Aprovar una font mai invoca l'endpoint de publicació.
+
+## Fase VIII — auditoria d'incidències del catàleg publicat
+
+`TerritorialCatalogComponent` rebia a `/context` la locale de totes les fonts actives, però construïa el desplegable `Locale` només amb `page.items`. Com que `/catalog` ordena per país i pagina a 50 files, la primera pàgina general era íntegrament alemanya i amagava `es-ES`, tot i que el filtre backend retornava correctament 8.199 files espanyoles. La correcció combina les locales de les fonts actives del context amb les visibles, les deduplica i les limita pel país seleccionat; un canvi de país conserva tipus funcional i locale quan són compatibles i només reinicia els incompatibles.
+
+### Classificació funcional del catàleg europeu
+
+`TerritorialFunctionalTypeCatalog`, a Aplicació, defineix la projecció molts-a-molts entre codis oficials i categories funcionals. El contracte de `/context` exposa `functionalTypes` amb codi, etiqueta catalana, ordre i països disponibles; Angular no replica equivalències. `/catalog?functionalTypeCode=` resol els codis oficials al servidor abans de comptar, ordenar i paginar. El filtre és combinable amb país, estat, seleccionabilitat, locale, pare i cerca.
+
+No s'ha afegit cap migració: els tipus oficials continuen sent dades persistents i la categoria funcional és una projecció de lectura. Aquesta decisió evita reclassificar 23.969 unitats publicades i representa correctament `KREISFREIE_STADT` en dues categories. Les etiquetes de tipus retornades per catàleg, detall i jerarquia es projecten en català, mentre els topònims, codis i locales romanen intactes.
+
+`GetContextAsync` exclou registres històrics sense ISO alpha-2 ni configuració territorial; no elimina `CATALUNYA1K`, que continua relacionat amb tres `cities` antigues. El canvi de país conserva categoria i locale si són compatibles, en reinicia només les incompatibles, elimina un filtre de pare anterior i recarrega la pàgina 1. Els selectors parteixen del context complet, no de les 50 files visibles.
+
+L'API no ha requerit canvis: la consulta real acredita 23.969 unitats, `locale=es-ES` amb país ES en retorna 8.199 i `locale=de-DE` amb país DE en retorna 15.770. Una ordre humana posterior va publicar el PATCH CNIG mitjançant l'import `8e80f3ef-af94-468a-94eb-e734a8c918d1` i el ChangeSet `f6370db2-dfaa-42c8-8a91-0dcb75c8acc4`; Espanya és a v2. Per a Abadín, la persistència afecta només `coordinates`, assigna `coordinate_source_id` a CNIG i manté noms/codis INE.
+
+L'import alemany `57860875-8d25-480f-9c11-c72d90b34104` i el ChangeSet `2d00a606-6cd8-45c9-bfb8-9cb988bdc2a5` consten `Published` a `2026-10-11T21:22:32.042281Z`, catàleg DE v1. La persistència conté 15.770 unitats, 15.794 noms —24 alternatius— i 26.820 codis. Les 10.939 coordenades coincideixen en recompte amb el llibre revisat: 10.832 Gemeinden i 107 Kreisfreie Städte. Els altres 4.831 registres són 4.825 nivells intermedis, cinc `SPECIAL_TERRITORY` i una `GEMEINDE` especial sense coordenades; no hi ha parells parcials ni `(0,0)`.
+
+## Addenda Fase IX — retirada del model anterior
+
+L'auditoria de PostgreSQL i dependències conclou que `countries` ja no pot considerar-se una taula antiga separable: `CountryRecord` és compartit pel CRUD preexistent, `User`/`Place` i totes les arrels del model territorial. `cities` sí és el catàleg rígid anterior, però `PlaceApplicationService`, `GeographicAdminAppService`, Angular Admin, GeoNames i E2E encara el consumeixen.
+
+La base real té 4 `cities`, incloses les 3 de `CATALUNYA1K`, i 119 agregats User/Place sense parella territorial. Una simulació `READ ONLY` dona 77 coincidències exactes i 42 casos no resolts. En conseqüència, no s'ha creat una migració de `DROP`: primer cal un backfill auditat, substituir els consumidors de compatibilitat, retirar o redissenyar el CRUD City i verificar que no queda informació exclusiva. Vegeu [l'informe de Fase IX](iteracio-6-fase-ix-tancament-ca.md).

@@ -309,3 +309,60 @@ Angular cobreix loading inicial, skeleton, moviment reduït, expandir/contraure,
 L’ajust de terminals afegeix cobertura de l’absència de `Seleccionable` al tree, presència i cursor de `Veure detall` en terminals navegables, absència de l’acció redundant al terminal que ja correspon al detall obert, emissió de l’ID correcte, obertura via el mateix `openById`, detall General existent, camí jeràrquic després d’obrir el municipi i independència respecte dels chevrons. Resultat actual: tests focalitzats 12/12 i suite Angular 76/76 PASS; build production PASS.
 
 L’E2E opt-in `E2E_TERRITORIAL_CATALOG_REAL=true` usa Chrome, Angular, API i PostgreSQL reals en només lectura. El run final `sim-20260924T221411732Z-a8e3b0e1` passa 1/1 i valida skeleton inicial, 8.199 unitats, Adra amb quatre profunditats, Aragón amb les tres províncies germanes, Teruel amb municipis un nivell per sota i sense duplicació, i Andalucía → Almería dins del mateix tree. Verifica també que els terminals no mostren `Seleccionable`, ofereixen `Veure detall`, Ababuj obre el detall real `44001` i la seva Jerarquia conserva Espanya → Aragón → Teruel → Ababuj. Catalunya, `Tots els municipis` i Canarias → `Palmas, Las` → Arrecife continuen passant. Les captures A–E queden a `docs/ca/evidencies/vii-9-3-tree/`. Espanya no es republica, Alemanya no es publica i no s’executa backfill. La prova manual visual final continua pendent.
+## Addenda Fase VIII — proves del contracte territorial 1.0
+
+Cobertura automatitzada: autodetecció i lectura del llibre espanyol de 8.132 files; columnes desconegudes, coordenada parcial i pare inexistent; pipeline PostgreSQL de PATCH amb multifont pendent, ChangeSet només `coordinates`, bloqueig de publicació i dades preservades; compatibilitat del pipeline extern, publicació/reversió sintètiques i recuperació del worker; UI normalitzada sense mapping; runner i Chrome territorial amb fixtures autocontingudes.
+
+Resultats 2026-10-11: backend/PostgreSQL 84/84, Angular 77/77, runner 14/14 i ZUP-160 Chrome 1/1 final (`sim-20261011T170654309Z-208c9c3d`).
+
+La incidència `CNIG_NGMEP_2026` afegeix una prova PostgreSQL del seeder: parteix de la clau històrica `ES-CNIG-NGBE`, reconcilia el mateix ID sense duplicar-lo, verifica les metadades i executa de nou el seeder després d'una aprovació humana simulada per comprovar que aquesta no es reverteix. El pipeline `PATCH coordinates` també usa la clau contractual nova i manté el bloqueig de publicació mentre la font és `Pending`.
+
+El mateix XLSX provat a la web es llegeix directament en mode només lectura: s'hi comproven `CNIG_NGMEP_2026`, les 8.132 unitats, l'operació `SET` de totes les coordenades i l'absència d'errors contractuals. La resolució conjunta amb `ES-INE-30247` passa sobre PostgreSQL i elimina l'error de font inexistent.
+
+Després de detectar 8.132 `IDENTITY_NOT_FOUND`, la cobertura comprova l'àlies segur `INE` per a codis municipals espanyols de cinc dígits i cinc casos positius/negatius de tancament segur. La fixture PostgreSQL prepara el PATCH amb `INE` contra un catàleg `es:ine:municipality`, arriba a revisió i continua bloquejant la publicació per CNIG `Pending`. Addicionalment, la comparació completa entre l'Excel i PostgreSQL retorna zero diferències sobre 8.132 codis.
+
+### Auditoria alemanya — 11.10.2026
+
+La prova real dels mappings comprova 15.877 projeccions, consolidació controlada de 107 Kreisfreie Städte, 15.770 unitats, 24 noms alternatius, 19 Regierungsbezirke, 10 regions estadístiques, els 44 Kreise/Stadtkreise de Baden-Württemberg sota una de les 12 Planungsregionen, cap regió buida, cap `(0,0)`, cap pare inexistent i cap cicle.
+
+La integració PostgreSQL dedicada llegeix el `PETILOC_TERRITORIAL 1.0` alemany real, el prepara en una base efímera i acredita 15.770 files persistents, 15.770 canvis `Create`, zero errors/avisos, `ReadyForReview`, zero unitats alemanyes publicades i una unitat sentinella espanyola intacta. L'intent controlat de publicació falla pel gate `Pending` i deixa els mateixos recomptes. Resultat global backend/PostgreSQL: 85/85 PASS; Angular: 77/77; runner: 14/14; Chrome ZUP-160: 1/1 PASS (`sim-20261011T201348369Z-539bb69e`).
+
+### UX d'aprovació de fonts
+
+La cobertura PostgreSQL aïllada comprova: font pendent bloquejant, aprovació amb metadades completes, gate habilitat sense publicació, auditoria atòmica, persistència en un `DbContext` nou, conflicte per estat esperat obsolet, rebuig posterior i manteniment del bloqueig; una font incompleta no es pot aprovar. La suite backend/PostgreSQL passa 85/85.
+
+Angular passa 80/80 i cobreix confirmació explícita, motiu, cancel·lació, metadades incompletes i error de xarxa sense estat fictici. Runner: 14/14. Chrome ZUP-157 passa 1/1 (`sim-20261011T205322033Z-7761e57c`) i ZUP-155 passa 1/1 (`sim-20261011T205016337Z-8701ef07`). Les aprovacions Chrome són sintètiques; CNIG i GV-ISys no s'han modificat.
+
+### Auditoria d'incidències territorials — 12.10.2026
+
+La regressió Angular del selector `Locale` reprodueix una pàgina paginada només amb `de-DE` mentre el context complet conté `de-DE` i `es-ES`; comprova les opcions generals, Espanya, Alemanya i el reset en canviar de país. Resultat global Angular: 81/81 PASS; build Angular PASS.
+
+### Fase VIII — catàleg funcional europeu (2026-10-12)
+
+- Auditoria PostgreSQL real en transacció `READ ONLY`: 8.199 unitats ES i 15.770 DE; zero pares entre països, zero cicles, zero unitats sense nom o codi i zero duplicats `(scheme, value)`.
+- Backend: 87/87 PASS. Inclou la correspondència comuna, el doble rol de `KREISFREIE_STADT`, etiquetes catalanes i rebuig de categories desconegudes.
+- PostgreSQL temporal aïllat: 1/1 PASS; valida Tots/Espanya/Alemanya + Municipi, paginació i exclusió d'un país històric sense ISO ni catàleg.
+- Angular: 82/82 PASS; conserva el filtre `Municipi` entre ES i DE, reinicia una categoria incompatible, envia `functionalTypeCode` i manté locales del context complet.
+- Builds: backend i Angular PASS, 0 errors.
+- Runner E2E: 14/14 PASS.
+- Chrome real de només lectura: ZUP-160, execució final `sim-20261011T225930100Z-ce6f0d4f`, 1/1 PASS. Recompte general 23.969; `Municipi` 19.072, Espanya 8.132 i Alemanya 10.940; `catalunya` absent; selector de font dins el contenidor a 390 px; jerarquia i locales continuen correctes. El mateix recorregut valida CNIG amb data `2026-01-01`, metadades completes, botó d'aprovació habilitat i estat `Pending`, sense registrar cap decisió.
+
+La verificació SQL posterior manté els catàlegs ES/DE a versió 1, CNIG `Pending`, GV-ISys i INE en el seu estat preexistent, cinc ChangeSets històrics i zero referències territorials de User/Place. No s'ha aprovat, publicat, revertit ni executat cap backfill.
+
+La regressió de metadades CNIG comprova que `dataset_date` queda a `2026-01-01` després del primer seed i després d'un segon seed amb una aprovació humana simulada. Això acredita alhora persistència, idempotència i preservació de l'estat d'aprovació. En aquell tall, la base real es va verificar després del reinici amb CNIG `Pending` i metadades d'aprovació completes; Fase IX documenta l'aprovació humana posterior.
+
+La suite backend/PostgreSQL s'ha executat sense canvis de domini o API: 85/85 PASS, incloses les bases temporals de PATCH CNIG i contracte alemany. Build .NET PASS, 0 errors i 0 avisos. Runner E2E: 14/14 PASS. Chrome real de només lectura ZUP-160: el primer intent `sim-20261011T215819884Z-7e288f6a` va fallar perquè el skeleton de 220 ms havia desaparegut abans de l'assert; amb una finestra determinista d'1,5 s, el run final `sim-20261011T215911854Z-1990acd9` passa 1/1 i valida `de-DE`/`es-ES`, Espanya i Alemanya contra API/PostgreSQL reals. Cap prova ha aprovat fonts, publicat, revertit ni executat backfill.
+
+## Fase IX — regressió de tancament (2026-10-12)
+
+Estat real observat abans i després de les proves: ES v2 amb 8.199 unitats, DE v1 amb 15.770, 23.993 noms, CNIG/GV-ISys/INE aprovades, 2 decisions de font auditades i 0 User/Place vinculats. La simulació de backfill sobre 119 snapshots ha donat 77 coincidències exactes inequívoques i 42 no resoltes, sense escriptures.
+
+- Backend/PostgreSQL temporal: 87/87 PASS.
+- Build .NET: PASS, 0 errors/avisos del compilador.
+- EF Core: model sense canvis de migració pendents; migracions territorials clau presents a `__EFMigrationsHistory`.
+- Angular: 82/82 PASS; build PASS.
+- Runner: 14/14 PASS.
+- ZUP-160 real: Chrome `sim-20261011T231940173Z-e7c15485` 1/1 PASS; Firefox `sim-20261011T231936690Z-0506aa31` 1/1 PASS.
+- WebKit `sim-20261011T231936377Z-16031c53`: bloquejat abans de navegar per biblioteques natives absents; no és PASS.
+
+ZUP-160 comprova ara l'estat persistent CNIG `Aprovada`, la transició auditada i la impossibilitat de repetir l'aprovació. Cap prova ha aprovat fonts, publicat, revertit ni executat backfill a la base real.

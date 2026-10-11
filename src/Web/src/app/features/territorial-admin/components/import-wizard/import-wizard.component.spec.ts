@@ -7,6 +7,42 @@ import { ChangeItem, ImportDetail, TerritorialContext } from '../../models/terri
 import { TerritorialImportWizardComponent } from './import-wizard.component';
 
 describe('TerritorialImportWizardComponent functional change presentation', () => {
+  it('autodetects a normalized PATCH and does not require a manual mapping', async () => {
+    const inspection = {
+      artifactName: 'spain-normalized.xlsx', fileSize: 4, fileChecksum: 'a'.repeat(64), format: 'XLSX',
+      schemaFingerprint: 'b'.repeat(64), sheets: [], sourcePreview: [], compatibleMappings: [],
+      contract: {
+        contractId: 'PETILOC_TERRITORIAL', contractVersion: '1.0', countryIso2: 'ES', importMode: 'Patch',
+        datasetVersion: '2026-01-01-CNIG-coordinates', territorialDate: '2026-01-01',
+        primarySourceKey: 'CNIG_NGMEP_2026', fieldScope: ['coordinates'],
+        sourceKeys: ['ES-INE-30247', 'CNIG_NGMEP_2026'], isValid: true, issues: []
+      }
+    };
+    const api = { inspect: vi.fn().mockResolvedValue(inspection) };
+    await TestBed.configureTestingModule({
+      imports: [TerritorialImportWizardComponent],
+      providers: [{ provide: TerritorialAdminApiService, useValue: api }]
+    }).compileComponents();
+    const fixture = TestBed.createComponent(TerritorialImportWizardComponent);
+    fixture.componentRef.setInput('context', context());
+    fixture.detectChanges();
+    const component = fixture.componentInstance as unknown as { file: File; inspect(): Promise<void> };
+    component.file = new File(['xlsx'], 'spain-normalized.xlsx');
+
+    await component.inspect();
+    fixture.detectChanges();
+
+    expect(api.inspect).toHaveBeenCalledWith(null, component.file);
+    expect(fixture.nativeElement.textContent).toContain('Contracte territorial detectat');
+    expect(fixture.nativeElement.textContent).toContain('PETILOC_TERRITORIAL · v1.0');
+    expect(fixture.nativeElement.textContent).toContain('coordinates');
+    expect(fixture.nativeElement.textContent).toContain('CNIG_NGMEP_2026');
+    expect(fixture.nativeElement.textContent).not.toContain('Mapping compatible');
+    const prepare = [...fixture.nativeElement.querySelectorAll('button')]
+      .find((button: Element) => button.textContent?.trim() === 'Preparar validació i preview') as HTMLButtonElement;
+    expect(prepare.disabled).toBe(false);
+  });
+
   it('tolerates an import detail without the new preview aggregates during a rolling update', async () => {
     const legacyDetail = detail();
     delete legacyDetail.sourceSheets;
@@ -368,8 +404,9 @@ function detail(): ImportDetail {
 function context(): TerritorialContext {
   return {
     countries: [{ id: 'country-1', code: 'ES', name: 'Espanya', iso2: 'ES', iso3: 'ESP', isActive: true }],
-    sources: [{ id: 'source-1', countryId: 'country-1', organisation: 'INE', dataset: 'Relació oficial', datasetType: 'AdministrativeTerritory', locale: 'es-ES', approvalStatus: 'Pending', isActive: true, publicationMode: 'FullSnapshot', datasetVersion: '2026', datasetDate: null, license: null, attribution: null }],
-    unitTypes: [{ id: 'type-1', countryId: 'country-1', code: 'MUNICIPALITY', name: 'Municipi', displayOrder: 1, isSelectableLocality: true }]
+    sources: [{ id: 'source-1', countryId: 'country-1', sourceKey: 'ES-INE-30247', organisation: 'INE', dataset: 'Relació oficial', datasetType: 'AdministrativeTerritory', locale: 'es-ES', approvalStatus: 'Pending', isActive: true, publicationMode: 'FullSnapshot', datasetVersion: '2026', datasetDate: null, license: null, attribution: null }],
+    unitTypes: [{ id: 'type-1', countryId: 'country-1', code: 'MUNICIPALITY', name: 'Municipi', displayOrder: 1, isSelectableLocality: true }],
+    functionalTypes: [{ code: 'MUNICIPALITY', name: 'Municipi', displayOrder: 10, countryIds: ['country-1'] }]
   };
 }
 

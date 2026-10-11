@@ -1,0 +1,15 @@
+<section class="sources-panel">
+  <div class="heading"><div><p class="eyebrow">Governança documental</p><h2>Fonts oficials</h2><p>Consulta les evidències i registra decisions humanes sense publicar cap catàleg.</p></div></div>
+  <div class="filters" aria-label="Filtres de fonts oficials">
+    <label>País<select [(ngModel)]="countryId"><option value="">Tots</option>@for (country of context.countries; track country.id) { <option [value]="country.id">{{ country.name }}</option> }</select></label>
+    <label>Estat<select [(ngModel)]="approvalStatus"><option value="">Tots</option><option value="Pending">Pendent</option><option value="Approved">Aprovada</option><option value="Rejected">Rebutjada</option></select></label>
+    <button type="button" (click)="load(1)">Aplicar filtres</button>
+  </div>
+  @if (error) { <div class="error" role="alert">{{ error }}</div> }
+  <div class="table-wrap"><table><thead><tr><th>País</th><th>Font</th><th>Organisme</th><th>Versió</th><th>Estat</th><th>Metadades</th><th>Acció</th></tr></thead><tbody>
+    @for (source of page.items; track source.id) { <tr><td>{{ source.country }}</td><td><strong>{{ source.dataset }}</strong><small>{{ source.sourceKey }}</small></td><td>{{ source.organisation }}</td><td>{{ source.datasetVersion || '—' }}</td><td>{{ approvalLabel(source.approvalStatus) }}</td><td>{{ source.hasCompleteApprovalMetadata ? 'Completes' : 'Incompletes' }}</td><td><button type="button" class="quiet" (click)="review(source.id)">Revisar font</button></td></tr> }
+    @empty { <tr><td colspan="7">{{ busy ? 'Carregant fonts…' : 'No hi ha fonts amb aquests filtres.' }}</td></tr> }
+  </tbody></table></div>
+  <div class="pager"><button type="button" [disabled]="page.page <= 1 || busy" (click)="load(page.page - 1)">Anterior</button><span>Pàgina {{ page.page }} de {{ page.totalPages || 1 }}</span><button type="button" [disabled]="page.page >= page.totalPages || busy" (click)="load(page.page + 1)">Següent</button></div>
+</section>
+<app-territorial-source-review [sourceId]="selectedSourceId" (closed)="closeReview()" (sourceChanged)="changed()" />

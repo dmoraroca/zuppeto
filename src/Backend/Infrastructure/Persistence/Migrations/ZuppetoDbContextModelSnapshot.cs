@@ -1015,6 +1015,13 @@ namespace Infrastructure.Persistence.Migrations
                         .HasColumnType("jsonb")
                         .HasColumnName("changed_fields_json");
 
+                    b.Property<string>("FieldOperationsJson")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("field_operations_json")
+                        .HasDefaultValueSql("'{}'::jsonb");
+
                     b.Property<string>("Kind")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -1183,6 +1190,12 @@ namespace Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("restrictions");
 
+                    b.Property<string>("SourceKey")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("source_key");
+
                     b.Property<string>("ThirdPartyData")
                         .HasColumnType("text")
                         .HasColumnName("third_party_data");
@@ -1220,6 +1233,10 @@ namespace Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_territorial_dataset_sources_country_id");
 
                     b.HasIndex("VerifiedByUserId");
+
+                    b.HasIndex("CountryId", "SourceKey")
+                        .IsUnique()
+                        .HasDatabaseName("uq_territorial_dataset_sources_country_source_key");
 
                     b.HasIndex("CountryId", "Organisation", "Dataset", "DatasetVersion")
                         .HasDatabaseName("ix_territorial_dataset_sources_identity");
@@ -1354,6 +1371,11 @@ namespace Infrastructure.Persistence.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("catalog_version");
 
+                    b.Property<string>("ContractVersion")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("contract_version");
+
                     b.Property<DateTimeOffset>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at_utc");
@@ -1382,6 +1404,13 @@ namespace Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(2000)")
                         .HasColumnName("failure_reason");
 
+                    b.Property<string>("FieldScopeJson")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("field_scope_json")
+                        .HasDefaultValueSql("'[]'::jsonb");
+
                     b.Property<string>("FileChecksum")
                         .IsRequired()
                         .HasMaxLength(64)
@@ -1395,6 +1424,22 @@ namespace Infrastructure.Persistence.Migrations
                     b.Property<bool>("HasBlockingErrors")
                         .HasColumnType("boolean")
                         .HasColumnName("has_blocking_errors");
+
+                    b.Property<string>("ImportMode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasDefaultValue("Full")
+                        .HasColumnName("import_mode");
+
+                    b.Property<string>("InputKind")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasDefaultValue("ExternalMapped")
+                        .HasColumnName("input_kind");
 
                     b.Property<bool>("IsRecoverable")
                         .HasColumnType("boolean")
@@ -1423,7 +1468,7 @@ namespace Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(160)")
                         .HasColumnName("lease_owner");
 
-                    b.Property<Guid>("MappingTemplateId")
+                    b.Property<Guid?>("MappingTemplateId")
                         .HasColumnType("uuid")
                         .HasColumnName("mapping_template_id");
 
@@ -1495,6 +1540,12 @@ namespace Infrastructure.Persistence.Migrations
 
                     b.ToTable("territorial_imports", null, t =>
                         {
+                            t.HasCheckConstraint("ck_territorial_import_input_kind", "input_kind IN ('ExternalMapped','PetilocNormalized')");
+
+                            t.HasCheckConstraint("ck_territorial_import_mapping_contract", "(input_kind = 'ExternalMapped' AND mapping_template_id IS NOT NULL) OR (input_kind = 'PetilocNormalized' AND contract_version IS NOT NULL)");
+
+                            t.HasCheckConstraint("ck_territorial_import_mode", "import_mode IN ('Full','Patch')");
+
                             t.HasCheckConstraint("ck_territorial_import_size", "file_size > 0");
 
                             t.HasCheckConstraint("ck_territorial_import_status", "status IN ('Queued','Uploaded','Mapped','Validated','ReadyForReview','Publishing','Published','Failed','Cancelled','Reverted')");
@@ -1519,6 +1570,13 @@ namespace Infrastructure.Persistence.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("character varying(300)")
                         .HasColumnName("canonical_unit_key");
+
+                    b.Property<string>("FieldOperationsJson")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("field_operations_json")
+                        .HasDefaultValueSql("'{}'::jsonb");
 
                     b.Property<Guid>("ImportId")
                         .HasColumnType("uuid")
@@ -1550,6 +1608,40 @@ namespace Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_territorial_import_rows_key");
 
                     b.ToTable("territorial_import_rows", (string)null);
+                });
+
+            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.TerritorialImportSourceRecord", b =>
+                {
+                    b.Property<Guid>("ImportId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("import_id");
+
+                    b.Property<Guid>("DatasetSourceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("dataset_source_id");
+
+                    b.Property<bool>("ContributesPublishedFields")
+                        .HasColumnType("boolean")
+                        .HasColumnName("contributes_published_fields");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("role");
+
+                    b.Property<string>("SourceKey")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("source_key");
+
+                    b.HasKey("ImportId", "DatasetSourceId");
+
+                    b.HasIndex("DatasetSourceId")
+                        .HasDatabaseName("ix_territorial_import_sources_source");
+
+                    b.ToTable("territorial_import_sources", (string)null);
                 });
 
             modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.TerritorialLocaleAssignmentRecord", b =>
@@ -1733,6 +1825,59 @@ namespace Infrastructure.Persistence.Migrations
                         .HasDatabaseName("uq_territorial_mapping_source_version");
 
                     b.ToTable("territorial_mapping_templates", (string)null);
+                });
+
+            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.TerritorialSourceApprovalAuditRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<Guid>("ActorUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("actor_user_id");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<Guid>("DatasetSourceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("dataset_source_id");
+
+                    b.Property<string>("NewStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("new_status");
+
+                    b.Property<string>("PreviousStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("previous_status");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("reason");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorUserId");
+
+                    b.HasIndex("DatasetSourceId", "CreatedAtUtc")
+                        .HasDatabaseName("ix_territorial_source_approval_source_created");
+
+                    b.ToTable("territorial_source_approval_audit", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_territorial_source_approval_new_status", "new_status IN ('Approved', 'Rejected')");
+
+                            t.HasCheckConstraint("ck_territorial_source_approval_previous_status", "previous_status IN ('Pending', 'Approved', 'Rejected')");
+                        });
                 });
 
             modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.TerritorialUnitCodeRecord", b =>
@@ -1930,6 +2075,10 @@ namespace Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("parent_id");
 
+                    b.Property<Guid?>("StructureSourceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("structure_source_id");
+
                     b.Property<Guid>("TerritorialUnitTypeId")
                         .HasColumnType("uuid")
                         .HasColumnName("territorial_unit_type_id");
@@ -1957,6 +2106,8 @@ namespace Infrastructure.Persistence.Migrations
                     b.HasIndex("CoordinateSourceId", "CountryId");
 
                     b.HasIndex("ParentId", "CountryId");
+
+                    b.HasIndex("StructureSourceId", "CountryId");
 
                     b.HasIndex("TerritorialUnitTypeId", "CountryId");
 
@@ -2542,8 +2693,7 @@ namespace Infrastructure.Persistence.Migrations
                     b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.TerritorialMappingTemplateRecord", "MappingTemplate")
                         .WithMany()
                         .HasForeignKey("MappingTemplateId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("CreatedByUser");
 
@@ -2559,6 +2709,25 @@ namespace Infrastructure.Persistence.Migrations
                         .HasForeignKey("ImportId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Import");
+                });
+
+            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.TerritorialImportSourceRecord", b =>
+                {
+                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.TerritorialDatasetSourceRecord", "DatasetSource")
+                        .WithMany("Imports")
+                        .HasForeignKey("DatasetSourceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.TerritorialImportRecord", "Import")
+                        .WithMany("Sources")
+                        .HasForeignKey("ImportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DatasetSource");
 
                     b.Navigation("Import");
                 });
@@ -2619,6 +2788,25 @@ namespace Infrastructure.Persistence.Migrations
                     b.Navigation("DatasetSource");
                 });
 
+            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.TerritorialSourceApprovalAuditRecord", b =>
+                {
+                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.UserRecord", "ActorUser")
+                        .WithMany()
+                        .HasForeignKey("ActorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.TerritorialDatasetSourceRecord", "DatasetSource")
+                        .WithMany("ApprovalHistory")
+                        .HasForeignKey("DatasetSourceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ActorUser");
+
+                    b.Navigation("DatasetSource");
+                });
+
             modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.TerritorialUnitCodeRecord", b =>
                 {
                     b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.TerritorialDatasetSourceRecord", "DatasetSource")
@@ -2675,6 +2863,12 @@ namespace Infrastructure.Persistence.Migrations
                         .HasPrincipalKey("Id", "CountryId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.TerritorialDatasetSourceRecord", "StructureSource")
+                        .WithMany("StructureUnits")
+                        .HasForeignKey("StructureSourceId", "CountryId")
+                        .HasPrincipalKey("Id", "CountryId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.TerritorialUnitTypeRecord", "TerritorialUnitType")
                         .WithMany("TerritorialUnits")
                         .HasForeignKey("TerritorialUnitTypeId", "CountryId")
@@ -2687,6 +2881,8 @@ namespace Infrastructure.Persistence.Migrations
                     b.Navigation("Country");
 
                     b.Navigation("Parent");
+
+                    b.Navigation("StructureSource");
 
                     b.Navigation("TerritorialUnitType");
                 });
@@ -2807,13 +3003,19 @@ namespace Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.TerritorialDatasetSourceRecord", b =>
                 {
+                    b.Navigation("ApprovalHistory");
+
                     b.Navigation("Codes");
 
                     b.Navigation("CoordinateUnits");
 
+                    b.Navigation("Imports");
+
                     b.Navigation("LocaleAssignments");
 
                     b.Navigation("Names");
+
+                    b.Navigation("StructureUnits");
                 });
 
             modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.TerritorialImportRecord", b =>
@@ -2825,6 +3027,8 @@ namespace Infrastructure.Persistence.Migrations
                     b.Navigation("Issues");
 
                     b.Navigation("Rows");
+
+                    b.Navigation("Sources");
                 });
 
             modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.TerritorialUnitRecord", b =>

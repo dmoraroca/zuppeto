@@ -20,7 +20,7 @@ export class TerritorialCatalogComponent implements OnInit {
   protected page: PageResult<CatalogUnit> = { items: [], page: 1, pageSize: 50, totalCount: 0, totalPages: 0 };
   protected detail: CatalogDetail | null = null;
   protected countryId = '';
-  protected typeId = '';
+  protected functionalTypeCode = '';
   protected status = '';
   protected locale = '';
   protected search = '';
@@ -45,14 +45,27 @@ export class TerritorialCatalogComponent implements OnInit {
   }
 
   protected get types() {
-    return this.context().unitTypes.filter((item) => !this.countryId || item.countryId === this.countryId);
+    return this.context().functionalTypes.filter((item) => !this.countryId || item.countryIds.includes(this.countryId));
   }
 
   protected get locales(): string[] {
-    return [...new Set(this.page.items.map((item) => item.locale).filter((item): item is string => !!item))].sort();
+    const sourceLocales = this.context().sources
+      .filter((source) => source.isActive && (!this.countryId || source.countryId === this.countryId))
+      .map((source) => source.locale);
+    const visibleLocales = this.page.items
+      .filter((item) => !this.countryId || item.countryId === this.countryId)
+      .map((item) => item.locale);
+    return [...new Set([...sourceLocales, ...visibleLocales].filter((item): item is string => !!item))].sort();
   }
 
-  protected resetType(): void { this.typeId = ''; }
+  protected async countryChanged(): Promise<void> {
+    if (this.functionalTypeCode && !this.types.some((item) => item.code === this.functionalTypeCode))
+      this.functionalTypeCode = '';
+    if (this.locale && !this.locales.includes(this.locale)) this.locale = '';
+    this.parentId = '';
+    this.parentName = '';
+    await this.load(1);
+  }
 
   protected async load(page = 1): Promise<void> {
     await this.runTable(async () => { this.page = await this.fetchPage(page); });
@@ -60,7 +73,7 @@ export class TerritorialCatalogComponent implements OnInit {
 
   protected async clearFilters(): Promise<void> {
     this.countryId = '';
-    this.typeId = '';
+    this.functionalTypeCode = '';
     this.status = '';
     this.locale = '';
     this.search = '';
@@ -129,7 +142,7 @@ export class TerritorialCatalogComponent implements OnInit {
     return this.api.catalog({
       page,
       countryId: this.countryId || undefined,
-      territorialUnitTypeId: this.typeId || undefined,
+      functionalTypeCode: this.functionalTypeCode || undefined,
       status: this.status || undefined,
       locale: this.locale || undefined,
       search: this.search || undefined,

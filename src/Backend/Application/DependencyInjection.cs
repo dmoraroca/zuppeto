@@ -48,6 +48,7 @@ public static class DependencyInjection
         services.AddScoped<TerritorialLocationService>();
         services.AddSingleton<TerritorialMappingEngine>();
         services.AddSingleton<TerritorialImportValidator>();
+        services.AddSingleton<ITerritorialNormalizedContractInterpreter, PetilocTerritorialContractInterpreter>();
         services.AddSingleton<TerritorialDiffEngine>();
         services.AddSingleton<DefaultTerritorialCanonicalizer>();
         services.AddSingleton<ITerritorialCanonicalizer>(provider => provider.GetRequiredService<DefaultTerritorialCanonicalizer>());

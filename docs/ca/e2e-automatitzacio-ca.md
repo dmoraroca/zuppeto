@@ -1122,3 +1122,43 @@ ZUP-160 admet el mode opt-in `E2E_TERRITORIAL_CATALOG_REAL=true`, separat del ci
 La correcció UX definitiva queda coberta pel run Chrome `sim-20260924T215825756Z-9c76be71`, 1/1 PASS. Valida les 8.199 unitats i comprova estructura i interacció: Adra produeix `data-depth` 0–3 i ressaltat visual sense badge textual; Aragón mostra Huesca, Teruel i Zaragoza com a germanes; el chevron de Teruel mostra municipis a depth 3 sense duplicar Teruel; Andalucía i Almería s’expandeixen dins del mateix tree. També valida cursor de mà, col·lapse/reexpansió, absència del CTA retirat, Catalunya, Arenys de Mar, `Tots els municipis` server-side i Canarias → `Palmas, Las` → Arrecife terminal. Les captures A–D es conserven a `docs/ca/evidencies/vii-9-3-tree/`. L’execució ha ajornat la sincronització Excel, no ha publicat ni modificat dades i deixa pendent la validació manual visual. Alemanya continua no publicada.
 
 L’ajust posterior dels terminals passa al run `sim-20260924T221411732Z-a8e3b0e1`, 1/1. ZUP-160 comprova que el tree no renderitza `Seleccionable`, que els 50 municipis carregats de Teruel tenen acció `Veure detall`, i que Ababuj obre mitjançant el flux existent el detall amb codi `44001`; des d’aquest detall, Jerarquia reconstrueix Espanya → Aragón → Teruel → Ababuj. La captura `E-teruel-veure-detall.png` documenta els botons terminals sense alterar el chevron de Teruel. El run és només lectura i manté la sincronització Excel ajornada.
+## Fase VIII territorial — 2026-10-11
+
+L'autodetecció del contracte normalitzat s'ha cobert a Angular i el pipeline real s'ha validat sobre PostgreSQL temporal. El runner passa 14/14. ZUP-160 s'ha reexecutat amb fixture sintètica, sincronització Excel diferida i cleanup residual zero: 1/1 PASS final al run `sim-20261011T170654309Z-208c9c3d`. Durant el diagnòstic s'han preservat dos intents FAIL (`sim-20261011T165728344Z-1457daf4` per absència del text d'estat, i `sim-20261011T165957152Z-fd3a9eaf` per selector accessible ambigu); les correccions afegeixen l'estat funcional i usen selectors estables. No s'ha publicat cap dataset oficial.
+
+La correcció posterior del registre CNIG reconcilia el mateix ID de font amb `CNIG_NGMEP_2026`, sense duplicats ni canvis automàtics d'aprovació. La cobertura PostgreSQL comprova el canvi des de la clau històrica, dues execucions idempotents del seeder i la preservació d'una aprovació humana simulada. El flux normalitzat usa la nova clau i continua demostrant que `Pending` permet preparar el ChangeSet però bloqueja publicar-lo. No s'ha modificat ni executat cap llibre oficial en aquesta comprovació.
+
+La revalidació manual va descobrir que el llibre real usa `INE` i el catàleg `es:ine:municipality`. La correcció és d'aplicació, no de fixture ni d'Excel: normalitza només `ES + INE + cinc dígits`, amb casos negatius que fallen tancats. La suite PostgreSQL i una comparació completa de només lectura acrediten correspondència 8.132/8.132 amb diferència zero; no s'ha reexecutat cap publicació ni s'ha convertit aquest diagnòstic en un PASS E2E documental.
+
+L'auditoria alemanya afegeix un contracte `FULL` real de 15.770 unitats i una prova PostgreSQL autocontinguda que arriba a `ReadyForReview`, comprova 15.770 altes i bloqueig per GV-ISys `Pending`, sense publicar ni tocar Espanya. No s'ha afegit cap dataset oficial als escenaris de navegador: ZUP-160 continua usant la fixture sintètica. El primer intent local va quedar `BLOCKED` perquè Chrome Flatpak no podia reservar instància dins el sandbox (`sim-20261011T201228879Z-d2923cb3`); fora del sandbox, un intent va exposar una asserció obsoleta sobre `Catàleg actual: v7` (`sim-20261011T201253496Z-353e05ba`). L'assert s'ha alineat amb la pantalla vigent —títol del pas 6, gate de font i botó habilitat— i el run final passa 1/1 (`sim-20261011T201348369Z-539bb69e`). Runner 14/14 i Angular 77/77 continuen en PASS.
+
+### Fase VIII — UX d'aprovació de fonts
+
+ZUP-157 amplia el gate `Pending` amb el detall de la font, el modal documental, motiu obligatori, confirmació explícita, refresc posterior del backend i consulta de l'historial a la pestanya `Fonts oficials`. La fixture aprova exclusivament una font sintètica interceptada, comprova que `Publicar catàleg` passa de deshabilitat a habilitat i acredita que no es publica automàticament. Run final: `sim-20261011T205322033Z-7761e57c`, 1/1 PASS.
+
+ZUP-155 envia també una decisió d'aprovació amb sessió `User` contra l'API real i rep `403`; run `sim-20261011T205016337Z-8701ef07`, 1/1 PASS. El runner passa 14/14. No s'han aprovat fonts oficials ni publicat catàlegs durant aquests escenaris.
+
+### Fase VIII — regressió del filtre Locale
+
+ZUP-160 en mode `E2E_TERRITORIAL_CATALOG_REAL=true` continua sent estrictament de lectura i ara comprova el catàleg conjunt de 23.969 unitats. El selector mostra `de-DE` i `es-ES` amb tots els països, només `es-ES` amb Espanya i només `de-DE` amb Alemanya; després continua el recorregut jeràrquic espanyol existent. La demora controlada de la primera lectura passa de 220 ms a 1,5 s perquè la comprovació del skeleton sigui determinista en màquines ràpides, sense alterar l'aplicació ni la resposta API.
+
+El primer intent `sim-20261011T215819884Z-7e288f6a` va quedar FAIL únicament perquè el skeleton ja havia desaparegut en arribar l'assert. La reexecució final `sim-20261011T215911854Z-1990acd9` passa 1/1. Runner: 14/14 PASS. La sincronització Excel s'ha mantingut ajornada i l'escenari no prepara imports, no aprova fonts, no publica, no reverteix i no executa manteniment.
+
+### Fase VIII — filtres funcionals europeus
+
+ZUP-160 amplia el mode real de només lectura amb la categoria funcional `Municipi`. Comprova 19.072 resultats conjunts, 8.132 a Espanya i 10.940 a Alemanya; el canvi ES ↔ DE conserva la categoria compatible, `Tots/Totes` retorna 23.969 unitats i el selector de país conté només Espanya i Alemanya. També rebutja visualment les etiquetes alemanyes sense traduir i conserva les comprovacions `es-ES`/`de-DE` i de jerarquia.
+
+La mateixa especificació obre Historial a 390 × 844 i acredita que el selector accessible `Font` no sobrepassa el contenidor i que, un cop escollida, la font queda identificada íntegrament amb organisme, dataset i `sourceKey`. Amb tres fonts registrades no s'incorpora cercador intern. La sincronització Excel es manté ajornada i no hi ha cap escriptura territorial.
+
+La regressió CNIG va obrir inicialment la font real en mode només lectura i va comprovar `2026 · 2026-01-01`, l'absència de l'avís «No es pot aprovar» i l'estat llavors `Pendent`. La prova va tancar el modal sense iniciar ni confirmar cap decisió. Execució d'aquell estat: `sim-20261011T225930100Z-ce6f0d4f`, 1/1 PASS; runner 14/14. Una aprovació humana posterior fa que aquesta expectativa ja no representi la base actual.
+
+## Fase IX territorial — 2026-10-12
+
+ZUP-160 s'ha alineat amb l'estat persistent real de CNIG sense afegir cap mutació: exigeix `Aprovada`, comprova la transició auditada `Pendent → Aprovada` i valida que `Aprovar font` queda deshabilitat. Manté els gates de 23.969 unitats, filtres funcionals, locales i jerarquies.
+
+- Chrome: `sim-20261011T231940173Z-e7c15485`, 1/1 PASS.
+- Firefox: `sim-20261011T231936690Z-0506aa31`, 1/1 PASS.
+- WebKit: `sim-20261011T231936377Z-16031c53`, FAIL d'infraestructura abans de navegar; falten `libicu74`, `libjpeg-turbo8`, `libwoff1` i `gstreamer1.0-libav`. No es declara PASS.
+- Runner: 14/14 PASS.
+
+La sincronització Excel s'ha ajornat en les tres execucions. La verificació SQL posterior confirma que no han canviat versions, fonts, auditories, imports ni referències User/Place.

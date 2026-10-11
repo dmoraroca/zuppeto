@@ -47,6 +47,9 @@ public sealed class TerritorialAdminServiceTests
         var repository = new MemoryRepository();
         var service = Create(repository, EmptyWorkbook(), new RejectingAuthorizer());
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.GetContextAsync(Guid.NewGuid()));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.ListSourcesAsync(Guid.NewGuid(), new(null, null)));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.GetSourceAsync(Guid.NewGuid(), Guid.NewGuid()));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.DecideSourceAsync(Guid.NewGuid(), Guid.NewGuid(), new("approve", "Pending", "Revisió documental")));
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.ListMappingsAsync(Guid.NewGuid(), null, null));
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.ListImportsAsync(Guid.NewGuid(), new(null, null, null)));
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.ListCatalogAsync(Guid.NewGuid(), new(null, null, null, null, null, null, null)));
@@ -83,7 +86,8 @@ public sealed class TerritorialAdminServiceTests
     }
 
     private static TerritorialAdminService Create(MemoryRepository repository, TerritorialSourceWorkbook workbook, ITerritorialImportAuthorizer? authorizer = null) =>
-        new(authorizer ?? new AllowingAuthorizer(), new FixedReader(workbook), repository, null!, [new DefaultTerritorialCanonicalizer()]);
+        new(authorizer ?? new AllowingAuthorizer(), new FixedReader(workbook), repository, null!, [new DefaultTerritorialCanonicalizer()],
+            new PetilocTerritorialContractInterpreter(), new UnusedSourceResolver());
 
     private static TerritorialSourceWorkbook EmptyWorkbook() => new([], new string('c', 64));
 
@@ -102,6 +106,13 @@ public sealed class TerritorialAdminServiceTests
         public Task<TerritorialSourceWorkbook> ReadAsync(Stream source, CancellationToken cancellationToken = default) => Task.FromResult(workbook);
     }
 
+    private sealed class UnusedSourceResolver : ITerritorialContractSourceResolver
+    {
+        public Task<(Guid CountryId, IReadOnlyCollection<TerritorialImportSourceReference> Sources)> ResolveAsync(
+            string countryIso2, IReadOnlyCollection<string> sourceKeys, IReadOnlyCollection<string> contributingSourceKeys,
+            CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    }
+
     private sealed class MemoryRepository : ITerritorialAdminRepository
     {
         public Guid SourceId { get; } = Guid.NewGuid();
@@ -114,7 +125,14 @@ public sealed class TerritorialAdminServiceTests
         }
 
         public Task<TerritorialAdminContextDto> GetContextAsync(CancellationToken cancellationToken = default) =>
-            Task.FromResult(new TerritorialAdminContextDto([], [], []));
+            Task.FromResult(new TerritorialAdminContextDto([], [], [], []));
+
+        public Task<PageResult<TerritorialSourceDetailDto>> ListSourcesAsync(TerritorialSourceQuery query, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new PageResult<TerritorialSourceDetailDto>([], query.Page, query.PageSize, 0));
+        public Task<TerritorialSourceDetailDto?> GetSourceAsync(Guid id, CancellationToken cancellationToken = default) =>
+            Task.FromResult<TerritorialSourceDetailDto?>(null);
+        public Task<TerritorialSourceDetailDto> DecideSourceAsync(Guid id, Guid actorUserId, TerritorialSourceDecisionRequest request, CancellationToken cancellationToken = default) =>
+            throw new KeyNotFoundException();
 
         public Task<IReadOnlyCollection<TerritorialMappingTemplateSummaryDto>> ListMappingsAsync(Guid? sourceId, string? fingerprint, CancellationToken cancellationToken = default)
         {

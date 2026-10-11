@@ -2,12 +2,18 @@ using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
 using System.Xml.Linq;
+using System.Xml;
 using Zuppeto.Application.TerritorialImports;
 
 namespace Zuppeto.Infrastructure.TerritorialImports;
 
 public sealed class XlsxTerritorialReader : ITerritorialWorkbookReader
 {
+    public const int MaximumSheets = 32;
+    public const int MaximumRowsPerSheet = 250_000;
+    public const int MaximumSharedStrings = 1_000_000;
+    public const long MaximumUncompressedBytes = 256L * 1024 * 1024;
+    public const long MaximumXmlEntryBytes = 128L * 1024 * 1024;
     private static readonly XNamespace Spreadsheet = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
     private static readonly XNamespace OfficeRelationships = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
     private static readonly XNamespace PackageRelationships = "http://schemas.openxmlformats.org/package/2006/relationships";
@@ -18,6 +24,10 @@ public sealed class XlsxTerritorialReader : ITerritorialWorkbookReader
         await source.CopyToAsync(buffer, cancellationToken);
         buffer.Position = 0;
         using var archive = new ZipArchive(buffer, ZipArchiveMode.Read, leaveOpen: false);
+        if (archive.Entries.Count > 10_000 || archive.Entries.Sum(entry => entry.Length) > MaximumUncompressedBytes)
+            throw new InvalidDataException("L'XLSX supera els límits segurs de descompressió.");
+        if (archive.Entries.Any(entry => entry.Length > MaximumXmlEntryBytes))
+            throw new InvalidDataException("L'XLSX conté una entrada XML excessivament gran.");
         var workbook = Load(archive, "xl/workbook.xml");
         var relationships = Load(archive, "xl/_rels/workbook.xml.rels")
             .Root!.Elements(PackageRelationships + "Relationship")
@@ -25,7 +35,10 @@ public sealed class XlsxTerritorialReader : ITerritorialWorkbookReader
         var sharedStrings = ReadSharedStrings(archive);
         var sheets = new List<TerritorialSourceSheet>();
 
-        foreach (var sheet in workbook.Root!.Element(Spreadsheet + "sheets")!.Elements(Spreadsheet + "sheet"))
+        var workbookSheets = workbook.Root!.Element(Spreadsheet + "sheets")!.Elements(Spreadsheet + "sheet").ToArray();
+        if (workbookSheets.Length == 0 || workbookSheets.Length > MaximumSheets)
+            throw new InvalidDataException($"L'XLSX ha de contenir entre 1 i {MaximumSheets} fulls.");
+        foreach (var sheet in workbookSheets)
         {
             var name = (string)sheet.Attribute("name")!;
             var relationshipId = (string)sheet.Attribute(OfficeRelationships + "id")!;
@@ -42,6 +55,8 @@ public sealed class XlsxTerritorialReader : ITerritorialWorkbookReader
         var rows = new List<TerritorialSourceRow>();
         foreach (var row in document.Descendants(Spreadsheet + "row"))
         {
+            if (rows.Count >= MaximumRowsPerSheet)
+                throw new InvalidDataException($"Un full XLSX supera el màxim de {MaximumRowsPerSheet} files.");
             var values = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
             foreach (var cell in row.Elements(Spreadsheet + "c"))
             {
@@ -71,10 +86,12 @@ public sealed class XlsxTerritorialReader : ITerritorialWorkbookReader
     {
         var entry = archive.GetEntry("xl/sharedStrings.xml");
         if (entry is null) return [];
-        using var stream = entry.Open();
-        var document = XDocument.Load(stream, LoadOptions.None);
-        return document.Root!.Elements(Spreadsheet + "si")
+        var document = Load(archive, "xl/sharedStrings.xml");
+        var values = document.Root!.Elements(Spreadsheet + "si")
             .Select(item => string.Concat(item.Descendants(Spreadsheet + "t").Select(text => text.Value))).ToArray();
+        if (values.Length > MaximumSharedStrings)
+            throw new InvalidDataException($"L'XLSX supera el màxim de {MaximumSharedStrings} textos compartits.");
+        return values;
     }
 
     private static string Fingerprint(IReadOnlyCollection<TerritorialSourceSheet> sheets)
@@ -98,7 +115,15 @@ public sealed class XlsxTerritorialReader : ITerritorialWorkbookReader
     private static XDocument Load(ZipArchive archive, string path)
     {
         var entry = archive.GetEntry(path) ?? throw new InvalidDataException($"L'XLSX no conté '{path}'.");
+        if (entry.Length > MaximumXmlEntryBytes)
+            throw new InvalidDataException($"L'entrada '{path}' supera el límit segur.");
         using var stream = entry.Open();
-        return XDocument.Load(stream, LoadOptions.None);
+        using var reader = XmlReader.Create(stream, new XmlReaderSettings
+        {
+            DtdProcessing = DtdProcessing.Prohibit,
+            XmlResolver = null,
+            MaxCharactersInDocument = MaximumXmlEntryBytes
+        });
+        return XDocument.Load(reader, LoadOptions.None);
     }
 }

@@ -1,0 +1,37 @@
+@if (sourceId) {
+  <div class="source-backdrop" (click)="close()">
+    <section class="source-modal" role="dialog" aria-modal="true" aria-labelledby="source-review-title" (click)="$event.stopPropagation()">
+      <header><div><p class="eyebrow">Revisió documental</p><h2 id="source-review-title">{{ source?.dataset || 'Font oficial' }}</h2></div><button type="button" class="quiet" [disabled]="busy" (click)="close()">Tancar</button></header>
+      @if (error) { <div class="alert alert--error" role="alert">{{ error }}</div> }
+      @if (busy && !source) { <p aria-live="polite">Carregant la font…</p> }
+      @if (source; as item) {
+        <dl class="facts">
+          <dt>Organisme oficial</dt><dd>{{ item.organisation }}</dd>
+          <dt>Dataset</dt><dd>{{ item.dataset }}</dd>
+          <dt>Versió i data</dt><dd>{{ item.datasetVersion || 'No informada' }} · {{ item.datasetDate || 'Data no informada' }}</dd>
+          <dt>URL oficial</dt><dd><a [href]="item.url" target="_blank" rel="noopener noreferrer">Obrir fitxa oficial</a></dd>
+          <dt>Llicència</dt><dd>{{ item.license || 'No informada' }}</dd>
+          <dt>Reutilització comercial</dt><dd>{{ reuse(item.commercialUseAllowed) }}</dd>
+          <dt>Transformació</dt><dd>{{ reuse(item.transformationAllowed) }}</dd>
+          <dt>Condicions</dt><dd>{{ item.restrictions || 'Sense restriccions addicionals registrades.' }}</dd>
+          <dt>Atribució obligatòria</dt><dd>{{ item.attribution || 'No informada' }}</dd>
+          <dt>Dades de tercers</dt><dd>{{ item.thirdPartyData || 'No se n’han registrat.' }}</dd>
+          <dt>Estat actual</dt><dd><strong>{{ approvalLabel(item.approvalStatus) }}</strong></dd>
+        </dl>
+        <section><h3>Evidències documentals</h3><ul>@for (evidence of item.evidence; track evidence.url) { <li><a [href]="evidence.url" target="_blank" rel="noopener noreferrer">{{ evidence.label }}</a></li> } @empty { <li>No hi ha evidències registrades.</li> }</ul></section>
+        @if (!item.hasCompleteApprovalMetadata) { <div class="alert alert--warning"><strong>No es pot aprovar.</strong><p>Falten: {{ item.missingApprovalMetadata.join(', ') }}.</p></div> }
+        <section><h3>Historial d’aprovacions</h3><div class="history">@for (entry of item.approvalHistory; track entry.id) { <article><strong>{{ approvalLabel(entry.previousStatus) }} → {{ approvalLabel(entry.newStatus) }}</strong><span>{{ entry.actor }} · {{ formatDate(entry.createdAtUtc) }}</span><p>{{ entry.reason }}</p></article> } @empty { <p>Encara no hi ha decisions auditades.</p> }</div></section>
+        @if (decision) {
+          <section class="confirmation" role="alertdialog" aria-labelledby="source-confirm-title">
+            <h3 id="source-confirm-title">Confirmar {{ decision === 'approve' ? 'l’aprovació' : 'el rebuig' }}</h3>
+            <label>Motiu auditable<textarea [(ngModel)]="reason" maxlength="500" rows="4" placeholder="Explica el criteri documental aplicat"></textarea></label>
+            <label class="check"><input type="checkbox" [(ngModel)]="confirmed" /> Confirmo explícitament aquesta decisió i les evidències revisades.</label>
+            <div class="actions"><button type="button" class="quiet" [disabled]="busy" (click)="cancelDecision()">Cancel·lar</button><button type="button" [class.danger]="decision === 'reject'" [class.primary]="decision === 'approve'" [disabled]="busy || !canConfirm" (click)="confirmDecision()">Confirmar decisió</button></div>
+          </section>
+        } @else {
+          <footer class="actions"><button type="button" class="quiet" (click)="close()">Cancel·lar</button><button type="button" class="danger" [disabled]="busy || item.approvalStatus === 'Rejected'" (click)="requestDecision('reject')">Rebutjar</button><button type="button" class="primary" [disabled]="busy || !item.hasCompleteApprovalMetadata || item.approvalStatus === 'Approved'" (click)="requestDecision('approve')">Aprovar font</button></footer>
+        }
+      }
+    </section>
+  </div>
+}

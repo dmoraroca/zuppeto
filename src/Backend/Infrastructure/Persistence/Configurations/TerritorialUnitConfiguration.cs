@@ -24,6 +24,7 @@ public sealed class TerritorialUnitConfiguration : IEntityTypeConfiguration<Terr
         builder.Property(item => item.Latitude).HasColumnName("latitude").HasPrecision(9, 6);
         builder.Property(item => item.Longitude).HasColumnName("longitude").HasPrecision(9, 6);
         builder.Property(item => item.CoordinateSourceId).HasColumnName("coordinate_source_id");
+        builder.Property(item => item.StructureSourceId).HasColumnName("structure_source_id");
         builder.Property(item => item.CreatedAtUtc).HasColumnName("created_at_utc").HasDefaultValueSql("CURRENT_TIMESTAMP").IsRequired();
         builder.Property(item => item.UpdatedAtUtc).HasColumnName("updated_at_utc").HasDefaultValueSql("CURRENT_TIMESTAMP").IsRequired();
 
@@ -44,6 +45,11 @@ public sealed class TerritorialUnitConfiguration : IEntityTypeConfiguration<Terr
         builder.HasOne(item => item.CoordinateSource)
             .WithMany(source => source.CoordinateUnits)
             .HasForeignKey(item => new { item.CoordinateSourceId, item.CountryId })
+            .HasPrincipalKey(source => new { source.Id, source.CountryId })
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(item => item.StructureSource)
+            .WithMany(source => source.StructureUnits)
+            .HasForeignKey(item => new { item.StructureSourceId, item.CountryId })
             .HasPrincipalKey(source => new { source.Id, source.CountryId })
             .OnDelete(DeleteBehavior.Restrict);
 

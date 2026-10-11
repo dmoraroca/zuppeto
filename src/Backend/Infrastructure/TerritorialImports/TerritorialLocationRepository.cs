@@ -7,7 +7,7 @@ namespace Zuppeto.Infrastructure.TerritorialImports;
 internal sealed class TerritorialLocationRepository(ZuppetoDbContext db) : ITerritorialLocationRepository
 {
     public async Task<IReadOnlyCollection<TerritorialAdminCountryDto>> ListCountriesAsync(CancellationToken ct = default) =>
-        await db.Countries.AsNoTracking().Where(x => x.IsActive).OrderBy(x => x.SortOrder).ThenBy(x => x.Name)
+        await db.Countries.AsNoTracking().WithTerritorialCatalog().OrderBy(x => x.SortOrder).ThenBy(x => x.Name)
             .Select(x => new TerritorialAdminCountryDto(x.Id, x.Code, x.Name, x.Iso2, x.Iso3, x.IsActive)).ToArrayAsync(ct);
 
     public async Task<PageResult<TerritorialLocalityOptionDto>> SearchLocalitiesAsync(

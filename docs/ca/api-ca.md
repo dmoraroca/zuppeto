@@ -92,6 +92,8 @@ Des de Fase VII, `POST /api/admin/territorial/imports` retorna `202 Accepted` de
 
 El refinament afegeix `GET /imports/{id}/preview/source`, `GET /preview/canonical`, `GET /catalog`, `GET /catalog/{id}` i `POST /catalog/{id}/maintenance` dins el mateix grup Admin. Els previews i el catàleg són paginats al servidor; el manteniment rep acció, motiu i valor específic i pot retornar 400, 403, 404 o 409.
 
+`GET /api/admin/territorial/context` retorna `functionalTypes[]` (`code`, etiqueta catalana `name`, `displayOrder`, `countryIds`) a més dels tipus oficials. La llista de països queda limitada als països territorials actius amb ISO alpha-2. `GET /api/admin/territorial/catalog` admet `functionalTypeCode`; el backend el tradueix a un o més codis oficials abans del recompte i la paginació. `MUNICIPALITY` recupera municipis espanyols, ciutats autònomes, Gemeinden i Kreisfreie Städte; un codi funcional desconegut retorna error de validació i no degrada a una consulta sense filtre.
+
 VII.9.3 afegeix exclusivament lectures: `GET /catalog/{id}/hierarchy?search=&page=&pageSize=` retorna unitat actual, ancestres ordenats, fills directes paginats i recompte de descendents agrupat per tipus; `GET /catalog/{id}/descendants?territorialUnitTypeId=&search=&page=&pageSize=` retorna els descendents del subarbre filtrats per tipus, amb total real i context de pare. Ambdues rutes exigeixen ADMIN, consulten només `territorial_units` publicades i no reutilitzen ChangeSet ni modifiquen `CatalogVersion`.
 
 La projecció resum del catàleg diferencia `hasManualActiveOverride`, `hasManualSelectableOverride` i `hasManualCoordinateOverride`, a més de l’indicador agregat. Això permet que la UI atribueixi cada override al camp correcte sense inferir-lo. Les ordres `activate`, `deactivate`, `set-selectable` i `set-coordinates` continuen explícites i el motiu és obligatori (3–500 caràcters).
@@ -131,6 +133,10 @@ Valors de `type` admesos actualment:
 
 Els contractes de perfil i administració d’usuaris inclouen `countryId` i `territorialUnitId`. La parella segueix les mateixes regles de validació que Places. `clearTerritorialLocation=true` és l’ordre explícita per esborrar una referència; ometre IDs des d’un client antic no l’elimina accidentalment.
 
+### Compatibilitat geogràfica auditada a Fase IX
+
+`GET/POST /api/admin/countries`, `GET/PUT/DELETE /api/admin/countries/{id}` i les operacions equivalents de `/api/admin/cities` continuen actives i protegides per `action.geographic.manage`. No són aliases de l'API territorial: administren el catàleg rígid històric que encara consumeixen Places i l'ADMIN. `countries` és, a més, l'arrel compartida per `/api/territorial`; per això no es pot retirar. La retirada dels endpoints de `cities` queda condicionada al backfill i a la substitució dels suggeriments textuals.
+
 ### Favorites
 
 - `GET /api/favorites/{ownerUserId}`
@@ -168,3 +174,10 @@ La Fase III queda completada perquè aquesta API ja no només existeix i respon,
 - manteniment de `perfil`
 
 L'autenticació real pertany a la Fase IV. El login propi i Google OAuth real estan integrats; el gate de Google de la Iteració 4 va quedar validat el 2026-09-17. LinkedIn es va descartar per decisió funcional de producte i no forma part de l'API pública; Facebook continua pendent.
+## Addenda Fase VIII — contractes territorials normalitzats
+
+`POST /api/admin/territorial/workbooks/inspect` accepta el fitxer sense `datasetSourceId` quan conté `Manifest` i retorna `contract` amb identificador, versió, ISO2, mode, dataset, data territorial, font principal, `fieldScope`, fonts, validesa i incidències. Per a un llibre extern continua retornant `compatibleMappings`.
+
+`POST /api/admin/territorial/imports` permet ometre `mappingTemplateId`, `datasetSourceId` i `datasetVersion` únicament quan el llibre és `PETILOC_TERRITORIAL 1.0`; el servidor torna a llegir el Manifest, resol fonts registrades i persisteix les metadades. La publicació retorna conflicte si una font contribuïdora no és activa i `Approved`.
+
+La governança de fonts incorpora `GET /api/admin/territorial/sources`, `GET /api/admin/territorial/sources/{id}` i `POST /api/admin/territorial/sources/{id}/decision`. Tots tres requereixen ADMIN. La decisió rep `decision`, `expectedStatus` i `reason`; retorna `409 territorial_source_conflict` si l'estat ha canviat concurrentment, rebutja aprovacions amb metadades incompletes i no publica cap catàleg.

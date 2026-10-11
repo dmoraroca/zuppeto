@@ -12,6 +12,9 @@ internal static class TerritorialAdminEndpoints
     {
         var group = app.MapGroup("/api/admin/territorial").RequireAuthorization();
         group.MapGet("/context", GetContextAsync);
+        group.MapGet("/sources", ListSourcesAsync);
+        group.MapGet("/sources/{id:guid}", GetSourceAsync);
+        group.MapPost("/sources/{id:guid}/decision", DecideSourceAsync);
         group.MapPost("/workbooks/inspect", InspectAsync).DisableAntiforgery();
         group.MapGet("/mappings", ListMappingsAsync);
         group.MapGet("/mappings/{id:guid}", GetMappingAsync);
@@ -38,6 +41,28 @@ internal static class TerritorialAdminEndpoints
     [Authorize]
     private static async Task<IResult> GetContextAsync(ClaimsPrincipal principal, TerritorialAdminService service, CancellationToken ct) =>
         await ExecuteAdmin(principal, actor => service.GetContextAsync(actor, ct));
+
+    [Authorize]
+    private static async Task<IResult> ListSourcesAsync(
+        ClaimsPrincipal principal, Guid? countryId, string? approvalStatus, int page, int pageSize,
+        TerritorialAdminService service, CancellationToken ct) =>
+        await ExecuteAdmin(principal, actor => service.ListSourcesAsync(actor,
+            new TerritorialSourceQuery(countryId, approvalStatus, page == 0 ? 1 : page, pageSize == 0 ? 25 : pageSize), ct));
+
+    [Authorize]
+    private static async Task<IResult> GetSourceAsync(
+        ClaimsPrincipal principal, Guid id, TerritorialAdminService service, CancellationToken ct)
+    {
+        if (!TryAdmin(principal, out var actor)) return TypedResults.Forbid();
+        var item = await service.GetSourceAsync(actor, id, ct);
+        return item is null ? TypedResults.NotFound() : TypedResults.Ok(item);
+    }
+
+    [Authorize]
+    private static async Task<IResult> DecideSourceAsync(
+        ClaimsPrincipal principal, Guid id, TerritorialSourceDecisionRequest request,
+        TerritorialAdminService service, CancellationToken ct) =>
+        await ExecuteAdmin(principal, actor => service.DecideSourceAsync(actor, id, request, ct));
 
     [Authorize]
     private static async Task<IResult> InspectAsync(ClaimsPrincipal principal, [FromForm] TerritorialInspectForm form, TerritorialAdminService service, CancellationToken ct)
@@ -140,11 +165,11 @@ internal static class TerritorialAdminEndpoints
     [Authorize]
     private static async Task<IResult> ListCatalogAsync(
         ClaimsPrincipal principal, Guid? countryId, Guid? territorialUnitTypeId, string? status, string? locale,
-        Guid? parentId, string? search, bool? selectableLocality, int page, int pageSize,
+        Guid? parentId, string? search, bool? selectableLocality, string? functionalTypeCode, int page, int pageSize,
         TerritorialAdminService service, CancellationToken ct) =>
         await ExecuteAdmin(principal, actor => service.ListCatalogAsync(actor,
             new TerritorialCatalogQuery(countryId, territorialUnitTypeId, status, locale, parentId, search,
-                selectableLocality, page == 0 ? 1 : page, pageSize == 0 ? 50 : pageSize), ct));
+                selectableLocality, page == 0 ? 1 : page, pageSize == 0 ? 50 : pageSize, functionalTypeCode), ct));
 
     [Authorize]
     private static async Task<IResult> GetCatalogUnitAsync(
@@ -213,6 +238,8 @@ internal static class TerritorialAdminEndpoints
     {
         UnauthorizedAccessException => TypedResults.Forbid(),
         KeyNotFoundException => TypedResults.NotFound(),
+        DbUpdateConcurrencyException when exception.Message.Contains("font", StringComparison.OrdinalIgnoreCase) =>
+            TypedResults.Conflict(new { code = "territorial_source_conflict", message = exception.Message }),
         DbUpdateConcurrencyException => TypedResults.Conflict(new { code = "catalog_version_conflict", message = "El catàleg ha canviat des que es va generar aquest preview." }),
         InvalidDataException => TypedResults.BadRequest(new { message = exception.Message }),
         InvalidOperationException when exception.Message.Contains("publicat", StringComparison.OrdinalIgnoreCase) ||
@@ -233,7 +260,7 @@ internal static class TerritorialAdminEndpoints
     internal sealed class TerritorialPrepareImportForm
     {
         public Guid DatasetSourceId { get; init; }
-        public Guid MappingTemplateId { get; init; }
+        public Guid? MappingTemplateId { get; init; }
         public string DatasetVersion { get; init; } = string.Empty;
         public IFormFile? File { get; init; }
     }

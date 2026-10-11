@@ -59,8 +59,7 @@ public sealed class TerritorialImportValidator
         return issues;
     }
 
-    private static bool ParentExistsInCatalog(CanonicalTerritorialUnit unit, TerritorialImportContext context) =>
-        context.CurrentUnits.Any(existing => existing.Codes.Any(code => unit.ParentCanonicalUnitKey?.EndsWith(code.Value, StringComparison.Ordinal) == true));
+    private static bool ParentExistsInCatalog(CanonicalTerritorialUnit unit, TerritorialImportContext context) => false;
 
     private static void DetectCycles(IReadOnlyCollection<CanonicalTerritorialUnit> units, List<TerritorialImportIssue> issues)
     {
@@ -85,6 +84,34 @@ public sealed class TerritorialImportValidator
 
 public sealed class TerritorialDiffEngine
 {
+    public (TerritorialChangeSet ChangeSet, IReadOnlyCollection<TerritorialImportIssue> Issues) BuildCoordinatePatch(
+        Guid importId,
+        TerritorialImportContext context,
+        IReadOnlyCollection<(CanonicalTerritorialUnit Unit, TerritorialCatalogUnitSnapshot Current, TerritorialFieldOperation Operation)> patches,
+        DateTimeOffset now)
+    {
+        var result = new TerritorialChangeSet(Guid.NewGuid(), importId, context.CountryId, context.CatalogVersion, now);
+        var issues = new List<TerritorialImportIssue>();
+        foreach (var patch in patches)
+        {
+            var current = patch.Current;
+            var incoming = patch.Unit;
+            var changed = current.Latitude != incoming.Latitude || current.Longitude != incoming.Longitude || current.CoordinateSourceId != incoming.CoordinateSourceId;
+            if (current.HasManualCoordinateOverride && changed)
+            {
+                issues.Add(new TerritorialImportIssue("MANUAL_OVERRIDE_CONFLICT", TerritorialIssueSeverity.Warning,
+                    "L'actualització de coordenades no substituirà l'override manual.", Field: "coordinates", CanonicalUnitKey: incoming.CanonicalUnitKey));
+            }
+            IReadOnlyCollection<string> fields = changed ? new[] { "coordinates" } : Array.Empty<string>();
+            result.Add(new TerritorialChange(Guid.NewGuid(), changed ? TerritorialChangeKind.Update : TerritorialChangeKind.NoChange,
+                current.Id, incoming.CanonicalUnitKey,
+                JsonSerializer.Serialize(current, TerritorialImportJson.Options),
+                JsonSerializer.Serialize(incoming, TerritorialImportJson.Options), fields,
+                new Dictionary<string, string> { ["coordinates"] = patch.Operation.ToString() }));
+        }
+        return (result, issues);
+    }
+
     public (TerritorialChangeSet ChangeSet, IReadOnlyCollection<TerritorialImportIssue> Issues) Build(
         Guid importId,
         TerritorialImportContext context,

@@ -22,7 +22,9 @@ export async function executeTerritorialAdminScenario(code: number, context: Chr
     await context.page.getByRole('button', { name: 'Obrir detall' }).click();
     await expect(context.page).toHaveURL(new RegExp('/admin/territori/' + importId));
     await context.page.getByRole('button', { name: 'Anar a publicació' }).click();
-    await expect(context.page.getByText('Catàleg actual: v7')).toBeVisible();
+    await expect(context.page.getByRole('heading', { name: '6. Publicació del catàleg territorial' })).toBeVisible();
+    await expect(context.page.getByText('Gate de font')).toBeVisible();
+    await expect(context.page.getByRole('button', { name: 'Publicar catàleg' })).toBeEnabled();
     await context.page.getByRole('button', { name: 'Catàleg territorial' }).click();
     await context.page.getByRole('button', { name: 'Cercar', exact: true }).click();
     await context.page.getByRole('cell', { name: 'Àmbit sintètic', exact: true }).click();
@@ -114,9 +116,26 @@ export async function executeTerritorialAdminScenario(code: number, context: Chr
     await expect(context.page.getByRole('heading', { name: '6. Publicació del catàleg territorial' })).toBeVisible();
     await expect(context.page.getByText('Pendent d’aprovació')).toBeVisible();
     await expect(context.page.getByRole('button', { name: 'Publicar catàleg' })).toBeDisabled();
+    await context.page.getByRole('button', { name: 'Revisar i aprovar font' }).click();
+    await expect(context.page.getByRole('dialog', { name: 'Àmbits de prova' })).toContainText('Institut sintètic');
+    await expect(context.page.getByRole('dialog', { name: 'Àmbits de prova' })).toContainText('Test-only');
+    await context.page.getByRole('button', { name: 'Aprovar font', exact: true }).click();
+    await context.page.getByLabel('Motiu auditable').fill('Evidències oficials revisades en E2E aïllat');
+    await context.page.getByLabel('Confirmo explícitament').check();
+    await context.page.getByRole('button', { name: 'Confirmar decisió' }).click();
+    await expect(context.page.getByRole('dialog', { name: 'Àmbits de prova' })).toHaveCount(0);
+    await expect(context.page.getByRole('button', { name: 'Publicar catàleg' })).toBeEnabled();
+    await expect(context.page.getByText('Estat: Publicat')).toHaveCount(0);
     await context.page.getByRole('button', { name: 'Tornar als canvis' }).click();
     await expect(context.page.getByLabel('Cerca per nom o codi')).toHaveValue('Àmbit');
     await expect(context.page.getByText('Pàgina 1 de 164')).toBeVisible();
+    await context.page.getByRole('button', { name: 'Fonts oficials' }).click();
+    await expect(context.page.getByRole('heading', { name: 'Fonts oficials' })).toBeVisible();
+    const sourceRow = context.page.locator('app-official-sources tbody tr').filter({ hasText: 'Àmbits de prova' });
+    await expect(sourceRow).toContainText('Aprovada');
+    await sourceRow.getByRole('button', { name: 'Revisar font' }).click();
+    await expect(context.page.getByRole('dialog', { name: 'Àmbits de prova' })).toContainText('Evidències oficials revisades en E2E aïllat');
+    await context.page.getByRole('button', { name: 'Tancar' }).click();
     return;
   }
 
@@ -137,17 +156,65 @@ async function realPublishedSpainCatalogExplorer(context: ChromeScenarioContext)
     const url = new URL(route.request().url());
     if (!delayedInitialCatalog && url.searchParams.get('page') === '1') {
       delayedInitialCatalog = true;
-      await new Promise((resolve) => setTimeout(resolve, 220));
+      await new Promise((resolve) => setTimeout(resolve, 1_500));
     }
     await route.continue();
   });
 
   await page.goto('/admin/territori');
+  await page.getByRole('button', { name: 'Fonts oficials' }).click();
+  const cnigRow = page.locator('app-official-sources tbody tr').filter({ hasText: 'CNIG_NGMEP_2026' });
+  await expect(cnigRow).toContainText('Aprovada');
+  await cnigRow.getByRole('button', { name: 'Revisar font' }).click();
+  const cnigDialog = page.getByRole('dialog', { name: 'Nomenclátor Geográfico de Municipios y Entidades de Población' });
+  await expect(cnigDialog).toContainText('2026 · 2026-01-01');
+  await expect(cnigDialog.getByText('No es pot aprovar.')).toHaveCount(0);
+  await expect(cnigDialog).toContainText('Pendent → Aprovada');
+  await expect(cnigDialog.getByRole('button', { name: 'Aprovar font' })).toBeDisabled();
+  await cnigDialog.getByRole('button', { name: 'Tancar' }).click();
+  await page.getByRole('button', { name: 'Historial' }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  const historyFilters = page.locator('.history-filters');
+  const historySource = historyFilters.getByLabel('Font');
+  await expect(historySource).toBeVisible();
+  await historySource.selectOption({ index: 1 });
+  await expect(historyFilters.locator('.selected-source')).toContainText('·');
+  const [filtersBox, sourceBox] = await Promise.all([historyFilters.boundingBox(), historySource.boundingBox()]);
+  expect(filtersBox).not.toBeNull();
+  expect(sourceBox).not.toBeNull();
+  expect(sourceBox!.x + sourceBox!.width).toBeLessThanOrEqual(filtersBox!.x + filtersBox!.width + 1);
+  await page.setViewportSize({ width: 1280, height: 900 });
   await page.getByRole('button', { name: 'Catàleg territorial' }).click();
   await expect(page.locator('.catalog-skeleton')).toBeVisible();
-  await expect(page.getByText('8199 unitats')).toBeVisible();
+  await expect(page.getByText('23969 unitats')).toBeVisible();
 
-  await page.locator('select[name="country"]').selectOption({ label: 'Espanya' });
+  const countrySelect = page.locator('select[name="country"]');
+  const typeSelect = page.locator('select[name="type"]');
+  const localeSelect = page.locator('select[name="locale"]');
+  await expect(countrySelect.locator('option')).toHaveText(['Tots', 'Espanya', 'Alemanya']);
+  await expect(countrySelect).not.toContainText('catalunya');
+  await expect(typeSelect.locator('option')).toContainText(['Totes', 'Municipi']);
+  await expect(typeSelect).not.toContainText(/Gemeinde|Kreis|Land|Regierungsbezirk/);
+  await typeSelect.selectOption('MUNICIPALITY');
+  await page.getByRole('button', { name: 'Cercar', exact: true }).click();
+  await expect(page.getByText('19072 unitats')).toBeVisible();
+  await countrySelect.selectOption({ label: 'Espanya' });
+  await expect(typeSelect).toHaveValue('MUNICIPALITY');
+  await expect(page.getByText('8132 unitats')).toBeVisible();
+  await countrySelect.selectOption({ label: 'Alemanya' });
+  await expect(typeSelect).toHaveValue('MUNICIPALITY');
+  await expect(page.getByText('10940 unitats')).toBeVisible();
+  await countrySelect.selectOption('');
+  await typeSelect.selectOption('');
+  await page.getByRole('button', { name: 'Cercar', exact: true }).click();
+  await expect(page.getByText('23969 unitats')).toBeVisible();
+  await expect(localeSelect.locator('option')).toHaveText(['Tots', 'de-DE', 'es-ES']);
+  await countrySelect.selectOption({ label: 'Espanya' });
+  await expect(localeSelect.locator('option')).toHaveText(['Tots', 'es-ES']);
+  await countrySelect.selectOption({ label: 'Alemanya' });
+  await expect(localeSelect.locator('option')).toHaveText(['Tots', 'de-DE']);
+
+  await countrySelect.selectOption({ label: 'Espanya' });
   await page.locator('input[name="search"]').fill('Adra');
   await page.getByRole('button', { name: 'Cercar', exact: true }).click();
   await page.locator('.catalog tbody tr').filter({ hasText: 'Adra' }).filter({ hasText: 'Municipi' }).first().click();
@@ -292,7 +359,7 @@ async function realTerritorialCircuit(context: ChromeScenarioContext): Promise<v
 
   await context.page.goto('/admin/territori');
   await context.page.getByRole('button', { name: 'Catàleg territorial' }).click();
-  await context.page.getByLabel('País').selectOption({ label: 'País E2E À' });
+  await context.page.locator('select[name="country"]').selectOption({ label: 'País E2E À' });
   await context.page.getByLabel('Cerca').fill('E2E-001');
   await context.page.getByRole('button', { name: 'Cercar', exact: true }).click();
   await context.page.getByRole('cell', { name: 'Vila E2E À', exact: true }).click();
@@ -335,11 +402,11 @@ async function realTerritorialCircuit(context: ChromeScenarioContext): Promise<v
   await expect(currentReactivation).toContainText('DesprésActiu');
   await context.page.getByRole('button', { name: 'Tancar el detall territorial' }).click();
   await expect(context.page.getByRole('cell', { name: 'Vila E2E À', exact: true })).toBeVisible();
-  await expect(context.page.getByLabel('País')).toHaveValue('e2e00000-0000-0000-0000-000000000001');
+  await expect(context.page.locator('select[name="country"]')).toHaveValue('e2e00000-0000-0000-0000-000000000001');
   await context.page.goto('/perfil');
   const location = context.page.locator('app-territorial-location-selector');
   await assertSingleLocationAutocomplete(location);
-  const country = location.getByLabel('País');
+  const country = location.locator('select');
   const locality = location.getByRole('combobox', { name: 'Localitat', exact: true });
   await expect(locality).toBeDisabled();
   await expect(locality).toHaveAttribute('placeholder', 'Selecciona primer un país');
@@ -356,7 +423,7 @@ async function realTerritorialCircuit(context: ChromeScenarioContext): Promise<v
   await context.page.goto('/places');
   const placesLocation = context.page.locator('app-place-filters app-territorial-location-selector');
   await assertSingleLocationAutocomplete(placesLocation);
-  await placesLocation.getByLabel('País').selectOption({ label: 'País E2E À' });
+  await placesLocation.locator('select').selectOption({ label: 'País E2E À' });
   await placesLocation.getByRole('combobox', { name: 'Localitat', exact: true }).fill('Vila');
   await placesLocation.getByRole('option').filter({ hasText: 'Vila E2E À' }).click();
   await expect(context.page.getByRole('button', { name: 'Cercar', exact: true })).toBeVisible();
@@ -447,7 +514,7 @@ async function realAsyncImportCircuit(context: ChromeScenarioContext): Promise<v
   await expect(context.page.getByText('Estat: Publicat')).toBeVisible({ timeout: 45_000 });
 
   await context.page.getByRole('button', { name: 'Catàleg territorial' }).click();
-  await context.page.getByLabel('País').selectOption({ label: 'País E2E Importació' });
+  await context.page.locator('select[name="country"]').selectOption({ label: 'País E2E Importació' });
   await context.page.getByLabel('Cerca').fill('E2E-001');
   await context.page.getByRole('button', { name: 'Cercar', exact: true }).click();
   await expect(context.page.getByRole('cell', { name: 'Localitat worker E2E 1', exact: true })).toBeVisible();
@@ -557,21 +624,30 @@ async function securityScenario(context: ChromeScenarioContext): Promise<void> {
   const token = context.session.session?.accessToken;
   if (!token) throw new Error('La prova de seguretat territorial requereix sessió USER.');
   context.allowHttpStatus(403, '/api/admin/territorial/context');
+  context.allowHttpStatus(403, '/api/admin/territorial/sources/10000000-0000-0000-0000-000000000001/decision');
   context.allowConsoleError('403');
   const response = await context.transport.send({
     method: 'GET', path: '/api/admin/territorial/context', accessToken: token
   });
   expect(response.status).toBe(403);
+  const approval = await context.transport.send({
+    method: 'POST', path: `/api/admin/territorial/sources/${sourceId}/decision`, accessToken: token,
+    body: { decision: 'approve', expectedStatus: 'Pending', reason: 'Intent sense permisos' }
+  });
+  expect(approval.status).toBe(403);
 }
 
 async function mockTerritorialApi(context: ChromeScenarioContext, mode: 'ready' | 'blocked', pendingSource = false): Promise<void> {
   let catalogActive = true;
+  let sourceApprovalStatus = pendingSource ? 'Pending' : 'Approved';
+  const sourceApprovalAudit: Array<Record<string, unknown>> = [];
   const audit: Array<Record<string, unknown>> = [];
   const contextDto = {
     countries: [{ id: 'c0000000-0000-0000-0000-000000000001', code: 'synthetic', name: 'País sintètic', iso2: 'ZZ', iso3: 'ZZZ', isActive: true }],
     sources: [{
       id: sourceId, countryId: 'c0000000-0000-0000-0000-000000000001',
-      organisation: 'Institut sintètic', dataset: 'Àmbits de prova', approvalStatus: pendingSource ? 'Pending' : 'Approved',
+      sourceKey: 'ZZ-SYNTHETIC', organisation: 'Institut sintètic', dataset: 'Àmbits de prova',
+      datasetType: 'AdministrativeTerritory', locale: 'ca-ZZ', approvalStatus: sourceApprovalStatus,
       isActive: true, publicationMode: 'FullSnapshot', datasetVersion: 'synthetic-v1',
       datasetDate: '2026-09-22', license: 'Test-only', attribution: 'Fixture E2E'
     }],
@@ -579,6 +655,10 @@ async function mockTerritorialApi(context: ChromeScenarioContext, mode: 'ready' 
       id: '40000000-0000-0000-0000-000000000001',
       countryId: 'c0000000-0000-0000-0000-000000000001',
       code: 'MUNICIPALITY', name: 'Municipi', displayOrder: 1, isSelectableLocality: true
+    }],
+    functionalTypes: [{
+      code: 'MUNICIPALITY', name: 'Municipi', displayOrder: 10,
+      countryIds: ['c0000000-0000-0000-0000-000000000001']
     }]
   };
   const counters = mode === 'blocked'
@@ -596,14 +676,26 @@ async function mockTerritorialApi(context: ChromeScenarioContext, mode: 'ready' 
   };
   const detail = {
     import: summary, publicationMode: 'FullSnapshot', failureReason: null,
-    schemaFingerprint: 'b'.repeat(64), canCancel: true, canPublish: mode === 'ready',
+    schemaFingerprint: 'b'.repeat(64), canCancel: true, canPublish: mode === 'ready' && sourceApprovalStatus === 'Approved',
     canRevert: false, currentCatalogVersion: 7, changeSetId: '50000000-0000-0000-0000-000000000001',
     changeSetStatus: 'Preview', sourceSheets: ['Comunitats', 'Municipis'], manualConflictCount: 0,
     territorialBreakdown: [
       { territorialUnitTypeCode: 'REGION', territorialUnitType: 'Regió', create: 1, update: 0, deactivate: 0, noChange: 0 },
       { territorialUnitTypeCode: 'MUNICIPALITY', territorialUnitType: 'Municipi', create: 1, update: 1, deactivate: 1, noChange: 0 }
-    ]
+    ],
+    sourceGates: [{ datasetSourceId: sourceId, sourceKey: 'ZZ-SYNTHETIC', organisation: 'Institut sintètic',
+      dataset: 'Àmbits de prova', approvalStatus: sourceApprovalStatus, isActive: true, contributesPublishedFields: true }]
   };
+  const sourceDetail = () => ({
+    ...contextDto.sources[0], country: 'País sintètic', approvalStatus: sourceApprovalStatus,
+    url: 'https://example.test/source', downloadUrl: 'https://example.test/download',
+    licenseUrl: 'https://example.test/license', commercialUseAllowed: true, transformationAllowed: true,
+    restrictions: 'Atribució obligatòria', thirdPartyData: null, hasCompleteApprovalMetadata: true,
+    missingApprovalMetadata: [], evidence: [{ label: 'Fitxa oficial', url: 'https://example.test/source' }],
+    approvalHistory: sourceApprovalAudit
+  });
+  const currentDetail = () => ({ ...detail, canPublish: mode === 'ready' && sourceApprovalStatus === 'Approved',
+    sourceGates: [{ ...detail.sourceGates[0], approvalStatus: sourceApprovalStatus }] });
   const functionalChanges = [
     {
       id: '70000000-0000-0000-0000-000000000010', kind: 'Create', territorialUnitId: null,
@@ -656,7 +748,24 @@ async function mockTerritorialApi(context: ChromeScenarioContext, mode: 'ready' 
     const path = new URL(request.url()).pathname;
     const method = request.method();
     let body: unknown;
-    if (path.endsWith('/context')) body = contextDto;
+    if (path.endsWith('/context')) {
+      contextDto.sources[0]!.approvalStatus = sourceApprovalStatus;
+      body = contextDto;
+    }
+    else if (path.endsWith(`/sources/${sourceId}/decision`) && method === 'POST') {
+      const decision = request.postDataJSON() as { decision: string; expectedStatus: string; reason: string };
+      if (decision.expectedStatus !== sourceApprovalStatus) {
+        await route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({ message: 'La font ha canviat.' }) });
+        return;
+      }
+      const previousStatus = sourceApprovalStatus;
+      sourceApprovalStatus = decision.decision === 'approve' ? 'Approved' : 'Rejected';
+      sourceApprovalAudit.unshift({ id: 'approval-1', previousStatus, newStatus: sourceApprovalStatus,
+        reason: decision.reason, actorUserId: 'admin-1', actor: 'Admin E2E', createdAtUtc: '2026-10-11T20:00:00Z' });
+      body = sourceDetail();
+    }
+    else if (path.endsWith(`/sources/${sourceId}`) && method === 'GET') body = sourceDetail();
+    else if (path.endsWith('/sources') && method === 'GET') body = page([sourceDetail()]);
     else if (path.endsWith('/workbooks/inspect')) body = {
       artifactName: 'territori-sintetic.xlsx', fileSize: 20, fileChecksum: 'a'.repeat(64),
       format: 'XLSX', schemaFingerprint: 'b'.repeat(64),
@@ -728,12 +837,12 @@ async function mockTerritorialApi(context: ChromeScenarioContext, mode: 'ready' 
       body = catalogDetail(catalogActive, audit);
     }
     else if (path.endsWith('/publish') && method === 'POST') body = {
-      ...detail, import: { ...summary, status: 'Published', publishedAtUtc: '2026-09-22T10:01:00Z' },
+      ...currentDetail(), import: { ...summary, status: 'Published', publishedAtUtc: '2026-09-22T10:01:00Z' },
       canCancel: false, canPublish: false, canRevert: true, currentCatalogVersion: 8, changeSetStatus: 'Published'
     };
     else if (path.endsWith('/imports') && method === 'GET') body = page([summary]);
-    else if (path.endsWith('/imports') && method === 'POST') body = detail;
-    else if (path.endsWith('/' + importId)) body = detail;
+    else if (path.endsWith('/imports') && method === 'POST') body = currentDetail();
+    else if (path.endsWith('/' + importId)) body = currentDetail();
     else body = [];
     await route.fulfill({ status: method === 'POST' && path.endsWith('/imports') ? 201 : 200, contentType: 'application/json', body: JSON.stringify(body) });
   });

@@ -9,10 +9,11 @@ import { TerritorialAdminApiService } from '../../services/territorial-admin-api
 import { TerritorialImportHistoryComponent } from '../../components/import-history/import-history.component';
 import { TerritorialImportWizardComponent } from '../../components/import-wizard/import-wizard.component';
 import { TerritorialCatalogComponent } from '../../components/territorial-catalog/territorial-catalog.component';
+import { OfficialSourcesComponent } from '../../components/official-sources/official-sources.component';
 
 @Component({
   selector: 'app-territorial-management-page',
-  imports: [FormsModule, SiteHeaderComponent, SiteFooterComponent, TerritorialImportHistoryComponent, TerritorialImportWizardComponent, TerritorialCatalogComponent],
+  imports: [FormsModule, SiteHeaderComponent, SiteFooterComponent, TerritorialImportHistoryComponent, TerritorialImportWizardComponent, TerritorialCatalogComponent, OfficialSourcesComponent],
   templateUrl: './territorial-management-page.component.html',
   styleUrl: './territorial-management-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -21,7 +22,7 @@ export class TerritorialManagementPageComponent implements OnInit {
   protected context: TerritorialContext | null = null;
   protected history: PageResult<TerritorialImport> = { items: [], page: 1, pageSize: 20, totalCount: 0, totalPages: 0 };
   protected selectedId: string | null = null;
-  protected tab: 'wizard' | 'history' | 'catalog' = 'wizard';
+  protected tab: 'wizard' | 'history' | 'sources' | 'catalog' = 'wizard';
   protected busy = true;
   protected error = '';
   protected historyCountryId = '';
@@ -50,6 +51,10 @@ export class TerritorialManagementPageComponent implements OnInit {
     return this.context?.sources.filter((item) => !this.historyCountryId || item.countryId === this.historyCountryId) ?? [];
   }
 
+  protected get historySelectedSource() {
+    return this.historySources.find((item) => item.id === this.historySourceId) ?? null;
+  }
+
   protected resetHistorySource(): void { this.historySourceId = ''; }
 
   protected async historyPage(page: number): Promise<void> {
@@ -69,5 +74,11 @@ export class TerritorialManagementPageComponent implements OnInit {
     await this.router.navigate(['/admin/territori', id], { replaceUrl: true });
     this.history = await this.api.imports({ page: this.history.page });
     this.cdr.markForCheck();
+  }
+
+  protected async refreshContext(): Promise<void> {
+    try { this.context = await this.api.context(); }
+    catch (reason) { this.error = (reason as { error?: { message?: string } })?.error?.message ?? 'No s’ha pogut refrescar el context territorial.'; }
+    finally { this.cdr.markForCheck(); }
   }
 }

@@ -19,6 +19,11 @@ describe('territorial presentation policy', () => {
     expect(['Create', 'Update', 'Deactivate', 'NoChange'].map(territorialActionLabel))
       .toEqual(['Crear', 'Actualitzar', 'Desactivar', 'Sense canvis']);
     expect(territorialTypeLabel('MUNICIPALITY')).toBe('Municipi');
+    expect(territorialTypeLabel('GEMEINDE')).toBe('Municipi');
+    expect(territorialTypeLabel('GEMEINDEVERBAND')).toBe('Agrupació municipal');
+    expect(territorialTypeLabel('KREIS')).toBe('Districte');
+    expect(territorialTypeLabel('BUNDESLAND')).toBe('Estat federat');
+    expect(territorialTypeLabel('REGIERUNGSBEZIRK')).toBe('Districte governamental');
     expect(territorialFieldLabel('parent')).toBe('Unitat superior');
   });
 });

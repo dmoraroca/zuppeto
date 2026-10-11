@@ -10,6 +10,7 @@ export interface TerritorialCountry {
 export interface TerritorialSource {
   id: string;
   countryId: string;
+  sourceKey: string;
   organisation: string;
   dataset: string;
   datasetType: string;
@@ -23,6 +24,26 @@ export interface TerritorialSource {
   attribution: string | null;
 }
 
+export interface TerritorialSourceEvidence { label: string; url: string; }
+export interface TerritorialSourceApprovalHistory {
+  id: string; previousStatus: string; newStatus: string; reason: string;
+  actorUserId: string; actor: string; createdAtUtc: string;
+}
+export interface TerritorialSourceDetail extends TerritorialSource {
+  country: string;
+  url: string;
+  downloadUrl: string | null;
+  licenseUrl: string | null;
+  commercialUseAllowed: boolean | null;
+  transformationAllowed: boolean | null;
+  restrictions: string | null;
+  thirdPartyData: string | null;
+  hasCompleteApprovalMetadata: boolean;
+  missingApprovalMetadata: string[];
+  evidence: TerritorialSourceEvidence[];
+  approvalHistory: TerritorialSourceApprovalHistory[];
+}
+
 export interface TerritorialUnitType {
   id: string;
   countryId: string;
@@ -32,10 +53,18 @@ export interface TerritorialUnitType {
   isSelectableLocality: boolean;
 }
 
+export interface TerritorialFunctionalType {
+  code: string;
+  name: string;
+  displayOrder: number;
+  countryIds: string[];
+}
+
 export interface TerritorialContext {
   countries: TerritorialCountry[];
   sources: TerritorialSource[];
   unitTypes: TerritorialUnitType[];
+  functionalTypes: TerritorialFunctionalType[];
 }
 
 export interface WorkbookColumn { column: string; header: string; }
@@ -65,6 +94,21 @@ export interface WorkbookInspection {
   sheets: WorkbookSheet[];
   sourcePreview: Array<{ sheet: string; rowNumber: number; values: Record<string, string | null> }>;
   compatibleMappings: MappingSummary[];
+  contract: TerritorialContractInspection | null;
+}
+
+export interface TerritorialContractInspection {
+  contractId: string;
+  contractVersion: string;
+  countryIso2: string;
+  importMode: string;
+  datasetVersion: string;
+  territorialDate: string;
+  primarySourceKey: string;
+  fieldScope: string[];
+  sourceKeys: string[];
+  isValid: boolean;
+  issues: Array<{ ruleCode: string; severity: string; message: string; sheet: string | null; rowNumber: number | null }>;
 }
 
 export interface ImportCounters {
@@ -85,7 +129,7 @@ export interface TerritorialImport {
   organisation: string;
   dataset: string;
   datasetVersion: string;
-  mappingTemplateId: string;
+  mappingTemplateId: string | null;
   mappingVersion: number;
   status: string;
   hasBlockingErrors: boolean;
@@ -124,6 +168,7 @@ export interface ImportDetail {
   changeSetStatus: string | null;
   sourceSheets?: string[];
   manualConflictCount?: number;
+  sourceGates?: Array<{ datasetSourceId: string; sourceKey: string; organisation: string; dataset: string; approvalStatus: string; isActive: boolean; contributesPublishedFields: boolean }>;
   territorialBreakdown?: Array<{
     territorialUnitTypeCode: string; territorialUnitType: string;
     create: number; update: number; deactivate: number; noChange: number;

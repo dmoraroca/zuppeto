@@ -27,21 +27,45 @@ public enum TerritorialImportStage
     Publication
 }
 
+public enum TerritorialInputKind
+{
+    ExternalMapped,
+    PetilocNormalized
+}
+
+public enum TerritorialImportMode
+{
+    Full,
+    Patch
+}
+
 public sealed class TerritorialImport : AggregateRoot<Guid>
 {
     public TerritorialImport(
         Guid id,
         Guid datasetSourceId,
-        Guid mappingTemplateId,
+        Guid? mappingTemplateId,
         string artifactName,
         string fileChecksum,
         long fileSize,
         string datasetVersion,
         Guid createdByUserId,
-        DateTimeOffset createdAtUtc) : base(id)
+        DateTimeOffset createdAtUtc,
+        TerritorialInputKind inputKind = TerritorialInputKind.ExternalMapped,
+        string? contractVersion = null,
+        TerritorialImportMode importMode = TerritorialImportMode.Full,
+        IReadOnlyCollection<string>? fieldScope = null) : base(id)
     {
         DatasetSourceId = Required(datasetSourceId, "La font és obligatòria.");
-        MappingTemplateId = Required(mappingTemplateId, "El mapping és obligatori.");
+        if (inputKind == TerritorialInputKind.ExternalMapped && (mappingTemplateId is null || mappingTemplateId == Guid.Empty))
+            throw new DomainRuleException("El mapping és obligatori per a una importació externa.");
+        if (inputKind == TerritorialInputKind.PetilocNormalized && !string.Equals(contractVersion, "1.0", StringComparison.Ordinal))
+            throw new DomainRuleException("La versió del contracte territorial no és compatible.");
+        var normalizedScope = (fieldScope ?? []).Select(value => value.Trim().ToLowerInvariant())
+            .Where(value => value.Length > 0).Distinct(StringComparer.Ordinal).ToArray();
+        if (importMode == TerritorialImportMode.Patch && normalizedScope.Length == 0)
+            throw new DomainRuleException("Una actualització parcial necessita field_scope.");
+        MappingTemplateId = mappingTemplateId;
         ArtifactName = Required(artifactName, "El nom de l'artefacte és obligatori.");
         FileChecksum = Required(fileChecksum, "El checksum és obligatori.").ToLowerInvariant();
         DatasetVersion = Required(datasetVersion, "La versió del dataset és obligatòria.");
@@ -50,10 +74,14 @@ public sealed class TerritorialImport : AggregateRoot<Guid>
         FileSize = fileSize;
         CreatedAtUtc = createdAtUtc;
         UpdatedAtUtc = createdAtUtc;
+        InputKind = inputKind;
+        ContractVersion = string.IsNullOrWhiteSpace(contractVersion) ? null : contractVersion.Trim();
+        ImportMode = importMode;
+        FieldScope = normalizedScope;
     }
 
     public Guid DatasetSourceId { get; }
-    public Guid MappingTemplateId { get; }
+    public Guid? MappingTemplateId { get; }
     public string ArtifactName { get; }
     public string FileChecksum { get; }
     public long FileSize { get; }
@@ -61,6 +89,10 @@ public sealed class TerritorialImport : AggregateRoot<Guid>
     public Guid CreatedByUserId { get; }
     public DateTimeOffset CreatedAtUtc { get; }
     public DateTimeOffset UpdatedAtUtc { get; private set; }
+    public TerritorialInputKind InputKind { get; }
+    public string? ContractVersion { get; }
+    public TerritorialImportMode ImportMode { get; }
+    public IReadOnlyCollection<string> FieldScope { get; }
     public TerritorialImportStatus Status { get; private set; } = TerritorialImportStatus.Queued;
     public bool HasBlockingErrors { get; private set; }
     public long? CatalogVersion { get; private set; }

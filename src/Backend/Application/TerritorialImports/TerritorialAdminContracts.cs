@@ -7,6 +7,7 @@ public sealed record TerritorialAdminCountryDto(Guid Id, string Code, string Nam
 public sealed record TerritorialAdminSourceDto(
     Guid Id,
     Guid CountryId,
+    string SourceKey,
     string Organisation,
     string Dataset,
     string DatasetType,
@@ -19,12 +20,30 @@ public sealed record TerritorialAdminSourceDto(
     string? License,
     string? Attribution);
 
+public sealed record TerritorialSourceEvidenceDto(string Label, string Url);
+public sealed record TerritorialSourceApprovalHistoryDto(
+    Guid Id, string PreviousStatus, string NewStatus, string Reason,
+    Guid ActorUserId, string Actor, DateTimeOffset CreatedAtUtc);
+public sealed record TerritorialSourceDetailDto(
+    Guid Id, Guid CountryId, string Country, string SourceKey, string Organisation, string Dataset,
+    string DatasetType, string? Locale, string ApprovalStatus, bool IsActive, string PublicationMode,
+    string? DatasetVersion, DateOnly? DatasetDate, string Url, string? DownloadUrl, string? License,
+    string? LicenseUrl, string? Attribution, bool? CommercialUseAllowed, bool? TransformationAllowed,
+    string? Restrictions, string? ThirdPartyData, bool HasCompleteApprovalMetadata,
+    IReadOnlyCollection<string> MissingApprovalMetadata,
+    IReadOnlyCollection<TerritorialSourceEvidenceDto> Evidence,
+    IReadOnlyCollection<TerritorialSourceApprovalHistoryDto> ApprovalHistory);
+public sealed record TerritorialSourceQuery(Guid? CountryId, string? ApprovalStatus, int Page = 1, int PageSize = 25);
+public sealed record TerritorialSourceDecisionRequest(string Decision, string ExpectedStatus, string Reason);
+
 public sealed record TerritorialAdminUnitTypeDto(Guid Id, Guid CountryId, string Code, string Name, int DisplayOrder, bool IsSelectableLocality);
+public sealed record TerritorialFunctionalTypeDto(string Code, string Name, int DisplayOrder, IReadOnlyCollection<Guid> CountryIds);
 
 public sealed record TerritorialAdminContextDto(
     IReadOnlyCollection<TerritorialAdminCountryDto> Countries,
     IReadOnlyCollection<TerritorialAdminSourceDto> Sources,
-    IReadOnlyCollection<TerritorialAdminUnitTypeDto> UnitTypes);
+    IReadOnlyCollection<TerritorialAdminUnitTypeDto> UnitTypes,
+    IReadOnlyCollection<TerritorialFunctionalTypeDto> FunctionalTypes);
 
 public sealed record TerritorialWorkbookColumnDto(string Column, string Header);
 public sealed record TerritorialWorkbookSheetDto(string Name, int DetectedHeaderRow, int RowCount, IReadOnlyCollection<TerritorialWorkbookColumnDto> Columns);
@@ -36,7 +55,21 @@ public sealed record TerritorialWorkbookInspectionDto(
     string SchemaFingerprint,
     IReadOnlyCollection<TerritorialWorkbookSheetDto> Sheets,
     IReadOnlyCollection<TerritorialWorkbookPreviewRowDto> SourcePreview,
-    IReadOnlyCollection<TerritorialMappingTemplateSummaryDto> CompatibleMappings);
+    IReadOnlyCollection<TerritorialMappingTemplateSummaryDto> CompatibleMappings,
+    TerritorialContractInspectionDto? Contract = null);
+
+public sealed record TerritorialContractInspectionDto(
+    string ContractId,
+    string ContractVersion,
+    string CountryIso2,
+    string ImportMode,
+    string DatasetVersion,
+    DateOnly TerritorialDate,
+    string PrimarySourceKey,
+    IReadOnlyCollection<string> FieldScope,
+    IReadOnlyCollection<string> SourceKeys,
+    bool IsValid,
+    IReadOnlyCollection<TerritorialImportIssue> Issues);
 
 public sealed record TerritorialWorkbookPreviewRowDto(string Sheet, int RowNumber, IReadOnlyDictionary<string, string?> Values);
 
@@ -71,7 +104,7 @@ public sealed record TerritorialImportListItemDto(
     string Organisation,
     string Dataset,
     string DatasetVersion,
-    Guid MappingTemplateId,
+    Guid? MappingTemplateId,
     int MappingVersion,
     string Status,
     bool HasBlockingErrors,
@@ -112,7 +145,17 @@ public sealed record TerritorialImportDetailDto(
     DateTimeOffset? ChangeSetPublishedAtUtc,
     IReadOnlyCollection<string> SourceSheets,
     int ManualConflictCount,
-    IReadOnlyCollection<TerritorialPublicationBreakdownDto> TerritorialBreakdown);
+    IReadOnlyCollection<TerritorialPublicationBreakdownDto> TerritorialBreakdown,
+    IReadOnlyCollection<TerritorialImportSourceGateDto>? SourceGates = null);
+
+public sealed record TerritorialImportSourceGateDto(
+    Guid DatasetSourceId,
+    string SourceKey,
+    string Organisation,
+    string Dataset,
+    string ApprovalStatus,
+    bool IsActive,
+    bool ContributesPublishedFields);
 
 public sealed record TerritorialPublicationBreakdownDto(
     string TerritorialUnitTypeCode,
@@ -200,7 +243,7 @@ public sealed record TerritorialCanonicalPreviewIssueDto(
 
 public sealed record TerritorialCatalogQuery(
     Guid? CountryId, Guid? TerritorialUnitTypeId, string? Status, string? Locale, Guid? ParentId,
-    string? Search, bool? SelectableLocality, int Page = 1, int PageSize = 50);
+    string? Search, bool? SelectableLocality, int Page = 1, int PageSize = 50, string? FunctionalTypeCode = null);
 public sealed record TerritorialCatalogUnitDto(
     Guid Id, Guid CountryId, string Country, Guid TerritorialUnitTypeId, string TypeCode, string Type,
     Guid? ParentId, string? Parent, string? PrimaryCode, string PrimaryName, string? Locale,
@@ -238,6 +281,9 @@ public sealed record TerritorialLocationSelectionDto(Guid CountryId, string Coun
 public interface ITerritorialAdminRepository
 {
     Task<TerritorialAdminContextDto> GetContextAsync(CancellationToken cancellationToken = default);
+    Task<PageResult<TerritorialSourceDetailDto>> ListSourcesAsync(TerritorialSourceQuery query, CancellationToken cancellationToken = default);
+    Task<TerritorialSourceDetailDto?> GetSourceAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<TerritorialSourceDetailDto> DecideSourceAsync(Guid id, Guid actorUserId, TerritorialSourceDecisionRequest request, CancellationToken cancellationToken = default);
     Task<IReadOnlyCollection<TerritorialMappingTemplateSummaryDto>> ListMappingsAsync(Guid? datasetSourceId, string? schemaFingerprint, CancellationToken cancellationToken = default);
     Task<TerritorialMappingTemplateDetailDto?> GetMappingAsync(Guid id, CancellationToken cancellationToken = default);
     Task<TerritorialMappingTemplateDetailDto> CreateMappingVersionAsync(Guid datasetSourceId, string schemaFingerprint, string definitionJson, string definitionChecksum, CancellationToken cancellationToken = default);

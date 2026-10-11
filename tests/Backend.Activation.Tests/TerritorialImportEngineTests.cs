@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.IO.Compression;
 using Zuppeto.Application.TerritorialImports;
 using Zuppeto.Domain.Common;
 using Zuppeto.Domain.TerritorialImports;
@@ -38,6 +39,14 @@ public sealed class TerritorialImportEngineTests
     {
         await using var corrupt = new MemoryStream("not an xlsx"u8.ToArray());
         await Assert.ThrowsAnyAsync<Exception>(() => new XlsxTerritorialReader().ReadAsync(corrupt));
+    }
+
+    [Fact]
+    public async Task Xlsx_reader_rejects_formulas_before_domain_processing()
+    {
+        await using var malicious = FormulaWorkbook();
+        var exception = await Assert.ThrowsAsync<InvalidDataException>(() => new XlsxTerritorialReader().ReadAsync(malicious));
+        Assert.Contains("fórmules", exception.Message);
     }
 
     [Fact]
@@ -158,6 +167,86 @@ public sealed class TerritorialImportEngineTests
     }
 
     [Fact]
+    public async Task Normalized_spain_coordinate_patch_is_detected_and_validated()
+    {
+        var root = FindRepositoryRoot();
+        await using var file = File.OpenRead(Path.Combine(root, "docs/idiomes/municipis per pais/Petiloc_Espanya_20260101_CNIG_Coordenades.xlsx"));
+        var workbook = await new XlsxTerritorialReader().ReadAsync(file);
+        var interpreter = new PetilocTerritorialContractInterpreter();
+        Assert.True(interpreter.IsNormalized(workbook));
+        var contract = interpreter.Interpret(workbook);
+        Assert.Equal(TerritorialImportMode.Patch, contract.Manifest.ImportMode);
+        Assert.Equal("CNIG_NGMEP_2026", contract.Manifest.PrimarySourceKey);
+        Assert.Equal(["coordinates"], contract.Manifest.FieldScope);
+        Assert.Contains(contract.Sources, source => source.SourceKey == "CNIG_NGMEP_2026");
+        Assert.Equal(8132, contract.Units.Count);
+        Assert.All(contract.Units, unit => Assert.Equal("es:ine:municipality",
+            TerritorialIdentityScheme.Canonicalize(contract.Manifest.CountryIso2, unit.IdentityScheme, unit.IdentityValue)));
+        Assert.All(contract.Units, unit => Assert.Equal(TerritorialFieldOperation.Set, unit.CoordinateOperation));
+        Assert.DoesNotContain(contract.Issues, issue => issue.Severity == TerritorialIssueSeverity.Error);
+    }
+
+    [Theory]
+    [InlineData("ES", "INE", "01001", "es:ine:municipality")]
+    [InlineData("ES", "ine", "52001", "es:ine:municipality")]
+    [InlineData("ES", "INE", "01", "INE")]
+    [InlineData("DE", "INE", "01001", "INE")]
+    [InlineData("ES", "custom", "01001", "custom")]
+    public void Identity_scheme_aliases_are_explicit_and_fail_closed(
+        string country, string scheme, string value, string expected) =>
+        Assert.Equal(expected, TerritorialIdentityScheme.Canonicalize(country, scheme, value));
+
+    [Fact]
+    public void Normalized_contract_rejects_partial_coordinates_unknown_columns_and_missing_parent()
+    {
+        var workbook = ContractWorkbook("FULL", "", [
+            new TerritorialSourceRow(2, new Dictionary<string, string?>
+            {
+                ["A"] = "child", ["B"] = "scheme", ["C"] = "1", ["D"] = "MUNICIPALITY", ["E"] = "missing",
+                ["F"] = "Child", ["G"] = "ca-ES", ["H"] = "true", ["I"] = "SOURCE", ["J"] = "41.0", ["K"] = "", ["L"] = "SOURCE", ["M"] = "unexpected"
+            })
+        ], includeUnknownColumn: true);
+        var issues = new PetilocTerritorialContractInterpreter().Interpret(workbook).Issues;
+        Assert.Contains(issues, issue => issue.RuleCode == "CONTRACT_COLUMN_UNKNOWN");
+        Assert.Contains(issues, issue => issue.RuleCode == "COORDINATES_INCOMPLETE");
+        Assert.Contains(issues, issue => issue.RuleCode == "PARENT_MISSING");
+    }
+
+    [Fact]
+    public void Normalized_full_hierarchy_is_independent_of_row_order()
+    {
+        var child = new TerritorialSourceRow(2, new Dictionary<string, string?>
+        {
+            ["A"] = "child", ["B"] = "scheme", ["C"] = "2", ["D"] = "MUNICIPALITY", ["E"] = "parent",
+            ["F"] = "Child", ["G"] = "ca-ES", ["H"] = "true", ["I"] = "SOURCE"
+        });
+        var parent = new TerritorialSourceRow(3, new Dictionary<string, string?>
+        {
+            ["A"] = "parent", ["B"] = "scheme", ["C"] = "1", ["D"] = "MUNICIPALITY",
+            ["F"] = "Parent", ["G"] = "ca-ES", ["H"] = "true", ["I"] = "SOURCE"
+        });
+        var contract = new PetilocTerritorialContractInterpreter().Interpret(ContractWorkbook("FULL", "", [child, parent]));
+        Assert.DoesNotContain(contract.Issues, issue => issue.RuleCode is "PARENT_MISSING" or "HIERARCHY_CYCLE");
+        Assert.Equal(2, contract.Units.Count);
+    }
+
+    [Fact]
+    public void Normalized_patch_distinguishes_keep_set_and_clear_coordinates()
+    {
+        TerritorialSourceRow Row(int number, string id, string? latitude, string? longitude) => new(number, new Dictionary<string, string?>
+        {
+            ["A"] = $"unit:{id}", ["B"] = "scheme", ["C"] = id, ["J"] = latitude, ["K"] = longitude,
+            ["L"] = latitude is null or "@CLEAR" ? null : "SOURCE"
+        });
+        var contract = new PetilocTerritorialContractInterpreter().Interpret(ContractWorkbook("PATCH", "coordinates", [
+            Row(2, "1", null, null), Row(3, "2", "41.1", "2.1"), Row(4, "3", "@CLEAR", "@CLEAR")
+        ]));
+        Assert.DoesNotContain(contract.Issues, issue => issue.Severity == TerritorialIssueSeverity.Error);
+        Assert.Equal([TerritorialFieldOperation.Keep, TerritorialFieldOperation.Set, TerritorialFieldOperation.Clear],
+            contract.Units.Select(unit => unit.CoordinateOperation));
+    }
+
+    [Fact]
     public async Task Real_pilot_mappings_cover_spain_and_germany_with_controlled_consolidation()
     {
         var root = FindRepositoryRoot();
@@ -186,9 +275,21 @@ public sealed class TerritorialImportEngineTests
         Assert.Equal(24, germany.Units.Count(unit => unit.Names.Any(name => name.Kind == "Alternative")));
         Assert.Empty(germany.Issues);
         Assert.DoesNotContain(germany.Units, unit => unit.Latitude == 0 && unit.Longitude == 0);
+        Assert.Equal(19, germany.Units.Count(unit => unit.TerritorialUnitTypeCode == "REGIERUNGSBEZIRK"));
+        Assert.Equal(10, germany.Units.Count(unit => unit.TerritorialUnitTypeCode == "STATISTISCHE_REGION"));
+        var germanByKey = germany.Units.ToDictionary(unit => unit.CanonicalUnitKey, StringComparer.Ordinal);
+        var badenWuerttembergDistricts = germany.Units.Where(unit =>
+            (unit.TerritorialUnitTypeCode is "KREIS" or "KREISFREIE_STADT") &&
+            unit.Codes.Any(code => code.Scheme == "de:destatis:kreis" && code.Value.StartsWith("08", StringComparison.Ordinal))).ToArray();
+        Assert.Equal(44, badenWuerttembergDistricts.Length);
+        Assert.All(badenWuerttembergDistricts, unit => Assert.StartsWith("de:region:08", unit.ParentCanonicalUnitKey));
+        Assert.All(germany.Units.Where(unit => unit.TerritorialUnitTypeCode == "REGION"), region =>
+            Assert.Contains(badenWuerttembergDistricts, district => district.ParentCanonicalUnitKey == region.CanonicalUnitKey));
+        Assert.Equal("de:region:08201", germanByKey["de:independent:08211"].ParentCanonicalUnitKey);
+        Assert.Equal("de:region:08402", germanByKey["de:kreis:08426"].ParentCanonicalUnitKey);
         var validator = new TerritorialImportValidator();
         Assert.Empty(validator.Validate(spain.Units, Context("FullSnapshot", ["AUTONOMOUS_COMMUNITY", "PROVINCE", "MUNICIPALITY", "AUTONOMOUS_CITY_MUNICIPALITY"])));
-        Assert.Empty(validator.Validate(germany.Units, Context("FullSnapshot", ["BUNDESLAND", "REGIERUNGSBEZIRK", "REGION", "KREIS", "KREISFREIE_STADT", "GEMEINDEVERBAND", "GEMEINDE", "SPECIAL_TERRITORY"])));
+        Assert.Empty(validator.Validate(germany.Units, Context("FullSnapshot", ["BUNDESLAND", "REGIERUNGSBEZIRK", "STATISTISCHE_REGION", "REGION", "KREIS", "KREISFREIE_STADT", "GEMEINDEVERBAND", "GEMEINDE", "SPECIAL_TERRITORY"])));
     }
 
     internal static TerritorialMappingDefinition SpainMapping()
@@ -242,6 +343,57 @@ public sealed class TerritorialImportEngineTests
     private static TerritorialImportContext Context(string mode, IReadOnlyCollection<string> types, IReadOnlyCollection<TerritorialCatalogUnitSnapshot>? units = null) =>
         new(Guid.NewGuid(), Guid.NewGuid(), "Approved", mode, 0, types, units ?? []);
     private static TerritorialImport NewImport() => new(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "data.xlsx", new string('a', 64), 1, "v1", Guid.NewGuid(), DateTimeOffset.UtcNow);
+    private static TerritorialSourceWorkbook ContractWorkbook(string mode, string scope, IReadOnlyCollection<TerritorialSourceRow> unitRows, bool includeUnknownColumn = false)
+    {
+        var manifest = new[]
+        {
+            ("contract_id", "PETILOC_TERRITORIAL"), ("contract_version", "1.0"), ("country_iso2", "ES"),
+            ("import_mode", mode), ("dataset_version", "test"), ("territorial_date", "2026-01-01"),
+            ("primary_source_key", "SOURCE"), ("field_scope", scope), ("coverage", "COUNTRY")
+        };
+        var unitHeaders = new[] { "unit_key", "identity_scheme", "identity_value", "type_code", "parent_unit_key", "primary_name",
+            "primary_locale", "is_active", "structure_source_key", "latitude", "longitude", "coordinate_source_key" }.ToList();
+        if (includeUnknownColumn) unitHeaders.Add("unknown");
+        return new TerritorialSourceWorkbook([
+            new("Manifest", [new(1, new Dictionary<string, string?> { ["A"] = "key", ["B"] = "value" }),
+                .. manifest.Select((item, index) => new TerritorialSourceRow(index + 2, new Dictionary<string, string?> { ["A"] = item.Item1, ["B"] = item.Item2 }))]),
+            new("Fonts", [new(1, Header(["source_key", "organisation", "dataset", "dataset_version", "territorial_date", "url", "license", "license_url", "attribution"])),
+                new(2, new Dictionary<string, string?> { ["A"] = "SOURCE", ["B"] = "Org", ["C"] = "Dataset" })]),
+            new("Tipus", [new(1, Header(["type_code", "name", "display_order", "is_selectable_locality"])),
+                new(2, new Dictionary<string, string?> { ["A"] = "MUNICIPALITY", ["B"] = "Municipi", ["C"] = "1", ["D"] = "true" })]),
+            new("Unitats", [new(1, Header(unitHeaders)), .. unitRows])
+        ], "contract");
+    }
+
+    private static Dictionary<string, string?> Header(IReadOnlyList<string> values) => values
+        .Select((value, index) => (Column: ((char)('A' + index)).ToString(), Value: (string?)value))
+        .ToDictionary(item => item.Column, item => item.Value);
+
+    private static MemoryStream FormulaWorkbook()
+    {
+        var stream = new MemoryStream();
+        using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true))
+        {
+            Write(archive, "xl/workbook.xml", """
+                <workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Data" sheetId="1" r:id="rId1"/></sheets></workbook>
+                """);
+            Write(archive, "xl/_rels/workbook.xml.rels", """
+                <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Target="worksheets/sheet1.xml" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet"/></Relationships>
+                """);
+            Write(archive, "xl/worksheets/sheet1.xml", """
+                <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData><row r="1"><c r="A1"><f>HYPERLINK(&quot;https://evil.invalid&quot;)</f><v>1</v></c></row></sheetData></worksheet>
+                """);
+        }
+        stream.Position = 0;
+        return stream;
+    }
+
+    private static void Write(ZipArchive archive, string path, string content)
+    {
+        using var writer = new StreamWriter(archive.CreateEntry(path).Open());
+        writer.Write(content);
+    }
+
     private static string FindRepositoryRoot()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);

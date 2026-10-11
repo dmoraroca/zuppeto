@@ -6,7 +6,7 @@
 
 Aquest document és la font de veritat sobre procedència, llicència, reutilització, atribució i aprovació dels datasets territorials. L’aprovació del `DatasetSource` INE registrada a VII.9.2 supera exclusivament el gate legal de la font: no autoritza ni executa la publicació de l’import.
 
-Data de verificació documental: **24.09.2026**.
+Data de verificació documental: **24.09.2026 per a INE i 11.10.2026 per a GV-ISys/CNIG**.
 
 ## Espanya — INE
 
@@ -124,11 +124,44 @@ La persistència conserva de manera estructurada organisme, dataset i identifica
 
 ## Estat operatiu verificat
 
-Consulta de PostgreSQL i API real posterior a l’aprovació del 24.09.2026:
+Consulta de PostgreSQL i API real actualitzada per la Fase IX el 12.10.2026:
 
-- Espanya: `DatasetSource = Approved`, 1 import `ReadyForReview`, ChangeSet `Prepared`, `CatalogVersion = 0`, 0 imports publicats i 0 unitats oficials.
-- Alemanya: `DatasetSource = Pending`, 1 import `ReadyForReview`, 0 imports publicats i 0 unitats oficials.
+- Espanya: fonts INE i CNIG `Approved`, `CatalogVersion = 2` i 8.199 unitats oficials; el PATCH CNIG de 8.132 coordenades consta publicat per una ordre humana anterior a l'auditoria.
+- Alemanya: font GV-ISys `Approved`, `CatalogVersion = 1`, 1 import publicat i 15.770 unitats oficials. L'aprovació documental no va publicar per si mateixa el ChangeSet; una operació posterior el va publicar a les `2026-10-11T21:22:32.042281Z`.
 - `User` amb referència territorial: 0.
 - `Place` amb referència territorial: 0.
 
 Al tancament de VII.9.2, el Pas 6 real mostrava `Estat de la font: Aprovada`, 8.199 altes, 0 canvis, 0 inactivacions, 0 sense canvi, 0 errors i 0 conflictes; en aquella subfase no es va prémer el botó ni invocar l’endpoint. Una ordre humana posterior va publicar Espanya una única vegada. VII.9.3 no ha repetit aquesta publicació, no ha modificat la font i no ha executat cap backfill.
+## Addenda Fase VIII — claus estables i CNIG
+
+Les fonts territorials disposen de clau estable per país: `ES-INE-30247`, `CNIG_NGMEP_2026` i `DE-DESTATIS-GVISYS`. El registre CNIG existent s'ha reconciliat, sense duplicar-lo, amb el NGMEP 2026 oficial: URL del Centre de Descàrregues, llicència IGN compatible amb CC BY 4.0 i atribució `Obra derivada de NGMEP CC-BY 4.0 ign.es`. INE, CNIG i GV-ISys consten `Approved` per decisions humanes persistents. El contracte normalitzat pot declarar més d'una font i la publicació exigeix que totes les que aporten camps siguin actives i aprovades; cap seeder eleva aquests estats automàticament.
+
+La data de referència CNIG és `2026-01-01`, declarada al `Manifest` i a `Fonts` del llibre espanyol normalitzat. El registre persistent i el seeder reprodueixen aquesta data; no s'ha deduït del nom del fitxer. El seeder preserva l'aprovació humana posterior.
+
+## Alemanya — GV-ISys 2026-Q3
+
+| Camp | Valor verificat |
+|---|---|
+| `SourceKey` | `DE-DESTATIS-GVISYS` |
+| Organisme | Statistische Ämter des Bundes und der Länder; publicació a Destatis |
+| Dataset | Gemeindeverzeichnis-Informationssystem (GV-ISys), administrative Gebietsgliederung |
+| Edició | 3r trimestre de 2026 |
+| Data territorial | `30.09.2026` |
+| Fitxa oficial | [Alle politisch selbständigen Gemeinden… 30.09.2026](https://www.destatis.de/DE/Themen/Laender-Regionen/Regionales/Gemeindeverzeichnis/Administrativ/Archiv/GVAuszugQ/AuszugGV3QAktuell.html) |
+| Condicions | [Copyright general de Destatis](https://www.destatis.de/DE/Service/Impressum/copyright-allgemein.html) |
+| Atribució persistent | `Quelle: Gemeindeverzeichnis-Informationssystem (GV-ISys), Gebietsstand 30.09.2026, Statistisches Bundesamt (Destatis), 2026; für Petiloc bearbeitet.` |
+| Estat | `Approved` des de `2026-10-11T21:18:16.750602Z` |
+
+L'Excel oficial i el copyright general aplicable indiquen que la reproducció i distribució, també parcial, és permesa amb citació de la font. Destatis precisa que això inclou usos no comercials i comercials, sense autorització individual, i que qualsevol canvi, omissió, càlcul o nova representació s'ha d'identificar al crèdit. Els drets de tercers indicats expressament en un producte queden exclosos del permís general i exigeixen revisió específica. En el llibre auditat no s'ha detectat cap crèdit territorial de tercer aplicable a les dades reutilitzades.
+
+El seeder persisteix URL de fitxa i descàrrega, versió/data, llicència, URL legal, atribució, `CommercialUseAllowed = true`, `TransformationAllowed = true` i les restriccions d'atribució i indicació de canvis. Igual que amb CNIG, no escriu ni reverteix `ApprovalStatus`, `VerifiedAtUtc` o `VerifiedByUserId` quan la font ja existeix. GV-ISys va romandre `Pending` fins a la decisió humana documentada següent.
+
+### Decisió documental sobre GV-ISys
+
+El 11.10.2026 a les `21:18:16.750602Z`, l'actor ADMIN autenticat `admin.e2e@zuppeto.local` va aprovar `DE-DESTATIS-GVISYS` mitjançant el flux d'aprovació persistent. L'auditoria conserva la transició `Pending → Approved` i el motiu complet: «Font oficial GV-ISys de Destatis, versió 30/09/2026. Revisades les evidències documentals, les condicions de reutilització comercial, la llicència i l'atribució obligatòria. S'aprova la font per a la publicació territorial de Petiloc.» La decisió no va invocar la publicació. Una operació posterior va publicar l'import alemany a les `2026-10-11T21:22:32.042281Z`; aquesta auditoria no l'ha repetit ni revertit.
+
+## Flux d'aprovació des de Gestió territorial
+
+La pestanya `Fonts oficials` permet filtrar, consultar evidències i historial, i iniciar una decisió. El mateix modal és accessible des del gate del pas 6 per cada font pendent. L'aprovació requereix metadades documentals completes, motiu auditat i confirmació explícita; el backend comprova el rol ADMIN, l'actor i l'estat esperat per evitar decisions concurrents.
+
+La decisió només actualitza el govern de la font i recalcula el gate. No publica cap ChangeSet. A data 11.10.2026, INE i `DE-DESTATIS-GVISYS` estan `Approved`; `CNIG_NGMEP_2026` continua `Pending`.

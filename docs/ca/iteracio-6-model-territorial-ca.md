@@ -562,7 +562,11 @@ Els casos executables i E2E només s'incorporaran quan existeixi implementació.
 
 ## 30. Estat d’implementació
 
-La revisió final no ha detectat cap bloqueig funcional. Les Fases III, IV, V i VI queden completades. La Fase VII està **EN CURS**: VII.9.3 està implementada i validada tècnicament, pendent de validació manual final. Espanya és el primer catàleg oficial publicat amb 8.199 unitats i el refinament no l’ha republicat; Alemanya continua `Pending` i no publicada. El worker durable, els mappings versionats i la validació real consten al [document específic de Fase VII](iteracio-6-fase-vii-prerequisits-publicacio-ca.md), i l’evidència legal a [Fonts territorials](iteracio-6-fonts-territorials-ca.md). No s'ha iniciat el backfill.
+La revisió final no ha detectat cap bloqueig funcional. Les Fases III, IV, V i VI queden completades. La Fase VII està **EN CURS**: VII.9.3 està implementada i validada tècnicament, pendent de validació manual final. Espanya és el primer catàleg oficial publicat amb 8.199 unitats i el refinament no l'ha republicat; Alemanya continua `Pending` i no publicada. El worker durable, els mappings versionats i la validació real consten al [document específic de Fase VII](iteracio-6-fase-vii-prerequisits-publicacio-ca.md), i l'evidència legal a [Fonts territorials](iteracio-6-fonts-territorials-ca.md). El prerequisit de Fase VIII incorpora el [contracte territorial 1.0](contracte-territorial-1.0-ca.md), procedència multifont i PATCH segur, sense executar el backfill.
+
+## Addenda Fase VIII — contracte normalitzat
+
+El model diferencia entrada externa mapejada i `PetilocNormalized`, conserva el mateix agregat `TerritorialImport`, la cua, el staging, la validació, el ChangeSet i la reversió. `source_key` identifica fonts dins del país; `TerritorialImportSource` separa fonts de referència i contribuïdores; `structure_source_id` complementa la procedència existent de noms, codis i coordenades. `field_scope_json` i `field_operations_json` fan persistent el límit del PATCH i les operacions `KEEP/SET/CLEAR`. No s'han creat atributs genèrics.
 
 El detall territorial és una projecció funcional del mateix agregat: modal ampli, pestanyes General, Jerarquia, Noms i codis, Coordenades, Procedència i Auditoria. Les ordres d’activació, seleccionabilitat i coordenades continuen separades, exigeixen motiu propi i no alteren el contracte d’importació ni relaxen cap invariant.
 
@@ -579,3 +583,11 @@ En la interfície ADMIN, aquests conceptes es presenten funcionalment com **Prev
 `IsActive` i `IsSelectableLocality` són independents. Una unitat inactiva es preserva però no es pot seleccionar de nou. Una importació contrària a estat o coordenades manuals produeix `MANUAL_OVERRIDE_CONFLICT` i preserva la decisió Admin.
 
 La regla per a noves seleccions és `CountryId + TerritorialUnitId`, validada al backend. L’inventari i la transició City/GeoNames/User/Place són a [l’inventari País → Localitat](iteracio-6-inventari-pais-localitat-ca.md).
+
+## 32. Addenda Fase VIII — projecció funcional europea
+
+El model persistent aprovat no canvia: país ISO, tipus oficial per país, unitat, noms, codis, fonts i jerarquia continuen sent la font canònica. La consulta afegeix una projecció funcional molts-a-molts a Aplicació per oferir categories europees comunes sense aplanar l'administració oficial. `Municipi` agrupa `MUNICIPALITY`, `AUTONOMOUS_CITY_MUNICIPALITY`, `GEMEINDE` i `KREISFREIE_STADT`; aquesta última també queda classificada com a `Província o districte` pel seu doble rol.
+
+No és necessària cap migració ni canvi de dades. La política central es publica a `/context` i es resol a `/catalog` abans de paginar, de manera que afegir un nou país no exigeix condicionals als components Angular. El registre `CATALUNYA1K` és una dependència històrica de tres `cities`, no un país del catàleg territorial: es preserva a PostgreSQL i s'exclou de la projecció Admin per no tenir ISO alpha-2, tipus, fonts ni unitats territorials.
+
+L'auditoria de només lectura confirma 23.969 unitats, cap relació entre països, cap cicle i cap duplicat de codi oficial. No s'han modificat unitats, jerarquies, fonts, imports, ChangeSets, versions ni overrides; no s'ha executat el backfill ni cap operació de publicació.

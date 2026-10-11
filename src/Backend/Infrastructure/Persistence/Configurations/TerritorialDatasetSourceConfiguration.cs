@@ -15,6 +15,7 @@ public sealed class TerritorialDatasetSourceConfiguration : IEntityTypeConfigura
 
         builder.Property(item => item.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()");
         builder.Property(item => item.CountryId).HasColumnName("country_id").IsRequired();
+        builder.Property(item => item.SourceKey).HasColumnName("source_key").HasMaxLength(120).IsRequired();
         builder.Property(item => item.Organisation).HasColumnName("organisation").HasMaxLength(240).IsRequired();
         builder.Property(item => item.Dataset).HasColumnName("dataset").HasMaxLength(240).IsRequired();
         builder.Property(item => item.DatasetType).HasColumnName("dataset_type").HasMaxLength(80).IsRequired();
@@ -48,6 +49,8 @@ public sealed class TerritorialDatasetSourceConfiguration : IEntityTypeConfigura
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(item => item.CountryId).HasDatabaseName("ix_territorial_dataset_sources_country_id");
+        builder.HasIndex(item => new { item.CountryId, item.SourceKey }).IsUnique()
+            .HasDatabaseName("uq_territorial_dataset_sources_country_source_key");
         builder.HasIndex(item => new { item.CountryId, item.Organisation, item.Dataset, item.DatasetVersion })
             .HasDatabaseName("ix_territorial_dataset_sources_identity");
 

@@ -113,7 +113,8 @@ export class TerritorialHierarchyExplorerComponent implements OnInit {
 
   protected descendantActionLabel(type: CatalogDescendantType): string {
     if (type.typeCode.includes('MUNICIPALITY')) return 'Tots els municipis';
-    if (type.typeCode === 'GEMEINDE') return 'Totes les Gemeinde';
+    if (type.typeCode === 'GEMEINDE') return 'Tots els municipis';
+    if (type.typeCode === 'KREISFREIE_STADT') return 'Totes les ciutats independents';
     return `Totes les unitats ${type.type}`;
   }
 
@@ -196,14 +197,18 @@ export class TerritorialHierarchyExplorerComponent implements OnInit {
     if (!child) return `${node.directChildCount} ${node.directChildCount === 1 ? 'fill' : 'fills'}`;
     const labels: Record<string, [string, string]> = {
       AUTONOMOUS_COMMUNITY: ['comunitat autònoma', 'comunitats autònomes'],
-      AUTONOMOUS_CITY: ['ciutat autònoma', 'ciutats autònomes'],
+      AUTONOMOUS_CITY_MUNICIPALITY: ['ciutat autònoma', 'ciutats autònomes'],
       PROVINCE: ['província', 'províncies'],
       MUNICIPALITY: ['municipi', 'municipis'],
-      REGIERUNGSBEZIRK: ['Regierungsbezirk', 'Regierungsbezirke'],
-      REGION: ['regió', 'regions'],
-      KREIS: ['Kreis', 'Kreise'],
-      GEMEINDEVERBAND: ['Gemeindeverband', 'Gemeindeverbände'],
-      GEMEINDE: ['Gemeinde', 'Gemeinden']
+      BUNDESLAND: ['estat federat', 'estats federats'],
+      REGIERUNGSBEZIRK: ['districte governamental', 'districtes governamentals'],
+      STATISTISCHE_REGION: ['regió estadística', 'regions estadístiques'],
+      REGION: ['regió de planificació', 'regions de planificació'],
+      KREIS: ['districte', 'districtes'],
+      KREISFREIE_STADT: ['ciutat independent', 'ciutats independents'],
+      GEMEINDEVERBAND: ['agrupació municipal', 'agrupacions municipals'],
+      GEMEINDE: ['municipi', 'municipis'],
+      SPECIAL_TERRITORY: ['territori especial', 'territoris especials']
     };
     const label = labels[child.typeCode] ?? [child.type, `unitats ${child.type}`];
     return `${node.directChildCount} ${node.directChildCount === 1 ? label[0] : label[1]}`;
