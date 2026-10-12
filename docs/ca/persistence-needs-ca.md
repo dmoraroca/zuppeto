@@ -161,4 +161,8 @@ La migració `20261012092916_RetireLegacyCities` copia primer les quatre files a
 
 Aquesta fase no modifica l'esquema. El catàleg propi `places` continua sent la font de producte a PostgreSQL. La Fase I haurà d'auditar `google_place_id`, procedència, snapshots, TTL, coordenades, camps manuals i índexs per decidir quines peces es generalitzen a identitats i fonts neutrals i quines es retiren amb Google Places.
 
+### Resultat de la Fase I
+
+L'auditoria confirma que `places`, tags, features, reviews, favorites i snapshots són reutilitzables, però no hi ha model multiproveïdor, evidència/llicència per camp ni coordenades opcionals segures. `google_place_id`, procedències Google/Mixed i TTL específic no són el model objectiu. No s'ha creat cap migració; el disseny relacional queda pendent de les decisions de governança i deduplicació de la Fase II.
+
 La persistència futura només podrà guardar camps i períodes admesos per la llicència de cada font. La deduplicació i el merge s'han de centralitzar i han de protegir `MANUAL > AUTO`. PostGIS queda pendent d'una avaluació amb consultes geogràfiques i volum reals; aquesta planificació no n'autoritza la instal·lació ni cap migració.

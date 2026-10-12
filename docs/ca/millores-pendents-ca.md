@@ -481,3 +481,13 @@ No deixar la targeta buida. No implementar ara (cal font: Places Details, web de
 **Millora / criteri:** els textos de les proves (pantalla, descripció, passos, resultat esperat) han de ser **sempre llegibles per qualsevol persona**, sense argot de programador (`Hero`, `CTA`, `OAuth`, `header`, `Leaflet`, etc.). S’ha netejat l’Excel viu i el generador aplica el mateix criteri.
 
 **Estat:** aplicat a l’Excel (backup `20260823-004`); mantenir el criteri en noves proves. **FET**
+
+---
+
+## 2026-10-12 — Iteració 7, Fase I
+
+**Àmbit:** Places, identitat territorial i qualitat de dades.
+
+**Pendents prioritaris auditats:** desplegar el contenidor API amb el tall vigent de Google Places; preservar `countryId + territorialUnitId` en aplicar filtres; representar coordenades absents sense fallback persistible; definir política pet-friendly no binària, procedència per camp, identitats multiproveïdor i deduplicació; portar paginació a SQL; distingir error de xarxa de resultat buit; escapar el contingut dels popups Leaflet; i separar ADMIN Places del component monolític.
+
+**Estat:** documentats i prioritzats a `iteracio-7-fase-i-auditoria-places-ca.md`. No implementats perquè la Fase I és d'auditoria; Fase II no iniciada.

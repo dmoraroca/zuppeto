@@ -102,6 +102,8 @@ L’API funcional compartida incorpora `GET /api/territorial/countries`, `GET /a
 
 ### Places
 
+**Auditoria Iteració 7, Fase I (12.10.2026):** el mapa de contractes, persistència, Google, permisos i riscos consta a [l'informe de Fase I](iteracio-7-fase-i-auditoria-places-ca.md). `GET /api/places` continua sent PostgreSQL-first i el fallback Google queda tallat al codi. Angular perd `countryId` i `territorialUnitId` en aplicar el filtre i acaba enviant país/localitat textuals. És un defecte documentat, no una ampliació aplicada durant l'auditoria.
+
 El grup **`/api/places`** exigeix **`Authorization: Bearer <JWT>`** per defecte. Per al preview públic del login, aquestes lectures són anònimes: `GET /api/places`, `GET /api/places/cities` i `GET /api/places/cities/search`. La resta (inclòs detall per id, cerques externes i escrits) segueix amb JWT; els escrits **`POST` / `PUT`** també requereixen permís **`action.places.manage`**.
 
 - `GET /api/places` (anònim) — admet `countryId` i `territorialUnitId` per identitat estable, i conserva `country` i `city` com a compatibilitat textual

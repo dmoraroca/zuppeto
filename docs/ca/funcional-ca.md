@@ -1,5 +1,9 @@
 # Document funcional (CA)
 
+## Iteració 7 — Fase I, estat funcional de Places
+
+La Fase I ha auditat i caracteritzat el comportament existent sense redissenyar-lo. El catàleg real conté 0 Places i les cerques sense dades es degraden a buit perquè Google Places està bloquejat al codi. El model actual només pot expressar acceptació de gossos/gats i no pot representar rebuig, desconegut, terrassa, condicions, revisió, confiança o data de verificació. Aquestes decisions, amb procedència per camp i deduplicació, són gates de la Fase II. Vegeu [l'informe complet](iteracio-7-fase-i-auditoria-places-ca.md).
+
 ## 1. Resum executiu
 
 Zuppeto es una plataforma pet-friendly orientada a descobrir llocs, estades i serveis que accepten mascotes.

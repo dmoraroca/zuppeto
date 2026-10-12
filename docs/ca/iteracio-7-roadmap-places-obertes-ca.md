@@ -2,7 +2,9 @@
 
 ## Estat i objectiu
 
-**FASE 0 COMPLETADA — ROADMAP I BASELINE DOCUMENTAL DEFINITS. FASE I NO INICIADA.**
+**FASE 0 COMPLETADA. FASE I AUDITADA I CARACTERITZADA EL 12.10.2026. FASE II NO INICIADA.**
+
+L'informe verificable de la Fase I és [Iteració 7 — Fase I: auditoria integral de Places](iteracio-7-fase-i-auditoria-places-ca.md). La fase confirma el baseline real, inventaria Google Places, caracteritza backend/PostgreSQL/Angular/E2E i fixa decisions de domini, procedència, deduplicació i llicències. També deixa dos bloquejos prioritaris: el contenidor API en execució és anterior al tall de Google Places i el submit del cercador perd els IDs territorials. Cap dels dos s'ha corregit dins l'auditoria.
 
 **Mesura operativa prèvia a la Fase I (2026-10-12):** Google Places API ha quedat desactivada immediatament en tots els entorns. La configuració base i Docker fixen `Enabled=false`, Docker ja no injecta `GOOGLE_PLACES_API_KEY` i la variable també s'ha retirat de `.env` i `.env.example`. La política d'aplicació denega totes les crides externes de Places i el client Google conté un tall no configurable que també bloqueja Search, Details i Photos si una configuració antiga intenta reactivar-los. Els adaptadors es conserven per a l'auditoria; Google OAuth no s'ha modificat. Aquesta actuació no inicia la Fase I ni modifica PostgreSQL.
 
@@ -166,6 +168,6 @@ Davant un gap no es reintrodueix Google automàticament. Es documenta la limitac
 
 Passarel·la de pagament, VIP/UltraVIP, packs, XP/gamificació, internacionalització completa, Facebook, baixa autogestionada del compte i Iteració 8. Cap d'aquests punts s'inicia durant la Iteració 7.
 
-## Gate d'inici de la Fase I
+## Gate d'inici de la Fase II
 
-La Fase I només pot començar amb una nova ordre. Aquesta Fase 0 no autoritza implementacions, migracions, modificacions de PostgreSQL, noves dependències, retirada de codi Google ni execucions E2E completes.
+La Fase II no s'ha iniciat i requereix una nova ordre. La Fase I no autoritza implementacions funcionals, migracions, importacions, retirada de codi Google, PostGIS/RabbitMQ nous ni regressió E2E multibrowser completa.

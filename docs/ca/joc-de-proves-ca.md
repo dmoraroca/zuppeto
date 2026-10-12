@@ -366,3 +366,13 @@ Estat real observat abans i després de les proves: ES v2 amb 8.199 unitats, DE 
 - WebKit `sim-20261011T231936377Z-16031c53`: bloquejat abans de navegar per biblioteques natives absents; no és PASS.
 
 ZUP-160 comprova ara l'estat persistent CNIG `Aprovada`, la transició auditada i la impossibilitat de repetir l'aprovació. Cap prova ha aprovat fonts, publicat, revertit ni executat backfill a la base real.
+
+## Iteració 7 — Fase I, caracterització de Places (2026-10-12)
+
+- backend focalitzat: 22/22 PASS; suite final backend/PostgreSQL 100/100 PASS. Cobreix snapshot vigent, PostgreSQL-first, fallback simulat, Google desactivat, `MANUAL > AUTO`, DTO i política pet actual.
+- PostgreSQL temporal: 1/1 PASS sobre `zuppeto_places_phase1_tests`; 25 registres sintètics, filtres/paginació actual, snapshots, constraints, FKs i cascades. Base eliminada al final.
+- Angular focalitzat: 6/6 PASS; suite final 88/88 PASS. Mapping DTO, paràmetres, error→buit, filtres, detall, mapa i favorits.
+- Chrome focalitzat: PASS mitjançant `npm run e2e:places-phase-one`; API sintètica en memòria, país→municipi, cerca/lista/mapa, detall i ADMIN; 0 respostes externes i 0 intents Google Places.
+- l'E2E caracteritza que el submit perd els IDs territorials i conserva només país/localitat textuals. No s'ha corregit dins la fase.
+- no s'ha executat la regressió completa Chrome/Firefox/WebKit.
+- runner 14/14 PASS, build Angular PASS i build .NET serial PASS amb 0 errors/avisos.

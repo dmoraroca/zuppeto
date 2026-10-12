@@ -1,5 +1,9 @@
 # Document tecnic (CA)
 
+## Iteració 7 — Fase I, auditoria Places
+
+L'auditoria verificable es publica a [Iteració 7 — Fase I](iteracio-7-fase-i-auditoria-places-ca.md). Confirma que repositoris, ports, Specification, merge `MANUAL > AUTO`, snapshots i worker durable PostgreSQL són reutilitzables. Els principals deutes són acoblament Google al domini/EF/DTO, coordenades nul·les convertides a un centre d'Espanya, paginació en memòria, procedència global, política pet binària, pèrdua dels IDs territorials al frontend i component ADMIN monolític. RabbitMQ i PostGIS no queden justificats amb 0 Places. No s'ha refactoritzat ni migrat cap peça.
+
 ## 1. Introduccio
 
 Aquest document descriu com esta construida **Zuppeto** a nivell tecnic.
