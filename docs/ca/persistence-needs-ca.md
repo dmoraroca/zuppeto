@@ -148,3 +148,11 @@ El domini queda cobert amb aquests contractes:
 Amb aquest punt tancat, el següent pas passa a ser:
 
 - `model relacional a PostgreSQL`
+
+## Addenda territorial — Iteració 6, Fase IX
+
+La persistència territorial vigent conserva `countries` com a arrel compartida i substitueix el catàleg rígid `cities` per `territorial_units`, noms, codis, tipus funcionals i estat de publicació.
+
+El backfill User/Place s'ha descartat perquè els 119 registres auditats són dades de prova. No es crea `territorial_reference_backfill_audit` ni es manté cap port d'execució del backfill.
+
+La migració `20261012092916_RetireLegacyCities` copia primer les quatre files antigues a `legacy_cities_archive`, conserva l'estat anterior del menú i després retira `cities`. El `Down` restaura taula, files i estat del menú. La migració s'ha validat `Up → Down → Up` en PostgreSQL temporal i està aplicada a la base real: `cities` no existeix, l'arxiu conté quatre files i `countries` es conserva.

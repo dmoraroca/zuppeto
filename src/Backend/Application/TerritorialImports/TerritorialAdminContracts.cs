@@ -275,6 +275,7 @@ public sealed record TerritorialCatalogHierarchyDto(
 public sealed record TerritorialMaintenanceRequest(string Action, string Reason, bool? IsSelectableLocality = null, decimal? Latitude = null, decimal? Longitude = null);
 
 public sealed record TerritorialLocalityOptionDto(Guid Id, Guid CountryId, string Name, string Context, string? Locale);
+public sealed record TerritorialLocalitySuggestionDto(Guid Id, Guid CountryId, string Country, string Name, string Context, string? Locale);
 public sealed record TerritorialLocationValidationRequest(Guid CountryId, Guid TerritorialUnitId);
 public sealed record TerritorialLocationSelectionDto(Guid CountryId, string Country, Guid TerritorialUnitId, string Locality);
 
@@ -305,5 +306,6 @@ public interface ITerritorialLocationRepository
 {
     Task<IReadOnlyCollection<TerritorialAdminCountryDto>> ListCountriesAsync(CancellationToken cancellationToken = default);
     Task<PageResult<TerritorialLocalityOptionDto>> SearchLocalitiesAsync(Guid countryId, string? search, int page, int pageSize, CancellationToken cancellationToken = default);
+    Task<IReadOnlyCollection<TerritorialLocalitySuggestionDto>> SearchPublishedLocalitiesAsync(string? search, int limit, CancellationToken cancellationToken = default);
     Task<TerritorialLocationSelectionDto> ResolveSelectionAsync(Guid countryId, Guid territorialUnitId, CancellationToken cancellationToken = default);
 }

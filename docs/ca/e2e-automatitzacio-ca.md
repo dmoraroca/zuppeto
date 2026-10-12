@@ -1,5 +1,7 @@
 # Automatització E2E de Zuppeto
 
+**Iteració 6 — Fase IX, neteja simulada i retirada funcional de `cities` (2026-10-12):** els escenaris ZUP-133–138 ja no creen, editen ni eliminen files de `/api/admin/cities`. El bloc valida la redirecció `/admin/ciutats → /admin/territori`, l'accés territorial, l'absència del menú antic, el `404` de l'endpoint retirat i el selector territorial de Places. User/Viewer E2E deixen de ser dades seed permanents i el provisionador dedicat els pot recrear abans d'una execució. La neteja i la migració s'han simulat només en PostgreSQL temporal. Gates actuals: backend amb PostgreSQL 88/88, Angular 82/82, build Angular PASS i runner 14/14. Chrome, Firefox i WebKit posteriors continuen pendents fins a disposar d'un desplegament aïllat o autorització real; no se'n declara cap PASS no executat.
+
 **Iteració 6 — Fase VI territorial (2026-09-22):** s’incorpora el bloc `territorial-admin` amb ZUP-154–160 a la matriu de Chrome, Firefox, Edge, IE 11, Opera, Brave i WebKit. Els escenaris executables fan servir exclusivament respostes i XLSX sintètics controlats: accés Admin, 403 no-Admin, fitxer invàlid, mapping compatible, validació bloquejant, ChangeSet, publicació i recuperació per historial/URL. Chrome ha executat ZUP-154–160: 7 PASS, 0 FAIL, 0 BLOCKED i 0 SKIP; l’Excel els sincronitza com `OK/E2E`. Les files dels altres navegadors romanen `PENDENT` i no s’han convertit en PASS documental.
 
 **Iteració 6 — Fase V territorial completada / validada (2026-09-21):** s'ha implementat el motor genèric d'importació XLSX amb mapping, staging JSONB, canonicalització, validació, ChangeSet, concurrència, publicació idempotent i reversió limitada. No canvia cap flux UI/API ni retira City o GeoNames, per tant encara no s'afegeixen escenaris Playwright. La regressió específica és backend: 53/53 proves PASS, inclosa persistència PostgreSQL real, pilots XLSX Espanya/Alemanya i migració `Up → Down → Up` PASS. Els casos d'UI ADMIN, API territorial, backfill i selector es derivaran en les fases corresponents; es manté el baseline E2E actual de geografia, Perfil, Admin Usuaris, Places i filtres.
@@ -1162,3 +1164,17 @@ ZUP-160 s'ha alineat amb l'estat persistent real de CNIG sense afegir cap mutaci
 - Runner: 14/14 PASS.
 
 La sincronització Excel s'ha ajornat en les tres execucions. La verificació SQL posterior confirma que no han canviat versions, fonts, auditories, imports ni referències User/Place.
+
+### Fase IX — regressió definitiva després de la neteja real
+
+Després d'eliminar les 135 files auditades i aplicar `20261012092916_RetireLegacyCities`, la suite completa actualitzada conté 184 escenaris per navegador. Els fluxos de Place, Favorit, Perfil i administració seleccionen la localitat des del catàleg territorial publicat i ja no depenen de `cities`. Les especificacions continuen primes: la selecció territorial compartida viu en un helper, i els adaptadors encapsulen les consultes API.
+
+La regressió va detectar dues causes reals. Primer, `DevelopmentPlacesSeeder` recreava tres Place en reiniciar; ara només actua quan `ZUPPETO_SEED_DEMO_PLACES=true`. Segon, el widget extern de Google podia no renderitzar i provocar una excepció no gestionada: la UI mostra `Google pendent` i conserva el diagnòstic, sense convertir errors CSP efectius en PASS. Els diagnòstics només admeten el missatge informatiu `frame-ancestors` explícitament `report-only` dels tres motors.
+
+| Navegador | runId | Total | PASS | FAIL | SKIP | BLOCKED | Durada |
+|---|---|---:|---:|---:|---:|---:|---:|
+| Chrome | `sim-20261012T102532200Z-a7f6bf70` | 184 | 179 | 0 | 5 | 0 | 11 min 7,072 s |
+| Firefox | `sim-20261012T103921541Z-c0248146` | 184 | 179 | 0 | 5 | 0 | 17 min 26 s |
+| WebKit | `sim-20261012T110728397Z-eaf4a0c2` | 184 | 179 | 0 | 5 | 0 | 19 min 25 s |
+
+Els 5 SKIP per motor són les exclusions externes o d'especificació existents; no hi ha retries. WebKit s'ha executat dins la imatge oficial Playwright compatible. La comprovació posterior elimina els dos Place i els dos User temporals de navegador pels UUID exactes del manifest, reinicia l'API i confirma 3 User protegits, 0 Place i cap dependència E2E residual. `runner:test` passa 14/14 després d'alinear el doble de prova de `PlaceApiAdapter` amb el filtre territorial d'Espanya.

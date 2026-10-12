@@ -45,7 +45,7 @@ export async function executeProfileScenario(code: number, context: ChromeScenar
   if (code === 81) {
     await context.page.locator('input[type="file"]').setInputFiles({ name: `${context.identity.value}.png`, mimeType: 'image/png', buffer: png });
     await context.page.getByRole('button', { name: 'Treure', exact: true }).click();
-    await expect(context.page.locator('.profile-avatar-editor').getByLabel('Sense foto')).toBeVisible();
+    await expect(context.page.locator('.profile-avatar-editor').getByLabel('Imatge de perfil no disponible')).toBeVisible();
     await save(context);
     return;
   }

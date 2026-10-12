@@ -21,7 +21,7 @@ internal static class PlaceEndpoints
         group.MapGet("/cities/search", SearchAvailableCitiesAsync)
             .AllowAnonymous()
             .WithName("SearchAvailablePlaceCities")
-            .WithSummary("Search distinct cities from places, GeoNames and the governed catalog.")
+            .WithSummary("Search distinct localities from places and the published territorial catalog.")
             .WithDescription(
                 "Returns city suggestions that match q (case-insensitive). " +
                 "Requires at least 2 valid characters after normalization. " +

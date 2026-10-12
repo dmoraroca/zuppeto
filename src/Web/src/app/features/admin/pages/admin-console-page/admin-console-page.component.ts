@@ -50,11 +50,8 @@ import {
   AdminPlaceUpsertRequest,
   AdminService,
   AdminUserListItem,
-  CityAdminDto,
   CountryAdminDto,
   CreatePermissionDefinitionRequest,
-  GeoNamesCityOption,
-  GeoNamesCountryOption,
   InternalDocument,
   InternalDocumentSummary,
   PermissionDefinition,
@@ -69,7 +66,6 @@ type AdminMode =
   | 'menus'
   | 'roles'
   | 'countries'
-  | 'cities'
   | 'places';
 type AvatarSuccessOperation = 'crear' | 'modificar' | 'esborrar';
 
@@ -103,7 +99,6 @@ export class AdminConsolePageComponent {
   private readonly menuTracker = new EditorChangeTracker();
   private readonly roleTracker = new EditorChangeTracker();
   private readonly countryTracker = new EditorChangeTracker();
-  private readonly cityTracker = new EditorChangeTracker();
   private readonly placeTracker = new EditorChangeTracker();
   protected readonly privacyRequired = computed(() =>
     this.privacyConsent.isRequired(this.authService.isAdmin())
@@ -112,7 +107,6 @@ export class AdminConsolePageComponent {
   private readonly detailPasswordAutofillDelaysMs = [50, 300, 800, 1600] as const;
   private detailPasswordAutofillTimers: ReturnType<typeof setTimeout>[] = [];
   private detailPasswordEditedByUser = false;
-  private cityNameSearchDebounce: ReturnType<typeof setTimeout> | null = null;
 
   protected readonly mode = signal<AdminMode>((this.route.snapshot.data['mode'] as AdminMode | undefined) ?? 'documentation');
   protected readonly title = signal((this.route.snapshot.data['title'] as string | undefined) ?? 'Administració');
@@ -239,13 +233,6 @@ export class AdminConsolePageComponent {
   protected readonly editableMenuRoles = signal<string[]>([]);
 
   protected readonly geographicCountries = signal<CountryAdminDto[]>([]);
-  protected readonly geographicCities = signal<CityAdminDto[]>([]);
-  protected readonly geoNamesEuCountries = signal<GeoNamesCountryOption[]>([]);
-  protected readonly createCityCountryOptions = signal<Array<{ value: string; label: string }>>([]);
-  protected readonly cityNameSuggestions = signal<GeoNamesCityOption[]>([]);
-  /** Evita dues notificacions idèntiques quan països i ciutats fallen amb 404 alhora. */
-  private geographicCatalog404Notified = false;
-  protected readonly cityFilterCountryId = signal<string | null>(null);
   protected readonly countryModalOpen = signal(false);
   protected readonly countryDetailEditMode = signal(false);
   protected readonly countryIsNew = signal(false);
@@ -260,20 +247,6 @@ export class AdminConsolePageComponent {
     isActive: boolean;
   }>({ code: '', name: '', sortOrder: 0, isActive: true });
 
-  protected readonly cityModalOpen = signal(false);
-  protected readonly cityDetailEditMode = signal(false);
-  protected readonly cityIsNew = signal(false);
-  protected readonly cityDeleteCandidate = signal<CityAdminDto | null>(null);
-  protected readonly editableCity = signal<{
-    id?: string;
-    countryId: string;
-    countryLabel?: string;
-    name: string;
-    latitude: string;
-    longitude: string;
-    sortOrder: number;
-    isActive: boolean;
-  }>({ countryId: '', name: '', latitude: '', longitude: '', sortOrder: 0, isActive: true });
   protected readonly places = signal<AdminPlaceDto[]>([]);
   protected readonly placeSearchText = signal('');
   protected readonly placeModalOpen = signal(false);
@@ -292,7 +265,6 @@ export class AdminConsolePageComponent {
     country: string;
     countryId: string;
     territorialUnitId: string;
-    countrySelectValue: string;
     neighborhood: string;
     latitude: string;
     longitude: string;
@@ -322,7 +294,6 @@ export class AdminConsolePageComponent {
     addressLine1: '',
     city: '',
     country: '',
-    countrySelectValue: '',
     countryId: '',
     territorialUnitId: '',
     neighborhood: '',
@@ -358,18 +329,6 @@ export class AdminConsolePageComponent {
       return null;
     }
     return { value: current, label: current };
-  });
-  protected readonly placeCitySelectOptions = signal<
-    Array<{ value: string; label: string; latitude?: string; longitude?: string }>
-  >([]);
-  protected readonly placeCountrySelectOptions = computed(() => {
-    const options = this.createCityCountryOptions();
-    const current = this.editablePlace().countrySelectValue;
-    const name = this.editablePlace().country.trim();
-    if (current && name && !options.some((option) => option.value === current)) {
-      return [{ value: current, label: name }, ...options];
-    }
-    return options;
   });
   protected readonly placeDataProvenanceSelectValues = ['', 'Internal', 'GooglePlaces', 'Mixed'] as const;
 
@@ -669,10 +628,7 @@ export class AdminConsolePageComponent {
       return item?.label?.trim() ?? '';
     }
     if (key === 'action.geographic.manage') {
-      const pa = catalog.menus.find((m) => m.key === 'admin.countries');
-      const ci = catalog.menus.find((m) => m.key === 'admin.cities');
-      const parts = [pa?.label, ci?.label].filter((x): x is string => !!x?.trim());
-      return parts.length ? parts.join(' / ') : '';
+      return catalog.menus.find((m) => m.key === 'admin.countries')?.label?.trim() ?? '';
     }
     if (key.startsWith('page.admin.')) {
       const menuKey = this.adminMenuKeyFromPagePermission(key);
@@ -1799,18 +1755,10 @@ export class AdminConsolePageComponent {
           await this.loadRoleDefinitions();
           break;
         case 'countries':
-          this.geographicCatalog404Notified = false;
           await this.loadGeographicCountries();
-          break;
-        case 'cities':
-          this.geographicCatalog404Notified = false;
-          await this.loadGeographicCountries();
-          await this.loadGeoNamesEuCountries();
-          await this.loadGeographicCities();
           break;
         case 'places':
           await this.loadGeographicCountries();
-          await this.loadGeoNamesEuCountries();
           await this.loadPlaces();
           break;
         case 'documentation':
@@ -1961,104 +1909,6 @@ export class AdminConsolePageComponent {
     }
   }
 
-  protected onCityFilterChange(value: string): void {
-    const next = value || null;
-    this.cityFilterCountryId.set(next);
-    void this.loadGeographicCities();
-  }
-
-  protected openNewCityModal(): void {
-    const countryOptions = this.createCityCountryOptions();
-    const defaultCountryId = countryOptions[0]?.value ?? '';
-    this.cityIsNew.set(true);
-    this.createMaintenancePrivacyAccepted.set(false);
-    this.cityDetailEditMode.set(true);
-    this.editableCity.set({
-      countryId: defaultCountryId,
-      name: '',
-      latitude: '',
-      longitude: '',
-      sortOrder: 0,
-      isActive: true
-    });
-    this.cityModalOpen.set(true);
-    this.cityNameSuggestions.set([]);
-    this.cityTracker.remember(this.editableCity());
-  }
-
-  protected selectCityForEdit(city: CityAdminDto): void {
-    this.cityIsNew.set(false);
-    this.cityDetailEditMode.set(false);
-    this.editableCity.set({
-      id: city.id,
-      countryId: city.countryId,
-      countryLabel: `${city.countryName} (${city.countryCode})`,
-      name: city.name,
-      latitude: formatDecimalCoordinate(city.latitude?.toString() ?? ''),
-      longitude: formatDecimalCoordinate(city.longitude?.toString() ?? ''),
-      sortOrder: city.sortOrder,
-      isActive: city.isActive
-    });
-    this.cityModalOpen.set(true);
-    this.cityNameSuggestions.set([]);
-  }
-
-  protected closeCityModal(): void {
-    this.cityModalOpen.set(false);
-    this.cityDetailEditMode.set(false);
-    this.cityNameSuggestions.set([]);
-    this.createMaintenancePrivacyAccepted.set(false);
-  }
-
-  protected beginCityDetailEdit(): void {
-    if (this.cityIsNew()) {
-      return;
-    }
-    this.cityDetailEditMode.set(true);
-    this.cityTracker.remember(this.editableCity());
-  }
-
-  protected canCommitCity(): boolean {
-    const row = this.editableCity();
-    return this.formCommit.canCommit({
-      hasChanges: this.cityTracker.hasChanges(row),
-      rulesSatisfied:
-        !!row.name.trim() &&
-        (!this.cityIsNew() || !!row.countryId) &&
-        (!this.cityIsNew() || this.privacyAllowsSave(this.createMaintenancePrivacyAccepted()))
-    });
-  }
-
-  protected cancelCityDetailEdit(): void {
-    const current = this.editableCity();
-    if (!current.id) {
-      this.cityDetailEditMode.set(false);
-      return;
-    }
-    const original = this.geographicCities().find((city) => city.id === current.id);
-    if (!original) {
-      this.cityDetailEditMode.set(false);
-      return;
-    }
-    this.editableCity.set({
-      id: original.id,
-      countryId: original.countryId,
-      countryLabel: `${original.countryName} (${original.countryCode})`,
-      name: original.name,
-      latitude: formatDecimalCoordinate(original.latitude?.toString() ?? ''),
-      longitude: formatDecimalCoordinate(original.longitude?.toString() ?? ''),
-      sortOrder: original.sortOrder,
-      isActive: original.isActive
-    });
-    this.cityDetailEditMode.set(false);
-    this.cityNameSuggestions.set([]);
-  }
-
-  protected onCityCountryChange(value: string): void {
-    this.editableCity.set({ ...this.editableCity(), countryId: value, name: '' });
-    this.cityNameSuggestions.set([]);
-  }
-
   protected onCoordinateKeydown(event: KeyboardEvent): void {
     if (event.ctrlKey || event.metaKey || event.altKey) {
       return;
@@ -2071,28 +1921,6 @@ export class AdminConsolePageComponent {
     if (!isDecimalCoordinateKey(event.key)) {
       event.preventDefault();
     }
-  }
-
-  protected onCityLatitudeInput(value: string): void {
-    this.editableCity.set({ ...this.editableCity(), latitude: sanitizeDecimalCoordinate(value) });
-  }
-
-  protected onCityLongitudeInput(value: string): void {
-    this.editableCity.set({ ...this.editableCity(), longitude: sanitizeDecimalCoordinate(value) });
-  }
-
-  protected onCityLatitudeBlur(): void {
-    this.editableCity.set({
-      ...this.editableCity(),
-      latitude: formatDecimalCoordinate(this.editableCity().latitude)
-    });
-  }
-
-  protected onCityLongitudeBlur(): void {
-    this.editableCity.set({
-      ...this.editableCity(),
-      longitude: formatDecimalCoordinate(this.editableCity().longitude)
-    });
   }
 
   protected onPlaceTypeChange(value: string): void {
@@ -2129,16 +1957,6 @@ export class AdminConsolePageComponent {
     });
   }
 
-  protected onPlaceCountryChange(value: string): void {
-    this.editablePlace.set({
-      ...this.editablePlace(),
-      countrySelectValue: value,
-      country: this.resolvePlaceCountryName(value),
-      city: ''
-    });
-    void this.ensurePlaceCityOptions(value);
-  }
-
   protected onCreateUserTerritorialSelection(selection: TerritorialLocationSelection): void {
     this.userForm.patchValue({
       countryId: selection.countryId, territorialUnitId: selection.territorialUnitId,
@@ -2164,244 +1982,6 @@ export class AdminConsolePageComponent {
     });
   }
 
-  protected onPlaceCityChange(value: string): void {
-    const option = this.placeCitySelectOptions().find((item) => item.value === value);
-    this.editablePlace.set({
-      ...this.editablePlace(),
-      city: value,
-      latitude: option?.latitude
-        ? formatDecimalCoordinate(option.latitude)
-        : this.editablePlace().latitude,
-      longitude: option?.longitude
-        ? formatDecimalCoordinate(option.longitude)
-        : this.editablePlace().longitude
-    });
-  }
-
-  private resolvePlaceCountrySelectValue(countryName: string): string {
-    const normalized = countryName.trim().toLowerCase();
-    if (!normalized) {
-      return '';
-    }
-
-    const catalog = this.geographicCountries().find(
-      (country) =>
-        country.name.trim().toLowerCase() === normalized ||
-        country.code.trim().toLowerCase() === normalized
-    );
-    if (catalog) {
-      return catalog.id;
-    }
-
-    const geonames = this.geoNamesEuCountries().find(
-      (country) =>
-        country.name.trim().toLowerCase() === normalized ||
-        country.code.trim().toLowerCase() === normalized
-    );
-    if (geonames) {
-      return `geo:${geonames.code}`;
-    }
-
-    return `name:${countryName.trim()}`;
-  }
-
-  private resolvePlaceCountryName(value: string): string {
-    if (!value) {
-      return '';
-    }
-    if (value.startsWith('geo:')) {
-      const code = value.slice(4);
-      return this.geoNamesEuCountries().find((country) => country.code === code)?.name ?? '';
-    }
-    if (value.startsWith('name:')) {
-      return value.slice(5);
-    }
-    return this.geographicCountries().find((country) => country.id === value)?.name ?? '';
-  }
-
-  private resolvePlaceCountryCode(value: string): string {
-    if (value.startsWith('geo:')) {
-      return value.slice(4).trim().toUpperCase();
-    }
-    if (value.startsWith('name:')) {
-      return '';
-    }
-    return this.geographicCountries().find((country) => country.id === value)?.code?.trim().toUpperCase() ?? '';
-  }
-
-  private async ensurePlaceCityOptions(countryValue: string, keepCity?: string): Promise<void> {
-    if (!countryValue) {
-      this.placeCitySelectOptions.set([]);
-      return;
-    }
-
-    const catalogCountryId =
-      countryValue.startsWith('geo:') || countryValue.startsWith('name:')
-        ? this.geographicCountries().find(
-            (country) => country.code.trim().toUpperCase() === this.resolvePlaceCountryCode(countryValue)
-          )?.id
-        : countryValue;
-    const countryCode = this.resolvePlaceCountryCode(countryValue);
-
-    let catalogCities: CityAdminDto[] = [];
-    if (catalogCountryId) {
-      try {
-        catalogCities = await this.adminService.listCities(catalogCountryId);
-      } catch {
-        catalogCities = [];
-      }
-    }
-
-    const geonamesCities = countryCode
-      ? await this.adminService.listCitiesByCountryFromGeoNames(countryCode, 80)
-      : [];
-
-    const seen = new Set<string>();
-    const options: Array<{ value: string; label: string; latitude?: string; longitude?: string }> = [];
-
-    for (const city of catalogCities) {
-      const key = city.name.trim().toLowerCase();
-      if (!key || seen.has(key)) {
-        continue;
-      }
-      seen.add(key);
-      options.push({
-        value: city.name,
-        label: city.name,
-        latitude: city.latitude != null ? String(city.latitude) : undefined,
-        longitude: city.longitude != null ? String(city.longitude) : undefined
-      });
-    }
-
-    for (const city of geonamesCities) {
-      const key = city.name.trim().toLowerCase();
-      if (!key || seen.has(key)) {
-        continue;
-      }
-      seen.add(key);
-      options.push({
-        value: city.name,
-        label: city.name,
-        latitude: city.latitude,
-        longitude: city.longitude
-      });
-    }
-
-    options.sort((left, right) => left.label.localeCompare(right.label, 'ca', { sensitivity: 'base' }));
-
-    const kept = keepCity?.trim() ?? '';
-    if (kept && !options.some((option) => option.value.toLowerCase() === kept.toLowerCase())) {
-      options.unshift({ value: kept, label: kept });
-    }
-
-    this.placeCitySelectOptions.set(options);
-  }
-
-  protected onCityNameInput(value: string): void {
-    this.editableCity.set({ ...this.editableCity(), name: value });
-    this.queueCityNameSearch(value);
-  }
-
-  protected onCityNameSelected(value: string): void {
-    const cityName = this.extractCityFromDisplayLabel(value);
-    this.editableCity.set({ ...this.editableCity(), name: cityName });
-  }
-
-  protected async saveCity(): Promise<void> {
-    if (!this.canCommitCity()) {
-      return;
-    }
-
-    if (this.cityIsNew() && !this.privacyAllowsSave(this.createMaintenancePrivacyAccepted())) {
-      this.notifications.notify('Privacitat obligatòria', 'Cal acceptar les condicions de privacitat abans de desar.', 'error');
-      return;
-    }
-
-    const row = this.editableCity();
-    if (!row.name.trim()) {
-      this.notifications.notify('Dades incompletes', 'El nom de la ciutat és obligatori.', 'error');
-      return;
-    }
-
-    if (this.cityIsNew() && !row.countryId) {
-      this.notifications.notify('Dades incompletes', 'Cal triar un país.', 'error');
-      return;
-    }
-
-    const latitude = this.parseOptionalNumber(row.latitude);
-    const longitude = this.parseOptionalNumber(row.longitude);
-
-    if (latitude != null && (latitude < -90 || latitude > 90)) {
-      this.notifications.notify('Dades invàlides', 'La latitud ha de ser entre -90 i 90.', 'error');
-      return;
-    }
-
-    if (longitude != null && (longitude < -180 || longitude > 180)) {
-      this.notifications.notify('Dades invàlides', 'La longitud ha de ser entre -180 i 180.', 'error');
-      return;
-    }
-
-    try {
-      if (this.cityIsNew()) {
-        const resolvedCountryId = await this.resolveCityCountryIdAsync(row.countryId);
-        if (!resolvedCountryId) {
-          this.notifications.notify('Error', 'No s’ha pogut preparar el país seleccionat.', 'error');
-          return;
-        }
-        await this.adminService.createCity({
-          countryId: resolvedCountryId,
-          name: row.name.trim(),
-          latitude,
-          longitude,
-          isActive: row.isActive,
-          sortOrder: row.sortOrder
-        });
-        this.notifications.notify('Ciutat creada', 'S’ha donat d’alta la ciutat.', 'success');
-      } else if (row.id) {
-        await this.adminService.updateCity(row.id, {
-          name: row.name.trim(),
-          latitude,
-          longitude,
-          isActive: row.isActive,
-          sortOrder: row.sortOrder
-        });
-        this.notifications.notify('Ciutat actualitzada', 'S’han desat els canvis.', 'success');
-      }
-      this.cityModalOpen.set(false);
-      await this.loadGeographicCities();
-    } catch (err: unknown) {
-      this.notifyHttpError(err, 'No s’ha pogut desar la ciutat.');
-    }
-  }
-
-  protected askDeleteCity(city: CityAdminDto, event?: Event): void {
-    event?.stopPropagation();
-    this.cityDeleteCandidate.set(city);
-  }
-
-  protected cancelDeleteCity(): void {
-    this.cityDeleteCandidate.set(null);
-  }
-
-  protected async confirmDeleteCity(): Promise<void> {
-    const city = this.cityDeleteCandidate();
-    if (!city) {
-      return;
-    }
-    try {
-      await this.adminService.deleteCity(city.id);
-      this.notifications.notify('Ciutat esborrada', `S’ha eliminat «${city.name}».`, 'success');
-      this.cityDeleteCandidate.set(null);
-      if (this.cityModalOpen() && this.editableCity().id === city.id) {
-        this.closeCityModal();
-      }
-      await this.loadGeographicCities();
-    } catch (err: unknown) {
-      this.notifyHttpError(err, 'No s’ha pogut esborrar la ciutat.');
-      this.cityDeleteCandidate.set(null);
-    }
-  }
-
   protected applyPlaceSearch(): void {
     void this.loadPlaces();
   }
@@ -2419,7 +1999,6 @@ export class AdminConsolePageComponent {
       addressLine1: '',
       city: '',
       country: '',
-      countrySelectValue: '',
       countryId: '',
       territorialUnitId: '',
       neighborhood: '',
@@ -2437,7 +2016,6 @@ export class AdminConsolePageComponent {
       dataProvenance: '',
       googlePlaceId: ''
     });
-    this.placeCitySelectOptions.set([]);
     this.placeModalOpen.set(true);
     this.placeTracker.remember(this.editablePlace());
   }
@@ -2455,7 +2033,6 @@ export class AdminConsolePageComponent {
       addressLine1: place.addressLine1,
       city: place.city,
       country: place.country,
-      countrySelectValue: this.resolvePlaceCountrySelectValue(place.country),
       countryId: place.countryId ?? '',
       territorialUnitId: place.territorialUnitId ?? '',
       neighborhood: place.neighborhood || '',
@@ -2478,7 +2055,6 @@ export class AdminConsolePageComponent {
       googleMetaCacheExpired: place.googleCoordinatesCacheExpired
     });
     this.placeModalOpen.set(true);
-    void this.ensurePlaceCityOptions(this.editablePlace().countrySelectValue, place.city);
   }
 
   protected closePlaceModal(): void {
@@ -2526,7 +2102,6 @@ export class AdminConsolePageComponent {
       addressLine1: original.addressLine1,
       city: original.city,
       country: original.country,
-      countrySelectValue: this.resolvePlaceCountrySelectValue(original.country),
       countryId: original.countryId ?? '',
       territorialUnitId: original.territorialUnitId ?? '',
       neighborhood: original.neighborhood || '',
@@ -2549,7 +2124,6 @@ export class AdminConsolePageComponent {
       googleMetaCacheExpired: original.googleCoordinatesCacheExpired
     });
     this.placeDetailEditMode.set(false);
-    void this.ensurePlaceCityOptions(this.editablePlace().countrySelectValue, original.city);
   }
 
   protected askDeletePlace(place: AdminPlaceDto, event?: Event): void {
@@ -2786,11 +2360,9 @@ export class AdminConsolePageComponent {
   private async loadGeographicCountries(): Promise<void> {
     try {
       this.geographicCountries.set(await this.adminService.listCountries());
-      this.rebuildCreateCityCountryOptions();
     } catch (err) {
       this.geographicCountries.set([]);
       if (err instanceof HttpErrorResponse && err.status === 404) {
-        this.geographicCatalog404Notified = true;
         this.notifications.notify(
           'Catàleg geogràfic no disponible',
           'L’API no té encara l’endpoint /api/admin/countries (404). Cal instal·lar el mòdul al backend (vegeu platform/geographic-backend), registrar MapGeographicAdminEndpoints i tornar a arrencar l’API.', 'error');
@@ -2802,127 +2374,6 @@ export class AdminConsolePageComponent {
       }
       this.notifications.notify('Error', 'No s’han pogut carregar els països.', 'error');
     }
-  }
-
-  private async loadGeoNamesEuCountries(): Promise<void> {
-    const countries = await this.adminService.listEuCountriesFromGeoNames();
-    this.geoNamesEuCountries.set(countries);
-    this.rebuildCreateCityCountryOptions();
-  }
-
-  private queueCityNameSearch(query: string): void {
-    if (this.cityNameSearchDebounce) {
-      clearTimeout(this.cityNameSearchDebounce);
-      this.cityNameSearchDebounce = null;
-    }
-
-    if (!this.cityIsNew() || query.trim().length < 3) {
-      this.cityNameSuggestions.set([]);
-      return;
-    }
-
-    this.cityNameSearchDebounce = setTimeout(() => {
-      void this.loadCityNameSuggestionsAsync(query);
-    }, 220);
-  }
-
-  private async loadCityNameSuggestionsAsync(query: string): Promise<void> {
-    const countryCode = this.resolveSelectedCityCountryCode();
-    if (!countryCode) {
-      this.cityNameSuggestions.set([]);
-      return;
-    }
-
-    const suggestions = await this.adminService.searchCitiesByCountryFromGeoNames(query, countryCode, 8);
-    this.cityNameSuggestions.set(suggestions);
-  }
-
-  private async loadGeographicCities(): Promise<void> {
-    try {
-      this.geographicCities.set(await this.adminService.listCities(this.cityFilterCountryId()));
-    } catch (err) {
-      this.geographicCities.set([]);
-      if (err instanceof HttpErrorResponse && err.status === 404) {
-        if (!this.geographicCatalog404Notified) {
-          this.geographicCatalog404Notified = true;
-          this.notifications.notify(
-            'Catàleg geogràfic no disponible',
-            'L’API no té encara l’endpoint /api/admin/cities (404). Cal instal·lar el mòdul al backend (vegeu platform/geographic-backend), registrar MapGeographicAdminEndpoints i tornar a arrencar l’API.', 'error');
-        }
-        return;
-      }
-      if (err instanceof HttpErrorResponse) {
-        this.notifyHttpError(err, 'No s’han pogut carregar les ciutats.');
-        return;
-      }
-      this.notifications.notify('Error', 'No s’han pogut carregar les ciutats.', 'error');
-    }
-  }
-
-  private rebuildCreateCityCountryOptions(): void {
-    const internal = this.geographicCountries().map((country) => ({
-      value: country.id,
-      code: country.code.trim().toUpperCase(),
-      label: `${country.name} (${country.code})`
-    }));
-    const existingCodes = new Set(internal.map((country) => country.code));
-    const fallback = this.geoNamesEuCountries()
-      .filter((country) => !existingCodes.has(country.code))
-      .map((country) => ({
-        value: `geo:${country.code}`,
-        label: `${country.name} (${country.code})`
-      }));
-
-    this.createCityCountryOptions.set([
-      ...internal.map(({ value, label }) => ({ value, label })),
-      ...fallback
-    ]);
-  }
-
-  private async resolveCityCountryIdAsync(selectedCountryValue: string): Promise<string | null> {
-    if (!selectedCountryValue.startsWith('geo:')) {
-      return selectedCountryValue;
-    }
-
-    const selectedCode = selectedCountryValue.replace('geo:', '').trim().toUpperCase();
-    const existing = this.geographicCountries().find((country) => country.code.trim().toUpperCase() === selectedCode);
-    if (existing) {
-      return existing.id;
-    }
-
-    const geonamesCountry = this.geoNamesEuCountries().find((country) => country.code === selectedCode);
-    if (!geonamesCountry) {
-      return null;
-    }
-
-    const created = await this.adminService.createCountry({
-      code: geonamesCountry.code,
-      name: geonamesCountry.name,
-      isActive: true,
-      sortOrder: this.geographicCountries().length + 1
-    });
-
-    await this.loadGeographicCountries();
-    return created.id;
-  }
-
-  private resolveSelectedCityCountryCode(): string {
-    const selectedValue = this.editableCity().countryId;
-    if (!selectedValue) {
-      return '';
-    }
-
-    if (selectedValue.startsWith('geo:')) {
-      return selectedValue.replace('geo:', '').trim().toUpperCase();
-    }
-
-    const country = this.geographicCountries().find((item) => item.id === selectedValue);
-    return country?.code?.trim().toUpperCase() ?? '';
-  }
-
-  private extractCityFromDisplayLabel(value: string): string {
-    const match = value.match(/^(.+?)\s+\(.+\)$/);
-    return match ? match[1].trim() : value;
   }
 
   private parseOptionalNumber(raw: string): number | null {

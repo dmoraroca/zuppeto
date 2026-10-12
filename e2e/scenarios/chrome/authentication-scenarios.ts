@@ -33,7 +33,7 @@ export async function executeAuthenticationScenario(code: number, context: Chrom
     return;
   }
   if (code === 6) {
-    await expect(page.locator('.login-page__providers').getByText(/Google(?: pendent)?/, { exact: true })).toBeVisible();
+    await expect(page.locator('.login-page__providers').getByText(/Google(?: pendent)?/).first()).toBeVisible({ timeout: 15_000 });
     return;
   }
   if (code === 7) {

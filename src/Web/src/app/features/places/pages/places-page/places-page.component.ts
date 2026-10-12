@@ -271,11 +271,11 @@ export class PlacesPageComponent {
     );
     this.placeApiCities.set(
       suggestions
-        .filter((item) => item.source !== 'catalog')
+        .filter((item) => item.source !== 'territorial')
         .map((item) => item.displayLabel)
     );
     this.catalogCities.set(
-      suggestions.filter((item) => item.source === 'catalog').map((item) => item.displayLabel)
+      suggestions.filter((item) => item.source === 'territorial').map((item) => item.displayLabel)
     );
   }
 

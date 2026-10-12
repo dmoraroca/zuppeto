@@ -42,18 +42,17 @@ export class CityComboboxComponent {
    */
   readonly pinOptions = input<string[]>([]);
   /**
-   * Cities that already have places (GET /api/places/cities, source=places). Shown after pins,
-   * together with GeoNames when the user has typed enough characters.
+   * Localities returned by Petiloc (existing snapshots and the published territorial catalog).
    */
   readonly apiOptions = input<string[]>([]);
   /**
-   * Admin catalog cities (source=catalog). Shown last.
+   * Additional static locality options. Shown last.
    */
   readonly staticOptions = input<string[]>([]);
   /** First list option that clears the city filter (same idea as Tipus → Tots). */
   readonly includeAllOption = input(true);
   readonly allOptionLabel = input('Totes');
-  /** Minimum characters before calling GET /api/places/cities/search (catalog + GeoNames). */
+  /** Minimum characters before querying Petiloc's published territorial catalog. */
   readonly minCharsForRemote = input(2);
   readonly inputId = input(`app-city-cb-${++CityComboboxComponent.nextId}`);
 
@@ -63,13 +62,13 @@ export class CityComboboxComponent {
   protected readonly remoteLoading = signal(false);
   protected readonly listOptions = computed(() => {
     const q = this.text().trim();
-    const geonames = this.apiSuggestions()
-      .filter((item) => item.source === 'geonames')
+    const territorial = this.apiSuggestions()
+      .filter((item) => item.source === 'territorial')
       .map((item) => item.displayLabel);
     return mergeCityLabelsDistinct(
       filterCityLabels(filterCityLabelsByCountry(this.pinOptions(), this.country()), q),
       filterCityLabels(
-        filterCityLabelsByCountry([...this.apiOptions(), ...geonames], this.country()),
+        filterCityLabelsByCountry([...this.apiOptions(), ...territorial], this.country()),
         q
       ),
       filterCityLabels(filterCityLabelsByCountry(this.staticOptions(), this.country()), q)

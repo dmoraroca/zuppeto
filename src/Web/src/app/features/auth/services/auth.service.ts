@@ -473,10 +473,6 @@ export class AuthService {
     return this.hasPermission('page.admin.countries');
   }
 
-  canManageCityCatalog(): boolean {
-    return this.hasPermission('page.admin.cities');
-  }
-
   canManageRoles(): boolean {
     return this.hasPermission('page.admin.roles');
   }
@@ -700,14 +696,6 @@ export class AuthService {
         children: []
       });
     }
-    if (this.canManageCityCatalog()) {
-      negoci.push({
-        key: 'admin.cities',
-        label: 'Ciutats',
-        route: '/admin/ciutats',
-        children: []
-      });
-    }
 
     const tecnic: NavigationMenuItem[] = [];
     if (this.canManagePermissions()) {
@@ -747,12 +735,14 @@ export class AuthService {
     return items;
   }
 
-  /**
-   * If the API still returns `admin.countries` / `admin.cities` under `admin.tecnic` (stale DB or
-   * cache), move them under `admin.negoci` in-memory so the UI matches the intended catalog.
-   */
+  /** Keeps countries under Negoci and hides the retired cities menu from stale databases/caches. */
   private reparentGeographicMenuItemsToNegoci(items: NavigationMenuItem[]): NavigationMenuItem[] {
-    return items.map((item) => {
+    const withoutLegacyCities = (entries: NavigationMenuItem[]): NavigationMenuItem[] =>
+      entries
+        .filter((entry) => entry.key !== 'admin.cities')
+        .map((entry) => ({ ...entry, children: withoutLegacyCities(entry.children) }));
+
+    return withoutLegacyCities(items).map((item) => {
       if (item.key !== 'admin' || item.children.length === 0) {
         return item;
       }
@@ -763,7 +753,7 @@ export class AuthService {
         return item;
       }
 
-      const moveKeys = new Set(['admin.countries', 'admin.cities']);
+      const moveKeys = new Set(['admin.countries']);
       const fromTecnic = tecnic.children.filter((ch) => moveKeys.has(ch.key));
       if (fromTecnic.length === 0) {
         return item;
@@ -780,8 +770,7 @@ export class AuthService {
         'admin.users',
         'admin.menus',
         'admin.places',
-        'admin.countries',
-        'admin.cities'
+        'admin.countries'
       ] as const;
       const orderIndex = (k: string): number => {
         const i = (keyOrder as readonly string[]).indexOf(k);
@@ -862,13 +851,6 @@ export class AuthService {
       if (this.canManageCountryCatalog() && !this.adminMenuContainsKeyDeep(next, 'admin.countries')) {
         inject(
           { key: 'admin.countries', label: 'Països', route: '/admin/paisos', children: [] },
-          'admin.negoci'
-        );
-      }
-
-      if (this.canManageCityCatalog() && !this.adminMenuContainsKeyDeep(next, 'admin.cities')) {
-        inject(
-          { key: 'admin.cities', label: 'Ciutats', route: '/admin/ciutats', children: [] },
           'admin.negoci'
         );
       }

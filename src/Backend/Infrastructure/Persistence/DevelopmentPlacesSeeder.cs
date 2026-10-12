@@ -1,14 +1,13 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Hosting;
 using Zuppeto.Domain.Places;
 using Zuppeto.Infrastructure.Persistence.Entities;
 
 namespace Zuppeto.Infrastructure.Persistence;
 
 /// <summary>
-/// Inserts a small demo catalog when the database has no places (development UX).
+/// Inserts a small demo catalog only when explicitly requested for an isolated environment.
 /// </summary>
-public sealed class DevelopmentPlacesSeeder(ZuppetoDbContext dbContext, IHostEnvironment environment)
+public sealed class DevelopmentPlacesSeeder(ZuppetoDbContext dbContext)
 {
     public async Task SeedAsync(CancellationToken cancellationToken = default)
     {
@@ -17,7 +16,7 @@ public sealed class DevelopmentPlacesSeeder(ZuppetoDbContext dbContext, IHostEnv
             "true",
             StringComparison.OrdinalIgnoreCase);
 
-        if (!environment.IsDevelopment() && !explicitlyEnabled)
+        if (!explicitlyEnabled)
         {
             return;
         }

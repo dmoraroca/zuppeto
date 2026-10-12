@@ -38,6 +38,12 @@
                 aria-label="Iniciar sessió amb Google"
               ></div>
             </div>
+            @if (!googleButtonVisible()) {
+              <div class="login-page__provider login-page__provider--pending">
+                <span class="login-page__provider-icon login-page__provider-icon--google" aria-hidden="true">G</span>
+                <span>Google pendent</span>
+              </div>
+            }
           } @else {
             <div class="login-page__provider login-page__provider--pending">
               <span class="login-page__provider-icon login-page__provider-icon--google" aria-hidden="true">G</span>

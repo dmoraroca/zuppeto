@@ -20,8 +20,6 @@ public sealed class CountryRecord
 
     public DateTimeOffset UpdatedAtUtc { get; set; }
 
-    public ICollection<CityRecord> Cities { get; set; } = [];
-
     public ICollection<TerritorialUnitTypeRecord> TerritorialUnitTypes { get; set; } = [];
 
     public ICollection<TerritorialUnitRecord> TerritorialUnits { get; set; } = [];

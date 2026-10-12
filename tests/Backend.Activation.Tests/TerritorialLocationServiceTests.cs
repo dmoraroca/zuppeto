@@ -54,6 +54,13 @@ public sealed class TerritorialLocationServiceTests
             Task.FromResult(new PageResult<TerritorialLocalityOptionDto>(
                 [new(locality, country, "München", "Bayern · Deutschland", "de-DE")], page, pageSize, 1));
 
+        public Task<IReadOnlyCollection<TerritorialLocalitySuggestionDto>> SearchPublishedLocalitiesAsync(
+            string? search,
+            int limit,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyCollection<TerritorialLocalitySuggestionDto>>(
+                [new(locality, country, "Deutschland", "München", "Bayern · Deutschland", "de-DE")]);
+
         public Task<TerritorialLocationSelectionDto> ResolveSelectionAsync(Guid countryId, Guid territorialUnitId, CancellationToken cancellationToken = default) =>
             failure switch
             {

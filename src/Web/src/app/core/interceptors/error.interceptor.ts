@@ -35,10 +35,10 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         const isNavigationMenuRequest =
           req.method === 'GET' && req.url === `${API_BASE_URL}/navigation/menu`;
 
-        /** Catàleg geogràfic: 404 el gestiona la pantalla amb un missatge explícit (endpoint encara no desplegat). */
+        /** Catàleg de països: 404 el gestiona la pantalla amb un missatge explícit. */
         const isGeographicCatalogNotFound =
           error.status === 404 &&
-          (req.url.includes('/admin/countries') || req.url.includes('/admin/cities'));
+          req.url.includes('/admin/countries');
 
         const isLoginRequest = req.url.includes('/auth/login');
         const isGoogleLoginRequest = req.method === 'POST' && req.url === `${API_BASE_URL}/auth/google`;

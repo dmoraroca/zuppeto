@@ -51,12 +51,12 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
   );
   protected readonly previewApiCities = computed(() =>
     this.previewCitySuggestionsState()
-      .filter((item) => item.source !== 'catalog')
+      .filter((item) => item.source !== 'territorial')
       .map((item) => item.displayLabel)
   );
   protected readonly previewCatalogCities = computed(() =>
     this.previewCitySuggestionsState()
-      .filter((item) => item.source === 'catalog')
+      .filter((item) => item.source === 'territorial')
       .map((item) => item.displayLabel)
   );
   protected readonly previewTypes = this.placeService.getAvailableTypes();
@@ -377,12 +377,21 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
       host.parentElement?.getBoundingClientRect().width ?? host.getBoundingClientRect().width ?? host.clientWidth ?? 320;
     const width = Math.max(200, Math.round(submitWidth || fallbackWidth));
 
-    const cleanup = await this.googleIdentity.renderButton(host, provider.clientId, 'LOGIN', (credential) => {
-      void this.handleGoogleCredentialAsync(credential);
-    }, {
-      text: 'signin_with',
-      width
-    });
+    let cleanup: () => void;
+    try {
+      cleanup = await this.googleIdentity.renderButton(host, provider.clientId, 'LOGIN', (credential) => {
+        void this.handleGoogleCredentialAsync(credential);
+      }, {
+        text: 'signin_with',
+        width
+      });
+    } catch {
+      if (!this.destroyed) {
+        this.googleButtonVisible.set(false);
+        this.googleProvider.set(null);
+      }
+      return;
+    }
 
     if (this.destroyed) {
       cleanup();

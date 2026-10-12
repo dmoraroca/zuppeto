@@ -81,6 +81,10 @@ public sealed class TerritorialPhase6PostgreSqlTests
 
             var locations = new TerritorialLocationRepository(db);
             Assert.Equal(2, (await locations.ListCountriesAsync()).Count);
+            var publishedSuggestions = await locations.SearchPublishedLocalitiesAsync("Mün", 20);
+            var munichSuggestion = Assert.Single(publishedSuggestions);
+            Assert.Equal(munich.Id, munichSuggestion.Id);
+            Assert.Equal("Deutschland", munichSuggestion.Country);
             var resolved = await locations.ResolveSelectionAsync(germany.Id, munich.Id);
             Assert.Equal("Deutschland", resolved.Country);
             Assert.Equal("München", resolved.Locality);

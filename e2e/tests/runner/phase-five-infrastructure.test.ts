@@ -32,12 +32,11 @@ test('Phase V permission fixture restores the exact original assignment set afte
   assert.deepEqual(transport.permissions, ['page.admin.documentation', 'page.home']);
 });
 
-test('Phase V geographic identities stay within schema limits and do not collide between runs', () => {
+test('country catalog identities stay within schema limits and do not collide between runs', () => {
   const factory = new AdminGeographyFactory({} as never);
   const second = new TestDataIdentityFactory().create('ZUP-121', 'ADMIN', 'run-abcdef13', 'a01');
   assert.ok(factory.countryCode(identity).length <= 20);
   assert.notEqual(factory.countryCode(identity), factory.countryCode(second));
-  assert.match(factory.cityName(identity), /^E2E-ZUP-121-ADMIN-/);
 });
 
 test('Phase V trace policy excludes credentials and authenticated session secrets', () => {

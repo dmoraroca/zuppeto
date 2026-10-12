@@ -82,7 +82,7 @@ export async function executePlaceDetailScenario(code: number, context: ChromeSc
 async function listPlaces(context: ChromeScenarioContext): Promise<readonly PlaceCandidate[]> {
   if (context.session.session === undefined) throw new Error('El detall de lloc requereix sessió autenticada.');
   const response = await context.transport.send<{ readonly items: readonly PlaceCandidate[] } | readonly PlaceCandidate[]>({
-    method: 'GET', path: '/api/places?take=100', accessToken: context.session.session.accessToken
+    method: 'GET', path: '/api/places?country=Espanya&take=100', accessToken: context.session.session.accessToken
   });
   if (response.status !== 200) throw new Error(`No s'ha pogut preparar un lloc E2E (${response.status}).`);
   const places = Array.isArray(response.body)

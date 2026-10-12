@@ -193,7 +193,7 @@ export class PlaceService {
     return filterPlaces(places, { pet: safeFilters.pet });
   }
 
-  /** Public city combo: places plus admin catalog (`source` = places | catalog). */
+  /** Public locality compatibility API (`source` = places | territorial). */
   async fetchPublicCitySuggestions(): Promise<CitySuggestion[]> {
     const items = await firstValueFrom(
       this.http.get<CitySuggestionApiDto[]>(`${API_BASE_URL}/places/cities`).pipe(catchError(() => of([])))

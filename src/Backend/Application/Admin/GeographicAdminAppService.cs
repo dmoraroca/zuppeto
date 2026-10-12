@@ -6,8 +6,6 @@ namespace Zuppeto.Application.Admin;
 
 public sealed class GeographicAdminAppService(IGeographicCatalogRepository repository) : IGeographicAdminAppService
 {
-    private const string CityNameAlreadyExists = "Ja existeix una ciutat amb aquest nom en aquest país.";
-
     public async Task<IReadOnlyList<CountryAdminDto>> ListCountriesAsync(CancellationToken cancellationToken = default)
     {
         var rows = await repository.ListCountriesAsync(cancellationToken);
@@ -75,9 +73,9 @@ public sealed class GeographicAdminAppService(IGeographicCatalogRepository repos
             return Result<bool>.Fail(FailureKind.NotFound, "No s’ha trobat el país.");
         }
 
-        if (await repository.CountryHasCitiesAsync(id, cancellationToken))
+        if (await repository.CountryHasTerritorialDependenciesAsync(id, cancellationToken))
         {
-            return Result<bool>.Fail(FailureKind.Conflict, "No es pot esborrar un país que encara té ciutats.");
+            return Result<bool>.Fail(FailureKind.Conflict, "No es pot esborrar un país que té dades territorials o referències actives.");
         }
 
         var deleted = await repository.DeleteCountryAsync(id, cancellationToken);
@@ -86,102 +84,11 @@ public sealed class GeographicAdminAppService(IGeographicCatalogRepository repos
             : Result<bool>.Fail(FailureKind.NotFound, "No s’ha trobat el país.");
     }
 
-    public async Task<IReadOnlyList<CityAdminDto>> ListCitiesAsync(Guid? countryId, CancellationToken cancellationToken = default)
-    {
-        var rows = await repository.ListCitiesAsync(countryId, cancellationToken);
-        return rows.Select(ToDto).ToArray();
-    }
-
-    public async Task<CityAdminDto?> GetCityAsync(Guid id, CancellationToken cancellationToken = default)
-    {
-        var row = await repository.GetCityByIdAsync(id, cancellationToken);
-        return row is null ? null : ToDto(row);
-    }
-
-    public async Task<Result<CityAdminDto>> CreateCityAsync(CreateCityRequest request, CancellationToken cancellationToken = default)
-    {
-        if (await repository.GetCountryByIdAsync(request.CountryId, cancellationToken) is null)
-        {
-            return Result<CityAdminDto>.Fail(FailureKind.NotFound, "No s’ha trobat el país.");
-        }
-
-        try
-        {
-            var row = await repository.CreateCityAsync(
-                request.CountryId,
-                request.Name,
-                request.Latitude,
-                request.Longitude,
-                request.IsActive,
-                request.SortOrder,
-                cancellationToken);
-
-            return Result<CityAdminDto>.Success(ToDto(row));
-        }
-        catch (InvalidOperationException)
-        {
-            return Result<CityAdminDto>.Fail(FailureKind.Conflict, CityNameAlreadyExists);
-        }
-    }
-
-    public async Task<Result<CityAdminDto>> UpdateCityAsync(Guid id, UpdateCityRequest request, CancellationToken cancellationToken = default)
-    {
-        if (await repository.GetCityByIdAsync(id, cancellationToken) is null)
-        {
-            return Result<CityAdminDto>.Fail(FailureKind.NotFound, "No s’ha trobat la ciutat.");
-        }
-
-        try
-        {
-            var row = await repository.UpdateCityAsync(
-                id,
-                request.Name,
-                request.Latitude,
-                request.Longitude,
-                request.IsActive,
-                request.SortOrder,
-                cancellationToken);
-
-            if (row is null)
-            {
-                return Result<CityAdminDto>.Fail(FailureKind.NotFound, "No s’ha trobat la ciutat.");
-            }
-
-            return Result<CityAdminDto>.Success(ToDto(row));
-        }
-        catch (InvalidOperationException)
-        {
-            return Result<CityAdminDto>.Fail(FailureKind.Conflict, CityNameAlreadyExists);
-        }
-    }
-
-    public async Task<Result<bool>> DeleteCityAsync(Guid id, CancellationToken cancellationToken = default)
-    {
-        var deleted = await repository.DeleteCityAsync(id, cancellationToken);
-        return deleted
-            ? Result<bool>.Success(true)
-            : Result<bool>.Fail(FailureKind.NotFound, "No s’ha trobat la ciutat.");
-    }
-
     private static CountryAdminDto ToDto(CountryRow row) =>
         new(
             row.Id,
             row.Code,
             row.Name,
-            row.IsActive,
-            row.SortOrder,
-            row.CreatedAtUtc,
-            row.UpdatedAtUtc);
-
-    private static CityAdminDto ToDto(CityRow row) =>
-        new(
-            row.Id,
-            row.CountryId,
-            row.CountryName,
-            row.CountryCode,
-            row.Name,
-            row.Latitude,
-            row.Longitude,
             row.IsActive,
             row.SortOrder,
             row.CreatedAtUtc,

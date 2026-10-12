@@ -9,9 +9,7 @@ namespace Zuppeto.Application.Places;
 internal sealed class PlaceApplicationService : IPlaceApplicationService
 {
     private readonly IPlaceRepository placeRepository;
-    private readonly IGeographicCatalogRepository geographicCatalogRepository;
     private readonly IPlaceSearchQueryRepository placeSearchQueryRepository;
-    private readonly IExternalCitySuggestionProvider externalCitySuggestionProvider;
     private readonly IExternalPlaceSuggestionProvider externalPlaceSuggestionProvider;
     private readonly PlaceExternalSearchImporter externalSearchImporter;
     private readonly PlaceSearchPageAssembler searchPageAssembler;
@@ -21,9 +19,7 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
 
     public PlaceApplicationService(
         IPlaceRepository placeRepository,
-        IGeographicCatalogRepository geographicCatalogRepository,
         IPlaceSearchQueryRepository placeSearchQueryRepository,
-        IExternalCitySuggestionProvider externalCitySuggestionProvider,
         IExternalPlaceSuggestionProvider externalPlaceSuggestionProvider,
         PlaceExternalSearchImporter externalSearchImporter,
         PlaceSearchPageAssembler searchPageAssembler,
@@ -32,9 +28,7 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
         TerritorialLocationService territorialLocations)
     {
         this.placeRepository = placeRepository;
-        this.geographicCatalogRepository = geographicCatalogRepository;
         this.placeSearchQueryRepository = placeSearchQueryRepository;
-        this.externalCitySuggestionProvider = externalCitySuggestionProvider;
         this.externalPlaceSuggestionProvider = externalPlaceSuggestionProvider;
         this.externalSearchImporter = externalSearchImporter;
         this.searchPageAssembler = searchPageAssembler;
@@ -169,13 +163,7 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
 
     public async Task<IReadOnlyCollection<PlaceCitySuggestionDto>> GetAvailableCitiesAsync(CancellationToken cancellationToken = default)
     {
-        var own = await BuildCitySuggestionsAsync(query: null, PlaceCitySearchDefaults.MaxLimit, cancellationToken);
-        var fromExternal = await externalCitySuggestionProvider.SearchCitiesAsync(
-            string.Empty,
-            PlaceCitySearchDefaults.MaxLimit,
-            cancellationToken);
-        // Do not let the provider limit remove catalog rows appended after external results.
-        return CombineCitySources(own, fromExternal, int.MaxValue);
+        return await BuildCitySuggestionsAsync(query: null, PlaceCitySearchDefaults.MaxLimit, cancellationToken);
     }
 
     public async Task<IReadOnlyCollection<PlaceCitySuggestionDto>> SearchAvailableCitiesAsync(
@@ -184,9 +172,7 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
     {
         var normalized = PlaceCityQueryNormalizer.Normalize(request.Q);
         var limit = Math.Clamp(request.Limit ?? PlaceCitySearchDefaults.DefaultLimit, 1, PlaceCitySearchDefaults.MaxLimit);
-        var fromOwnCatalog = await BuildCitySuggestionsAsync(normalized, limit, cancellationToken);
-        var fromExternal = await externalCitySuggestionProvider.SearchCitiesAsync(normalized, limit, cancellationToken);
-        return CombineCitySources(fromOwnCatalog, fromExternal, limit);
+        return await BuildCitySuggestionsAsync(normalized, limit, cancellationToken);
     }
 
     private async Task<IReadOnlyCollection<PlaceCitySuggestionDto>> BuildCitySuggestionsAsync(
@@ -194,14 +180,8 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
         int limit,
         CancellationToken cancellationToken)
     {
-        var geographic = await geographicCatalogRepository.ListCitiesAsync(null, cancellationToken);
-        var fromGeographic = geographic
-            .Where(city => city.IsActive)
-            .Where(city => CityNameMatchesQuery(city.Name, city.NormalizedName, query))
-            .Select(city => ToCitySuggestion(
-                city.Name,
-                city.CountryName,
-                "catalog"));
+        var territorial = (await territorialLocations.SearchPublishedLocalitiesAsync(query, limit, cancellationToken))
+            .Select(locality => ToCitySuggestion(locality.Name, locality.Country, "territorial"));
 
         var fromPlaces = (await placeRepository.GetAvailableCitiesAsync(cancellationToken))
             .Select(item => ToCitySuggestion(
@@ -211,19 +191,8 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
             .Where(item => CityNameMatchesQuery(item.City, item.City, query));
 
         var places = MergeCitySuggestions(fromPlaces, limit, sortByName: true);
-        var catalog = MergeCitySuggestions(fromGeographic, limit, sortByName: true);
-        return MergeCitySuggestions(places.Concat(catalog), limit, sortByName: false);
-    }
-
-    private static IReadOnlyCollection<PlaceCitySuggestionDto> CombineCitySources(
-        IEnumerable<PlaceCitySuggestionDto> own,
-        IEnumerable<PlaceCitySuggestionDto> fromExternal,
-        int limit)
-    {
-        var owned = own.ToArray();
-        var places = owned.Where(item => string.Equals(item.Source, "places", StringComparison.OrdinalIgnoreCase));
-        var catalog = owned.Where(item => string.Equals(item.Source, "catalog", StringComparison.OrdinalIgnoreCase));
-        return MergeCitySuggestions(places.Concat(fromExternal).Concat(catalog), limit, sortByName: false);
+        var official = MergeCitySuggestions(territorial, limit, sortByName: true);
+        return MergeCitySuggestions(places.Concat(official), limit, sortByName: false);
     }
 
     private static PlaceCitySuggestionDto ToCitySuggestion(string city, string country, string source)

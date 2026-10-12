@@ -48,7 +48,11 @@ export class PilotDiagnosticsCollector {
 }
 
 export function isKnownExternalReportOnlyError(text: string): boolean {
-  return text.includes("Framing 'https://accounts.google.com/'")
-    && text.includes('report-only Content Security Policy directive')
-    && text.includes("frame-ancestors 'self'");
+  const chromiumReportOnly = text.includes("Framing 'https://accounts.google.com/'")
+    && text.includes('report-only Content Security Policy directive');
+  const firefoxReportOnly = text.includes('Content-Security-Policy: (Report-Only policy)');
+  const webkitReportOnly = text.includes("The Content Security Policy directive 'frame-ancestors'")
+    && text.includes('ignored when delivered in a report-only policy');
+  return webkitReportOnly
+    || ((chromiumReportOnly || firefoxReportOnly) && text.includes("frame-ancestors 'self'"));
 }

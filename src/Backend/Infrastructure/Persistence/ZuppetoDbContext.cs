@@ -13,8 +13,6 @@ public sealed class ZuppetoDbContext(DbContextOptions<ZuppetoDbContext> options)
 
     public DbSet<CountryRecord> Countries => Set<CountryRecord>();
 
-    public DbSet<CityRecord> Cities => Set<CityRecord>();
-
     public DbSet<TerritorialUnitTypeRecord> TerritorialUnitTypes => Set<TerritorialUnitTypeRecord>();
 
     public DbSet<TerritorialUnitRecord> TerritorialUnits => Set<TerritorialUnitRecord>();
@@ -38,7 +36,6 @@ public sealed class ZuppetoDbContext(DbContextOptions<ZuppetoDbContext> options)
     public DbSet<TerritorialChangeSetItemRecord> TerritorialChangeSetItems => Set<TerritorialChangeSetItemRecord>();
     public DbSet<TerritorialMaintenanceAuditRecord> TerritorialMaintenanceAudit => Set<TerritorialMaintenanceAuditRecord>();
     public DbSet<TerritorialSourceApprovalAuditRecord> TerritorialSourceApprovalAudit => Set<TerritorialSourceApprovalAuditRecord>();
-
     public DbSet<MenuRecord> Menus => Set<MenuRecord>();
 
     public DbSet<MenuRoleRecord> MenuRoles => Set<MenuRoleRecord>();

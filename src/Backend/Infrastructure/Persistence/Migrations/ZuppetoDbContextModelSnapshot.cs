@@ -23,65 +23,6 @@ namespace Infrastructure.Persistence.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "pgcrypto");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.CityRecord", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id")
-                        .HasDefaultValueSql("gen_random_uuid()");
-
-                    b.Property<Guid>("CountryId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("country_id");
-
-                    b.Property<DateTimeOffset>("CreatedAtUtc")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at_utc");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_active");
-
-                    b.Property<decimal?>("Latitude")
-                        .HasPrecision(9, 6)
-                        .HasColumnType("numeric(9,6)")
-                        .HasColumnName("latitude");
-
-                    b.Property<decimal?>("Longitude")
-                        .HasPrecision(9, 6)
-                        .HasColumnType("numeric(9,6)")
-                        .HasColumnName("longitude");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("name");
-
-                    b.Property<string>("NormalizedName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("normalized_name");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("integer")
-                        .HasColumnName("sort_order");
-
-                    b.Property<DateTimeOffset>("UpdatedAtUtc")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at_utc");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CountryId", "NormalizedName")
-                        .IsUnique()
-                        .HasDatabaseName("uq_cities_country_normalized_name");
-
-                    b.ToTable("cities", (string)null);
-                });
-
             modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.CountryRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2372,17 +2313,6 @@ namespace Infrastructure.Persistence.Migrations
                         });
                 });
 
-            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.CityRecord", b =>
-                {
-                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.CountryRecord", "Country")
-                        .WithMany("Cities")
-                        .HasForeignKey("CountryId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Country");
-                });
-
             modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.ExternalIdentityRecord", b =>
                 {
                     b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.UserRecord", "User")
@@ -2935,8 +2865,6 @@ namespace Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.CountryRecord", b =>
                 {
-                    b.Navigation("Cities");
-
                     b.Navigation("TerritorialDatasetSources");
 
                     b.Navigation("TerritorialLocaleAssignments");

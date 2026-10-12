@@ -1,5 +1,6 @@
 import { expect, type Locator } from '@playwright/test';
 import type { ChromeScenarioContext } from './chrome-scenario.js';
+import { selectPublishedBarcelonaIn } from './territorial-location-scenario-helper.js';
 
 export async function executeAdminPlaceScenario(code: number, context: ChromeScenarioContext): Promise<void> {
   const session = context.session.session; if (!session) throw new Error('Els escenaris de llocs admin requereixen sessió ADMIN.');
@@ -8,7 +9,7 @@ export async function executeAdminPlaceScenario(code: number, context: ChromeSce
   if (code === 139) { for (const h of ['Nom', 'Tipus', 'Ciutat', 'País', 'Mascotes', 'Accions']) await expect(context.page.getByRole('columnheader', { name: h })).toBeVisible(); return; }
   if (code === 140) {
     const draft = context.adminPlaceFactory.draft(context.identity); await context.page.getByRole('button', { name: 'Nou lloc' }).click(); const modal = context.page.locator('.admin-console-modal--create');
-    await modal.getByLabel('Nom').fill(draft.name); await modal.getByLabel('Tipus').selectOption({ index: 1 }); await modal.getByLabel('País').selectOption({ index: 1 }); await modal.getByLabel('Ciutat').selectOption({ index: 1 }); await modal.getByLabel('Adreça').fill(draft.addressLine1); await modal.getByLabel('Latitud').fill(String(draft.latitude)); await modal.getByLabel('Longitud').fill(String(draft.longitude));
+    await modal.getByLabel('Nom').fill(draft.name); await modal.getByLabel('Tipus').selectOption({ index: 1 }); await selectPublishedBarcelonaIn(modal.locator('app-territorial-location-selector')); await modal.getByLabel('Adreça').fill(draft.addressLine1); await modal.getByLabel('Latitud').fill(String(draft.latitude)); await modal.getByLabel('Longitud').fill(String(draft.longitude));
     const privacy = modal.getByRole('checkbox', { name: /Accepto les condicions/ }); if (await privacy.count()) await privacy.check(); const response = context.page.waitForResponse((r) => r.url().endsWith('/api/admin/places') && r.request().method() === 'POST'); await modal.getByRole('button', { name: 'Desar' }).click(); const saved = await response; expect(saved.status()).toBe(201); const id = await saved.json() as string; context.adminPlaceFactory.registerCleanup(id, context.identity, session, context.cleanup); await searchAdminPlace(context, draft.name); await expect(placeRow(context, draft.name)).toBeVisible(); await context.page.goto(`/places/${id}`); await expect(context.page.getByRole('heading', { name: draft.name })).toBeVisible(); return;
   }
   if (!prepared) throw new Error('Falta el lloc temporal.');

@@ -31,7 +31,7 @@ export class PlaceFiltersComponent {
   readonly sort = input<PlaceFilterSort>('recent');
   readonly showClearButton = input(true);
   readonly typeLabel = input('Tipus');
-  /** When false, the city combo only lists `cities` (no GeoNames / catalog remote search). */
+  /** When false, the locality combo does not query the published territorial catalog. */
   readonly enableRemoteCitySearch = input(true);
   readonly filtersChanged = output<Partial<PlaceFilters>>();
   readonly sortChanged = output<PlaceFilterSort>();

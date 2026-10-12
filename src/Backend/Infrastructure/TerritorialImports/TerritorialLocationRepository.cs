@@ -35,6 +35,43 @@ internal sealed class TerritorialLocationRepository(ZuppetoDbContext db) : ITerr
         return new PageResult<TerritorialLocalityOptionDto>(rows, page, pageSize, total);
     }
 
+    public async Task<IReadOnlyCollection<TerritorialLocalitySuggestionDto>> SearchPublishedLocalitiesAsync(
+        string? search,
+        int limit,
+        CancellationToken ct = default)
+    {
+        var query = db.TerritorialUnits.AsNoTracking()
+            .Where(x => x.IsActive
+                && x.Country.IsActive
+                && db.TerritorialCatalogStates.Any(state => state.CountryId == x.CountryId && state.Version > 0)
+                && (x.ManualSelectableLocality == true
+                    || (x.ManualSelectableLocality == null && x.TerritorialUnitType.IsSelectableLocality)));
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var value = search.Trim();
+            query = query.Where(x => x.Names.Any(n => n.Name.Contains(value)) || x.Codes.Any(c => c.Value.Contains(value)));
+        }
+
+        return await query
+            .OrderBy(x => x.Names.Where(n => n.IsPrimary).Select(n => n.Name).FirstOrDefault())
+            .ThenBy(x => x.Country.Name)
+            .Take(limit)
+            .Select(x => new TerritorialLocalitySuggestionDto(
+                x.Id,
+                x.CountryId,
+                x.Country.Name,
+                x.Names.Where(n => n.IsPrimary).Select(n => n.Name).FirstOrDefault()
+                    ?? x.Names.Select(n => n.Name).FirstOrDefault()
+                    ?? string.Empty,
+                (x.Parent == null
+                    ? x.TerritorialUnitType.Name
+                    : x.Parent.Names.Where(n => n.IsPrimary).Select(n => n.Name).FirstOrDefault()
+                        ?? x.TerritorialUnitType.Name) + " · " + x.Country.Name,
+                x.Names.Where(n => n.IsPrimary).Select(n => n.Locale).FirstOrDefault()))
+            .ToArrayAsync(ct);
+    }
+
     public async Task<TerritorialLocationSelectionDto> ResolveSelectionAsync(Guid countryId, Guid territorialUnitId, CancellationToken ct = default)
     {
         var country = await db.Countries.AsNoTracking().Where(x => x.Id == countryId && x.IsActive)

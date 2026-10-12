@@ -1,5 +1,6 @@
 import { expect, type Page } from '@playwright/test';
 import type { ChromeScenarioContext } from './chrome-scenario.js';
+import { selectPublishedBarcelona } from './territorial-location-scenario-helper.js';
 
 export async function executePlacesScenario(code: number, context: ChromeScenarioContext): Promise<void> {
   const { page } = context;
@@ -114,14 +115,7 @@ async function search(page: Page, configure: () => Promise<unknown>): Promise<vo
 }
 
 async function selectAvailableCity(page: Page): Promise<string> {
-  const combobox = page.locator('app-city-combobox');
-  await combobox.getByRole('button', { name: 'Obrir o tancar suggeriments de ciutat' }).click();
-  const listbox = combobox.getByRole('listbox');
-  await expect(listbox).toBeVisible();
-  const label = (await listbox.getByRole('button').allTextContents()).map((value) => value.trim()).find((value) => value !== 'Totes');
-  if (!label) throw new Error('El catàleg no ofereix cap ciutat seleccionable.');
-  await listbox.getByRole('button', { name: label, exact: true }).first().click();
-  return label.replace(/\s+\(.+\)$/, '').trim();
+  return selectPublishedBarcelona(page);
 }
 
 async function togglePreparedFavorite(context: ChromeScenarioContext): Promise<void> {

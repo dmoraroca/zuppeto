@@ -339,6 +339,12 @@ public sealed class TerritorialLocationService(ITerritorialLocationRepository re
         return repository.SearchLocalitiesAsync(countryId, search?.Trim(), Math.Max(1, page), Math.Clamp(pageSize, 1, 50), ct);
     }
 
+    public Task<IReadOnlyCollection<TerritorialLocalitySuggestionDto>> SearchPublishedLocalitiesAsync(
+        string? search,
+        int limit,
+        CancellationToken ct = default) =>
+        repository.SearchPublishedLocalitiesAsync(search?.Trim(), Math.Clamp(limit, 1, 1000), ct);
+
     public async Task ValidateSelectionAsync(TerritorialLocationValidationRequest request, CancellationToken ct = default)
     {
         _ = await ResolveSelectionAsync(request.CountryId, request.TerritorialUnitId, ct);

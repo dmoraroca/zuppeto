@@ -8,7 +8,6 @@ using Zuppeto.Application.Users;
 using Zuppeto.Application.Places;
 using Zuppeto.Domain.Abstractions;
 using Zuppeto.Infrastructure.Auth;
-using Zuppeto.Infrastructure.GeoNames;
 using Zuppeto.Infrastructure.GooglePlaces;
 using Zuppeto.Infrastructure.Persistence;
 using Zuppeto.Infrastructure.Persistence.Repositories;
@@ -85,7 +84,6 @@ public static class DependencyInjection
         }
         services.AddMemoryCache();
         services.AddDataProtection();
-        services.Configure<GeoNamesOptions>(configuration.GetSection(GeoNamesOptions.SectionName));
         services.Configure<GooglePlacesOptions>(configuration.GetSection(GooglePlacesOptions.SectionName));
         services.Configure<GooglePlacesComplianceOptions>(
             configuration.GetSection(GooglePlacesComplianceOptions.SectionName));
@@ -107,12 +105,6 @@ public static class DependencyInjection
             }
         });
         services.AddHttpClient<IFacebookOAuthClient, FacebookOAuthClient>();
-        services.AddHttpClient<IExternalCitySuggestionProvider, GeoNamesCitySuggestionProvider>((sp, client) =>
-        {
-            var geoOptions = sp.GetRequiredService<IOptions<GeoNamesOptions>>().Value;
-            client.BaseAddress = new Uri(geoOptions.BaseUrl);
-            client.Timeout = TimeSpan.FromSeconds(Math.Max(2, geoOptions.TimeoutSeconds));
-        });
         services.AddHttpClient<GooglePlacesApiClient>((sp, client) =>
         {
             var placesOptions = sp.GetRequiredService<IOptions<GooglePlacesOptions>>().Value;

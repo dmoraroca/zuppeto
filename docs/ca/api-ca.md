@@ -105,10 +105,10 @@ L’API funcional compartida incorpora `GET /api/territorial/countries`, `GET /a
 El grup **`/api/places`** exigeix **`Authorization: Bearer <JWT>`** per defecte. Per al preview públic del login, aquestes lectures són anònimes: `GET /api/places`, `GET /api/places/cities` i `GET /api/places/cities/search`. La resta (inclòs detall per id, cerques externes i escrits) segueix amb JWT; els escrits **`POST` / `PUT`** també requereixen permís **`action.places.manage`**.
 
 - `GET /api/places` (anònim) — admet `countryId` i `territorialUnitId` per identitat estable, i conserva `country` i `city` com a compatibilitat textual
-- `GET /api/places/cities` (anònim) — llista `PlaceCitySuggestionDto` amb llocs, fins a 1000 resultats GeoNames (màxim per petició) i catàleg governat (`source`: `places` | `geonames` | `catalog`)
-- `GET /api/places/cities/search` (anònim) — typeahead de 2 caràcters sobre totes les fonts, fins a 1000 resultats
+- `GET /api/places/cities` (anònim) — llista de compatibilitat `PlaceCitySuggestionDto` amb snapshots de llocs i localitats seleccionables del catàleg publicat (`source`: `places` | `territorial`)
+- `GET /api/places/cities/search` (anònim) — typeahead de 2 caràcters sobre snapshots i catàleg territorial, fins a 1000 resultats
 
-Aquest agregat textual continua sent compatibilitat de Places fins que Fase VII publiqui el catàleg i Fase VIII executi el backfill. La nova API territorial ja alimenta els fluxos nous; no s’ha retirat GeoNames i no es vincula mai User/Place per nom.
+Aquest agregat textual es manté per compatibilitat de clients, però ja no consulta `cities` ni GeoNames. No vincula User/Place per nom; les seleccions noves continuen requerint IDs territorials validats.
 - `GET /api/places/{id}`
 - `POST /api/places`
 - `PUT /api/places/{id}`
@@ -135,7 +135,9 @@ Els contractes de perfil i administració d’usuaris inclouen `countryId` i `te
 
 ### Compatibilitat geogràfica auditada a Fase IX
 
-`GET/POST /api/admin/countries`, `GET/PUT/DELETE /api/admin/countries/{id}` i les operacions equivalents de `/api/admin/cities` continuen actives i protegides per `action.geographic.manage`. No són aliases de l'API territorial: administren el catàleg rígid històric que encara consumeixen Places i l'ADMIN. `countries` és, a més, l'arrel compartida per `/api/territorial`; per això no es pot retirar. La retirada dels endpoints de `cities` queda condicionada al backfill i a la substitució dels suggeriments textuals.
+`GET/POST /api/admin/countries` i `GET/PUT/DELETE /api/admin/countries/{id}` continuen actius i protegits per `action.geographic.manage`: `countries` és l'arrel compartida per `/api/territorial` i no es retira. Els endpoints `/api/admin/cities*` ja no es mapen.
+
+El backfill User/Place s'ha descartat per decisió funcional: els registres afectats eren dades de prova prescindibles. Per tant no s'exposa cap endpoint de preview, execució o rollback de backfill. La neteja, separada de l'API, s'ha executat amb autorització explícita i únicament amb els UUID del manifest auditat.
 
 ### Favorites
 

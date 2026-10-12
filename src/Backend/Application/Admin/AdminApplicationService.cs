@@ -31,6 +31,7 @@ internal sealed class AdminApplicationService(
         new("iteracio-6-fase-vii", "Iteració 6 — Fase VII territorial"),
         new("iteracio-6-fase-viii", "Iteració 6 — Fase VIII · Contracte territorial 1.0"),
         new("iteracio-6-fase-ix", "Iteració 6 — Fase IX · Auditoria de tancament territorial"),
+        new("iteracio-6-fase-ix-cleanup", "Iteració 6 — Fase IX · Pla de neteja de dades de prova"),
         new("contracte-territorial-1.0", "Contracte territorial PETILOC 1.0"),
         new("iteracio-6-inventari-pais-localitat", "Iteració 6 — Inventari País → Localitat")
     ];
@@ -395,6 +396,7 @@ internal sealed class AdminApplicationService(
             "iteracio-6-fase-vii" => Path.Combine("docs", "ca", "iteracio-6-fase-vii-prerequisits-publicacio-ca.md"),
             "iteracio-6-fase-viii" => Path.Combine("docs", "ca", "iteracio-6-fase-viii-contracte-territorial-ca.md"),
             "iteracio-6-fase-ix" => Path.Combine("docs", "ca", "iteracio-6-fase-ix-tancament-ca.md"),
+            "iteracio-6-fase-ix-cleanup" => Path.Combine("docs", "ca", "iteracio-6-fase-ix-neteja-dades-prova-ca.md"),
             "contracte-territorial-1.0" => Path.Combine("docs", "ca", "contracte-territorial-1.0-ca.md"),
             "iteracio-6-inventari-pais-localitat" => Path.Combine("docs", "ca", "iteracio-6-inventari-pais-localitat-ca.md"),
             _ => string.Empty

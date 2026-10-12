@@ -84,6 +84,7 @@ public sealed class TerritorialPilotConfigurationSeeder(ZuppetoDbContext db)
             SpainFingerprint, TerritorialPilotMappings.SpainV1(), now, ct);
         await UpsertMapping(new Guid("72000000-0000-0000-0000-000000000002"), germanySource.Id, 1,
             GermanyFingerprint, TerritorialPilotMappings.GermanyGvIsysV1(), now, ct);
+        TouchChangedConfigurationRows(now);
         await db.SaveChangesAsync(ct);
     }
 
@@ -97,7 +98,7 @@ public sealed class TerritorialPilotConfigurationSeeder(ZuppetoDbContext db)
             db.Countries.Add(country);
         }
         country.Code = code; country.Name = name; country.Iso2 = iso2; country.Iso3 = iso3;
-        country.IsActive = true; country.SortOrder = order; country.UpdatedAtUtc = now;
+        country.IsActive = true; country.SortOrder = order;
         return country;
     }
 
@@ -119,7 +120,7 @@ public sealed class TerritorialPilotConfigurationSeeder(ZuppetoDbContext db)
         source.SourceKey = sourceKey; source.Organisation = organisation; source.Dataset = dataset; source.DatasetType = "AdministrativeTerritory";
         source.Locale = locale; source.Url = url; source.DownloadUrl = downloadUrl;
         source.IsActive = true; source.PublicationMode = "FullSnapshot";
-        source.DatasetVersion = version; source.DatasetDate = datasetDate; source.UpdatedAtUtc = now;
+        source.DatasetVersion = version; source.DatasetDate = datasetDate;
         return source;
     }
 
@@ -136,7 +137,20 @@ public sealed class TerritorialPilotConfigurationSeeder(ZuppetoDbContext db)
                 db.TerritorialUnitTypes.Add(type);
             }
             type.Name = definition.Name; type.DisplayOrder = definition.Order;
-            type.IsSelectableLocality = definition.Selectable; type.IsActive = true; type.UpdatedAtUtc = now;
+            type.IsSelectableLocality = definition.Selectable; type.IsActive = true;
+        }
+    }
+
+    private void TouchChangedConfigurationRows(DateTimeOffset now)
+    {
+        db.ChangeTracker.DetectChanges();
+        foreach (var entry in db.ChangeTracker.Entries())
+        {
+            if (entry.Entity is not (CountryRecord or TerritorialDatasetSourceRecord or TerritorialUnitTypeRecord) ||
+                entry.State is not (EntityState.Added or EntityState.Modified))
+                continue;
+
+            entry.Property(nameof(CountryRecord.UpdatedAtUtc)).CurrentValue = now;
         }
     }
 

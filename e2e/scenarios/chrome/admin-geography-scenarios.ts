@@ -5,7 +5,7 @@ export async function executeAdminGeographyScenario(code: number, context: Chrom
   const session = context.session.session;
   if (!session) throw new Error('Els escenaris geogràfics requereixen sessió ADMIN.');
   if (code <= 132) return countryScenario(code, context, session);
-  return cityScenario(code, context, session);
+  return territorialReplacementScenario(code, context, session);
 }
 
 async function countryScenario(code: number, context: ChromeScenarioContext, session: NonNullable<ChromeScenarioContext['session']['session']>): Promise<void> {
@@ -39,23 +39,42 @@ async function countryScenario(code: number, context: ChromeScenarioContext, ses
   await countryRow(context, country.code).getByRole('button', { name: 'Esborrar' }).click(); await context.page.locator('.admin-console-modal--confirm').getByRole('button', { name: 'Esborrar' }).click(); await expect(countryRow(context, country.code)).toHaveCount(0);
 }
 
-async function cityScenario(code: number, context: ChromeScenarioContext, session: NonNullable<ChromeScenarioContext['session']['session']>): Promise<void> {
-  const country = code >= 134 ? await context.adminGeographyFactory.createCountry(context.identity, session, context.cleanup) : undefined;
-  let city = country && code >= 135 ? await context.adminGeographyFactory.createCity(context.identity, country, session, context.cleanup, code === 135) : undefined;
-  await context.page.goto('/admin/ciutats', { waitUntil: 'networkidle' }); await expect(context.page.locator('.admin-console-panel').getByRole('heading', { name: 'Catàleg de ciutats' })).toBeVisible();
-  if (code === 133) { for (const h of ['País', 'Nom', 'Lat', 'Lon', 'Ordre', 'Actiu', 'Accions']) await expect(context.page.getByRole('columnheader', { name: h })).toBeVisible(); return; }
-  if (!country) throw new Error('Falta el país temporal.');
+async function territorialReplacementScenario(
+  code: number,
+  context: ChromeScenarioContext,
+  session: NonNullable<ChromeScenarioContext['session']['session']>
+): Promise<void> {
+  await context.page.goto('/admin/ciutats', { waitUntil: 'networkidle' });
+  await expect(context.page).toHaveURL(/\/admin\/territori$/);
+  await expect(context.page.getByRole('heading', { name: 'Gestió territorial' })).toBeVisible();
+  if (code === 133) return;
+
   if (code === 134) {
-    await context.page.getByRole('button', { name: 'Nova ciutat' }).click(); const modal = context.page.locator('.admin-console-modal--create'); await modal.getByLabel('País').selectOption(country.id); await modal.getByLabel('Nom').fill(context.adminGeographyFactory.cityName(context.identity));
-    const privacy = modal.getByRole('checkbox', { name: /Accepto les condicions/ }); if (await privacy.count()) await privacy.check(); const response = context.page.waitForResponse((r) => r.url().endsWith('/api/admin/cities') && r.request().method() === 'POST'); await modal.getByRole('button', { name: 'Desar' }).click(); expect((await response).status()).toBe(201);
-    const items = await context.adminGeographyAdapter.cities(session.accessToken, country.id); city = items.find((c) => c.name === context.adminGeographyFactory.cityName(context.identity)); if (!city) throw new Error('La ciutat E2E creada no és al catàleg.'); context.adminGeographyFactory.registerCityCleanup(city, session, context.cleanup); await expect(cityRow(context, city.name)).toBeVisible(); return;
+    await context.page.getByRole('button', { name: 'Catàleg territorial' }).click();
+    await expect(context.page.locator('app-territorial-catalog')).toBeVisible();
+    return;
   }
-  if (!city) throw new Error('Falta la ciutat temporal.');
-  if (code === 135) { await expect(cityRow(context, city.name)).toContainText('41.387'); await expect(cityRow(context, city.name)).toContainText('2.17'); return; }
-  if (code === 136) { await cityRow(context, city.name).getByRole('button', { name: 'Veure detall' }).click(); const modal = context.page.locator('.admin-console-modal--detail'); await modal.getByRole('button', { name: 'Modificar' }).click(); const updated = `${city.name}-EDIT`; await modal.getByLabel('Nom').fill(updated); await Promise.all([context.page.waitForResponse((r) => r.url().includes(`/api/admin/cities/${city!.id}`) && r.request().method() === 'PUT'), modal.getByRole('button', { name: 'Desar' }).click()]); await expect(cityRow(context, updated)).toBeVisible(); return; }
-  if (code === 137) { context.allowHttpStatus(409, '/api/admin/cities'); context.allowConsoleError('409'); await context.page.getByRole('button', { name: 'Nova ciutat' }).click(); const modal = context.page.locator('.admin-console-modal--create'); await modal.getByLabel('País').selectOption(country.id); await modal.getByLabel('Nom').fill(city.name.toUpperCase()); const privacy = modal.getByRole('checkbox', { name: /Accepto les condicions/ }); if (await privacy.count()) await privacy.check(); await modal.getByRole('button', { name: 'Desar' }).click(); await expect(context.page.getByRole('alert')).toContainText(/existeix|ciutat/i); return; }
-  await context.page.goto('/places'); const combo = context.page.locator('app-city-combobox'); await combo.getByRole('button', { name: 'Obrir o tancar suggeriments de ciutat' }).click(); await expect(combo.getByRole('listbox').getByText(city.name, { exact: false })).toBeVisible();
+
+  if (code === 135) {
+    await expect(context.page.getByRole('button', { name: 'Catàleg territorial' })).toBeVisible();
+    await expect(context.page.getByRole('button', { name: 'Fonts oficials' })).toBeVisible();
+    return;
+  }
+
+  if (code === 136) {
+    await expect(context.page.getByRole('link', { name: 'Ciutats', exact: true })).toHaveCount(0);
+    return;
+  }
+
+  if (code === 137) {
+    context.allowHttpStatus(404, '/api/admin/cities');
+    context.allowConsoleError('404 (Not Found)');
+    expect(await context.adminGeographyAdapter.legacyCitiesStatus(session.accessToken)).toBe(404);
+    return;
+  }
+
+  await context.page.goto('/places');
+  await expect(context.page.locator('app-territorial-location-selector')).toBeVisible();
 }
 
 function countryRow(context: ChromeScenarioContext, code: string): Locator { return context.page.getByRole('row').filter({ has: context.page.getByRole('cell', { name: code, exact: true }) }); }
-function cityRow(context: ChromeScenarioContext, name: string): Locator { return context.page.getByRole('row').filter({ has: context.page.getByRole('cell', { name, exact: true }) }); }

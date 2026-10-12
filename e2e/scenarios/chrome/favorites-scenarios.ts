@@ -1,6 +1,7 @@
 import { expect, type Page } from '@playwright/test';
 import type { ManagedFavorite } from '../../infrastructure/api/favorite-factory.js';
 import type { ChromeScenarioContext } from './chrome-scenario.js';
+import { selectPublishedBarcelona } from './territorial-location-scenario-helper.js';
 
 export async function executeFavoritesScenario(code: number, context: ChromeScenarioContext): Promise<void> {
   if (context.session.session === undefined) throw new Error('Els escenaris de favorits requereixen sessió USER.');
@@ -84,11 +85,5 @@ async function applySearch(page: Page, value: string): Promise<void> {
 }
 
 async function chooseFavoriteCity(page: Page): Promise<string> {
-  const combobox = page.locator('app-city-combobox');
-  await combobox.getByRole('button', { name: 'Obrir o tancar suggeriments de ciutat' }).click();
-  const labels = (await combobox.getByRole('listbox').getByRole('button').allTextContents()).map((value) => value.trim());
-  const label = labels.find((value) => value !== 'Totes');
-  if (!label) throw new Error('No hi ha cap ciutat de favorits seleccionable.');
-  await combobox.getByRole('button', { name: label, exact: true }).click();
-  return label.replace(/^\d{4,5}\s+/, '').replace(/\s+\(.+\)$/, '').trim();
+  return selectPublishedBarcelona(page);
 }

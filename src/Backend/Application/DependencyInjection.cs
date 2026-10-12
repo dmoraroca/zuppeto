@@ -77,8 +77,6 @@ public static class DependencyInjection
         services.AddSingleton<IValidator<SaveMenuRequest>, SaveMenuRequestValidator>();
         services.AddSingleton<IValidator<CreateCountryRequest>, CreateCountryRequestValidator>();
         services.AddSingleton<IValidator<UpdateCountryRequest>, UpdateCountryRequestValidator>();
-        services.AddSingleton<IValidator<CreateCityRequest>, CreateCityRequestValidator>();
-        services.AddSingleton<IValidator<UpdateCityRequest>, UpdateCityRequestValidator>();
         services.AddSingleton<IValidator<CreatePermissionDefinitionRequest>, CreatePermissionDefinitionRequestValidator>();
         services.AddSingleton<IValidator<UpdatePermissionDefinitionRequest>, UpdatePermissionDefinitionRequestValidator>();
         services.AddSingleton<IValidator<CreateRoleDefinitionRequest>, CreateRoleDefinitionRequestValidator>();

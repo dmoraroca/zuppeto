@@ -46,7 +46,7 @@ public sealed record PlaceExternalCandidateDto(
     string? PhotoReference = null);
 
 /// <summary>
-/// Query for <c>GET /api/places/cities/search</c>: typeahead over the cities catalog, places, and GeoNames.
+/// Query for <c>GET /api/places/cities/search</c>: typeahead over place snapshots and published territorial localities.
 /// </summary>
 public sealed record PlaceCitySearchRequest(string? Q, int? Limit);
 

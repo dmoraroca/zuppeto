@@ -145,8 +145,24 @@ public sealed class TerritorialImportPersistenceTests
             Assert.Equal(actor.Id, reseeded.VerifiedByUserId);
             Assert.Equal(new DateOnly(2026, 1, 1), reseeded.DatasetDate);
             Assert.Equal(1, await db.TerritorialDatasetSources.CountAsync(item => item.Country.Iso2 == "ES" && item.Dataset == "Nomenclátor Geográfico de Municipios y Entidades de Población"));
+
+            var timestampsBeforeNoOpSeed = await ConfigurationTimestamps(db);
+            await seeder.SeedAsync();
+            db.ChangeTracker.Clear();
+            Assert.Equal(timestampsBeforeNoOpSeed, await ConfigurationTimestamps(db));
         }
         finally { await db.Database.EnsureDeletedAsync(); }
+    }
+
+    private static async Task<string[]> ConfigurationTimestamps(ZuppetoDbContext db)
+    {
+        var countries = await db.Countries.AsNoTracking().OrderBy(item => item.Id)
+            .Select(item => $"country:{item.Id}:{item.UpdatedAtUtc:O}").ToArrayAsync();
+        var sources = await db.TerritorialDatasetSources.AsNoTracking().OrderBy(item => item.Id)
+            .Select(item => $"source:{item.Id}:{item.UpdatedAtUtc:O}").ToArrayAsync();
+        var types = await db.TerritorialUnitTypes.AsNoTracking().OrderBy(item => item.Id)
+            .Select(item => $"type:{item.Id}:{item.UpdatedAtUtc:O}").ToArrayAsync();
+        return [.. countries, .. sources, .. types];
     }
 
     [Fact]

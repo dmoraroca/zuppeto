@@ -6,7 +6,9 @@ export class PlaceApiAdapter {
   public constructor(private readonly transport: ApiTransport) {}
 
   public async list(accessToken: string): Promise<readonly PlaceSummary[]> {
-    const response = await this.transport.send<PlaceSearchResponse | PlaceSummary[]>({ method: 'GET', path: '/api/places', accessToken });
+    const response = await this.transport.send<PlaceSearchResponse | PlaceSummary[]>({
+      method: 'GET', path: '/api/places?country=Espanya', accessToken
+    });
     if (response.status !== 200) throw new Error(`No s'ha pogut consultar el catàleg E2E (${response.status}).`);
     return Array.isArray(response.body) ? response.body : response.body.items;
   }

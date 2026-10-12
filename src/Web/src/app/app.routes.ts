@@ -293,21 +293,7 @@ export const routes: Routes = [
   },
   {
     path: 'admin/ciutats',
-    canActivate: [
-      permissionGuard(
-        'page.admin.cities',
-        'El catàleg de ciutats només està disponible amb el permís corresponent.'
-      )
-    ],
-    loadComponent: () =>
-      import('./features/admin/pages/admin-console-page/admin-console-page.component').then(
-        (m) => m.AdminConsolePageComponent
-      ),
-    data: {
-      mode: 'cities',
-      eyebrow: 'Territori',
-      title: 'Catàleg de ciutats',
-      copy: 'Ciutats per país amb coordenades opcionals; el nom normalitzat és únic dins de cada país.'
-    }
+    redirectTo: 'admin/territori',
+    pathMatch: 'full'
   }
 ];

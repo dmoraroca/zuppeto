@@ -1,13 +1,6 @@
 /** Maps leftover English API bodies to Catalan until the process is rebuilt. */
 const EXACT_EN_TO_CA: Record<string, string> = {
-  'City name already exists in this country.':
-    'Ja existeix una ciutat amb aquest nom en aquest país.',
   'Country not found.': 'No s’ha trobat el país.',
-  'City not found.': 'No s’ha trobat la ciutat.',
-  'Cannot delete a country that still has cities.':
-    'No es pot esborrar un país que encara té ciutats.',
-  'Unable to create city.': 'No s’ha pogut crear la ciutat.',
-  'Unable to update city.': 'No s’ha pogut actualitzar la ciutat.',
   'Unable to create country.': 'No s’ha pogut crear el país.',
   'Unable to update country.': 'No s’ha pogut actualitzar el país.',
   'Unable to delete country.': 'No s’ha pogut esborrar el país.',

@@ -127,7 +127,7 @@ class FakeTransport implements ApiTransport {
   public async send<T>(request: ApiRequest): Promise<ApiResponse<T>> {
     this.requests.push(request);
     if (request.path === '/api/auth/login' || request.path === '/api/auth/me') return { status: 200, body: session('USER') as T };
-    if (request.path === '/api/places') return { status: 200, body: { items: [{ id: 'place-id', name: 'Place E2E' }] } as T };
+    if (request.path === '/api/places?country=Espanya') return { status: 200, body: { items: [{ id: 'place-id', name: 'Place E2E' }] } as T };
     if (request.method === 'POST') this.favoriteIds.push(request.path.split('/').at(-1) ?? '');
     if (request.method === 'DELETE') this.favoriteIds.splice(this.favoriteIds.indexOf(request.path.split('/').at(-1) ?? ''), 1);
     return { status: request.method === 'DELETE' ? 204 : 200, body: { entries: this.favoriteIds.map((placeId) => ({ placeId })) } as T };

@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { expect, type Locator } from '@playwright/test';
 import type { ChromeScenarioContext } from './chrome-scenario.js';
+import { selectPublishedBarcelonaIn } from './territorial-location-scenario-helper.js';
 
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64');
 
@@ -102,8 +103,7 @@ async function createThroughUi(context: ChromeScenarioContext, draft: ReturnType
   await modal.getByLabel('Email').fill(draft.email);
   await modal.getByLabel('Nom visible').fill(draft.displayName);
   await modal.getByLabel('Rol').selectOption(draft.role);
-  await modal.getByLabel('Ciutat').fill(draft.city);
-  await modal.getByLabel('País').fill(draft.country);
+  await selectPublishedBarcelonaIn(modal.locator('app-territorial-location-selector'));
   await modal.locator('app-password-field').filter({ hasText: /^\s*Contrasenya\s*\*/ }).locator('input').fill(draft.password || `${randomBytes(16).toString('base64url')}Aa1!`);
   await modal.locator('app-password-field').filter({ hasText: /^\s*Confirmar contrasenya\s*\*/ }).locator('input').fill(draft.confirmPassword || draft.password);
   if (avatar) await modal.locator('input[type="file"]').setInputFiles({ name: 'e2e-avatar.png', mimeType: 'image/png', buffer: png });
