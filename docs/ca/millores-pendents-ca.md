@@ -7,6 +7,18 @@ No substitueix `docs/project-phases.md` ni el joc de proves Excel: aquí només 
 
 ---
 
+## 2026-10-12 — Decisió Iteració 7: retirada de Google Places API
+
+**Àmbit:** catàleg propi de llocs, fonts externes i governança pet-friendly.
+
+**Estat:** **ROADMAP APROVAT / FASE 0 COMPLETADA / FASE I NO INICIADA**.
+
+Google Places API deixa de formar part de l'arquitectura objectiu i no s'ha de completar ni ampliar. La Iteració 7 n'inventariarà les dependències i migrarà progressivament Search, Details, Photos, cache, procedència i deduplicació cap a fonts obertes o serveis gratuïts compatibles amb l'ús comercial. OpenStreetMap/Overpass, Geoapify i Wikidata són candidates pendents de verificar; cap pla gratuït es considera il·limitat ni aprovat automàticament.
+
+Les entrades antigues d'aquest backlog que proposen reactivar, ampliar o completar Google Places es conserven com a historial, però queden **SUBSTITUÏDES** per aquesta decisió. Roadmap vigent: [Iteració 7 — Catàleg propi de llocs amb fonts obertes](iteracio-7-roadmap-places-obertes-ca.md).
+
+---
+
 ## 2026-10-09 — Monetització, model freemium i gamificació
 
 **Àmbit:** model de negoci, fidelització d'usuaris i serveis vinculats al mapa territorial de Petiloc.
@@ -423,20 +435,20 @@ No deixar la targeta buida. No implementar ara (cal font: Places Details, web de
 
 1. **Development / proves:** per defecte **només consulta BD** (catàleg + snapshots). Sense Text Search Google mentre es proven pantalles (evitar quota).
 2. Caché de cerca + caché de local (`place_id`, ~30 dies) com ja documentat a funcional §12.5.1; Google no filtra pels nostres IDs — l’estalvi és no cridar.
-3. Quan Google torni a ser actiu (no-dev o flag): BD primer; si falta cobertura → Text Search; descartar `place_id` ja existents; upsert només nous. Refresh caducat → Places Details per `place_id`.
+3. **Proposta substituïda:** s'havia previst reactivar Google amb BD primer i Text Search/Details com a fallback; la decisió de la Iteració 7 descarta aquesta evolució.
 4. Traça/control de crides Google vs hits de caché: millora futura (ara només `place_search_queries`).
 
-**Estat:** acordat; **Development aplicat** (`GooglePlaces:Enabled=false`, `PreferExternalSearchFirst=false` a `appsettings.Development.json` + guard al Text Search). Place Details / Photos per portada (pàgina visible + fitxa) **implementat** (2026-09-01), sense activar Text Search. Híbrid BD+nous via Text Search: pendent després de proves USER.
+**Estat:** **SUBSTITUÏT (2026-10-12)**. Development manté Text Search desactivat. La proposta d'activar posteriorment l'híbrid Google ja no és vigent; la Iteració 7 auditarà i substituirà Search, Details i Photos abans de retirar-ne el codi.
 
 ---
 
 ## 2026-08-13 20:58 CEST
 
-**Àmbit:** cerca de llocs / Google Places / tipus `Bar`
+**Àmbit:** cerca de llocs / cobertura de fonts obertes / tipus `Bar`
 
 **Millora:** quan es filtren o cerquen **bars**, ara surten resultats però en queden **pocs** (sobretot bars). La consulta externa limita a ~15, no usa el `type=bar` real de Google (només afegeix el text «Bar» + «pet friendly») i no paginem amb `next_page_token`. Valorar: filtre `type` de l’API, pujar límit (p. ex. 20) i/o segona pàgina de resultats; i millorar el mapeig de tipus Google → `PlaceType` de Zuppeto.
 
-**Estat:** pendent de comentar / prioritzar (no implementar de moment; les proves manuals segueixen anotant el bàsic que funciona).
+**Estat:** traslladat a les Fases I i IV de la Iteració 7. La solució no ha de completar Google Places; ha d'avaluar cobertura i categories de les fonts candidates aprovades.
 
 ---
 

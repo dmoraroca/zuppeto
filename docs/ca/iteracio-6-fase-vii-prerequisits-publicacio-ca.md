@@ -2,7 +2,9 @@
 
 ## Estat
 
-**FASE VII EN CURS. VII.9.3 IMPLEMENTADA I VALIDADA TÈCNICAMENT. PENDENT DE VALIDACIÓ MANUAL FINAL DE L’EXPLORADOR TERRITORIAL.**
+> **Actualització final (2026-10-12):** aquest document conserva el tall històric de Fase VII. La Iteració 6 s'ha completat posteriorment: Espanya v2 i Alemanya v1 estan publicades i validades, la Fase IX està tancada, `cities` i GeoNames runtime s'han retirat i la regressió Chrome/Firefox/WebKit ha finalitzat correctament. Les frases posteriors en present descriuen l'estat que es va validar durant Fase VII.
+
+**TALL HISTÒRIC DE FASE VII:** VII.9.3 implementada i validada tècnicament; en aquell moment quedava pendent la validació manual final de l’explorador territorial.
 
 Espanya és el primer catàleg territorial oficial publicat: 8.199 unitats. VII.9.3 és exclusivament un refinament de consulta, navegació i UX sobre aquest catàleg; no ha creat cap nova publicació ni ha modificat unitats, noms, codis, jerarquia, locale, font, mapping, canonicalització o `CatalogVersion`. Alemanya continua `Pending` i no publicada, amb els gates legal, de procedència i temporal oberts.
 

@@ -558,11 +558,11 @@ Els casos executables i E2E només s'incorporaran quan existeixi implementació.
 - entitat separada de coordenades;
 - catàleg governat de noms localitzats de països;
 - retirada dels textos antics de `User` i `Place`;
-- substitució definitiva de GeoNames i adaptacions de les Iteracions 7 i 8.
+- substitució definitiva de GeoNames i adaptacions dels consumidors, completades posteriorment a la Fase IX.
 
 ## 30. Estat d’implementació
 
-La revisió final no ha detectat cap bloqueig funcional. Les Fases III, IV, V i VI queden completades. La Fase VII està **EN CURS**: VII.9.3 està implementada i validada tècnicament, pendent de validació manual final. Espanya és el primer catàleg oficial publicat amb 8.199 unitats i el refinament no l'ha republicat; Alemanya continua `Pending` i no publicada. El worker durable, els mappings versionats i la validació real consten al [document específic de Fase VII](iteracio-6-fase-vii-prerequisits-publicacio-ca.md), i l'evidència legal a [Fonts territorials](iteracio-6-fonts-territorials-ca.md). El prerequisit de Fase VIII incorpora el [contracte territorial 1.0](contracte-territorial-1.0-ca.md), procedència multifont i PATCH segur, sense executar el backfill.
+**Actualització final (2026-10-12): Iteració 6 completada i Fase IX tancada.** Espanya v2 té 8.199 unitats publicades i Alemanya v1 en té 15.770. El worker durable, mappings, contracte 1.0, governança de fonts, publicació, API, selector i regressió estan validats. `cities` i GeoNames runtime s'han retirat; `countries` es conserva. El backfill no s'ha executat perquè els registres afectats eren dades de prova i s'han eliminat mitjançant el manifest autoritzat. Els talls anteriors d'aquest document es mantenen com a historial de cada fase.
 
 ## Addenda Fase VIII — contracte normalitzat
 

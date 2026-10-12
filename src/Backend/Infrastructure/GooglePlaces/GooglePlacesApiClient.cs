@@ -325,6 +325,13 @@ internal sealed class GooglePlacesApiClient(
 
     private bool TryGetApiKey(bool requireDiscoveryEnabled, out string apiKey)
     {
+        if (GooglePlacesOptions.RuntimeCallsDisabled)
+        {
+            apiKey = string.Empty;
+            logger.LogDebug("Google Places call skipped: the backend runtime kill switch is active.");
+            return false;
+        }
+
         apiKey = googleOptions.ApiKey?.Trim() ?? string.Empty;
         if (requireDiscoveryEnabled && !googleOptions.Enabled)
         {

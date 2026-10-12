@@ -121,7 +121,7 @@ Separar clarament les zones públiques de les zones internes o controlades per p
 - autenticació pròpia i Google OAuth real (**FET**); `LinkedIn` queda descartat per decisió funcional de producte i `Facebook` continua pendent
 - rols i permisos (**FET**)
 - pàgines internes (**FET**): punt tancat amb el criteri definit per direcció de projecte, incloent base d'accés intern i manteniments d'administració ja operatius.
-- gestió de contingut o dades (**EN CURS**): `llocs` i després `favorits`; dins la Iteració 6 territorial, el catàleg europeu publicat conté 23.969 unitats i el contracte normalitzat està validat. La Fase IX ha iniciat l'auditoria de tancament, però el backfill User/Place i la retirada de la compatibilitat `cities` continuen pendents.
+- gestió de contingut o dades (**EN CURS**): la Iteració 6 territorial està completada amb 23.969 unitats publicades, contracte normalitzat validat i `cities` retirat. La Iteració 7 prepara el catàleg propi de llocs alimentat per fonts obertes i la retirada progressiva de Google Places API.
 - accessos restringits a determinades funcionalitats (**PENDENT**)
 - revisió de documentació pendent (comprovar opcions i buits) (**PENDENT**)
 - canvi de contrasenya i operativa bàsica de credencials (**PENDENT**; tot el treball de contrasenya queda empaquetat aquí, sense escindir-lo en un altre punt)
@@ -136,12 +136,11 @@ La plataforma ja diferencia entre usuaris públics, usuaris autenticats i àrees
 - Fase IV, Iteració 4 — Google OAuth real: **🟢 VALIDADA I TANCADA el 2026-09-17**. Inclou alta Google nova amb rol `USER`, autovinculació segura d'un compte local activat per email verificat, `ExternalIdentity` única, TOTP sense bypass, logout/relogin, regressions, secrets, cleanup i registre Excel.
 - Fase IV, Iteració 5 — LinkedIn OAuth: **➖ DESCARTADA PER DECISIÓ FUNCIONAL DE PRODUCTE el 2026-09-18**. La integració es va estudiar i implementar tècnicament abans de la decisió; s'han retirat del producte UI, endpoints, adaptador OIDC i configuració LinkedIn, mantenint la infraestructura federada genèrica útil per Google i proveïdors futurs. No és `FAIL`, `PENDENT` ni `NO VALIDADA`.
 - La LinkedIn Page Petiloc es conserva com a canal corporatiu i queda separada del sistema d'autenticació.
-- Fase IV, Iteració 6 — **SUBFASE VII EN CURS — VII.9.3 IMPLEMENTADA I VALIDADA TÈCNICAMENT / PENDENT DE VALIDACIÓ MANUAL FINAL**. Espanya té 8.199 unitats oficials i Alemanya 15.770; l'auditoria posterior no ha publicat ni revertit cap catàleg. Tots dos disposen d’exploració lazy. No s’ha fet backfill i City/GeoNames es preserven.
-- Fase IV, Iteració 6 — **FASE IX EN CURS — AUDITORIA EXECUTADA, TANCAMENT BLOQUEJAT**. Espanya v2 (8.199) i Alemanya v1 (15.770) consten publicades per ordres humanes anteriors; INE, GV-ISys i CNIG consten aprovades i el PATCH CNIG de 8.132 coordenades publicat. La regressió i integritat són correctes, però 119 User/Place continuen sense FK territorial, `cities` conserva consumidors actius i WebKit resta bloquejat per dependències natives del host. No s'ha executat cap backfill ni retirada destructiva.
-- Fase IV, Iteració 7 — **EN REVISIÓ**. Proposta pendent de confirmació: substituir «GeoNames + alta lazy» per una API territorial sobre catàleg propi (`Angular → API Petiloc → TerritorialService → PostgreSQL`). GeoNames no s'elimina encara.
-- Fase IV, Iteració 8 — **PLANIFICADA**. Selector territorial compartit sobre la futura API pròpia per a registre/login, Perfil, Admin Usuaris, Places, Admin Llocs i filtres.
+- Fase IV, Iteració 6 — **COMPLETADA I TANCADA EL 2026-10-12**. Espanya v2 (8.199 unitats; 8.132 amb coordenades) i Alemanya v1 (15.770 unitats; 10.939 amb coordenades) estan publicades i validades. INE, CNIG i GV-ISys consten aprovades. El model europeu, el contracte normalitzat, l'API, el selector compartit, la governança de fonts i la regressió Chrome/Firefox/WebKit estan validats. `cities` i GeoNames runtime s'han retirat, `countries` es conserva i el backfill User/Place s'ha descartat perquè els 119 registres auditats eren dades de prova; la neteja exacta autoritzada ha eliminat 135 files.
+- Fase IV, Iteració 7 — **FASE 0 COMPLETADA / FASE I NO INICIADA**. Objectiu aprovat: catàleg propi de llocs a PostgreSQL alimentat prioritàriament per OpenStreetMap/Overpass, Geoapify, Wikidata i altres fonts compatibles, amb contracte propi, governança `MANUAL > AUTO` i retirada progressiva de Google Places API. Google Places deixa de ser arquitectura objectiu; el codi heretat es conserva fins a validar-ne la substitució. Roadmap: [Iteració 7 — Catàleg propi de llocs amb fonts obertes](ca/iteracio-7-roadmap-places-obertes-ca.md).
+- Fase IV, Iteració 8 — **NO INICIADA**. Sense abast aprovat en aquest tancament; l'antic selector territorial previst ja es va implementar dins la Iteració 6 i no es trasllada com a tasca pendent.
 - login: destí per defecte **Inici** per a tots els rols (ZUP-004); ADMIN obre permisos des del menú, no a la primera pantalla
-- `gestió de contingut o dades` continua **EN CURS**: focus actual en `llocs` (cerca lazy + base de proveïdor extern) i `favorits` (Cercar/Netejar sobre BD + caducitat Google 30 dies via Details). Tram llistat/fitxa 2026-09-01: **OK** (foto, paginació, Cercar, tres apartats). Pendent (no ara): recordar take per filtre (20/40/60) si es torna a aplicar; llistat scroll editorial (foto+text, seleccionat a encaixar); Ajuda «Dubtes habituals» amb textos i format diferents. Vegeu `docs/ca/millores-pendents-ca.md`.
+- `gestió de contingut o dades` continua **EN CURS**: el focus passa a `llocs`, governança pet-friendly i fonts obertes. La integració Google Places existent és llegat a inventariar i substituir, no una capacitat a completar. Favorits, memòria 20/40/60, llistat editorial i Ajuda es conserven al backlog sense ampliar l'abast de la Fase 0. Vegeu `docs/ca/millores-pendents-ca.md`.
 - detall funcional i tècnic del tram actual: `docs/ca/funcional-ca.md` (§3.17, §3.12, §12.5, §12.7) i `docs/ca/tecnic-ca.md` (§2.11.3, §2.11.3.1, §2.11.4 procedència `places`, §2.11.5 menús admin, §2.10.3 permisos de build local)
 
 ### Roadmap de proveïdors d'identitat
@@ -162,7 +161,7 @@ Fer el producte multiidioma de manera seriosa, un cop el contingut i l'estructur
 
 ### Què entra dins la fase V
 
-- internacionalització de la presentació territorial i de la resta del producte sobre el futur catàleg europeu definit a la Iteració 6 (**PENDENT**); fonts, API i llicències territorials es governen ja dins les Iteracions 6–8
+- internacionalització de la presentació territorial i de la resta del producte sobre el catàleg europeu definit a la Iteració 6 (**PENDENT**); els països nous mantindran el govern de fonts, API i llicències del subsistema territorial ja implementat
 - estratègia d'i18n (**PENDENT**)
 - idiomes d'Europa (**PENDENT**)
 - àrab (**PENDENT**)

@@ -156,3 +156,9 @@ La persistència territorial vigent conserva `countries` com a arrel compartida 
 El backfill User/Place s'ha descartat perquè els 119 registres auditats són dades de prova. No es crea `territorial_reference_backfill_audit` ni es manté cap port d'execució del backfill.
 
 La migració `20261012092916_RetireLegacyCities` copia primer les quatre files antigues a `legacy_cities_archive`, conserva l'estat anterior del menú i després retira `cities`. El `Down` restaura taula, files i estat del menú. La migració s'ha validat `Up → Down → Up` en PostgreSQL temporal i està aplicada a la base real: `cities` no existeix, l'arxiu conté quatre files i `countries` es conserva.
+
+## Iteració 7 — Fase 0: previsió de persistència de Places
+
+Aquesta fase no modifica l'esquema. El catàleg propi `places` continua sent la font de producte a PostgreSQL. La Fase I haurà d'auditar `google_place_id`, procedència, snapshots, TTL, coordenades, camps manuals i índexs per decidir quines peces es generalitzen a identitats i fonts neutrals i quines es retiren amb Google Places.
+
+La persistència futura només podrà guardar camps i períodes admesos per la llicència de cada font. La deduplicació i el merge s'han de centralitzar i han de protegir `MANUAL > AUTO`. PostGIS queda pendent d'una avaluació amb consultes geogràfiques i volum reals; aquesta planificació no n'autoritza la instal·lació ni cap migració.

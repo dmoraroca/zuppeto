@@ -2,7 +2,7 @@
 
 ## Estat
 
-**VII.9 EN CURS. VII.9.3 IMPLEMENTADA I VALIDADA TÈCNICAMENT, PENDENT DE VALIDACIÓ MANUAL FINAL.** Espanya conserva una única publicació oficial de 8.199 unitats; Alemanya continua `Pending` i no publicada.
+**ITERACIÓ 6 COMPLETADA / FASE IX TANCADA.** Espanya v2 conserva 8.199 unitats i Alemanya v1 en conserva 15.770, totes dues publicades i validades. INE, CNIG i GV-ISys consten `Approved`. Les seccions següents preserven la seqüència documental i els estats intermedis, no pendents vigents.
 
 Aquest document és la font de veritat sobre procedència, llicència, reutilització, atribució i aprovació dels datasets territorials. L’aprovació del `DatasetSource` INE registrada a VII.9.2 supera exclusivament el gate legal de la font: no autoritza ni executa la publicació de l’import.
 

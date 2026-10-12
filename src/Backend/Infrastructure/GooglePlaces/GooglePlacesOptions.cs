@@ -5,10 +5,16 @@ public sealed class GooglePlacesOptions
     public const string SectionName = "GooglePlaces";
 
     /// <summary>
-    /// When false, Text Search / external place discovery is skipped (catalog/snapshots only).
-    /// Place Details and Place Photos still run when <see cref="ApiKey"/> is set and a cover is missing.
+    /// Operational kill switch. It is intentionally not configurable so an old environment
+    /// variable or deployment secret cannot reactivate Google Places accidentally.
     /// </summary>
-    public bool Enabled { get; set; } = true;
+    public static bool RuntimeCallsDisabled => true;
+
+    /// <summary>
+    /// Retained for the Phase I audit. Runtime calls remain blocked by
+    /// <see cref="RuntimeCallsDisabled"/> even when this value is overridden.
+    /// </summary>
+    public bool Enabled { get; set; }
 
     public string BaseUrl { get; set; } = "https://maps.googleapis.com/maps/api/place/";
 

@@ -130,7 +130,6 @@ builder.Services.Configure<PlaceExternalIntegrationOptions>(
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration, builder.Environment);
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<IExternalPlaceCallPolicy, HttpRequestExternalPlaceCallPolicy>();
 builder.Services.AddProblemDetails();
 var authOptions = builder.Configuration.GetSection(AuthOptions.SectionName).Get<AuthOptions>() ?? new AuthOptions();
 builder.Services

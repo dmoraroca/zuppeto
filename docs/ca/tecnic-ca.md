@@ -553,9 +553,17 @@ Resum del diagrama:
 - `Facebook` queda aparcat a nivell de roadmap fins després de publicar la web, tot i que la base tècnica federada es manté oberta
 - la base cobreix emissió i consum de token per al login propi i Google; Facebook continua pendent
 
+### Arquitectura objectiu de Places — Iteració 7
+
+La Fase 0 de la Iteració 7 substitueix l'objectiu anterior de completar Google Places API. El backend ha de mantenir un contracte propi i ports a `Application`; els adaptadors de fonts obertes viuran a `Infrastructure`. Angular no coneixerà DTO, categories, IDs o errors particulars d'Overpass, Geoapify, Wikidata ni cap altre proveïdor.
+
+Ordre tècnic previst: repositori PostgreSQL → cache vàlida → ports de fonts aprovades → normalització → deduplicació centralitzada → merge amb protecció `MANUAL > AUTO` → persistència permesa per llicència. Cada dada externa ha de poder conservar font, instant de consulta, verificació, confiança i atribució. PostGIS és una decisió pendent de benchmark de Fase I, no una dependència autoritzada en aquesta Fase 0.
+
+Google Places continua documentat als apartats tècnics perquè el codi encara existeix. És una dependència heretada a inventariar i retirar sense trencar Search, Details, Photos, cache, procedència o proteccions manuals; no és arquitectura objectiu ni una integració pendent de completar. Vegeu [el roadmap de la Iteració 7](iteracio-7-roadmap-places-obertes-ca.md).
+
 ### Auditoria territorial i disseny objectiu europeu — Fase IV, Iteració 6
 
-**Estat global:** **FASE VI COMPLETADA DEFINITIVAMENT / FASE VII EN CURS — VII.9.3 IMPLEMENTADA I VALIDADA TÈCNICAMENT, PENDENT DE VALIDACIÓ MANUAL FINAL**. Espanya té 8.199 unitats oficials publicades i no s’ha republicat durant VII.9.3. Alemanya continua no publicada, no s’ha fet backfill i GeoNames continua operatiu com a compatibilitat interna.
+**Estat global:** **ITERACIÓ 6 COMPLETADA / FASE IX TANCADA EL 2026-10-12**. Espanya v2 té 8.199 unitats i Alemanya v1 en té 15.770, totes dues publicades i validades. `cities` i GeoNames runtime s'han retirat, `countries` es conserva i el backfill User/Place s'ha descartat perquè les dades auditades eren de prova.
 
 #### A. Model territorial auditat abans de la implementació
 
@@ -620,7 +628,7 @@ La persistència usa les taules `territorial_unit_types`, `territorial_units`, `
 
 Les coordenades compleixen parell complet, rang i procedència mitjançant `CHECK`; `(0,0)` requereix validació explícita al domini. Els noms no són identitat i poden repetir-se entre unitats. Els codis són text, conserven zeros inicials i tenen unicitat global vigent per `scheme + value`. Els noms primaris són únics per unitat, kind i locale mitjançant índexs parcials.
 
-`users` i `places` tenen `territorial_country_id` i `territorial_unit_id` nullable, amb FK `Restrict`, índexs i restricció que exigeix el parell complet o nul. Els camps `city`/`country`, `City`, l'administració geogràfica actual i GeoNames es conserven per compatibilitat. El runtime nou valida la parella al backend, deriva els snapshots oficials i preserva referències històriques o posteriorment inactives.
+`users` i `places` tenen `territorial_country_id` i `territorial_unit_id` nullable, amb FK `Restrict`, índexs i restricció que exigeix el parell complet o nul. Els camps textuals `city`/`country` es conserven com a snapshots, però l'entitat `City`, el seu CRUD i GeoNames runtime s'han retirat. El runtime valida la parella al backend, deriva els snapshots oficials i preserva referències històriques o posteriorment inactives.
 
 Els autocicles estan bloquejats al domini i per `CHECK`. Els cicles llargs i el mateix país es validen abans de publicar; la FK composta reforça el mateix país. El motor de Fase V valida el graf canònic abans de generar un ChangeSet i la publicació torna a construir les entitats de domini abans de persistir-les. Un SQL manual amb privilegis directes encara podria crear un cicle llarg perquè no s'ha introduït un trigger PostgreSQL complex.
 
@@ -721,7 +729,11 @@ Aquest registre de 35 països deixa de ser un gate de la Iteració 6. Espanya i 
 
 La llista cobreix UE‑27 i els vuit microestats/països addicionals definits per l'abast. Regne Unit, Balcans no inclosos i altres extensions europees han de poder afegir-se sense redissenyar l'esquema.
 
-### 2.11.3 Implementació tècnica recent del bloc `llocs` (Fase IV)
+### 2.11.3 Implementació tècnica heretada del bloc `llocs` (Fase IV)
+
+> **Decisió Iteració 7, Fase 0:** aquest apartat descriu el runtime existent que s'ha d'auditar, no l'arquitectura objectiu. No s'han d'afegir noves dependències de Google Places. La substitució prevista usa ports neutrals i adaptadors de fonts obertes darrere d'un contracte propi; el pla complet és [Iteració 7 — Catàleg propi de llocs amb fonts obertes](iteracio-7-roadmap-places-obertes-ca.md).
+
+> **Desactivació operativa prèvia a la Fase I (2026-10-12):** els fluxos Google descrits en aquest apartat ja no són executables. `appsettings.json`, Development i Docker estableixen `GooglePlaces:Enabled=false`; Docker no injecta cap API key i `GOOGLE_PLACES_API_KEY` s'ha retirat de `.env` i `.env.example`. `DisabledExternalPlaceCallsPolicy` impedeix el fallback, el preview i l'enriquiment en segon pla, i `GooglePlacesOptions.RuntimeCallsDisabled` talla Search, Details i Photos dins del mateix client encara que una configuració antiga aporti `Enabled=true` i una clau. Els adaptadors continuen registrats exclusivament per facilitar-ne l'auditoria i retirada controlada. Google OAuth és independent i es manté operatiu.
 
 Sobre la base anterior, la implementació ja incorpora aquestes peces tècniques:
 
@@ -746,9 +758,9 @@ Sobre la base anterior, la implementació ja incorpora aquestes peces tècniques
 
 Estat actual del flux (referència ràpida):
 
-- el grup **`/api/places`** exigeix **JWT** per defecte; `GET /api/places`, `GET /api/places/cities` i `GET /api/places/cities/search` són anònims per al preview públic del login; amb `GooglePlaces:PreferExternalSearchFirst` (actiu a Development) la cerca amb `searchText`/`city` ≥ 2 consulta **Google Places abans** del catàleg; sense aquesta opció l’ordre és catàleg (snapshot/BD) i **fallback Google** si el catàleg està buit; en ambdós casos els candidats Google vàlids es **persisteixen** a `places` (upsert per `google_place_id`) amb caché de coordenades ≤ `CoordinateCacheRetentionDays` i timestamps `created_at_utc` / `updated_at_utc`; el login **no** crida el llistat sense consulta de descobriment ni mostra textos instructius duplicats abans del llindar; el combobox de ciutat del login usa typeahead remot amb **2** caràcters
+- el grup **`/api/places`** exigeix **JWT** per defecte; `GET /api/places`, `GET /api/places/cities` i `GET /api/places/cities/search` són anònims per al preview públic del login. La configuració Development vigent desactiva Text Search i `PreferExternalSearchFirst`; les branques Google descrites a continuació són capacitat heretada a inventariar i retirar, no el flux objectiu.
 - **Compliment / retenció**: `GooglePlacesComplianceRetentionHostedService` pot **purgar** snapshots caducats (`place_search_queries`) i, si `GooglePlacesCompliance:Enabled`, **redactar** coordenades de files `places` amb procedència Google/Mixed quan `google_coordinates_cached_until < now` (detall a **§2.11.4**)
-- sense `GooglePlaces:ApiKey`, el preview extern i el fallback de cerca Google retornen llista buida (comportament esperat)
+- amb la desactivació vigent, el preview extern i el fallback Google retornen llista buida amb independència de qualsevol API key antiga; la cerca continua consultant el catàleg PostgreSQL i els snapshots
 - si Google Places respon `REQUEST_DENIED` (p. ex. facturació del projecte Cloud desactivada), el connector registra un warning i la cerca continua amb el catàleg BD quan n’hi ha
 
 Exemple de wiring d'endpoint (API):
@@ -877,9 +889,10 @@ Exemple de payload de resposta (preview extern):
 ]
 ```
 
-Decisio tecnica acordada per al següent increment (alineada amb funcional):
+Decisió tècnica històrica, substituïda per la Iteració 7:
 
-- el cataleg persistent de `places` queda com a **font de producte**; `Google Places` queda com a **proveïdor de descobriment i completar dades** quan calgui (incloent identificador estable `place_id` / `externalId` i camps d'emplaçament segons el cas).
+- el catàleg persistent de `places` continua sent la **font de producte**; Google Places deixa de ser el proveïdor objectiu de descobriment i compleció.
+- l'arquitectura nova manté ports d'aplicació neutrals i selecciona adaptadors d'OpenStreetMap/Overpass, Geoapify, Wikidata o altres fonts només després del gate legal i operatiu.
 - el client actual mostra mapa amb `Leaflet` + `OpenStreetMap`; els pins coincideixen amb el llistat quan hi ha coordenades plotables (inclòs origen Google mentre la caché sigui vigent). Evolució opcional: capa Google / atribució (veure `docs/ca/funcional-ca.md` **§12.5**).
 - `Gemini` queda com a capa d'enriquiment (resum, context i senyals inferits), mai com a substitut de la fitxa base.
 - la sortida inferida per IA s'ha de persistir amb metadades de traçabilitat (`source`, `confidence`, `generatedAtUtc`, versio de prompt/estrategia).
@@ -905,16 +918,16 @@ Contracte tecnic objectiu per enriquiment IA (proposta v1):
 
 Diferenciacio tecnica prevista de producte:
 
-- Free: consulta de fitxa base (`places`) sobre cataleg intern; `Google Places` com a suport de cobertura quan calgui, sense convertir l'API en un reemplaç de Google Maps.
+- Free: consulta de fitxa base (`places`) sobre catàleg intern; la cobertura externa futura prové de fonts obertes o serveis gratuïts aprovats, no de Google Places.
 - PRO: habilitacio d'enriquiment IA (`Gemini`) amb control de quota, cache i refresh asíncron.
 
 Compliment i contingut visual (resum tecnic):
 
-- les imatges de locals han de venir d'API oficial (`Google Places Photo`) o fonts amb llicencia verificable.
+- les imatges de locals han de provenir de fonts pròpies o amb llicència, atribució, ús comercial i retenció verificables; Google Places Photo és dependència heretada pendent de substitució.
 - no es considera valida la reutilitzacio d'imatges extretes directament de cercadors sense marc legal clar.
 - el runtime ha de conservar metadades minimes per auditoria (`sourceType`, `externalId`, `attributionText`, `fetchedAtUtc`, `termsScope`).
 
-### 2.11.4 Persistència: procedència de dades i metadates Google a `places`
+### 2.11.4 Persistència heretada: procedència i metadades Google a `places`
 
 Objectiu tècnic: donar suport al criteri funcional de **dues capes** (catàleg intern vs dades Google), la **traçabilitat** (`place_id`, dates), la **caducitat de coordenades** i la **redacció automàtica** opcional, sense barrejar conceptes a la mateixa columna de negoci.
 
@@ -2411,7 +2424,7 @@ E2E:
 - Docker limita els logs JSON de cada contenidor a tres fitxers de 10 MB per evitar un creixement indefinit del disc.
 - Les query strings d'entrada no es registren i la categoria `System.Net.Http.HttpClient` queda a nivell `Warning` per no exposar claus o tokens inclosos en URLs externes.
 - `EnableSensitiveDataLogging` d'Entity Framework és desactivat per defecte fins i tot en desenvolupament; només es pot activar explícitament amb `Zuppeto__EnableSensitiveDataLogging=true` durant un diagnòstic controlat.
-- La clau de Google Places no es desa a `appsettings.Development.json`; Docker la rep mitjançant `GOOGLE_PLACES_API_KEY`.
+- La clau heretada de Google Places no es desa a `appsettings.Development.json`; la configuració es conserva sense ampliar-la fins que la Iteració 7 retiri la integració.
 - El registre HTTP inclou mètode, ruta, estat, durada, `TraceId`, `CorrelationId`, codi ZUP, rol de prova i navegador; la query string no es registra per evitar exposar tokens o dades personals.
 - `RequestCorrelationMiddleware` valida les capçaleres de correlació i retorna `X-Correlation-ID` a la resposta.
 - `RequestLogEnrichmentMiddleware`, executat després de l'autenticació, afegeix l'usuari i el rol autenticats al context estructurat de Serilog.
@@ -2420,9 +2433,9 @@ E2E:
 - El journal JSONL és l'evidència primària del reporter. La sincronització en lot actualitza `Execucions E2E` sota un únic lock i una escriptura atòmica; a CI, els jobs generen cues i un consolidador únic produeix una còpia de l'Excel.
 - Els fitxers locals de log i els artefactes E2E estan exclosos de Git.
 
-Control de consum de Google Places:
+Control transitori de consum de Google Places mentre existeixi el codi heretat:
 
-- la clau DEV actual queda restringida a Places API Legacy i `UseNewApi=false`; la versió nova només s'activarà amb una clau i decisió explícites;
+- no s'ha d'activar cap versió nova ni ampliar la integració; Development manté Text Search desactivat i la retirada progressiva és l'objectiu aprovat;
 - una consulta de detalls usa una sola versió de l'API; Legacy només actua com a fallback si la versió nova està activada i falla;
 - la cerca externa persisteix candidats però no descarrega una fotografia per cadascun;
 - cada resposta només pot encolar tres llocs visibles per enriquir i cada lloc prova com a màxim dues referències fotogràfiques;
@@ -2456,7 +2469,7 @@ Document de fases:
 
 La migració `AddUserPlaceTerritorialReferencesPhase6` completa la parella de referències nullable a `User` i `Place`. `TerritorialLocationRepository` resol només seleccions noves actives, seleccionables i del mateix país; els serveis d’aplicació escriuen els snapshots retornats pel catàleg i ignoren noms territorials aportats pel client. `ClearTerritorialLocation` separa l’ordre d’esborrat d’una simple absència d’IDs en clients antics.
 
-El filtre de Places propaga `countryId` i `territorialUnitId` des d’Angular fins a l’especificació EF. Perfil, Admin Usuaris, Admin Llocs, Places, Favorits i el preview públic reutilitzen el selector compartit. City/GeoNames es conserva només internament per compatibilitat, sense exposar controls ni textos tècnics a la UI, sense backfill i sense actuar com a font d’identitat territorial.
+El filtre de Places propaga `countryId` i `territorialUnitId` des d’Angular fins a l’especificació EF. Perfil, Admin Usuaris, Admin Llocs, Places, Favorits i el preview públic reutilitzen el selector compartit. Els snapshots textuals es conserven, però City/GeoNames ja no existeix al runtime ni actua com a font d’identitat territorial.
 
 La validació focalitzada real de ZUP-160 recorre Angular → API → Application → EF → PostgreSQL amb dades sintètiques controlades i acaba en PASS (`sim-20260923T202548369Z-35b2d77c`). A més del manteniment auditat, comprova l’autocomplete únic, el reset A → B, la inexistència de controls/textos transitoris a Perfil, Llocs, Favorits, ADMIN User, ADMIN Place i explorador públic, i el grid de filtres a 1280, 900 i 600 px. No publica Espanya ni Alemanya.
 
@@ -2470,7 +2483,7 @@ La publicació també passa per `Publishing`; manté transacció serialitzable, 
 
 `TerritorialPilotConfigurationSeeder` configura ES/DE, tipus, fonts `Pending` i mappings v1 amb fingerprints reals. `TerritorialPilotMappings` produeix 8.201/8.199 per Espanya i 15.877/15.770 per Alemanya. GV-ISys consolida 107 rols, conserva 24 noms alternatius, tracta `Textkennzeichen` 41/42 i separa els territoris especials `KREIS=00` amb esquemes de codi no col·lidents. La coordenada `(0,0)` queda absent.
 
-Les migracions `AddTerritorialAsyncWorkerPhase7` i `AddTerritorialPublicationActorPhase7` incorporen cua, artefacte i actor de publicació durable. `AddTerritorialHierarchyReadIndexPhase7` afegeix exclusivament l’índex `ix_territorial_unit_names_unit_id`, justificat per `EXPLAIN ANALYZE`: la cerca real de municipis descendents de Catalunya baixa aproximadament de 647 ms a 22 ms sense modificar cap unitat. El model EF queda alineat amb les migracions. Espanya està publicada; Alemanya continua `Pending` i no publicada.
+Les migracions `AddTerritorialAsyncWorkerPhase7` i `AddTerritorialPublicationActorPhase7` incorporen cua, artefacte i actor de publicació durable. `AddTerritorialHierarchyReadIndexPhase7` afegeix exclusivament l’índex `ix_territorial_unit_names_unit_id`, justificat per `EXPLAIN ANALYZE`: la cerca real de municipis descendents de Catalunya baixa aproximadament de 647 ms a 22 ms sense modificar cap unitat. Aquest paràgraf conserva el tall tècnic de Fase VII; posteriorment Espanya v2 i Alemanya v1 han quedat publicades i el model EF alineat amb la Fase IX.
 
 La recuperació s'ha provat amb una lease real activa: l'API es reinicia durant `Uploaded/Reading`, el nou worker espera el venciment, reclama el mateix `ImportId` i artefacte com a intent 2 i acaba en `ReadyForReview`. ZUP-160 valida també el circuit Angular → cua → worker → PostgreSQL → publicació sintètica → Catàleg (`sim-20260924T095208082Z-a542d324`) i elimina completament la fixture. La suite backend/PostgreSQL passa 71/71.
 
@@ -2533,7 +2546,7 @@ L'import alemany `57860875-8d25-480f-9c11-c72d90b34104` i el ChangeSet `2d00a606
 
 ## Addenda Fase IX — retirada del model anterior
 
-`countries` no és una taula antiga separable: `CountryRecord` és compartit pel CRUD de països, `User`/`Place` i totes les arrels del model territorial. `cities` sí és el catàleg rígid anterior. Fase IX elimina la seva entitat/configuració EF, DbSet, repositori, servei, validators i endpoints; `PlaceApplicationService` consulta localitats publicades per la classificació funcional comuna, i el backend GeoNames es retira. Angular redirigeix `/admin/ciutats` a Gestió territorial i oculta el menú antic. El codi mort del formulari antic dins `AdminConsolePageComponent` continua sense ruta ni API i no és una dependència executable.
+`countries` no és una taula antiga separable: `CountryRecord` és compartit pel CRUD de països, `User`/`Place` i totes les arrels del model territorial. `cities` era el catàleg rígid anterior. Fase IX n'ha eliminat entitat/configuració EF, DbSet, repositori, servei, validators, endpoints i formulari Angular; `PlaceApplicationService` consulta localitats publicades i el backend GeoNames està retirat. Angular redirigeix `/admin/ciutats` a Gestió territorial i oculta el menú antic.
 
 La decisió funcional posterior descarta el backfill: els 119 registres auditats són dades de prova. S'han retirat el port, els endpoints i la taula d'auditoria de backfill abans de desplegar-los. El pla vigent elimina, després d'autorització explícita, 108 Place i 8 User per UUID verificat; conserva dos ADMIN vinculats a l'històric territorial i el DEVELOPER E2E tècnic.
 

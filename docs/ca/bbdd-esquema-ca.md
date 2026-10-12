@@ -68,7 +68,12 @@ erDiagram
     menus ||--o{ menu_roles : "menu_key -> menus.key"
     menus ||--o{ menus : "parent_key -> menus.key"
 
-    countries ||--o{ cities : "country_id"
+    countries ||--o{ territorial_unit_types : "country_id"
+    countries ||--o{ territorial_units : "country_id"
+    territorial_unit_types ||--o{ territorial_units : "territorial_unit_type_id"
+    territorial_units ||--o{ territorial_units : "parent_id"
+    territorial_units ||--o{ users : "territorial_unit_id"
+    territorial_units ||--o{ places : "territorial_unit_id"
     place_search_queries ||--o{ place_search_query_results : "query_id"
     places ||--o{ place_search_query_results : "place_id"
 
@@ -189,14 +194,25 @@ erDiagram
         bool is_active
     }
 
-    cities {
+    territorial_unit_types {
         uuid id PK
         uuid country_id FK
+        varchar code
         varchar name
-        varchar normalized_name
-        int sort_order
+        int display_order
+        bool is_selectable_locality
         bool is_active
-        UK "country_id + normalized_name"
+        UK "country_id + code"
+    }
+
+    territorial_units {
+        uuid id PK
+        uuid country_id FK
+        uuid territorial_unit_type_id FK
+        uuid parent_id FK
+        numeric latitude
+        numeric longitude
+        bool is_active
     }
 
     place_search_queries {
@@ -242,6 +258,7 @@ erDiagram
 - Integritat:
   - claus uniques de cataleg (`permissions.key`, `menus.key`, `tags.code`, `features.code`, `countries.code`, etc.).
   - restriccions a `places` i `place_reviews` (rang score/rating, review_count no negatiu, etc.).
-- `places` (ampliació recents): metadates de **procedència** i vincle amb **Google** quan apliqui (`data_provenance`, `google_place_id`, caché de coordenades i darrera sincronització), amb **índex únic parcial** sobre `google_place_id` on no sigui `NULL`. Resum tècnic: `docs/ca/tecnic-ca.md` (**§2.11.4**).
+- `cities` està retirada per `20261012092916_RetireLegacyCities`; les quatre files històriques es conserven a `legacy_cities_archive`. `countries` continua com a arrel i la jerarquia publicada viu a `territorial_units`.
+- `places` conserva temporalment metadades heretades de Google (`data_provenance`, `google_place_id`, cache i darrera sincronització). La Iteració 7 n'ha d'auditar i retirar la dependència després de validar fonts obertes; no són el model objectiu.
 - `permissions.scope_payload` es tracta com a JSON lògic de domini, encara que físicament sigui `text`.
 - `place_search_queries` i `place_search_query_results` s'utilitzen com a cache persistent i traçabilitat de cerques de `places` (patró lazy).

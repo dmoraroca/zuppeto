@@ -72,7 +72,7 @@ services:
       RabbitMq__Port: "5672"
       RabbitMq__UserName: ${RABBITMQ_USER:-guest}
       RabbitMq__Password: ${RABBITMQ_PASSWORD:-guest}
-      GooglePlaces__ApiKey: ${GOOGLE_PLACES_API_KEY:-}
+      GooglePlaces__Enabled: "false"
       COMPlus_EnableDiagnostics: 1
     depends_on:
       db:

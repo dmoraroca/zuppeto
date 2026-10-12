@@ -6,7 +6,7 @@ public interface IExternalPlaceCallPolicy
     bool AllowsBillableCalls { get; }
 }
 
-internal sealed class AllowExternalPlaceCallsPolicy : IExternalPlaceCallPolicy
+internal sealed class DisabledExternalPlaceCallsPolicy : IExternalPlaceCallPolicy
 {
-    public bool AllowsBillableCalls => true;
+    public bool AllowsBillableCalls => false;
 }

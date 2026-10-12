@@ -2,7 +2,7 @@
 
 ## Estat
 
-Fase IX executada i validada el 2026-10-12 amb autorització explícita. La neteja s'ha aplicat a PostgreSQL real, la migració `20261012092916_RetireLegacyCities` consta a l'historial EF i no s'ha iniciat la Iteració 7.
+Fase IX executada i validada el 2026-10-12 amb autorització explícita. La neteja s'ha aplicat a PostgreSQL real i la migració `20261012092916_RetireLegacyCities` consta a l'historial EF. En el moment del tancament encara no s'havia iniciat la Iteració 7; posteriorment només se n'ha completat la Fase 0 documental, sense iniciar la Fase I.
 
 ## Backup i guards previs
 

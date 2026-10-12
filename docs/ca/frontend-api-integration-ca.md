@@ -1,5 +1,7 @@
 # Integracio Frontend API (CA)
 
+> **Estat vigent (2026-10-12):** la Iteració 6 està completada i la Fase IX tancada. Espanya v2 i Alemanya v1 estan publicades i validades; `cities` i GeoNames runtime estan retirats i `countries` es conserva. Els apartats cronològics posteriors mantenen l'evidència de cada tall, encara que indiquin pendents resolts després.
+
 ## Objectiu
 
 Aquest document fixa el tancament funcional i tecnic de la Fase III des del punt de vista de la web Angular.
@@ -51,6 +53,8 @@ Encara no es considera autenticacio real:
 
 Aixo queda reservat per la Fase IV.
 # Actualització territorial — Fase VII
+
+> Aquest bloc conserva l'estat històric de Fase VII. L'estat vigent és Iteració 6 completada: Espanya v2 i Alemanya v1 publicades, API i selector territorial validats, `cities` i GeoNames runtime retirats i Fase IX tancada.
 
 La preparació territorial és asíncrona. Angular rep `202 Accepted` amb el detall `Queued`, conserva l'identificador i consulta `GET /api/admin/territorial/imports/{id}` només mentre l'estat és actiu. La pantalla mostra etapa, files processades/totals, intent, heartbeat, cancel·lació i error funcional; en arribar a `ReadyForReview`, `Validated` bloquejant, `Failed`, `Cancelled`, `Published` o `Reverted`, atura el polling i carrega preview, incidències i ChangeSet.
 

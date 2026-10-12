@@ -10,7 +10,8 @@ El focus funcional actual es:
 - descoberta de llocs pet-friendly
 - navegacio clara entre portada, resultats, detall i favorits
 - filtratge per ciutat, tipus, mascota i text de cerca
-- catàleg territorial propi europeu, multicultural i multilingüe de la Iteració 6 (vegeu 3.14, 3.15 i **3.15.1**); nucli, persistència, motor, UI ADMIN, API i selector compartit implementats, amb primera publicació i backfill encara pendents
+- catàleg territorial propi europeu, multicultural i multilingüe de la Iteració 6 (vegeu 3.14, 3.15 i **3.15.1**), completat amb Espanya i Alemanya publicades, model antic `cities` retirat i selector compartit operatiu
+- Iteració 7 preparada per consolidar el catàleg propi de llocs amb fonts obertes i retirar progressivament Google Places API
 - suport de mapa dins la feature `places` en mode mixt amb llistat sincronitzat
 - dades reals per `places`, `favorites` i manteniment de `perfil`
 - transicio controlada entre serveis locals i API sense reescriure pantalles
@@ -913,9 +914,9 @@ Fora d'abast d'aquesta pantalla:
 
 L'objectiu funcional d'aquesta pantalla és mantenir un model clar, auditable i escalable de què pot fer cada rol dins del producte, sense multiplicar excepcions ni configuracions opaques.
 
-### 3.14 Manteniment de països — estat actual i evolució planificada
+### 3.14 Manteniment de països — estat actual
 
-El manteniment actual de `countries` continua operatiu amb el contracte existent. El nucli, la persistència i el motor d'importació del model europeu de la Iteració 6 ja estan implementats; la seva incorporació a aquesta UI i al runtime continua **PLANIFICADA / PENDENT D'IMPLEMENTAR**. Fins aleshores, el manteniment visible no canvia.
+El manteniment de `countries` continua operatiu com a arrel compartida. El nucli, la persistència, el motor d'importació, la UI territorial, l'API i el selector del model europeu estan implementats i validats; `cities` ja està retirat. L'alta d'un país a `countries` no publica automàticament cap catàleg territorial: fonts, tipus, imports i aprovacions continuen governats pel flux territorial.
 
 Funcions del manteniment:
 
@@ -1002,7 +1003,7 @@ La geografia del producte no s'ha de deixar a text lliure ni a resolucio ad hoc 
 
 ### 3.15.1 Iteració 6 — Remodelació territorial europea multicultural i multilingüe
 
-**Estat global: FASE VI COMPLETADA DEFINITIVAMENT. FASE VII EN CURS — VII.2–VII.8 COMPLETADES I VALIDADES; VII.9.1–VII.9.2 COMPLETADES; VII.9.3 IMPLEMENTADA I VALIDADA TÈCNICAMENT, PENDENT DE VALIDACIÓ MANUAL.** Espanya és el primer catàleg territorial oficial publicat amb 8.199 unitats; el refinament VII.9.3 no l’ha republicat ni modificat. Alemanya continua `Pending` i no publicada; no s’ha executat backfill i les subfases VIII–IX no s'han iniciat.
+**Estat global: ITERACIÓ 6 COMPLETADA I FASE IX TANCADA EL 2026-10-12.** Espanya v2 té 8.199 unitats i Alemanya v1 en té 15.770, totes dues publicades i validades. El model antic `cities` i GeoNames runtime s'han retirat, `countries` es conserva i el backfill User/Place s'ha descartat perquè les files auditades eren dades de prova. La regressió final Chrome, Firefox i WebKit està completada.
 
 El contracte funcional detallat i oficial de la Iteració 6 és [Iteració 6 — Contracte funcional del model territorial](iteracio-6-model-territorial-ca.md). Aquest document general en conserva el resum, l'abast i els criteris d'alt nivell; en cas de detall territorial, s'ha de consultar el contracte específic.
 
@@ -1115,7 +1116,7 @@ Els casos d'ús, invariants, criteris d'acceptació i decisions ajornades comple
 
 ### 3.16 Dades de proveidors externs (Google, mapes, IA) i cataleg propi
 
-Aquest apartat fixa el criteri funcional: **no cal ni convé** emmagatzemar «tota la informació» que retornin serveis de tercers com a **repositori paral·lel** al domini Zuppeto. Per al futur catàleg territorial s'importarà només allò que defineixi el model propi, amb procedència, versió i llicència traçables. L'estratègia territorial funcional queda definida al contracte de la Iteració 6; l'antiga alta lazy amb GeoNames queda en revisió per a la Iteració 7.
+Aquest apartat fixa el criteri funcional: **no cal ni convé** emmagatzemar «tota la informació» que retornin serveis de tercers com a **repositori paral·lel** al domini Zuppeto. El catàleg territorial ja importa només el model propi, amb procedència, versió i llicència traçables. La Iteració 7 aplica el mateix criteri als llocs: PostgreSQL primer, cache, fonts obertes, normalització, deduplicació i persistència governada.
 
 - **Login Google (OAuth)** es tracta com a **dades de compte i perfil** dins el model d'usuari, amb el que permetin les polítiques de privacitat i el disseny d'identitat; **no** és un catàleg territorial ni un duplicat del directori de Google.
 - **Mapa a la web**: la visualització amb `Leaflet` i capes tipus OpenStreetMap **no implica** guardar tot el tile o tot el dataset OSM; es renderitza al client. El manteniment de país/ciutat és **independent** i serveix per negoci (filtres, coherència), no per substituir el mapa.
@@ -1131,7 +1132,7 @@ Aquest apartat fixa el criteri funcional per la cerca de **locals pet-friendly**
 
 **Decisions funcionals acordades per a aquest bloc**
 
-- font de dades: **canals propis** + suport extern de **Google Places** o **Gemini** quan calgui
+- font de dades objectiu: **catàleg propi** + fonts obertes o serveis gratuïts compatibles amb l'ús comercial; OpenStreetMap/Overpass, Geoapify i Wikidata són candidates pendents de gate documental
 - abast territorial d'operació: **Unió Europea**
 - el camp `petFriendly` s'ha d'**omplir automàticament** quan sigui possible, però ha de ser **editable manualment**
 - `favorits` només per a usuaris autenticats
@@ -1148,7 +1149,7 @@ Aquest apartat fixa el criteri funcional per la cerca de **locals pet-friendly**
 El producte ha de treballar amb patró **catàleg intern primer, extern després**:
 
 1. el backend resol primer la cerca sobre dades pròpies (`places` + catàleg territorial)
-2. si no hi ha prou cobertura, consulta fonts externes (Google Places o Gemini, segons cas d'ús)
+2. si no hi ha prou cobertura, consulta fonts obertes aprovades mitjançant ports independents del proveïdor
 3. els resultats vàlids es normalitzen, es persisteixen i es retornen
 4. en cerques posteriors equivalents, es reutilitza el que ja està guardat
 
@@ -1175,7 +1176,7 @@ Per evitar cost i latència repetida, cada consulta funcional s'ha de poder guar
 5. `hotel`
 6. `apartment`
 
-Aquestes tipologies són **tancades de producte** (no hi ha manteniment de tipus). A l’alta/edició de lloc (`/admin/llocs`) es trien amb **desplegable**, no amb text lliure. **País** va primer i **localitat** depenent mitjançant el selector territorial compartit per IDs; City/GeoNames queda en un fallback de compatibilitat explícit mentre no hi hagi dades oficials publicades. La **descripció curta**, la **descripció**, la **imatge de portada**, el **barri**, el **preu** i la **política de mascotes** (frase) són opcionals. Les etiquetes del formulari són en català (imatge de portada, etiquetes, característiques, valoració, ressenyes). Un lloc **nou** no demana Place ID de Google ni activa la caché de 30 dies; això només aplica si el local té Place ID.
+Aquestes tipologies són **tancades de producte** (no hi ha manteniment de tipus). A l’alta/edició de lloc (`/admin/llocs`) es trien amb **desplegable**, no amb text lliure. **País** va primer i **localitat** depèn del selector territorial compartit per IDs; `cities` i GeoNames runtime ja estan retirats. La **descripció curta**, la **descripció**, la **imatge de portada**, el **barri**, el **preu** i la **política de mascotes** són opcionals. Un lloc nou no depèn de cap identificador Google. Els camps Google existents són compatibilitat heretada pendent d'auditoria i substitució a la Iteració 7.
 
 **Dades mínimes del local (v1 aprovada)**
 
@@ -1220,7 +1221,7 @@ Un cop validada la v1, es preveu ampliar amb:
   participant W as Web
   participant API as API Places
   participant CAT as Catàleg intern
-  participant EXT as Google Places/Gemini
+  participant EXT as Fonts obertes aprovades
   participant CACHE as Cache de consultes
 
   U-&gt;&gt;W: cerca (text, ciutat, tipus, mascota)
@@ -1306,10 +1307,10 @@ Abans d'iniciar funcionalitat nova, cal auditar els **5 SKIP E2E actuals**, iden
 | 3 | Identitat i seguretat | TOTP / 2FA | 🟢 VALIDAT |
 | 4 | Identitat i seguretat | Google OAuth real | 🟢 VALIDAT |
 | 5 | Identitat i seguretat | LinkedIn OAuth real | ➖ DESCARTADA — decisió funcional de producte |
-| 6 | Territori | Remodelació territorial europea multicultural/multilingüe | 🟠 EN CURS — subfases 0–V completades; VI següent |
-| 7 | Territori | API territorial sobre catàleg propi (proposta) | 🟠 EN REVISIÓ / pendent de confirmació |
-| 8 | Territori | Selector territorial compartit sobre API pròpia | 🔴 Planificat / pendent d'implementar |
-| 9 | Core Places | Google Places complet | 🔴 Pendent / crític |
+| 6 | Territori | Remodelació territorial europea multicultural/multilingüe | 🟢 VALIDAT — Iteració 6 tancada |
+| 7 | Territori | API territorial sobre catàleg propi | 🟢 VALIDAT |
+| 8 | Territori | Selector territorial compartit sobre API pròpia | 🟢 VALIDAT |
+| 9 | Core Places | Catàleg propi amb fonts obertes i retirada de Google Places | 🔴 Iteració 7 preparada; Fase I no iniciada |
 | 10 | Core Places | Qualitat i governança pet-friendly | 🔴 Pendent / crític |
 | 11 | Core Places | Cobertura de bars | 🟠 Parcial / pendent de completar o validar |
 | 12 | Core Places | Admin Llocs | 🟠 Parcial / pendent de completar o validar |
@@ -1324,7 +1325,7 @@ Abans d'iniciar funcionalitat nova, cal auditar els **5 SKIP E2E actuals**, iden
 | 21 | Tancament | Revisió definitiva dels SKIP E2E | 🔴 Pendent / crític |
 | 22 | Tancament | Baixa de compte autogestionada i sol·licitud per correu | 🟠 Parcial / pendent d'implementar i validar |
 
-Per tant, l'estat oficial actual és de **5 punts 🔴, 12 punts 🟠, 4 punts 🟢 VALIDAT i 1 punt ➖ DESCARTAT** dins d'aquest gate (punts **1–22**). El punt 7 passa a revisió per canvi d'arquitectura; el punt descartat no computa com a pendent, fallit ni no validat.
+Per tant, l'estat oficial actual és de **4 punts 🔴, 10 punts 🟠, 7 punts 🟢 VALIDAT i 1 punt ➖ DESCARTAT** dins d'aquest gate (punts **1–22**). La Iteració 7 aborda el punt 9 i la governança del punt 10; el punt descartat no computa com a pendent, fallit ni no validat.
 
 #### 3.18.4 Bloc A — Identitat i seguretat
 
@@ -1340,7 +1341,7 @@ Per tant, l'estat oficial actual és de **5 punts 🔴, 12 punts 🟠, 4 punts �
 
 #### 3.18.5 Bloc B — Territori
 
-**6. Remodelació territorial europea multicultural/multilingüe — FASE VII EN CURS; VII.9.3 IMPLEMENTADA I VALIDADA TÈCNICAMENT, PENDENT DE VALIDACIÓ MANUAL FINAL.** Espanya té el primer catàleg oficial publicat amb 8.199 unitats i un explorador jeràrquic lazy; aquesta tasca no ha repetit la publicació. Alemanya continua no publicada i no s’ha fet backfill. El contracte i els límits es defineixen al [contracte funcional territorial](iteracio-6-model-territorial-ca.md) i el gate legal al [registre de fonts territorials](iteracio-6-fonts-territorials-ca.md).
+**6. Remodelació territorial europea multicultural/multilingüe — 🟢 VALIDADA I TANCADA.** Espanya v2 té 8.199 unitats publicades i Alemanya v1 en té 15.770. El contracte, fonts, importació, publicació, exploració, API i selector compartit estan validats; `cities` i GeoNames runtime s'han retirat i `countries` es conserva. No s'ha executat backfill: les dades de prova auditades es van eliminar mitjançant el manifest autoritzat. El detall final consta al [tancament de Fase IX](iteracio-6-fase-ix-tancament-ca.md).
 
 **7. API territorial sobre catàleg propi — IMPLEMENTADA.** Consulta `Country + TerritorialUnit`, valida la parella i integra `User`, `Place` i els filtres amb IDs. Els snapshots textuals es preserven; Fase IX retira GeoNames del runtime.
 
@@ -1350,13 +1351,13 @@ Per tant, l'estat oficial actual és de **5 punts 🔴, 12 punts 🟠, 4 punts �
 
 #### 3.18.6 Bloc C — Core Places
 
-**9. Google Places — 🔴.** S'ha de consolidar el patró `catàleg Zuppeto → cache/snapshot → Google Places només si falta cobertura → normalització → deduplicació → persistència → reutilització`. El gate inclou Text Search, Place Details, Photos, `google_place_id`, procedència, TTL, coordenades, refresh, snapshots, deduplicació, protecció de dades manuals, polítiques/atribució i prevenció de crides facturables innecessàries. Passa quan el flux complet queda validat. §3.17 i §12 en fixen les regles detallades.
+**9. Catàleg propi amb fonts obertes i retirada de Google Places — 🔴.** La Iteració 7 ha de consolidar el patró `PostgreSQL → cache → fonts obertes aprovades → normalització → deduplicació → persistència governada`. OpenStreetMap/Overpass, Geoapify i Wikidata són candidates, no fonts aprovades automàticament. Cal verificar llicència, ús comercial, atribució, retenció, quota i política d'actualització abans d'integrar-les. Google Places deixa de ser arquitectura objectiu i s'ha de retirar progressivament després d'inventariar i validar cada substitució. El contracte és [el roadmap de la Iteració 7](iteracio-7-roadmap-places-obertes-ca.md).
 
-**10. Qualitat pet-friendly — 🔴.** Zuppeto ha d'aportar valor propi amb `petFriendly`, `petNotes`, nivell o confiança, procedència, dades confirmades, informació útil per decidir, política pet quan existeixi i tractament explícit quan no hi hagi informació fiable. La regla obligatòria és `MANUAL > AUTO`: Google, Gemini o qualsevol procés automàtic no pot sobreescriure silenciosament dades manuals protegides. Passa quan la governança queda implementada i provada.
+**10. Qualitat pet-friendly — 🔴.** Zuppeto ha d'aportar valor propi amb `petFriendly`, `petNotes`, nivell o confiança, procedència, dades confirmades, informació útil per decidir, política pet quan existeixi i tractament explícit quan no hi hagi informació fiable. La regla obligatòria és `MANUAL > AUTO`: cap font externa ni procés automàtic pot sobreescriure silenciosament dades manuals protegides. Passa quan la governança queda implementada i provada.
 
-**11. Cobertura de bars — 🟠.** Cal revisar el tipus real de Google, mapping `Google → PlaceType`, consulta específica, límit i paginació quan pertoqui, qualitat i quantitat dels resultats i deduplicació. Passa quan la cerca de bars aporta cobertura útil i coherent.
+**11. Cobertura de bars — 🟠.** Cal revisar les categories reals de cada font aprovada, el mapping cap a `PlaceType`, la consulta específica, els límits i la paginació quan pertoqui, la qualitat i quantitat dels resultats i la deduplicació. Passa quan la cerca de bars aporta cobertura útil i coherent sense acoblar el domini a un proveïdor.
 
-**12. Admin Llocs — 🟠.** L'alta i edició han de millorar layout, agrupació, copy, claredat, procedència i integració Google Places, eliminant llenguatge tècnic innecessari per a l'operador. Descripció curta i llarga continuen opcionals; país i ciutat són governats, la tipologia és un desplegable i les dades manuals estan protegides. Passa quan el CRUD és clar, coherent i validat.
+**12. Admin Llocs — 🟠.** L'alta i edició han de millorar layout, agrupació, copy, claredat i presentació de procedència sense exposar estructures de proveïdor. Descripció curta i llarga continuen opcionals; país i localitat són governats, la tipologia és un desplegable i les dades manuals estan protegides. La Fase V de la Iteració 7 n'ha de validar el CRUD sobre el contracte propi.
 
 #### 3.18.7 Bloc D — UX Places
 
@@ -1366,7 +1367,7 @@ Per tant, l'estat oficial actual és de **5 punts 🔴, 12 punts 🟠, 4 punts �
 
 **15. Flux mapa → detall → tornar — 🟠.** Cal preservar, quan sigui coherent, selecció de pin, popup, filtres, quantitat carregada i context en entrar al detall i tornar; també cal evitar adreces redundants i mantenir coherent «Veure detall». Passa quan l'usuari torna sense perdre innecessàriament el context de descoberta.
 
-**16. Revalidació completa de Favorits — 🟠.** Quan Places quedi tancat, cal revalidar completament persistència, filtres, mapa, llistat, detall, cache, Places Details quan pertoqui, botó Favorit/Treure, context territorial i responsive. Passa quan el flux continua net després dels canvis de Places.
+**16. Revalidació completa de Favorits — 🟠.** Quan Places quedi tancat, cal revalidar completament persistència, filtres, mapa, llistat, detall, cache i enriquiment des de les fonts aprovades, botó Favorit/Treure, context territorial i responsive. Passa quan el flux continua net després dels canvis de Places.
 
 #### 3.18.8 Bloc E — UX transversal
 
@@ -1779,7 +1780,7 @@ No es planteja encara com a seguretat final de produccio, sino com a base de pro
 Punts funcionals ja implementats:
 
 - login estandard amb email
-- explorador públic al login: cerca o ciutat amb **≥ 2 caràcters**; abans del llindar, el panell resta net i no repeteix missatges d'instrucció; en superar-lo es mostren directament els resultats. En **Development** (`GooglePlaces:PreferExternalSearchFirst`) es consulta **Google Places primer** i els resultats es **persisteixen** al catàleg (cache); si Google no retorna res, catàleg BD; el combobox de ciutat fa typeahead remot a partir de 2 caràcters
+- explorador públic al login: cerca o ciutat amb **≥ 2 caràcters**; abans del llindar, el panell resta net i no repeteix missatges d'instrucció; en superar-lo es mostren directament els resultats del catàleg. Development manté `GooglePlaces:Enabled=false` i `PreferExternalSearchFirst=false`; la branca Google és heretada i es retirarà dins la Iteració 7. El combobox de localitat usa el catàleg territorial propi.
 - el mapa del preview ocupa tota l'amplada útil del contenidor respectant els marges laterals; les targetes de resultats, quan existeixen, es mostren en una fila inferior i no reserven una columna buida ni estrenyen el mapa
 - Google conserva obligatòriament el control oficial visible i clicable; Facebook es mostra com a pendent i LinkedIn no apareix al login
 - rols `USER` i `ADMIN`
@@ -1967,12 +1968,14 @@ Rutes internes actuals:
 - `/admin/permisos`
 - `/admin/menus`
 
-## 12. Política de contingut extern (Google Places i Google Search)
+## 12. Política de contingut extern
+
+> **Decisió posterior — Iteració 7, Fase 0 (2026-10-12):** Google Places API deixa de formar part de l'arquitectura objectiu. Els apartats 12.1–12.5.1 conserven el contracte de la implementació heretada per poder auditar-la i retirar-la sense perdre requisits. No constitueixen una integració pendent de completar. El criteri vigent és el [roadmap de fonts obertes de la Iteració 7](iteracio-7-roadmap-places-obertes-ca.md).
 
 Per al bloc de llocs, es defineix aquesta regla funcional de compliment:
 
 - el **cataleg de producte** es basa en llocs persistits a `Zuppeto` (dades pròpies i regles de governança), amb suport extern quan calgui cobertura o enriquiment.
-- `Google Places` es fa servir com a **font de descobriment i fitxa de referencia** quan cal completar el cataleg (incloent identificador extern i dades d'emplaçament segons el cas), no com a substitut del model de dades intern.
+- la implementació heretada pot consultar `Google Places`, però s'ha d'inventariar i retirar progressivament; cap funcionalitat nova n'ha d'ampliar la dependència.
 - `Google Search` es pot usar com a suport de context (snippets/enllaços), no com a font de veritat unica per al camp `pet friendly`.
 - qualsevol contingut de tercers es mostra subjecte als termes vigents del proveidor i amb atribucio quan sigui requerida.
 
@@ -1986,22 +1989,22 @@ Part de la informacio de fitxa i del contingut visual dels locals pot provenir d
 
 ### 12.3 Regles funcionals per a imatges de locals
 
-- font prioritaria: fotos oficials obtingudes via API oficial (`Google Places Photo`) o fonts propies verificades.
+- font objectiu: imatges pròpies o de fonts amb llicència, atribució, ús comercial i persistència verificats; Google Places Photo resta només com a dependència heretada a substituir.
 - si un local no té imatge o la càrrega falla, targetes, favorits, detall i relacionats mostren una rodona amb les sigles calculades de manera compartida i «NO DISPONIBLE» en diagonal (mai un `img` buit o trencat).
 - no es considera valid reutilitzar imatges extretes directament de cercadors sense marc legal clar.
 - per cada imatge s'ha de conservar traca minima de font i atribucio per poder auditar origen i condicions d'us.
 
-### 12.4 Decisio funcional: cataleg Zuppeto + Google + enriquiment Gemini
+### 12.4 Decisió històrica: catàleg Zuppeto + Google + enriquiment Gemini
 
 Per al producte actual, es fixa aquesta decisio funcional:
 
 - el **nucli** del producte es el cataleg intern de `Zuppeto` (identitat, politica pet-friendly, favorits, cerca, etc.).
-- `Google Places` es la font externa principal per **descobrir i completar** locals quan el cataleg no en te prou (incloent identificador extern estable i dades d'emplaçament segons el cas d'us).
+- en aquell tall, `Google Places` era la font externa principal per descobrir i completar locals. Aquesta decisió queda substituïda per la Iteració 7 i només es conserva per explicar el codi i les dades heretades.
 - `Gemini` es fa servir com a capa d'enriquiment (resums, context i senyals complementaries), no com a substitut de la fitxa base.
 - els camps inferits per IA s'han de marcar com a generats automaticament i amb nivell de confianca.
 - per al criteri `pet friendly`, preval sempre la regla `manual > auto`.
 
-### 12.5 Alineament amb Google Maps Platform (regles de producte)
+### 12.5 Contracte heretat de Google Maps Platform
 
 Objectiu: compatibilitat amb l'esperit dels termes d'us de `Google Maps Platform` sense confondre l'usuari.
 
@@ -2124,7 +2127,7 @@ Catàleg, detall, expansió i resultats utilitzen skeletons locals, `aria-busy`,
 
 Activar, desactivar, canviar seleccionabilitat o coordenades exigeix operació explícita, motiu i auditoria. Codis, noms i jerarquia oficials no tenen edició directa.
 
-Una nova localitat requereix país. Sense país, l’únic autocomplete de Localitat queda deshabilitat amb `Selecciona primer un país`; amb país mostra `Cerca una localitat`. Canviar país neteja selecció, text, resultats i cerques anteriors. Només es retornen unitats actives i seleccionables del país, amb validació backend. La transició de pantalles existents és a [Inventari País → Localitat](iteracio-6-inventari-pais-localitat-ca.md). User/Place conserven snapshots fins a Fase VIII; City i GeoNames no s’eliminen, però no exposen terminologia tècnica a la UI.
+Una nova localitat requereix país. Sense país, l’únic autocomplete de Localitat queda deshabilitat amb `Selecciona primer un país`; amb país mostra `Cerca una localitat`. Canviar país neteja selecció, text, resultats i cerques anteriors. Només es retornen unitats actives i seleccionables del país, amb validació backend. La transició de pantalles existents és a [Inventari País → Localitat](iteracio-6-inventari-pais-localitat-ca.md). User/Place conserven els snapshots textuals compatibles, mentre `cities` i GeoNames ja no formen part del runtime.
 ## Addenda 2026-10-11 — importació territorial normalitzada
 
 L'assistent territorial reconeix automàticament `PETILOC_TERRITORIAL 1.0`. En aquest cas mostra país, versió, mode, data, fonts i camps afectats, i no demana mapping manual. Els XLSX externs mantenen el circuit anterior. `FULL` descriu una fotografia completa; `PATCH` preserva tot camp fora de `field_scope`, no crea ni inactiva unitats i respecta overrides manuals. El primer cas real és el pedaç de coordenades dels 8.132 municipis d'Espanya, publicat posteriorment per una ordre humana després de l'aprovació documental de CNIG.
@@ -2139,7 +2142,7 @@ Alemanya es va publicar el `2026-10-11T21:22:32.042281Z`. Les unitats intermèdi
 
 ## Addenda 2026-10-12 — Fase IX i compatibilitat territorial
 
-El catàleg europeu cobreix totes les seleccions noves. `countries` es conserva com a arrel compartida; els endpoints, menú i consumidors runtime de `cities`/GeoNames s'han retirat i la migració reversible queda preparada, no aplicada. L'usuari ha confirmat que els 11 User i 108 Place auditats són dades de prova: el backfill s'ha descartat i s'ha substituït per un pla de neteja controlat, encara no executat sobre PostgreSQL real. El detall consta a [Fase IX](iteracio-6-fase-ix-tancament-ca.md).
+El catàleg europeu cobreix totes les seleccions noves. `countries` es conserva com a arrel compartida; els endpoints, menú i consumidors runtime de `cities`/GeoNames s'han retirat. La migració reversible `20261012092916_RetireLegacyCities` i la neteja controlada del manifest s'han aplicat a PostgreSQL real amb autorització explícita: s'han eliminat 8 usuaris de prova, 108 llocs de prova i 19 files dependents (135 files en total), preservant els comptes protegits i tot el catàleg territorial. El backfill s'ha descartat. El detall consta a [Fase IX](iteracio-6-fase-ix-tancament-ca.md).
 
 ## Addenda 2026-10-12 — classificació funcional europea
 

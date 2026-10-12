@@ -2,7 +2,9 @@
 
 ## Estat
 
-**FASE VI COMPLETADA DEFINITIVAMENT. FASE VII EN CURS EN DOCUMENT SEPARAT.**
+> **Actualització final (2026-10-12):** aquest document conserva l'abast de Fase VI. La Iteració 6 s'ha completat posteriorment: `cities` i GeoNames runtime estan retirats, `countries` es conserva, Espanya i Alemanya estan publicades i validades i la Fase IX està tancada.
+
+**TALL HISTÒRIC EN TANCAR FASE VI:** Fase VI completada definitivament; Fase VII continuava en un document separat.
 
 La revisió del repositori va confirmar que la Fase VI era compatible amb el contracte territorial i el motor de Fase V. No s’ha canviat el contracte funcional ni s’ha duplicat el pipeline: la UI governa TerritorialImportService, els mappings, la validació, el ChangeSet, la publicació i la reversió existents.
 
@@ -81,7 +83,7 @@ La importació es recupera pel seu identificador; refrescar o tornar més tard n
 - No s’ha publicat cap dataset oficial real.
 - No s’ha fet backfill de User o Place.
 - `User` i `Place` disposen de FK nullable de país i unitat territorial. Els fluxos nous usen el selector compartit i el backend deriva els snapshots oficials; els registres històrics sense FK continuen vàlids.
-- City, GeoNames i snapshots textuals continuen preservats com a compatibilitat explícita fins a la publicació i el backfill governats.
+- En el tall de Fase VI, City, GeoNames i snapshots textuals es preservaven temporalment. La Fase IX posterior va retirar City/GeoNames runtime i va conservar únicament els snapshots textuals necessaris.
 - La primera importació real continua reservada a la Fase VII.
 
 ## Conceptes i política final

@@ -76,7 +76,7 @@ La decisió funcional posterior va retirar aquestes rutes i el handoff d'un sol 
 
 ### Gestió Territorial ADMIN — Iteració 6 / Fase VI
 
-**Estat:** Fase VI completada definitivament; Fase VII està en curs amb VII.9.3 implementada i validada tècnicament, pendent de validació manual final. Espanya és el primer catàleg oficial publicat amb 8.199 unitats i no s’ha republicat en aquest refinament. Alemanya continua no publicada.
+**Estat:** Iteració 6 completada i Fase IX tancada. Espanya v2 té 8.199 unitats publicades i Alemanya v1 en té 15.770. El contracte territorial, fonts, importació, publicació, API, explorador i selector compartit estan validats; `cities` i GeoNames runtime s'han retirat i `countries` es conserva.
 
 El grup `/api/admin/territorial` exigeix JWT i rol exacte `Admin`. Exposa context, inspecció XLSX, mappings versionats, preparació d’importacions, historial/detall, incidències i ChangeSet paginats, i ordres de publicació, cancel·lació i reversió limitada. Els DTO no exposen EF Records, staging complet, paths ni excepcions internes. El contracte complet és [Iteració 6 — Fase VI](iteracio-6-fase-vi-gestio-territorial-admin-ca.md).
 
@@ -122,6 +122,16 @@ Valors de `type` admesos actualment:
 - `Apartment`
 - `Park`
 - `Service`
+
+### Contracte objectiu de Places — Iteració 7
+
+La Fase 0 no modifica cap endpoint. Defineix que Angular continuarà consumint exclusivament contractes de PetiLoc i que els futurs adaptadors d'OpenStreetMap/Overpass, Geoapify, Wikidata o altres fonts no exposaran els seus esquemes a la web.
+
+L'API haurà de mantenir una resposta unificada sobre el catàleg propi PostgreSQL, amb procedència i governança, independentment de la font d'ingesta. Els endpoints i DTO heretats que expressen candidats, `google_place_id`, Search, Details o Photos s'auditaran a la Fase I. Google Places no és una integració a completar: es retirarà progressivament després de validar substituts funcionals i no s'afegeix cap ruta nova en aquesta Fase 0.
+
+Des del 2026-10-12 Google Places API està desactivada globalment abans d'iniciar la Fase I. `GET /api/places` consulta només snapshots i catàleg PostgreSQL; si no troba establiments retorna una pàgina buida. L'endpoint heretat `GET /api/places/external/search` es conserva per a l'auditoria però retorna una col·lecció buida. Details, Photos i l'enriquiment en segon pla queden bloquejats per política d'aplicació i pel tall no configurable del client. Cap d'aquests canvis afecta els endpoints de Google OAuth.
+
+Contracte de planificació: [Iteració 7 — Catàleg propi de llocs amb fonts obertes](iteracio-7-roadmap-places-obertes-ca.md).
 
 ### Users
 

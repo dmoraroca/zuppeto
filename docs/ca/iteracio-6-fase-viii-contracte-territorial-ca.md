@@ -2,9 +2,9 @@
 
 ## Estat
 
-Contracte territorial 1.0 implementat i validat tècnicament el 2026-10-11. Aquest lliurable és el prerequisit d'importació de la Fase VIII; el backfill territorial de `User` i `Place` continua pendent i no s'ha executat.
+Contracte territorial 1.0 implementat i validat tècnicament el 2026-10-11. Aquest lliurable va ser el prerequisit d'importació de la Fase VIII; en aquell tall el backfill territorial de `User` i `Place` continuava pendent. La decisió final de Fase IX el va descartar i no es va executar.
 
-> Actualització Fase IX (2026-10-12): aquest document conserva el tall històric de Fase VIII. Després d'aquell tall, decisions humanes van aprovar CNIG i publicar el PATCH; Espanya consta a v2 amb les 8.132 coordenades. L'auditoria de Fase IX no ha repetit cap d'aquestes operacions.
+> Actualització final Fase IX (2026-10-12): aquest document conserva el tall històric de Fase VIII. Després d'aquell tall, decisions humanes van aprovar CNIG i GV-ISys i van publicar els ChangeSets corresponents. Espanya consta a v2 amb 8.199 unitats i 8.132 coordenades; Alemanya consta a v1 amb 15.770 unitats. La Fase IX ha retirat `cities`, conservat `countries`, completat la regressió i tancat la Iteració 6. El backfill no es va executar perquè les dades auditades eren de prova.
 
 ## Baseline i preservació
 

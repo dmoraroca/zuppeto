@@ -8,10 +8,10 @@ public sealed class PlaceExternalIntegrationOptions
     public const string SectionName = "GooglePlaces";
 
     /// <summary>
-    /// When false, place search never calls Google Places Text Search (catalog and search snapshots only).
-    /// Missing covers still use Place Details / Place Photos when an API key is configured.
+    /// Retained for the Phase I audit. The application policy and infrastructure kill switch
+    /// keep every Google Places operation disabled even when old configuration sets this to true.
     /// </summary>
-    public bool Enabled { get; set; } = true;
+    public bool Enabled { get; set; }
 
     /// <summary>
     /// Days until advertised Google coordinate cache expiry. Aligns with operational refresh via Places Details using <c>place_id</c>.

@@ -38,7 +38,7 @@ public static class DependencyInjection
         services.AddScoped<PlaceExternalSearchImporter>();
         services.AddSingleton<PlaceExternalDataMergePolicy>();
         services.AddScoped<IPlaceExternalDataSynchronizer, PlaceExternalDataSynchronizer>();
-        services.AddSingleton<IExternalPlaceCallPolicy, AllowExternalPlaceCallsPolicy>();
+        services.AddSingleton<IExternalPlaceCallPolicy, DisabledExternalPlaceCallsPolicy>();
         services.AddScoped<IPlaceApplicationService, PlaceApplicationService>();
         services.AddScoped<IFavoriteListApplicationService, FavoriteListApplicationService>();
         services.AddScoped<IUserApplicationService, UserApplicationService>();
