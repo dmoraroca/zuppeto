@@ -2,7 +2,7 @@
 
 ## Estat i abast
 
-Implementació i validació funcional preparades el 13.10.2026. Inclou el nucli de governança, el workflow ADMIN auditable, la persistència de polítiques de cadena i els contractes neutrals de la Fase IV. La Fase III continua pendent de revisió humana i d'autorització explícita abans d'aplicar migracions a PostgreSQL real. No implementa connectors HTTP, no importa POI, no activa Google Places i no modifica Google OAuth.
+Implementació, validació funcional i migració real completades el 13.10.2026. Inclou el nucli de governança, el workflow ADMIN auditable, la persistència de polítiques de cadena i els contractes neutrals de la Fase IV. Les dues migracions autoritzades s'han aplicat a PostgreSQL real després de superar els gates de backup, restauració, `Up → Down → Up`, idempotència i integritat territorial. No implementa connectors HTTP, no importa POI, no activa Google Places i no modifica Google OAuth.
 
 ## Model funcional
 
@@ -20,7 +20,9 @@ Cada `PetFriendlyAssertion` conserva Place, espècie, estat, condicions, font, I
 
 `AddPetFriendlyGovernancePhase3` elimina el constraint binari, preserva com `Allowed` les files antigues que admetien alguna espècie i deixa `Unknown` per defecte a les noves. Afegeix `places.pet_policy_status`, `place_pet_assertions`, `commercial_chains`, `chain_places` i `chain_pet_policies`. La continuació `AddPetGovernanceAdminWorkflow` incorpora `chain_pet_policies.evidence_uri` i `pet_governance_decisions`, amb actor, motiu, instant i snapshots JSONB anterior/posterior.
 
-Espècies i condicions heterogènies usen JSONB; identitat, estats, dates i camps consultables continuen tipats. Les relacions Place tenen cascada i les territorials `RESTRICT`. La migració té `Down`, però no s'ha aplicat a la base real.
+Espècies i condicions heterogènies usen JSONB; identitat, estats, dates i camps consultables continuen tipats. Les relacions Place tenen cascada i les territorials `RESTRICT`.
+
+La simulació inicial va detectar que, després de revertir completament la Fase III, un segon `Up` intentava eliminar incondicionalment `ck_places_pet_policy`, que ja no existia. L'`Up` usa ara `DROP CONSTRAINT IF EXISTS`: funciona tant en el primer desplegament, on el constraint antic existeix, com després d'un `Down`, on és absent. El `Down` no restaura deliberadament el constraint binari antic, perquè `Unknown` i `NotAllowed` admeten legítimament `accepts_dogs = false` i `accepts_cats = false`; restaurar-lo podria impedir la reversió o exigir una reescriptura semàntica i destructiva. El snapshot EF no canvia perquè la correcció només afecta l'operació de migració.
 
 ## Contractes de connectors de Fase IV
 
@@ -94,21 +96,23 @@ La regla efectiva és `MANUAL verificada > MANUAL > AUTO`. Les afirmacions revoc
 - backend complet: 118/118 PASS; inclou verificació, conflictes, revocació, caducitat, precedència, cadenes, excepcions, autorització i auditoria;
 - Angular complet: 93/93 PASS en 23 fitxers; el panell focalitzat passa 3/3;
 - PostgreSQL temporal: 1/1 PASS amb persistència i recuperació en un `DbContext` nou, protecció de la dada manual, auditoria, evidència de cadena i camps territorials/coordenades nullable;
-- migració: `up → down fins AddPetFriendlyGovernancePhase3 → up` PASS; `dotnet ef migrations has-pending-model-changes` confirma que model i snapshot són coherents;
+- correcció PostgreSQL focalitzada: 8/8 PASS, inclosa la prova que baixa fins a `20261012092916_RetireLegacyCities`, comprova l'absència del constraint antic, recrea el context EF i torna a pujar;
+- migració restaurada: `Up → Down fins RetireLegacyCities → Up` PASS; una aplicació addicional retorna `No migrations were applied`; `dotnet ef migrations has-pending-model-changes` confirma que model i snapshot són coherents;
 - E2E Google Chrome focalitzat: 10/10 PASS sobre API, Angular i PostgreSQL temporals; comprova Place desconegut, modificació, verificació manual, contradicció externa, precedència, revocació, cadena, excepció local, recàrrega i valors nullable;
 - E2E: 0 crides externes; Google Places i RabbitMQ desactivats. No s'ha executat la bateria completa Chrome/Firefox/WebKit;
-- cleanup: les bases `zuppeto_pet_governance_tests` i `zuppeto_pet_governance_e2e` s'han eliminat; PostgreSQL real no s'ha modificat.
-- PostgreSQL real: no modificat.
+- backup: `/DATA/backups/zuppeto/phase3-20261013/zuppeto-before-phase3.dump`, 26.407.912 bytes, 284 entrades restaurables i SHA-256 `419a897c3f291b34c69fcaee0008a123c3e4d6d904b76f8335196823bd4ab38a`; globals del clúster amb SHA-256 `a8f9d7fd97e92ae198c53270e6df53c054888687763ae53267cd8d7a5aaae74c`;
+- PostgreSQL real: aplicades exclusivament `20261013145700_AddPetFriendlyGovernancePhase3` i `20261013170522_AddPetGovernanceAdminWorkflow`; historial final de 40 migracions i cap migració pendent;
+- validació posterior real, només lectura: 3 usuaris i 0 Places conservats; 5 taules de governança creades i buides; constraints i claus foranes validats; model EF alineat;
+- integritat territorial posterior: 3 països, 23.969 unitats, 23.993 noms i 35.021 codis; ES versió 2 amb 8.199 unitats i 8.132 coordenades; DE versió 1 amb 15.770 unitats i 10.939 coordenades; 3 fonts aprovades, 9 imports, 2 auditories d'aprovació i 0 auditories de manteniment; cap coordenada parcial, sense font ni fictícia detectada;
+- cleanup: les bases `zuppeto_phase3_restore_check`, `zuppeto_pet_governance_tests` i `zuppeto_pet_governance_e2e` s'han eliminat; el backup es conserva fora del repositori.
 
 ## Incidències i condicions de tancament
 
-- no hi ha cap incidència funcional bloquejant detectada dins l'abast validat;
-- la base real continua sense les dues migracions de Fase III;
-- cal revisar aquest informe i el diff local;
-- cal autorització explícita separada per aplicar les migracions a PostgreSQL real;
-- després de migrar, cal una comprovació de lectura i integritat sense dades destructives;
-- només llavors es podrà declarar tancada la Fase III. La Fase IV, els adaptadors i els imports continuen sense iniciar-se.
+- la incidència de reversibilitat ha quedat corregida i coberta per regressió;
+- no hi ha cap gate obligatori pendent ni cap incidència funcional bloquejant dins l'abast validat;
+- la Fase III queda tancada tècnicament després de l'aplicació real i la comprovació posterior de lectura;
+- la Fase IV, els adaptadors i els imports continuen sense iniciar-se.
 
 ## Estat de Git
 
-Canvis locals sense commit ni push. El tall inclou domini, aplicació, API, EF Core, Angular, proves i documentació. No s'ha modificat cap catàleg territorial ni cap integració externa.
+Canvis locals de correcció i documentació sense commit ni push. No s'ha modificat cap catàleg territorial ni cap integració externa.

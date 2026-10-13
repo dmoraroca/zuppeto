@@ -14,7 +14,7 @@ namespace Backend.Activation.Tests;
 public sealed class PetGovernancePostgreSqlTests
 {
     private const string TemporaryDatabase = "zuppeto_pet_governance_tests";
-    private const string PreviousMigration = "20261013145700_AddPetFriendlyGovernancePhase3";
+    private const string PreviousMigration = "20261012092916_RetireLegacyCities";
 
     [Fact]
     public async Task Temporary_PostgreSql_migrates_round_trips_and_preserves_audited_governance()
@@ -31,9 +31,24 @@ public sealed class PetGovernancePostgreSqlTests
             await using (var migrationDb = new ZuppetoDbContext(options))
             {
                 await migrationDb.Database.MigrateAsync();
-                var migrator = migrationDb.GetService<IMigrator>();
+            }
+
+            await using (var downgradeDb = new ZuppetoDbContext(options))
+            {
+                var migrator = downgradeDb.GetService<IMigrator>();
                 await migrator.MigrateAsync(PreviousMigration);
-                await migrator.MigrateAsync();
+            }
+
+            await AssertConstraintDoesNotExistAsync(testConnection, "ck_places_pet_policy");
+
+            await using (var secondUpgradeDb = new ZuppetoDbContext(options))
+            {
+                await secondUpgradeDb.Database.MigrateAsync();
+            }
+
+            await using (var idempotencyDb = new ZuppetoDbContext(options))
+            {
+                await idempotencyDb.Database.MigrateAsync();
             }
 
             var placeId = Guid.NewGuid();
@@ -115,5 +130,18 @@ public sealed class PetGovernancePostgreSqlTests
         await using var connection = new NpgsqlConnection(adminConnection);
         await connection.OpenAsync();
         await new NpgsqlCommand($"DROP DATABASE IF EXISTS {TemporaryDatabase} WITH (FORCE)", connection).ExecuteNonQueryAsync();
+    }
+
+    private static async Task AssertConstraintDoesNotExistAsync(string connectionString, string constraintName)
+    {
+        await using var connection = new NpgsqlConnection(connectionString);
+        await connection.OpenAsync();
+        await using var command = new NpgsqlCommand("""
+            SELECT COUNT(*)
+            FROM pg_constraint
+            WHERE conname = @constraintName;
+            """, connection);
+        command.Parameters.AddWithValue("constraintName", constraintName);
+        Assert.Equal(0L, (long)(await command.ExecuteScalarAsync())!);
     }
 }

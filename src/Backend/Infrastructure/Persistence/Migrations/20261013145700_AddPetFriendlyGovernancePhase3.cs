@@ -11,9 +11,13 @@ namespace Infrastructure.Persistence.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropCheckConstraint(
-                name: "ck_places_pet_policy",
-                table: "places");
+            // The legacy constraint is present on the first upgrade, but deliberately
+            // remains absent after Down because it rejects valid Unknown/NotAllowed data.
+            // Keep the following Up safe for both schema states.
+            migrationBuilder.Sql("""
+                ALTER TABLE places
+                DROP CONSTRAINT IF EXISTS ck_places_pet_policy;
+                """);
 
             migrationBuilder.AddColumn<string>(
                 name: "pet_conditions",
