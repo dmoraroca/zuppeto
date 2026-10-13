@@ -270,6 +270,9 @@ export class AdminConsolePageComponent {
     longitude: string;
     acceptsDogs: boolean;
     acceptsCats: boolean;
+    petAccessStatus: 'Allowed' | 'NotAllowed' | 'TerraceOnly' | 'Unknown' | 'PendingReview';
+    petSpecies: string;
+    petConditions: string;
     petPolicyLabel: string;
     petPolicyNotes: string;
     pricingLabel: string;
@@ -297,10 +300,13 @@ export class AdminConsolePageComponent {
     countryId: '',
     territorialUnitId: '',
     neighborhood: '',
-    latitude: '0',
-    longitude: '0',
-    acceptsDogs: true,
-    acceptsCats: true,
+    latitude: '',
+    longitude: '',
+    acceptsDogs: false,
+    acceptsCats: false,
+    petAccessStatus: 'Unknown',
+    petSpecies: '',
+    petConditions: '',
     petPolicyLabel: '',
     petPolicyNotes: '',
     pricingLabel: '',
@@ -2002,10 +2008,13 @@ export class AdminConsolePageComponent {
       countryId: '',
       territorialUnitId: '',
       neighborhood: '',
-      latitude: '0',
-      longitude: '0',
-      acceptsDogs: true,
-      acceptsCats: true,
+      latitude: '',
+      longitude: '',
+      acceptsDogs: false,
+      acceptsCats: false,
+      petAccessStatus: 'Unknown',
+      petSpecies: '',
+      petConditions: '',
       petPolicyLabel: '',
       petPolicyNotes: '',
       pricingLabel: '',
@@ -2036,10 +2045,13 @@ export class AdminConsolePageComponent {
       countryId: place.countryId ?? '',
       territorialUnitId: place.territorialUnitId ?? '',
       neighborhood: place.neighborhood || '',
-      latitude: formatDecimalCoordinate(place.latitude.toString()),
-      longitude: formatDecimalCoordinate(place.longitude.toString()),
+      latitude: place.latitude === null ? '' : formatDecimalCoordinate(place.latitude.toString()),
+      longitude: place.longitude === null ? '' : formatDecimalCoordinate(place.longitude.toString()),
       acceptsDogs: place.acceptsDogs,
       acceptsCats: place.acceptsCats,
+      petAccessStatus: place.petAccessStatus ?? 'Unknown',
+      petSpecies: (place.petSpecies ?? []).join(', '),
+      petConditions: (place.petConditions ?? []).map(item => item.value ? `${item.code}:${item.value}` : item.code).join(', '),
       petPolicyLabel: place.petPolicyLabel,
       petPolicyNotes: place.petPolicyNotes || '',
       pricingLabel: place.pricingLabel,
@@ -2105,10 +2117,13 @@ export class AdminConsolePageComponent {
       countryId: original.countryId ?? '',
       territorialUnitId: original.territorialUnitId ?? '',
       neighborhood: original.neighborhood || '',
-      latitude: formatDecimalCoordinate(original.latitude.toString()),
-      longitude: formatDecimalCoordinate(original.longitude.toString()),
+      latitude: original.latitude === null ? '' : formatDecimalCoordinate(original.latitude.toString()),
+      longitude: original.longitude === null ? '' : formatDecimalCoordinate(original.longitude.toString()),
       acceptsDogs: original.acceptsDogs,
       acceptsCats: original.acceptsCats,
+      petAccessStatus: original.petAccessStatus ?? 'Unknown',
+      petSpecies: (original.petSpecies ?? []).join(', '),
+      petConditions: (original.petConditions ?? []).map(item => item.value ? `${item.code}:${item.value}` : item.code).join(', '),
       petPolicyLabel: original.petPolicyLabel,
       petPolicyNotes: original.petPolicyNotes || '',
       pricingLabel: original.pricingLabel,
@@ -2208,6 +2223,7 @@ export class AdminConsolePageComponent {
     longitude: string;
     acceptsDogs: boolean;
     acceptsCats: boolean;
+    petAccessStatus: string;
     petPolicyLabel: string;
     pricingLabel: string;
     ratingAverage: string;
@@ -2220,13 +2236,11 @@ export class AdminConsolePageComponent {
     if (!place.addressLine1.trim()) return "L'adreça és obligatòria.";
     if (!place.city.trim()) return 'La ciutat és obligatòria.';
     if (!place.country.trim()) return 'El país és obligatori.';
-    if (!place.acceptsDogs && !place.acceptsCats) return 'Cal acceptar com a mínim gossos o gats.';
-
     const latitude = this.parseOptionalNumber(place.latitude);
     const longitude = this.parseOptionalNumber(place.longitude);
-    if (latitude === null || longitude === null) return 'Latitud i longitud han de ser numèriques.';
-    if (latitude < -90 || latitude > 90) return 'La latitud ha d’estar entre -90 i 90.';
-    if (longitude < -180 || longitude > 180) return 'La longitud ha d’estar entre -180 i 180.';
+    if ((latitude === null) !== (longitude === null)) return 'Cal informar latitud i longitud conjuntament.';
+    if (latitude !== null && (latitude < -90 || latitude > 90)) return 'La latitud ha d’estar entre -90 i 90.';
+    if (longitude !== null && (longitude < -180 || longitude > 180)) return 'La longitud ha d’estar entre -180 i 180.';
 
     const ratingAverage = this.parseOptionalNumber(place.ratingAverage);
     if (ratingAverage === null) return 'El rating ha de ser numèric.';
@@ -2266,6 +2280,9 @@ export class AdminConsolePageComponent {
     longitude: string;
     acceptsDogs: boolean;
     acceptsCats: boolean;
+    petAccessStatus: 'Allowed' | 'NotAllowed' | 'TerraceOnly' | 'Unknown' | 'PendingReview';
+    petSpecies: string;
+    petConditions: string;
     petPolicyLabel: string;
     petPolicyNotes: string;
     pricingLabel: string;
@@ -2280,7 +2297,7 @@ export class AdminConsolePageComponent {
     const longitude = this.parseOptionalNumber(place.longitude);
     const ratingAverage = this.parseOptionalNumber(place.ratingAverage);
     const reviewCount = Number.parseInt(place.reviewCount, 10);
-    if (latitude === null || longitude === null || ratingAverage === null || !Number.isFinite(reviewCount)) {
+    if (ratingAverage === null || !Number.isFinite(reviewCount)) {
       this.notifications.notify('Error', 'No s’han pogut convertir els valors numèrics del lloc.', 'error');
       return null;
     }
@@ -2304,6 +2321,16 @@ export class AdminConsolePageComponent {
       acceptsCats: place.acceptsCats,
       petPolicyLabel: (place.petPolicyLabel ?? '').trim(),
       petPolicyNotes: (place.petPolicyNotes ?? '').trim(),
+      petAccessStatus: place.petAccessStatus,
+      petSpecies: [...new Set([
+        ...(place.acceptsDogs ? ['dog'] : []),
+        ...(place.acceptsCats ? ['cat'] : []),
+        ...this.splitCsv(place.petSpecies)
+      ])],
+      petConditions: this.splitCsv(place.petConditions).map(item => {
+        const [code, ...value] = item.split(':');
+        return { code: code.trim(), value: value.join(':').trim() || null };
+      }),
       pricingLabel: (place.pricingLabel ?? '').trim(),
       ratingAverage,
       reviewCount,

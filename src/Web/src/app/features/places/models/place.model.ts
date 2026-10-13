@@ -39,7 +39,7 @@ export interface Place {
   coverAttribution?: string;
   coverSourceUri?: string;
   categoryLabel?: string;
-  coordinates: PlaceCoordinates;
+  coordinates: PlaceCoordinates | null;
 }
 
 export interface PlaceFilters {

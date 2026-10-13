@@ -77,6 +77,16 @@ describe('PlaceService phase I characterization', () => {
     await expect(promise).resolves.toEqual(expect.objectContaining({ total: 21, skip: 20, take: 10 }));
   });
 
+  it('preserves missing coordinates instead of inventing a map position', async () => {
+    const promise = service.fetchPublicPlaces();
+    const request = http.expectOne('http://localhost:5211/api/places');
+    request.flush([{ ...placeDto(), latitude: null, longitude: null }]);
+
+    await expect(promise).resolves.toEqual([
+      expect.objectContaining({ coordinates: null })
+    ]);
+  });
+
   it('turns a public network failure into an empty result without inventing places', async () => {
     const promise = service.fetchPublicPlaces({ city: 'Abadín' });
     http.expectOne((candidate) => candidate.url.endsWith('/api/places')).flush(

@@ -23,6 +23,131 @@ namespace Infrastructure.Persistence.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "pgcrypto");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.ChainPetPolicyRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<Guid>("ChainId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("chain_id");
+
+                    b.Property<string>("ConditionsJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("conditions");
+
+                    b.Property<string>("CountryCode")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)")
+                        .HasColumnName("country_code");
+
+                    b.Property<bool>("HasApplicabilityEvidence")
+                        .HasColumnType("boolean")
+                        .HasColumnName("has_applicability_evidence");
+
+                    b.Property<string>("SourceKey")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("source_key");
+
+                    b.Property<string>("SpeciesJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("species");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid?>("TerritorialUnitId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("territorial_unit_id");
+
+                    b.Property<DateTimeOffset>("ValidFromUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("valid_from_utc");
+
+                    b.Property<DateTimeOffset?>("ValidUntilUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("valid_until_utc");
+
+                    b.Property<DateTimeOffset?>("VerifiedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("verified_at_utc");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TerritorialUnitId");
+
+                    b.HasIndex("ChainId", "CountryCode", "TerritorialUnitId", "ValidFromUtc");
+
+                    b.ToTable("chain_pet_policies", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_chain_pet_policy_status", "status IN ('Allowed','NotAllowed','TerraceOnly','Unknown','PendingReview')");
+                        });
+                });
+
+            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.ChainPlaceRecord", b =>
+                {
+                    b.Property<Guid>("ChainId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("chain_id");
+
+                    b.Property<Guid>("PlaceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("place_id");
+
+                    b.Property<bool>("IsFranchise")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_franchise");
+
+                    b.Property<DateTimeOffset>("LinkedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("linked_at_utc");
+
+                    b.HasKey("ChainId", "PlaceId");
+
+                    b.HasIndex("PlaceId");
+
+                    b.ToTable("chain_places", (string)null);
+                });
+
+            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.CommercialChainRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("commercial_chains", (string)null);
+                });
+
             modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.CountryRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -352,6 +477,115 @@ namespace Infrastructure.Persistence.Migrations
                     b.ToTable("permissions", (string)null);
                 });
 
+            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.PetFriendlyAssertionRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<string>("ConditionsJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("conditions");
+
+                    b.Property<string>("Confidence")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("confidence");
+
+                    b.Property<string>("EvidenceUri")
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)")
+                        .HasColumnName("evidence_uri");
+
+                    b.Property<string>("ExternalId")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("external_id");
+
+                    b.Property<DateTimeOffset>("ObservedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("observed_at_utc");
+
+                    b.Property<string>("ObservedValue")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("observed_value");
+
+                    b.Property<string>("Origin")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("origin");
+
+                    b.Property<Guid>("PlaceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("place_id");
+
+                    b.Property<Guid?>("ResponsibleActorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("responsible_actor_id");
+
+                    b.Property<string>("SourceKey")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("source_key");
+
+                    b.Property<string>("SpeciesCode")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("species_code");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("state");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid?>("SupersedesAssertionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("supersedes_assertion_id");
+
+                    b.Property<DateTimeOffset?>("ValidUntilUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("valid_until_utc");
+
+                    b.Property<string>("VerificationMethod")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("verification_method");
+
+                    b.Property<DateTimeOffset?>("VerifiedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("verified_at_utc");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlaceId", "SpeciesCode", "State")
+                        .HasDatabaseName("ix_pet_assertions_effective");
+
+                    b.ToTable("place_pet_assertions", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_pet_assertion_origin", "origin IN ('Manual','Automatic')");
+
+                            t.HasCheckConstraint("ck_pet_assertion_state", "state IN ('Current','Superseded','Questioned','Revoked')");
+
+                            t.HasCheckConstraint("ck_pet_assertion_status", "status IN ('Allowed','NotAllowed','TerraceOnly','Unknown','PendingReview')");
+                        });
+                });
+
             modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.PlaceFeatureRecord", b =>
                 {
                     b.Property<Guid>("PlaceId")
@@ -479,6 +713,13 @@ namespace Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(120)")
                         .HasColumnName("neighborhood");
 
+                    b.Property<string>("PetConditionsJson")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("pet_conditions")
+                        .HasDefaultValueSql("'[]'::jsonb");
+
                     b.Property<string>("PetPolicyLabel")
                         .IsRequired()
                         .HasMaxLength(120)
@@ -488,6 +729,21 @@ namespace Infrastructure.Persistence.Migrations
                     b.Property<string>("PetPolicyNotes")
                         .HasColumnType("text")
                         .HasColumnName("pet_policy_notes");
+
+                    b.Property<string>("PetPolicyStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasDefaultValue("Unknown")
+                        .HasColumnName("pet_policy_status");
+
+                    b.Property<string>("PetSpeciesJson")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("pet_species")
+                        .HasDefaultValueSql("'[]'::jsonb");
 
                     b.Property<string>("PricingLabel")
                         .IsRequired()
@@ -554,7 +810,7 @@ namespace Infrastructure.Persistence.Migrations
 
                     b.ToTable("places", null, t =>
                         {
-                            t.HasCheckConstraint("ck_places_pet_policy", "accepts_dogs OR accepts_cats");
+                            t.HasCheckConstraint("ck_places_pet_policy_status", "pet_policy_status IN ('Allowed','NotAllowed','TerraceOnly','Unknown','PendingReview')");
 
                             t.HasCheckConstraint("ck_places_rating_average", "rating_average >= 0 AND rating_average <= 5");
 
@@ -2313,6 +2569,43 @@ namespace Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.ChainPetPolicyRecord", b =>
+                {
+                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.CommercialChainRecord", "Chain")
+                        .WithMany("Policies")
+                        .HasForeignKey("ChainId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.TerritorialUnitRecord", "TerritorialUnit")
+                        .WithMany()
+                        .HasForeignKey("TerritorialUnitId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Chain");
+
+                    b.Navigation("TerritorialUnit");
+                });
+
+            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.ChainPlaceRecord", b =>
+                {
+                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.CommercialChainRecord", "Chain")
+                        .WithMany("Places")
+                        .HasForeignKey("ChainId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.PlaceRecord", "Place")
+                        .WithMany()
+                        .HasForeignKey("PlaceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Chain");
+
+                    b.Navigation("Place");
+                });
+
             modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.ExternalIdentityRecord", b =>
                 {
                     b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.UserRecord", "User")
@@ -2382,6 +2675,17 @@ namespace Infrastructure.Persistence.Migrations
                     b.Navigation("Menu");
 
                     b.Navigation("RoleRef");
+                });
+
+            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.PetFriendlyAssertionRecord", b =>
+                {
+                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.PlaceRecord", "Place")
+                        .WithMany()
+                        .HasForeignKey("PlaceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Place");
                 });
 
             modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.PlaceFeatureRecord", b =>
@@ -2861,6 +3165,13 @@ namespace Infrastructure.Persistence.Migrations
                     b.Navigation("TerritorialCountry");
 
                     b.Navigation("TerritorialUnit");
+                });
+
+            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.CommercialChainRecord", b =>
+                {
+                    b.Navigation("Places");
+
+                    b.Navigation("Policies");
                 });
 
             modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.CountryRecord", b =>

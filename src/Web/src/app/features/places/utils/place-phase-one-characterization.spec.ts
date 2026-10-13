@@ -42,6 +42,11 @@ describe('Places phase I presentation rules', () => {
     expect(placesVisibleOnOsmMap([bothPlace, hidden, overlay])).toEqual([bothPlace, overlay]);
   });
 
+  it('never plots a Place without establishment coordinates', () => {
+    const withoutCoordinates = place({ id: 'no-coordinates', coordinates: null });
+    expect(placesVisibleOnOsmMap([bothPlace, withoutCoordinates])).toEqual([bothPlace]);
+  });
+
   it('characterizes detail copy and favorites ordering without mutating the source list', () => {
     expect(hasConfirmedPetPolicy(bothPlace)).toBe(true);
     expect(petAccessLabelForPlace(dogPlace)).toBe('Especialment còmode per a gossos');

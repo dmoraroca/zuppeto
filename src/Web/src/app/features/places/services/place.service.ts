@@ -326,7 +326,7 @@ export class PlaceService {
       coverAttribution: place.coverAttribution ?? '',
       coverSourceUri: place.coverSourceUri ?? '',
       categoryLabel: place.categoryLabel?.trim() ?? '',
-      coordinates: {
+      coordinates: place.latitude === null || place.longitude === null ? null : {
         lat: place.latitude,
         lng: place.longitude
       }
@@ -384,8 +384,8 @@ interface PlaceApiSummaryDto {
   city: string;
   country: string;
   neighborhood: string;
-  latitude: number;
-  longitude: number;
+  latitude: number | null;
+  longitude: number | null;
   dataProvenance?: string;
   googlePlaceId?: string | null;
   googleCoordinatesCachedUntil?: string | null;

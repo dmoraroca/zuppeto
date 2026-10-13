@@ -54,7 +54,9 @@ public sealed class PlacePhaseOnePostgreSqlTests
             await snapshots.SaveSnapshotAsync(key, [valid[0].Id], now, TimeSpan.FromMinutes(-1));
             Assert.Null(await snapshots.TryGetFreshPlaceIdsAsync(key, now));
 
-            await AssertDatabaseConstraintAsync(db, PlaceFixture("Cap mascota", false, false));
+            db.Places.Add(PlacePersistenceMapper.ToRecord(PlaceFixture("Política desconeguda", false, false)));
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
             await AssertTerritorialForeignKeyAsync(db, PlaceFixture(
                 "Referència territorial inexistent", true, false, Guid.NewGuid(), Guid.NewGuid()));
 
@@ -67,13 +69,6 @@ public sealed class PlacePhaseOnePostgreSqlTests
         {
             await DropDatabaseAsync(adminConnection);
         }
-    }
-
-    private static async Task AssertDatabaseConstraintAsync(ZuppetoDbContext db, Place place)
-    {
-        db.Places.Add(PlacePersistenceMapper.ToRecord(place));
-        await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync());
-        db.ChangeTracker.Clear();
     }
 
     private static async Task AssertTerritorialForeignKeyAsync(ZuppetoDbContext db, Place place)

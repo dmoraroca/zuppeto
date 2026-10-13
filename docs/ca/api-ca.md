@@ -1,8 +1,8 @@
 # API (CA)
 
-## Iteració 7 — Fase II, contractes previstos de Places
+## Iteració 7 — Fase III, governança de Places
 
-La Fase II no afegeix ni modifica endpoints. Defineix per a la implementació posterior que els DTO públics seran neutrals respecte dels proveïdors, conservaran `countryId` i `territorialUnitId`, representaran coordenades absents amb `null` i exposaran només procedència i atribució publicables. Els connectors no seran accessibles des de la cerca pública: les fonts externes alimentaran processos administratius asíncrons i el client llegirà el catàleg PetiLoc. Detall a [Arquitectura, llicències i RGPD](iteracio-7-fase-ii-arquitectura-llicencies-rgpd-ca.md).
+Els contractes Places conserven `countryId` i `territorialUnitId`, retornen coordenades absents com `null` i incorporen `petAccessStatus`, `petSpecies` i `petConditions`. `Unknown` no equival a `NotAllowed`. Els ports de connectors són interns i no són endpoints públics. Detall a [Fase III](iteracio-7-fase-iii-governanca-pet-friendly-ca.md).
 
 ## Objectiu
 

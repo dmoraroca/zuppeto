@@ -1,5 +1,7 @@
 # Document funcional (CA)
 
+> Iteració 7, Fase III (13.10.2026): Places diferencia permès, no permès, només terrassa, desconegut i pendent de revisió; admet espècies/condicions extensibles i una política de cadena mai s'hereta sense evidència. [Detall funcional](iteracio-7-fase-iii-governanca-pet-friendly-ca.md).
+
 ## Iteració 7 — Fase II, contracte funcional previst
 
 Queda definit documentalment que l'usuari seleccionarà un país i un municipi del catàleg territorial i consultarà només Places publicats a PostgreSQL. L'admissió distingirà confirmació, no admissió, només terrassa, condicions especials, desconegut i pendent de verificació; absència d'evidència no equival a rebuig. La dada manual verificada prevaldrà sobre l'automàtica i cap font o fotografia es publicarà sense superar els gates documental, legal i de qualitat. Vegeu [el lliurable complet de la Fase II](iteracio-7-fase-ii-arquitectura-llicencies-rgpd-ca.md).

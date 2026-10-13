@@ -174,7 +174,7 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       if (selectedPlaceId) {
         const selectedPlace = this.places().find((place) => place.id === selectedPlaceId);
         if (selectedPlace) {
-          this.map.setView([selectedPlace.coordinates.lat, selectedPlace.coordinates.lng], 14);
+          this.map.setView([selectedPlace.coordinates!.lat, selectedPlace.coordinates!.lng], 14);
           this.markers.get(selectedPlace.id)?.openPopup();
           return;
         }
@@ -195,7 +195,7 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     this.markers.clear();
 
     for (const place of this.places()) {
-      const marker = this.leaflet.circleMarker([place.coordinates.lat, place.coordinates.lng], {
+      const marker = this.leaflet.circleMarker([place.coordinates!.lat, place.coordinates!.lng], {
         radius: 8,
         weight: 2,
         color: PlaceMapComponent.idlePinStroke,
@@ -273,7 +273,7 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     const bounds =
       existingBounds ??
       this.places().reduce((accumulator, place) => {
-        accumulator.extend([place.coordinates.lat, place.coordinates.lng]);
+        accumulator.extend([place.coordinates!.lat, place.coordinates!.lng]);
 
         return accumulator;
       }, this.leaflet.latLngBounds([]));

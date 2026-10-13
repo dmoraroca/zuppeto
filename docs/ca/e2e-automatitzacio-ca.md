@@ -1,5 +1,7 @@
 # Automatització E2E de Zuppeto
 
+**Iteració 7 — Fase III (2026-10-13):** no s'ha executat regressió multibrowser. El Chrome focalitzat de governança queda pendent d'un entorn API/PostgreSQL aïllat amb `AddPetFriendlyGovernancePhase3`; no s'ha recreat l'API real perquè aplicaria migracions sense autorització. Backend 110/110, PostgreSQL temporal 1/1, reversió EF, Angular 90/90 i build/proves del runner passen. [Informe de Fase III](iteracio-7-fase-iii-governanca-pet-friendly-ca.md).
+
 **Iteració 7 — Fase II, arquitectura, llicències i RGPD (2026-10-12):** actuació documental. No s'han modificat Playwright, el runner, l'Excel ni els navegadors, i no s'ha executat cap E2E. Queden definits els casos futurs per IDs territorials, coordenades `null`, governança pet-friendly, procedència/atribució, cerca sense crides externes i errors de connector. La regressió completa Chrome, Firefox i WebKit es manté al final de la Iteració 7.
 
 **Iteració 7 — Fase I, auditoria de Places (2026-10-12):** s'ha afegit un E2E Chrome focalitzat i sintètic, separat de la regressió Excel, que intercepta totes les API i bloqueja tota sortida externa. Valida selector país→municipi, cerca, llistat, marcador Leaflet, detall i pantalla ADMIN amb un Place en memòria: PASS, 0 respostes externes i 0 intents Google Places. La prova ha caracteritzat un defecte existent: el submit converteix la selecció territorial en `country + city` i perd `countryId + territorialUnitId`. No s'ha modificat l'Excel ni executat Chrome/Firefox/WebKit complets. Ordre: `npm run e2e:places-phase-one`.

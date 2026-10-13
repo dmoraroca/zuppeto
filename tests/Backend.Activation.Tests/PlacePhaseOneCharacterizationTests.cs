@@ -139,7 +139,7 @@ public sealed class PlacePhaseOneCharacterizationTests
     }
 
     [Fact]
-    public void Current_validator_rejects_a_place_where_no_supported_pet_is_admitted()
+    public void Validator_accepts_a_place_with_unknown_pet_policy()
     {
         var request = new PlaceUpsertRequest(
             null, "Lloc", "Restaurant", "", "", "", "Carrer 1", "Barcelona", "Espanya", "",
@@ -147,8 +147,7 @@ public sealed class PlacePhaseOneCharacterizationTests
 
         ValidationResult result = new Zuppeto.Application.Places.Validators.PlaceUpsertRequestValidator().Validate(request);
 
-        Assert.False(result.IsValid);
-        Assert.Contains(result.Errors, error => error.Field == nameof(request.AcceptsDogs));
+        Assert.True(result.IsValid);
     }
 
     private static PlaceSearchRequest Request(int skip = 0, int? take = null) =>

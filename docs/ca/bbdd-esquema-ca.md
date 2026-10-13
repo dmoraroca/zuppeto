@@ -1,5 +1,7 @@
 # Zuppeto - Esquema BBDD (E/R)
 
+> Fase III (13.10.2026): el model pet-friendly i de cadenes ja forma part del snapshot EF mitjançant `AddPetFriendlyGovernancePhase3`; validat en PostgreSQL temporal amb upgrade, downgrade i idempotència. La base real no s'ha migrat. [Detall](iteracio-7-fase-iii-governanca-pet-friendly-ca.md).
+
 ## Iteració 7 — Fase II, model de Places proposat
 
 La Fase II documenta un model futur dins `public` per separar `places`, fonts, identificadors externs, observacions per camp, decisions, deduplicació, imports/jobs i media. No forma part encara de l'EF snapshot: no s'ha creat cap migració ni modificat PostgreSQL. La definició i els constraints previstos consten a [Arquitectura, llicències i RGPD de Places](iteracio-7-fase-ii-arquitectura-llicencies-rgpd-ca.md).

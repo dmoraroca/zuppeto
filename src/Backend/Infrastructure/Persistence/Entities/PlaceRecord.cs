@@ -40,6 +40,12 @@ public sealed class PlaceRecord
 
     public bool AcceptsCats { get; set; }
 
+    public string PetPolicyStatus { get; set; } = "Unknown";
+
+    public string PetSpeciesJson { get; set; } = "[]";
+
+    public string PetConditionsJson { get; set; } = "[]";
+
     public string PetPolicyLabel { get; set; } = string.Empty;
 
     public string? PetPolicyNotes { get; set; }

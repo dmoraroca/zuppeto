@@ -38,7 +38,11 @@ public sealed class PlaceUpsertRequestValidator : IValidator<PlaceUpsertRequest>
             result.Add(nameof(request.Country), "El país és obligatori.");
         }
 
-        if (request.Latitude is < -90 or > 90)
+        if ((request.Latitude is null) != (request.Longitude is null))
+        {
+            result.Add(nameof(request.Latitude), "La latitud i la longitud s’han d’informar conjuntament.");
+        }
+        else if (request.Latitude is < -90 or > 90)
         {
             result.Add(nameof(request.Latitude), "La latitud ha d'estar entre -90 i 90.");
         }
@@ -48,9 +52,9 @@ public sealed class PlaceUpsertRequestValidator : IValidator<PlaceUpsertRequest>
             result.Add(nameof(request.Longitude), "La longitud ha d'estar entre -180 i 180.");
         }
 
-        if (!request.AcceptsDogs && !request.AcceptsCats)
+        if (!Enum.TryParse<PetAccessStatus>(request.PetAccessStatus, true, out _))
         {
-            result.Add(nameof(request.AcceptsDogs), "Cal acceptar com a mínim gossos o gats.");
+            result.Add(nameof(request.PetAccessStatus), "L’estat d’admissió no és vàlid.");
         }
 
         if (request.RatingAverage is < 0 or > 5)

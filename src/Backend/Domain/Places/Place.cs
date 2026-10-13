@@ -16,7 +16,7 @@ public sealed class Place : AggregateRoot<Guid>
         string description,
         string coverImageUrl,
         PostalAddress address,
-        GeoLocation location,
+        GeoLocation? location,
         PetPolicy petPolicy,
         Pricing pricing,
         RatingSnapshot rating,
@@ -56,7 +56,7 @@ public sealed class Place : AggregateRoot<Guid>
 
     public PostalAddress Address { get; private set; }
 
-    public GeoLocation Location { get; private set; }
+    public GeoLocation? Location { get; private set; }
 
     public PetPolicy PetPolicy { get; private set; }
 
@@ -129,7 +129,7 @@ public sealed class Place : AggregateRoot<Guid>
         CoverImageUrl = string.IsNullOrWhiteSpace(coverImageUrl) ? string.Empty : coverImageUrl.Trim();
     }
 
-    public void Relocate(PostalAddress address, GeoLocation location)
+    public void Relocate(PostalAddress address, GeoLocation? location)
     {
         Address = address;
         Location = location;

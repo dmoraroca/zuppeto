@@ -189,7 +189,9 @@ internal static class PlaceEndpoints
                 query.Type,
                 query.PetCategory ?? "All",
                 query.Skip ?? 0,
-                query.Take),
+                query.Take,
+                query.CountryId,
+                query.TerritorialUnitId),
             cancellationToken);
         return TypedResults.Ok(result.Items);
     }

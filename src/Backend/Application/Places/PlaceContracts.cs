@@ -68,8 +68,8 @@ public sealed record PlaceUpsertRequest(
     string City,
     string Country,
     string Neighborhood,
-    decimal Latitude,
-    decimal Longitude,
+    decimal? Latitude,
+    decimal? Longitude,
     bool AcceptsDogs,
     bool AcceptsCats,
     string PetPolicyLabel,
@@ -84,7 +84,12 @@ public sealed record PlaceUpsertRequest(
     DateTimeOffset? GoogleCoordinatesCachedUntil = null,
     DateTimeOffset? LastGoogleSyncAt = null,
     Guid? CountryId = null,
-    Guid? TerritorialUnitId = null);
+    Guid? TerritorialUnitId = null,
+    string PetAccessStatus = "Unknown",
+    IReadOnlyCollection<string>? PetSpecies = null,
+    IReadOnlyCollection<PetConditionDto>? PetConditions = null);
+
+public sealed record PetConditionDto(string Code, string? Value = null);
 
 public sealed record PlaceSummaryDto(
     Guid Id,
@@ -97,8 +102,8 @@ public sealed record PlaceSummaryDto(
     string City,
     string Country,
     string Neighborhood,
-    decimal Latitude,
-    decimal Longitude,
+    decimal? Latitude,
+    decimal? Longitude,
     string DataProvenance,
     string? GooglePlaceId,
     DateTimeOffset? GoogleCoordinatesCachedUntil,
@@ -122,7 +127,10 @@ public sealed record PlaceSummaryDto(
     string? CoverAttribution = null,
     string? CoverSourceUri = null,
     Guid? CountryId = null,
-    Guid? TerritorialUnitId = null);
+    Guid? TerritorialUnitId = null,
+    string PetAccessStatus = "Unknown",
+    IReadOnlyCollection<string>? PetSpecies = null,
+    IReadOnlyCollection<PetConditionDto>? PetConditions = null);
 
 public sealed record PlaceDetailDto(
     Guid Id,
@@ -135,8 +143,8 @@ public sealed record PlaceDetailDto(
     string City,
     string Country,
     string Neighborhood,
-    decimal Latitude,
-    decimal Longitude,
+    decimal? Latitude,
+    decimal? Longitude,
     string DataProvenance,
     string? GooglePlaceId,
     DateTimeOffset? GoogleCoordinatesCachedUntil,
@@ -160,4 +168,7 @@ public sealed record PlaceDetailDto(
     string? Website = null,
     string? CategoryLabel = null,
     Guid? CountryId = null,
-    Guid? TerritorialUnitId = null);
+    Guid? TerritorialUnitId = null,
+    string PetAccessStatus = "Unknown",
+    IReadOnlyCollection<string>? PetSpecies = null,
+    IReadOnlyCollection<PetConditionDto>? PetConditions = null);

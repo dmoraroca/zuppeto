@@ -335,6 +335,7 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
 
     const withCoordinates = places.filter(
       (place) =>
+        place.coordinates !== null &&
         Number.isFinite(place.coordinates.lat) &&
         Number.isFinite(place.coordinates.lng) &&
         !(place.coordinates.lat === 0 && place.coordinates.lng === 0)
@@ -347,7 +348,8 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
 
     const bounds = leaflet.latLngBounds([]);
     for (const place of withCoordinates) {
-      const marker = leaflet.circleMarker([place.coordinates.lat, place.coordinates.lng], {
+      const coordinates = place.coordinates!;
+      const marker = leaflet.circleMarker([coordinates.lat, coordinates.lng], {
         radius: 8,
         weight: 2,
         color: '#0f766e',
@@ -358,7 +360,7 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
         `<strong>${place.name}</strong><br/>${place.city}, ${place.country}<br/>${place.shortDescription}`
       );
       marker.addTo(layer);
-      bounds.extend([place.coordinates.lat, place.coordinates.lng]);
+      bounds.extend([coordinates.lat, coordinates.lng]);
     }
 
     map.fitBounds(bounds.pad(0.18), { maxZoom: 14 });

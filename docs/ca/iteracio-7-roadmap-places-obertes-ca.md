@@ -2,7 +2,7 @@
 
 ## Estat i objectiu
 
-**FASE 0 COMPLETADA. FASE I AUDITADA I CARACTERITZADA. FASE II DOCUMENTADA EL 12.10.2026. FASE III NO INICIADA.**
+**FASE 0 COMPLETADA. FASE I AUDITADA. FASE II DOCUMENTADA. FASE III IMPLEMENTADA I PENDENT DE VALIDACIÓ POSTGRESQL/E2E. FASE IV NO INICIADA.**
 
 L'informe verificable de la Fase I és [Iteració 7 — Fase I: auditoria integral de Places](iteracio-7-fase-i-auditoria-places-ca.md). La fase confirma el baseline real, inventaria Google Places, caracteritza backend/PostgreSQL/Angular/E2E i fixa decisions de domini, procedència, deduplicació i llicències. També deixa dos bloquejos prioritaris: el contenidor API en execució és anterior al tall de Google Places i el submit del cercador perd els IDs territorials. Cap dels dos s'ha corregit dins l'auditoria.
 
@@ -122,7 +122,15 @@ L'inventari ha de distingir què és reutilitzable com a port neutral, què requ
 - especificar deduplicació reversible, actualització, rendiment, UX i gates;
 - preparar ADR i plans de correcció, sense implementar-los.
 
-### Fase III — Integració de fonts obertes
+### Fase III — Governança pet-friendly i contractes (**IMPLEMENTADA; VALIDACIÓ PENDENT**)
+
+- implementar estats, espècies, condicions, procedència, verificació i `MANUAL > AUTO`;
+- modelar cadenes, vigència, àmbit i excepcions locals;
+- corregir IDs territorials i coordenades nul·les;
+- definir ports neutrals, matriu de fonts i disseny normatiu ES/DE;
+- no connectar ni importar cap font externa.
+
+### Fase IV — Integració de fonts obertes
 
 - implementar ports neutrals i adaptadors seleccionats;
 - integrar OpenStreetMap/Overpass, Geoapify i Wikidata només si superen el gate documental;

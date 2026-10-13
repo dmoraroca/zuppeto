@@ -20,12 +20,11 @@ internal sealed class PlaceExternalDataMergePolicy
         DateTimeOffset? coordinatesCachedUntil = coordinatesAreManual
             ? null
             : synchronizedAtUtc.AddDays(retentionDays);
-        var latitude = coordinatesAreManual
-            ? place.Location.Latitude
-            : details.Latitude ?? place.Location.Latitude;
-        var longitude = coordinatesAreManual
-            ? place.Location.Longitude
-            : details.Longitude ?? place.Location.Longitude;
+        var latitude = coordinatesAreManual ? place.Location?.Latitude : details.Latitude ?? place.Location?.Latitude;
+        var longitude = coordinatesAreManual ? place.Location?.Longitude : details.Longitude ?? place.Location?.Longitude;
+        var location = latitude is not null && longitude is not null
+            ? new GeoLocation(latitude.Value, longitude.Value)
+            : null;
         var pricing = !place.IsManuallyMaintained(PlaceManualFields.Pricing)
             && !string.IsNullOrWhiteSpace(details.PriceLabel)
                 ? new Pricing(details.PriceLabel)
@@ -62,7 +61,7 @@ internal sealed class PlaceExternalDataMergePolicy
                 place.Address.City,
                 place.Address.Country,
                 neighborhood),
-            new GeoLocation(latitude, longitude),
+            location,
             petPolicy,
             pricing,
             rating,

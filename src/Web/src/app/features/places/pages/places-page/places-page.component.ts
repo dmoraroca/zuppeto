@@ -49,6 +49,8 @@ export class PlacesPageComponent {
       search: (map.get('search') ?? '').trim(),
       country: (map.get('country') ?? '').trim(),
       city: (map.get('city') ?? '').trim(),
+      countryId: (map.get('countryId') ?? '').trim(),
+      territorialUnitId: (map.get('territorialUnitId') ?? '').trim(),
       type: (map.get('type') ?? '').trim(),
       pet: parsePetFilter(map.get('pet'))
     };
@@ -66,6 +68,8 @@ export class PlacesPageComponent {
     search: (this.route.snapshot.queryParamMap.get('search') ?? '').trim(),
     country: (this.route.snapshot.queryParamMap.get('country') ?? '').trim(),
     city: (this.route.snapshot.queryParamMap.get('city') ?? '').trim(),
+    countryId: (this.route.snapshot.queryParamMap.get('countryId') ?? '').trim(),
+    territorialUnitId: (this.route.snapshot.queryParamMap.get('territorialUnitId') ?? '').trim(),
     type: (this.route.snapshot.queryParamMap.get('type') ?? '').trim(),
     pet: parsePetFilter(this.route.snapshot.queryParamMap.get('pet'))
   });
@@ -217,6 +221,8 @@ export class PlacesPageComponent {
         search: search || null,
         country: country || null,
         city: city || null,
+        countryId: next.countryId?.trim() || null,
+        territorialUnitId: next.territorialUnitId?.trim() || null,
         type: type || null,
         pet: next.pet !== 'all' ? next.pet : null
       }

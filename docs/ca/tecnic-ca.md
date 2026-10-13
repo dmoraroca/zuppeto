@@ -1,5 +1,7 @@
 # Document tecnic (CA)
 
+> Iteració 7, Fase III (13.10.2026): implementats domini auditable, prevalença `MANUAL > AUTO`, cadenes, migració EF i ports segregats. [Informe tècnic](iteracio-7-fase-iii-governanca-pet-friendly-ca.md).
+
 ## Iteració 7 — Fase II, arquitectura objectiu de Places
 
 La Fase II defineix, sense implementar, ports per capacitat i adaptadors independents, un pipeline asíncron centralitzat, identitat canònica, procedència per camp, deduplicació reversible i cua durable PostgreSQL. La cerca pública llegirà el catàleg propi i no farà fallback síncron extern. RabbitMQ i PostGIS queden ajornats fins que mètriques reals en justifiquin el cost. Especificació, diagrama, contractes previstos i ADR: [Arquitectura, llicències i RGPD de Places](iteracio-7-fase-ii-arquitectura-llicencies-rgpd-ca.md).

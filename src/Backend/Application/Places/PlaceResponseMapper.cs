@@ -21,8 +21,8 @@ internal sealed class PlaceResponseMapper(IPlaceCoverStorage coverStorage)
             place.Address.City,
             place.Address.Country,
             place.Address.Neighborhood,
-            place.Location.Latitude,
-            place.Location.Longitude,
+            place.Location?.Latitude,
+            place.Location?.Longitude,
             place.DataProvenance.ToString(),
             place.GooglePlaceId,
             place.GoogleCoordinatesCachedUntil,
@@ -46,7 +46,10 @@ internal sealed class PlaceResponseMapper(IPlaceCoverStorage coverStorage)
             attribution?.AuthorName,
             attribution?.SourceUri,
             place.TerritorialCountryId,
-            place.TerritorialUnitId);
+            place.TerritorialUnitId,
+            place.PetPolicy.Status.ToString(),
+            place.PetPolicy.Species.Select(x => x.Code).ToArray(),
+            place.PetPolicy.Conditions.Select(x => new PetConditionDto(x.Code, x.Value)).ToArray());
     }
 
     internal PlaceDetailDto ToDetail(Place place)
@@ -88,7 +91,10 @@ internal sealed class PlaceResponseMapper(IPlaceCoverStorage coverStorage)
             summary.Website,
             summary.CategoryLabel,
             summary.CountryId,
-            summary.TerritorialUnitId);
+            summary.TerritorialUnitId,
+            summary.PetAccessStatus,
+            summary.PetSpecies,
+            summary.PetConditions);
     }
 
     private static (bool CacheExpired, bool RequiresGoogleMap) ComputeGoogleCoordinateFlags(Place place)

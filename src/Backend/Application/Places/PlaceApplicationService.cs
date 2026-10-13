@@ -267,8 +267,10 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
             request.Description,
             request.CoverImageUrl,
             new PostalAddress(request.AddressLine1, city, country, request.Neighborhood),
-            new GeoLocation(request.Latitude, request.Longitude),
-            new PetPolicy(request.AcceptsDogs, request.AcceptsCats, request.PetPolicyLabel, request.PetPolicyNotes),
+            request.Latitude is not null && request.Longitude is not null
+                ? new GeoLocation(request.Latitude.Value, request.Longitude.Value)
+                : null,
+            BuildPetPolicy(request),
             new Pricing(request.PricingLabel),
             new RatingSnapshot(request.RatingAverage, request.ReviewCount),
             excludeFromOsmMap: existing?.ExcludeFromOsmMap ?? false,
@@ -292,6 +294,24 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
         }
 
         return placeId;
+    }
+
+    private static PetPolicy BuildPetPolicy(PlaceUpsertRequest request)
+    {
+        var status = Enum.TryParse<PetAccessStatus>(request.PetAccessStatus, true, out var parsed)
+            ? parsed : PetAccessStatus.Unknown;
+        if (status == PetAccessStatus.Unknown && (request.AcceptsDogs || request.AcceptsCats))
+            status = PetAccessStatus.Allowed;
+        var species = request.PetSpecies?.Select(code => new PetSpecies(code)).ToArray()
+            ?? LegacySpecies(request.AcceptsDogs, request.AcceptsCats).ToArray();
+        var conditions = request.PetConditions?.Select(x => new PetAccessCondition(x.Code, x.Value)).ToArray() ?? [];
+        return new PetPolicy(status, species, conditions, request.PetPolicyLabel, request.PetPolicyNotes);
+    }
+
+    private static IEnumerable<PetSpecies> LegacySpecies(bool dogs, bool cats)
+    {
+        if (dogs) yield return PetSpecies.Dog;
+        if (cats) yield return PetSpecies.Cat;
     }
 
     public Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)

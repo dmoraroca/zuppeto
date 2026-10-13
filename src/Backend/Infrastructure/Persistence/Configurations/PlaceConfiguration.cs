@@ -97,6 +97,24 @@ public sealed class PlaceConfiguration : IEntityTypeConfiguration<PlaceRecord>
             .HasDefaultValue(false)
             .IsRequired();
 
+        builder.Property(place => place.PetPolicyStatus)
+            .HasColumnName("pet_policy_status")
+            .HasMaxLength(32)
+            .HasDefaultValue("Unknown")
+            .IsRequired();
+
+        builder.Property(place => place.PetSpeciesJson)
+            .HasColumnName("pet_species")
+            .HasColumnType("jsonb")
+            .HasDefaultValueSql("'[]'::jsonb")
+            .IsRequired();
+
+        builder.Property(place => place.PetConditionsJson)
+            .HasColumnName("pet_conditions")
+            .HasColumnType("jsonb")
+            .HasDefaultValueSql("'[]'::jsonb")
+            .IsRequired();
+
         builder.Property(place => place.PetPolicyLabel)
             .HasColumnName("pet_policy_label")
             .HasMaxLength(120)
@@ -171,7 +189,7 @@ public sealed class PlaceConfiguration : IEntityTypeConfiguration<PlaceRecord>
 
         builder.ToTable(table =>
         {
-            table.HasCheckConstraint("ck_places_pet_policy", "accepts_dogs OR accepts_cats");
+            table.HasCheckConstraint("ck_places_pet_policy_status", "pet_policy_status IN ('Allowed','NotAllowed','TerraceOnly','Unknown','PendingReview')");
             table.HasCheckConstraint("ck_places_rating_average", "rating_average >= 0 AND rating_average <= 5");
             table.HasCheckConstraint("ck_places_review_count", "review_count >= 0");
             table.HasCheckConstraint("ck_places_territorial_pair", "(territorial_country_id IS NULL AND territorial_unit_id IS NULL) OR (territorial_country_id IS NOT NULL AND territorial_unit_id IS NOT NULL)");

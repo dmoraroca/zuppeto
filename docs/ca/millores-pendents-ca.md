@@ -13,7 +13,7 @@ No substitueix `docs/project-phases.md` ni el joc de proves Excel: aquí només 
 
 **Estat:** **FASE II DOCUMENTADA / IMPLEMENTACIÓ PENDENT D'AUTORITZACIÓ**.
 
-Queden definits els ports per capacitat, la persistència proposada, la procedència per camp, `MANUAL > AUTO`, la deduplicació reversible, la cua PostgreSQL, els gates legals i els plans de correcció dels IDs territorials, coordenades inexistents i contenidor API obsolet. Cap element s'ha implementat, cap font s'ha aprovat i no s'ha iniciat la Fase III. Referència: [Iteració 7 — Fase II](iteracio-7-fase-ii-arquitectura-llicencies-rgpd-ca.md).
+La Fase III ja implementa el nucli pet-friendly, cadenes, ports, correcció d'IDs territorials i coordenades nullable. Resten la validació PostgreSQL temporal/E2E, el workflow ADMIN complet i els adaptadors de Fase IV. Cap font s'ha aprovat ni connectat. Referència: [Iteració 7 — Fase III](iteracio-7-fase-iii-governanca-pet-friendly-ca.md).
 
 ---
 
