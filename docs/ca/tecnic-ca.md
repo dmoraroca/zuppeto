@@ -1,6 +1,6 @@
 # Document tecnic (CA)
 
-> Iteració 7, Fase III (13.10.2026): implementats domini auditable, prevalença `MANUAL > AUTO`, cadenes, migració EF i ports segregats. [Informe tècnic](iteracio-7-fase-iii-governanca-pet-friendly-ca.md).
+> Iteració 7, Fase III (13.10.2026): implementats domini auditable, prevalença `MANUAL verificada > MANUAL > AUTO`, servei d'aplicació, repositori EF, endpoints ADMIN, cadenes, excepcions i historial. Backend 118/118, Angular 93/93, PostgreSQL temporal 1/1 i Chrome focalitzat 10/10 PASS. La base real no s'ha migrat. [Informe tècnic](iteracio-7-fase-iii-governanca-pet-friendly-ca.md).
 
 ## Iteració 7 — Fase II, arquitectura objectiu de Places
 

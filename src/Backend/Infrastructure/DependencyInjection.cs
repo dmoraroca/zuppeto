@@ -136,6 +136,7 @@ public static class DependencyInjection
         services.AddScoped<TerritorialPilotConfigurationSeeder>();
         services.AddScoped<IMenuRepository, MenuRepository>();
         services.AddScoped<IPlaceRepository, PlaceRepository>();
+        services.AddScoped<IPetGovernanceRepository, PetGovernanceRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IExternalIdentityRepository, ExternalIdentityRepository>();
         services.AddScoped<ITotpRecoveryCodeRepository, TotpRecoveryCodeRepository>();

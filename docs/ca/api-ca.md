@@ -2,7 +2,20 @@
 
 ## Iteració 7 — Fase III, governança de Places
 
-Els contractes Places conserven `countryId` i `territorialUnitId`, retornen coordenades absents com `null` i incorporen `petAccessStatus`, `petSpecies` i `petConditions`. `Unknown` no equival a `NotAllowed`. Els ports de connectors són interns i no són endpoints públics. Detall a [Fase III](iteracio-7-fase-iii-governanca-pet-friendly-ca.md).
+Els contractes Places conserven `countryId` i `territorialUnitId`, retornen coordenades absents com `null` i incorporen `petAccessStatus`, `petSpecies` i `petConditions`. `Unknown` no equival a `NotAllowed`. El grup `/api/admin/pet-governance` cobreix afirmacions, verificació, conflictes, revocació, cadenes, excepcions i historial; exigeix rol `Admin` i `action.places.manage`. Els ports de connectors són interns i no són endpoints públics. Detall a [Fase III](iteracio-7-fase-iii-governanca-pet-friendly-ca.md).
+
+### Governança pet-friendly ADMIN
+
+- `GET /api/admin/pet-governance/places/{placeId}` — resum efectiu, procedència, conflictes, caducitats, cadenes i historial.
+- `GET /api/admin/pet-governance/history[?placeId=…]` — historial global o filtrat, incloses les decisions de cadena sense Place.
+- `POST /api/admin/pet-governance/places/{placeId}/assertions` — alta d'una afirmació.
+- `POST /api/admin/pet-governance/places/{placeId}/assertions/{assertionId}/verify` — verificació amb mètode, evidència i motiu.
+- `POST /api/admin/pet-governance/places/{placeId}/assertions/{assertionId}/decision` — qüestionar, revocar o substituir.
+- `POST /api/admin/pet-governance/places/{placeId}/conflicts/resolve` — resolució auditada conservant les fonts contradictòries.
+- `GET|POST /api/admin/pet-governance/chains` — consulta i alta de cadenes.
+- `POST /api/admin/pet-governance/chains/{chainId}/policies` — política general amb evidència obligatòria.
+- `PUT /api/admin/pet-governance/places/{placeId}/chain` — vinculació de local o franquícia.
+- `POST /api/admin/pet-governance/places/{placeId}/chain-exceptions` — excepció local verificada.
 
 ## Objectiu
 

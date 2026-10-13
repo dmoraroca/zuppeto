@@ -18,6 +18,7 @@ using Zuppeto.Application.Users.Validators;
 using Zuppeto.Application.Places.Validators;
 using Zuppeto.Application.TerritorialImports;
 using Zuppeto.Domain.Places.ProhibitedTerms;
+using Zuppeto.Domain.Places;
 
 namespace Zuppeto.Application;
 
@@ -40,6 +41,8 @@ public static class DependencyInjection
         services.AddScoped<IPlaceExternalDataSynchronizer, PlaceExternalDataSynchronizer>();
         services.AddSingleton<IExternalPlaceCallPolicy, DisabledExternalPlaceCallsPolicy>();
         services.AddScoped<IPlaceApplicationService, PlaceApplicationService>();
+        services.AddScoped<IPetGovernanceApplicationService, PetGovernanceApplicationService>();
+        services.AddSingleton<PetAssertionPrecedencePolicy>();
         services.AddScoped<IFavoriteListApplicationService, FavoriteListApplicationService>();
         services.AddScoped<IUserApplicationService, UserApplicationService>();
         services.AddScoped<IPlaceReviewApplicationService, PlaceReviewApplicationService>();

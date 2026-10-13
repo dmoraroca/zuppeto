@@ -46,6 +46,12 @@ namespace Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(2)")
                         .HasColumnName("country_code");
 
+                    b.Property<string>("EvidenceUri")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)")
+                        .HasColumnName("evidence_uri");
+
                     b.Property<bool>("HasApplicabilityEvidence")
                         .HasColumnType("boolean")
                         .HasColumnName("has_applicability_evidence");
@@ -584,6 +590,69 @@ namespace Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("ck_pet_assertion_status", "status IN ('Allowed','NotAllowed','TerraceOnly','Unknown','PendingReview')");
                         });
+                });
+
+            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.PetGovernanceDecisionRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("action");
+
+                    b.Property<Guid>("ActorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("actor_id");
+
+                    b.Property<string>("AfterSnapshot")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("after_snapshot");
+
+                    b.Property<string>("BeforeSnapshot")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("before_snapshot");
+
+                    b.Property<DateTimeOffset>("DecidedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("decided_at_utc");
+
+                    b.Property<Guid?>("PlaceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("place_id");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("reason");
+
+                    b.Property<Guid>("SubjectId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("subject_id");
+
+                    b.Property<string>("SubjectType")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("subject_type");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorId");
+
+                    b.HasIndex("PlaceId", "DecidedAtUtc");
+
+                    b.HasIndex("SubjectType", "SubjectId");
+
+                    b.ToTable("pet_governance_decisions", (string)null);
                 });
 
             modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.PlaceFeatureRecord", b =>
@@ -2684,6 +2753,24 @@ namespace Infrastructure.Persistence.Migrations
                         .HasForeignKey("PlaceId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Place");
+                });
+
+            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.PetGovernanceDecisionRecord", b =>
+                {
+                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.UserRecord", "Actor")
+                        .WithMany()
+                        .HasForeignKey("ActorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.PlaceRecord", "Place")
+                        .WithMany()
+                        .HasForeignKey("PlaceId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Actor");
 
                     b.Navigation("Place");
                 });

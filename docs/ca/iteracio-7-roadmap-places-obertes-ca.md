@@ -2,7 +2,7 @@
 
 ## Estat i objectiu
 
-**FASE 0 COMPLETADA. FASE I AUDITADA. FASE II DOCUMENTADA. FASE III IMPLEMENTADA I PENDENT DE VALIDACIÓ POSTGRESQL/E2E. FASE IV NO INICIADA.**
+**FASE 0 COMPLETADA. FASE I AUDITADA. FASE II DOCUMENTADA. FASE III IMPLEMENTADA I VALIDADA EN ENTORN TEMPORAL, PENDENT DE REVISIÓ I MIGRACIÓ REAL AUTORITZADA. FASE IV NO INICIADA.**
 
 L'informe verificable de la Fase I és [Iteració 7 — Fase I: auditoria integral de Places](iteracio-7-fase-i-auditoria-places-ca.md). La fase confirma el baseline real, inventaria Google Places, caracteritza backend/PostgreSQL/Angular/E2E i fixa decisions de domini, procedència, deduplicació i llicències. També deixa dos bloquejos prioritaris: el contenidor API en execució és anterior al tall de Google Places i el submit del cercador perd els IDs territorials. Cap dels dos s'ha corregit dins l'auditoria.
 

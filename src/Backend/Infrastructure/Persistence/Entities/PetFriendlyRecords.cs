@@ -57,5 +57,22 @@ public sealed class ChainPetPolicyRecord
     public DateTimeOffset? ValidUntilUtc { get; set; }
     public bool HasApplicabilityEvidence { get; set; }
     public string SourceKey { get; set; } = string.Empty;
+    public string EvidenceUri { get; set; } = string.Empty;
     public DateTimeOffset? VerifiedAtUtc { get; set; }
+}
+
+public sealed class PetGovernanceDecisionRecord
+{
+    public Guid Id { get; set; }
+    public Guid? PlaceId { get; set; }
+    public PlaceRecord? Place { get; set; }
+    public string SubjectType { get; set; } = string.Empty;
+    public Guid SubjectId { get; set; }
+    public string Action { get; set; } = string.Empty;
+    public string Reason { get; set; } = string.Empty;
+    public Guid ActorId { get; set; }
+    public UserRecord Actor { get; set; } = null!;
+    public DateTimeOffset DecidedAtUtc { get; set; }
+    public string BeforeSnapshot { get; set; } = "{}";
+    public string AfterSnapshot { get; set; } = "{}";
 }

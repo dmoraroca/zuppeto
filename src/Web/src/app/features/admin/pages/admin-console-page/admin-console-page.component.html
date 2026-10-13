@@ -1724,7 +1724,7 @@
             <label><span>Adreça <strong class="form-field-required" aria-hidden="true">*</strong></span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().addressLine1" (ngModelChange)="editablePlace.set({ ...editablePlace(), addressLine1: $event })" [maxlength]="dbMax.placeAddress" /></label>
             <label><span>Barri</span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().neighborhood" (ngModelChange)="editablePlace.set({ ...editablePlace(), neighborhood: $event })" [maxlength]="dbMax.placeNeighborhood" /></label>
             <label><span>Latitud (opcional)</span><input type="text" inputmode="decimal" autocomplete="off" spellcheck="false" [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().latitude" (ngModelChange)="onPlaceLatitudeInput($event)" (keydown)="onCoordinateKeydown($event)" (blur)="onPlaceLatitudeBlur()" placeholder="p. ex. 41.387" /></label>
-            <label><span>Longitud <strong class="form-field-required" aria-hidden="true">*</strong></span><input type="text" inputmode="decimal" autocomplete="off" spellcheck="false" [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().longitude" (ngModelChange)="onPlaceLongitudeInput($event)" (keydown)="onCoordinateKeydown($event)" (blur)="onPlaceLongitudeBlur()" placeholder="p. ex. 2.170" /></label>
+            <label><span>Longitud (opcional)</span><input type="text" inputmode="decimal" autocomplete="off" spellcheck="false" [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().longitude" (ngModelChange)="onPlaceLongitudeInput($event)" (keydown)="onCoordinateKeydown($event)" (blur)="onPlaceLongitudeBlur()" placeholder="p. ex. 2.170" /></label>
             <label><span>Preu</span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().pricingLabel" (ngModelChange)="editablePlace.set({ ...editablePlace(), pricingLabel: $event })" [maxlength]="dbMax.placePricingLabel" /></label>
             <label><span>Valoració</span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().ratingAverage" (ngModelChange)="editablePlace.set({ ...editablePlace(), ratingAverage: $event })" /></label>
             <label><span>Ressenyes</span><input [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().reviewCount" (ngModelChange)="editablePlace.set({ ...editablePlace(), reviewCount: $event })" /></label>
@@ -1740,6 +1740,10 @@
             <label class="admin-console-form admin-console-form--readonly"><span>Descripció curta</span><textarea rows="2" [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().shortDescription" (ngModelChange)="editablePlace.set({ ...editablePlace(), shortDescription: $event })"></textarea></label>
             <label class="admin-console-form admin-console-form--readonly"><span>Descripció</span><textarea rows="4" [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().description" (ngModelChange)="editablePlace.set({ ...editablePlace(), description: $event })"></textarea></label>
             <label class="admin-console-form admin-console-form--readonly"><span>Notes política mascotes</span><textarea rows="3" [readonly]="!placeIsNew() && !placeDetailEditMode()" [ngModel]="editablePlace().petPolicyNotes" (ngModelChange)="editablePlace.set({ ...editablePlace(), petPolicyNotes: $event })"></textarea></label>
+
+            @if (!placeIsNew() && editablePlace().id; as placeId) {
+              <app-pet-governance-panel [placeId]="placeId" />
+            }
 
             @if (!placeIsNew()) {
             <div class="admin-console-form admin-console-form--readonly" style="grid-column: 1 / -1">

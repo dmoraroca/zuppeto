@@ -1,0 +1,85 @@
+<section class="governance" aria-labelledby="pet-governance-title">
+  <header>
+    <div><p class="kicker">Governança</p><h4 id="pet-governance-title">Admissió pet-friendly auditada</h4></div>
+    <button type="button" (click)="reload()" [disabled]="loading()">Actualitzar</button>
+  </header>
+
+  @if (error()) { <p class="message error" role="alert">{{ error() }}</p> }
+  @if (success()) { <p class="message success" role="status">{{ success() }}</p> }
+  @if (overview(); as data) {
+    <div class="flags" aria-label="Estat de governança">
+      <span [class.active]="data.hasConflicts">{{ data.hasConflicts ? 'Conflictes pendents' : 'Sense conflictes' }}</span>
+      <span [class.active]="data.hasPendingReview">{{ data.hasPendingReview ? 'Pendent de revisió' : 'Revisió al dia' }}</span>
+      <span [class.active]="data.hasExpiredData">{{ data.hasExpiredData ? 'Hi ha dades caducades' : 'Sense caducitats' }}</span>
+      <span [class.active]="data.hasUnknownData">{{ data.hasUnknownData ? 'Informació desconeguda' : 'Informació resolta' }}</span>
+    </div>
+
+    <h5>Política efectiva</h5>
+    <ul class="effective">
+      @for (policy of data.effectivePolicies; track policy.species) {
+        <li><strong>{{ policy.species }}</strong>: {{ statusLabel(policy.status) }} · {{ policy.isInheritedFromChain ? 'heretada de cadena' : policy.sourceKey }}</li>
+      } @empty { <li>Sense cap afirmació efectiva.</li> }
+    </ul>
+
+    <details open>
+      <summary>Afirmacions i procedència ({{ data.assertions.length }})</summary>
+      <div class="shared-fields">
+        <label>Mètode de verificació<select [(ngModel)]="verificationMethod"><option value="OnSite">Comprovació presencial</option><option value="OwnerStatement">Declaració del propietari</option><option value="OfficialWebsite">Web oficial</option><option value="StaffStatement">Declaració del personal</option></select></label>
+        <label>Evidència (URL)<input [(ngModel)]="evidenceUri" type="url" placeholder="https://…" /></label>
+        <label>Motiu de la decisió<input [(ngModel)]="reason" maxlength="1000" /></label>
+      </div>
+      <div class="assertions">
+        @for (assertion of data.assertions; track assertion.id) {
+          <article [class.conflict]="assertion.hasConflict">
+            <h6>{{ assertion.species }} · {{ statusLabel(assertion.status) }}</h6>
+            <dl><dt>Font</dt><dd>{{ assertion.sourceKey }}</dd><dt>Valor observat</dt><dd>{{ assertion.observedValue }}</dd><dt>Observació</dt><dd>{{ assertion.observedAtUtc }}</dd><dt>Verificació</dt><dd>{{ assertion.verifiedAtUtc || 'No verificada' }}</dd><dt>Estat</dt><dd>{{ assertion.state }}{{ assertion.isExpired ? ' · Caducada' : '' }}</dd><dt>Evidència</dt><dd>{{ assertion.evidenceUri || 'Sense evidència' }}</dd></dl>
+            <div class="actions">
+              <button type="button" (click)="verify(assertion)" [disabled]="loading() || assertion.state === 'Revoked'">Verificar</button>
+              @if (assertion.hasConflict) { <button type="button" (click)="resolve(assertion)" [disabled]="loading()">Fer prevaldre</button> }
+              <button type="button" (click)="decide(assertion, 'question')" [disabled]="loading()">Qüestionar</button>
+              <button type="button" class="danger" (click)="decide(assertion, 'revoke')" [disabled]="loading()">Revocar</button>
+            </div>
+          </article>
+        } @empty { <p>Encara no hi ha afirmacions auditades.</p> }
+      </div>
+    </details>
+
+    <details>
+      <summary>Registrar una afirmació</summary>
+      <div class="form-grid">
+        <label>Espècie<input [(ngModel)]="species" required /></label>
+        <label>Estat<select [(ngModel)]="status"><option value="Unknown">Desconegut</option><option value="PendingReview">Pendent de revisió</option><option value="Allowed">Permès</option><option value="TerraceOnly">Només terrassa</option><option value="NotAllowed">No permès</option></select></label>
+        <label>Font<input [(ngModel)]="sourceKey" required /></label>
+        <label>Valor observat<input [(ngModel)]="observedValue" required /></label>
+        <label>Condicions<input [(ngModel)]="conditions" placeholder="leash-required, maximum-animals:2" /></label>
+        <label>Vàlida fins a<input [(ngModel)]="validUntil" type="date" /></label>
+      </div>
+      <button type="button" (click)="addAssertion()" [disabled]="loading()">Registrar afirmació</button>
+    </details>
+
+    <details>
+      <summary>Cadenes comercials i excepcions</summary>
+      <div class="form-grid">
+        <label>Cadena<select [(ngModel)]="selectedChainId"><option value="">Selecciona</option>@for (chain of chains(); track chain.id) { <option [value]="chain.id">{{ chain.name }}</option> }</select></label>
+        <label>Nova cadena<input [(ngModel)]="newChainName" /></label>
+        <label class="check"><input type="checkbox" [(ngModel)]="isFranchise" /> És una franquícia</label>
+        <label>País de la política<input [(ngModel)]="chainCountryCode" maxlength="2" /></label>
+        <label>Estat general<select [(ngModel)]="chainStatus"><option value="Allowed">Permès</option><option value="TerraceOnly">Només terrassa</option><option value="NotAllowed">No permès</option><option value="Unknown">Desconegut</option></select></label>
+        <label>Espècies de la cadena<input [(ngModel)]="chainSpecies" /></label>
+        <label>Política vàlida fins a<input [(ngModel)]="chainValidUntil" type="date" /></label>
+        <label>Excepció local<select [(ngModel)]="exceptionStatus"><option value="Allowed">Permès</option><option value="TerraceOnly">Només terrassa</option><option value="NotAllowed">No permès</option><option value="Unknown">Desconegut</option></select></label>
+      </div>
+      <div class="actions"><button type="button" (click)="createChain()" [disabled]="loading()">Crear cadena</button><button type="button" (click)="linkChain()" [disabled]="loading()">Vincular local</button><button type="button" (click)="addChainPolicy()" [disabled]="loading()">Afegir política general</button><button type="button" (click)="addException()" [disabled]="loading()">Afegir excepció local</button></div>
+      <ul>@for (membership of data.chainMemberships; track membership.chainId) { <li>{{ membership.chainName }}{{ membership.isFranchise ? ' · Franquícia' : '' }}</li> } @empty { <li>El local no està vinculat a cap cadena.</li> }</ul>
+      <h6>Polítiques generals aplicables</h6>
+      <ul>@for (policy of data.chainPolicies; track policy.id) { <li>{{ policy.chainName }} · {{ statusLabel(policy.status) }} · {{ policy.countryCode }} · {{ policy.isCurrent ? 'Vigent' : 'Caducada' }} · Evidència: {{ policy.evidenceUri }}</li> } @empty { <li>No hi ha cap política de cadena aplicable amb evidència.</li> }</ul>
+    </details>
+
+    <details>
+      <summary>Historial de decisions ({{ data.history.length }})</summary>
+      <ol class="history">@for (decision of data.history; track decision.id) { <li><time>{{ decision.decidedAtUtc }}</time> · <strong>{{ decision.action }}</strong> · {{ decision.reason }} · Actor {{ decision.actorId }}</li> } @empty { <li>Sense decisions registrades.</li> }</ol>
+      <h6>Decisions globals de cadenes</h6>
+      <ol class="history">@for (decision of globalHistory(); track decision.id) { <li><time>{{ decision.decidedAtUtc }}</time> · <strong>{{ decision.subjectType }} / {{ decision.action }}</strong> · {{ decision.reason }} · Actor {{ decision.actorId }}</li> } @empty { <li>Sense decisions globals registrades.</li> }</ol>
+    </details>
+  } @else if (loading()) { <p role="status">Carregant la governança…</p> }
+</section>

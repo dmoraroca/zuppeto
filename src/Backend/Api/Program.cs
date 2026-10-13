@@ -313,6 +313,7 @@ app.MapGeographicAdminEndpoints();
 app.MapTerritorialAdminEndpoints();
 app.MapTerritorialLocationEndpoints();
 app.MapPlaceEndpoints();
+app.MapPetGovernanceEndpoints();
 app.MapFavoriteEndpoints();
 
 app.MapUserEndpoints();

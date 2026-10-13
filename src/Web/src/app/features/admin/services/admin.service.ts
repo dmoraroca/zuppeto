@@ -276,6 +276,37 @@ export interface AdminPlaceUpsertRequest {
   lastGoogleSyncAt?: string;
 }
 
+export interface PetConditionDto { code: string; value?: string | null; }
+export interface PetAssertionDto {
+  id: string; placeId: string; species: string; status: string; conditions: PetConditionDto[];
+  sourceKey: string; externalId?: string | null; observedValue: string; observedAtUtc: string;
+  verifiedAtUtc?: string | null; validUntilUtc?: string | null; verificationMethod: string;
+  confidence: string; responsibleActorId?: string | null; evidenceUri?: string | null;
+  origin: string; state: string; isExpired: boolean; isEffective: boolean; hasConflict: boolean;
+}
+export interface EffectivePetPolicyDto {
+  species: string; status: string; assertionId?: string | null; sourceKey: string;
+  isVerifiedManual: boolean; isInheritedFromChain: boolean; conditions: PetConditionDto[];
+}
+export interface CommercialChainDto { id: string; name: string; createdAtUtc: string; }
+export interface PlaceChainMembershipDto { chainId: string; chainName: string; isFranchise: boolean; linkedAtUtc: string; }
+export interface ChainPetPolicyDto {
+  id: string; chainId: string; chainName: string; countryCode: string; territorialUnitId?: string | null;
+  status: string; species: string[]; conditions: PetConditionDto[]; validFromUtc: string;
+  validUntilUtc?: string | null; hasApplicabilityEvidence: boolean; sourceKey: string; evidenceUri: string;
+  verifiedAtUtc?: string | null; isCurrent: boolean;
+}
+export interface PetGovernanceDecisionDto {
+  id: string; placeId?: string | null; subjectType: string; subjectId: string; action: string;
+  reason: string; actorId: string; decidedAtUtc: string;
+}
+export interface PetGovernanceOverviewDto {
+  placeId: string; assertions: PetAssertionDto[]; effectivePolicies: EffectivePetPolicyDto[];
+  chainMemberships: PlaceChainMembershipDto[]; chainPolicies: ChainPetPolicyDto[];
+  history: PetGovernanceDecisionDto[]; hasConflicts: boolean; hasPendingReview: boolean;
+  hasExpiredData: boolean; hasUnknownData: boolean;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -520,5 +551,50 @@ export class AdminService {
 
   async deletePlace(id: string): Promise<void> {
     await firstValueFrom(this.http.delete(`${API_BASE_URL}/admin/places/${id}`));
+  }
+
+  getPetGovernance(placeId: string): Promise<PetGovernanceOverviewDto> {
+    return firstValueFrom(this.http.get<PetGovernanceOverviewDto>(`${API_BASE_URL}/admin/pet-governance/places/${placeId}`));
+  }
+
+  listPetGovernanceHistory(placeId?: string): Promise<PetGovernanceDecisionDto[]> {
+    const suffix = placeId ? `?placeId=${encodeURIComponent(placeId)}` : '';
+    return firstValueFrom(this.http.get<PetGovernanceDecisionDto[]>(`${API_BASE_URL}/admin/pet-governance/history${suffix}`));
+  }
+
+  listCommercialChains(): Promise<CommercialChainDto[]> {
+    return firstValueFrom(this.http.get<CommercialChainDto[]>(`${API_BASE_URL}/admin/pet-governance/chains`));
+  }
+
+  createCommercialChain(name: string): Promise<CommercialChainDto> {
+    return firstValueFrom(this.http.post<CommercialChainDto>(`${API_BASE_URL}/admin/pet-governance/chains`, { name }));
+  }
+
+  addPetAssertion(placeId: string, request: object): Promise<PetAssertionDto> {
+    return firstValueFrom(this.http.post<PetAssertionDto>(`${API_BASE_URL}/admin/pet-governance/places/${placeId}/assertions`, request));
+  }
+
+  verifyPetAssertion(placeId: string, assertionId: string, request: object): Promise<void> {
+    return firstValueFrom(this.http.post<void>(`${API_BASE_URL}/admin/pet-governance/places/${placeId}/assertions/${assertionId}/verify`, request));
+  }
+
+  decidePetAssertion(placeId: string, assertionId: string, action: string, reason: string): Promise<void> {
+    return firstValueFrom(this.http.post<void>(`${API_BASE_URL}/admin/pet-governance/places/${placeId}/assertions/${assertionId}/decision`, { action, reason }));
+  }
+
+  resolvePetConflict(placeId: string, selectedAssertionId: string, verificationMethod: string, evidenceUri: string, reason: string): Promise<void> {
+    return firstValueFrom(this.http.post<void>(`${API_BASE_URL}/admin/pet-governance/places/${placeId}/conflicts/resolve`, { selectedAssertionId, verificationMethod, evidenceUri, reason }));
+  }
+
+  linkPlaceToChain(placeId: string, chainId: string, isFranchise: boolean, reason: string): Promise<void> {
+    return firstValueFrom(this.http.put<void>(`${API_BASE_URL}/admin/pet-governance/places/${placeId}/chain`, { chainId, isFranchise, reason }));
+  }
+
+  addChainPolicy(chainId: string, request: object): Promise<ChainPetPolicyDto> {
+    return firstValueFrom(this.http.post<ChainPetPolicyDto>(`${API_BASE_URL}/admin/pet-governance/chains/${chainId}/policies`, request));
+  }
+
+  addLocalChainException(placeId: string, request: object): Promise<PetAssertionDto> {
+    return firstValueFrom(this.http.post<PetAssertionDto>(`${API_BASE_URL}/admin/pet-governance/places/${placeId}/chain-exceptions`, request));
   }
 }

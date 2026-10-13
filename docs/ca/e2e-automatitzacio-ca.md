@@ -1188,3 +1188,11 @@ La regressió va detectar dues causes reals. Primer, `DevelopmentPlacesSeeder` r
 | WebKit | `sim-20261012T110728397Z-eaf4a0c2` | 184 | 179 | 0 | 5 | 0 | 19 min 25 s |
 
 Els 5 SKIP per motor són les exclusions externes o d'especificació existents; no hi ha retries. WebKit s'ha executat dins la imatge oficial Playwright compatible. La comprovació posterior elimina els dos Place i els dos User temporals de navegador pels UUID exactes del manifest, reinicia l'API i confirma 3 User protegits, 0 Place i cap dependència E2E residual. `runner:test` passa 14/14 després d'alinear el doble de prova de `PlaceApiAdapter` amb el filtre territorial d'Espanya.
+
+## Iteració 7 — Fase III, Chrome focalitzat de governança pet-friendly
+
+S'ha afegit l'entrada reproduïble `npm run e2e:pet-governance-phase3`, separada de la bateria mult navegador. L'escenari usa Google Chrome, Angular i API reals contra la base temporal exclusiva `zuppeto_pet_governance_e2e`; aplica totes les migracions EF Core, activa només el compte ADMIN sintètic i bloqueja qualsevol host que no sigui local. RabbitMQ i Google Places romanen desactivats.
+
+Resultat final: 10/10 PASS. El recorregut crea un Place amb admissió desconeguda i referències territorials/coordenades nul·les, modifica la política, verifica una afirmació manual, introdueix una font automàtica contradictòria, comprova la precedència manual verificada, revoca, crea i vincula una cadena, registra política general amb evidència, aplica una excepció local i valida la persistència després d'una recàrrega completa de la UI ADMIN. No s'ha executat Firefox, WebKit ni la bateria Chrome completa. No s'ha completat cap crida externa.
+
+La prova elimina el Place temporal; en acabar també s'aturen API i Angular i s'elimina la base temporal completa. La consulta posterior confirma que no existeixen `zuppeto_pet_governance_e2e` ni `zuppeto_pet_governance_tests`. PostgreSQL real no s'ha modificat.

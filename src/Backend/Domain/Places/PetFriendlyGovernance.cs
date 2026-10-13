@@ -82,16 +82,54 @@ public sealed class PetFriendlyAssertion : Entity<Guid>
     public string? ExternalId { get; }
     public string ObservedValue { get; }
     public DateTimeOffset ObservedAtUtc { get; }
-    public DateTimeOffset? VerifiedAtUtc { get; }
+    public DateTimeOffset? VerifiedAtUtc { get; private set; }
     public DateTimeOffset? ValidUntilUtc { get; }
-    public PetVerificationMethod VerificationMethod { get; }
-    public PetConfidence Confidence { get; }
-    public Guid? ResponsibleActorId { get; }
-    public string? EvidenceUri { get; }
+    public PetVerificationMethod VerificationMethod { get; private set; }
+    public PetConfidence Confidence { get; private set; }
+    public Guid? ResponsibleActorId { get; private set; }
+    public string? EvidenceUri { get; private set; }
     public PetAssertionOrigin Origin { get; }
-    public PetAssertionState State { get; }
+    public PetAssertionState State { get; private set; }
     public bool IsEffectiveAt(DateTimeOffset instant) =>
         State == PetAssertionState.Current && (ValidUntilUtc is null || ValidUntilUtc > instant);
+
+    public void Verify(Guid actorId, PetVerificationMethod method, string evidenceUri, DateTimeOffset verifiedAtUtc)
+    {
+        if (actorId == Guid.Empty) throw new DomainRuleException("L'actor de verificació és obligatori.");
+        if (method == PetVerificationMethod.Unknown) throw new DomainRuleException("El mètode de verificació és obligatori.");
+        if (string.IsNullOrWhiteSpace(evidenceUri)) throw new DomainRuleException("L'evidència és obligatòria.");
+        if (State is PetAssertionState.Revoked or PetAssertionState.Superseded)
+            throw new DomainRuleException("No es pot verificar una afirmació revocada o substituïda.");
+        VerifiedAtUtc = verifiedAtUtc;
+        VerificationMethod = method;
+        Confidence = PetConfidence.Confirmed;
+        ResponsibleActorId = actorId;
+        EvidenceUri = evidenceUri.Trim();
+        State = PetAssertionState.Current;
+    }
+
+    public void Question(Guid actorId)
+    {
+        if (actorId == Guid.Empty) throw new DomainRuleException("L'actor és obligatori.");
+        ResponsibleActorId = actorId;
+        State = PetAssertionState.Questioned;
+    }
+
+    public void Revoke(Guid actorId)
+    {
+        if (actorId == Guid.Empty) throw new DomainRuleException("L'actor és obligatori.");
+        ResponsibleActorId = actorId;
+        VerifiedAtUtc = null;
+        Confidence = PetConfidence.Unverified;
+        State = PetAssertionState.Revoked;
+    }
+
+    public void Supersede(Guid actorId)
+    {
+        if (actorId == Guid.Empty) throw new DomainRuleException("L'actor és obligatori.");
+        ResponsibleActorId = actorId;
+        State = PetAssertionState.Superseded;
+    }
 }
 
 public sealed class PetAssertionPrecedencePolicy

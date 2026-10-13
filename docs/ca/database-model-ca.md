@@ -2,7 +2,7 @@
 
 ## Objectiu
 
-> Actualització 13.10.2026: la Fase III incorpora `pet_policy_status`, `place_pet_assertions`, `commercial_chains`, `chain_places` i `chain_pet_policies`; les coordenades de Place són nullable. Vegeu [governança pet-friendly](iteracio-7-fase-iii-governanca-pet-friendly-ca.md).
+> Actualització 13.10.2026: la Fase III incorpora `pet_policy_status`, `place_pet_assertions`, `commercial_chains`, `chain_places`, `chain_pet_policies` amb `evidence_uri` i `pet_governance_decisions`; les coordenades de Place són nullable. Les dues migracions s'han validat amb `up/down/up` només en PostgreSQL temporal. Vegeu [governança pet-friendly](iteracio-7-fase-iii-governanca-pet-friendly-ca.md).
 
 Aquest document descriu la proposta inicial del model relacional de Zuppeto per a la Fase III.
 No substitueix el domini: tradueix el domini actual a una estructura pensada per `PostgreSQL` i futura implementacio amb `Entity Framework`.

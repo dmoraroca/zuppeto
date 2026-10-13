@@ -13,7 +13,7 @@ No substitueix `docs/project-phases.md` ni el joc de proves Excel: aquí només 
 
 **Estat:** **FASE II DOCUMENTADA / IMPLEMENTACIÓ PENDENT D'AUTORITZACIÓ**.
 
-La Fase III ja implementa el nucli pet-friendly, cadenes, ports, correcció d'IDs territorials i coordenades nullable. Resten la validació PostgreSQL temporal/E2E, el workflow ADMIN complet i els adaptadors de Fase IV. Cap font s'ha aprovat ni connectat. Referència: [Iteració 7 — Fase III](iteracio-7-fase-iii-governanca-pet-friendly-ca.md).
+La Fase III ja implementa i valida el nucli pet-friendly, cadenes, workflow ADMIN, auditoria, correcció d'IDs territorials i coordenades nullable. PostgreSQL temporal i el Chrome focalitzat passen; resta la revisió humana i l'autorització de la migració real. Els adaptadors corresponen a la Fase IV i no s'han iniciat. Cap font s'ha aprovat ni connectat. Referència: [Iteració 7 — Fase III](iteracio-7-fase-iii-governanca-pet-friendly-ca.md). **FET dins l'abast de continuació; tancament formal pendent de migració autoritzada.**
 
 ---
 

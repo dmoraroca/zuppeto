@@ -72,6 +72,30 @@ public sealed class ChainPetPolicyConfiguration : IEntityTypeConfiguration<Chain
         b.Property(x => x.ValidFromUtc).HasColumnName("valid_from_utc"); b.Property(x => x.ValidUntilUtc).HasColumnName("valid_until_utc");
         b.Property(x => x.HasApplicabilityEvidence).HasColumnName("has_applicability_evidence");
         b.Property(x => x.SourceKey).HasColumnName("source_key").HasMaxLength(120).IsRequired(); b.Property(x => x.VerifiedAtUtc).HasColumnName("verified_at_utc");
+        b.Property(x => x.EvidenceUri).HasColumnName("evidence_uri").HasMaxLength(2048).IsRequired();
         b.HasIndex(x => new { x.ChainId, x.CountryCode, x.TerritorialUnitId, x.ValidFromUtc });
+    }
+}
+
+public sealed class PetGovernanceDecisionConfiguration : IEntityTypeConfiguration<PetGovernanceDecisionRecord>
+{
+    public void Configure(EntityTypeBuilder<PetGovernanceDecisionRecord> b)
+    {
+        b.ToTable("pet_governance_decisions");
+        b.HasKey(x => x.Id);
+        b.Property(x => x.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()");
+        b.Property(x => x.PlaceId).HasColumnName("place_id");
+        b.HasOne(x => x.Place).WithMany().HasForeignKey(x => x.PlaceId).OnDelete(DeleteBehavior.Cascade);
+        b.Property(x => x.SubjectType).HasColumnName("subject_type").HasMaxLength(40).IsRequired();
+        b.Property(x => x.SubjectId).HasColumnName("subject_id");
+        b.Property(x => x.Action).HasColumnName("action").HasMaxLength(80).IsRequired();
+        b.Property(x => x.Reason).HasColumnName("reason").HasMaxLength(1000).IsRequired();
+        b.Property(x => x.ActorId).HasColumnName("actor_id");
+        b.HasOne(x => x.Actor).WithMany().HasForeignKey(x => x.ActorId).OnDelete(DeleteBehavior.Restrict);
+        b.Property(x => x.DecidedAtUtc).HasColumnName("decided_at_utc");
+        b.Property(x => x.BeforeSnapshot).HasColumnName("before_snapshot").HasColumnType("jsonb");
+        b.Property(x => x.AfterSnapshot).HasColumnName("after_snapshot").HasColumnType("jsonb");
+        b.HasIndex(x => new { x.PlaceId, x.DecidedAtUtc });
+        b.HasIndex(x => new { x.SubjectType, x.SubjectId });
     }
 }

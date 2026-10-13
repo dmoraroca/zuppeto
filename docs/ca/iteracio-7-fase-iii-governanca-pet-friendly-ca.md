@@ -2,7 +2,7 @@
 
 ## Estat i abast
 
-Implementació preparada el 13.10.2026. Introdueix el nucli de governança, la persistència de polítiques de cadena i els contractes neutrals de la Fase IV. No implementa connectors HTTP, no importa POI, no activa Google Places, no modifica Google OAuth i no aplica la migració a PostgreSQL real.
+Implementació i validació funcional preparades el 13.10.2026. Inclou el nucli de governança, el workflow ADMIN auditable, la persistència de polítiques de cadena i els contractes neutrals de la Fase IV. La Fase III continua pendent de revisió humana i d'autorització explícita abans d'aplicar migracions a PostgreSQL real. No implementa connectors HTTP, no importa POI, no activa Google Places i no modifica Google OAuth.
 
 ## Model funcional
 
@@ -18,7 +18,7 @@ Cada `PetFriendlyAssertion` conserva Place, espècie, estat, condicions, font, I
 
 ## PostgreSQL i migració EF
 
-`AddPetFriendlyGovernancePhase3` elimina el constraint binari, preserva com `Allowed` les files antigues que admetien alguna espècie i deixa `Unknown` per defecte a les noves. Afegeix `places.pet_policy_status`, `place_pet_assertions`, `commercial_chains`, `chain_places` i `chain_pet_policies`.
+`AddPetFriendlyGovernancePhase3` elimina el constraint binari, preserva com `Allowed` les files antigues que admetien alguna espècie i deixa `Unknown` per defecte a les noves. Afegeix `places.pet_policy_status`, `place_pet_assertions`, `commercial_chains`, `chain_places` i `chain_pet_policies`. La continuació `AddPetGovernanceAdminWorkflow` incorpora `chain_pet_policies.evidence_uri` i `pet_governance_decisions`, amb actor, motiu, instant i snapshots JSONB anterior/posterior.
 
 Espècies i condicions heterogènies usen JSONB; identitat, estats, dates i camps consultables continuen tipats. Les relacions Place tenen cascada i les territorials `RESTRICT`. La migració té `Down`, però no s'ha aplicat a la base real.
 
@@ -59,25 +59,56 @@ Els DTO i el cercador Angular conserven `countryId + territorialUnitId`; Applica
 
 ## API i administració
 
-Alta, resum i detall incorporen `petAccessStatus`, `petSpecies` i `petConditions`; latitud/longitud són nullable. ADMIN presenta els cinc estats en català, espècies i condicions extensibles. Els booleans antics resten temporalment per compatibilitat.
+Alta, resum i detall incorporen `petAccessStatus`, `petSpecies` i `petConditions`; latitud/longitud són nullable. Els booleans antics resten temporalment per compatibilitat.
+
+El panell ADMIN integrat al detall existent de Place, sense redissenyar l'administració, permet consultar procedència i evidències, registrar i verificar afirmacions, resoldre conflictes preservant les fonts, qüestionar o revocar, gestionar cadenes i franquícies, crear polítiques generals amb evidència obligatòria, aplicar excepcions locals verificades i consultar l'historial. També identifica informació desconeguda, pendent i caducada. Els formularis, estats i errors són en català i usen etiquetes, controls natius i regions `alert`/`status`.
+
+Totes les rutes següents requereixen JWT, rol exacte `Admin` i permís `action.places.manage`:
+
+- `GET /api/admin/pet-governance/places/{placeId}`;
+- `GET /api/admin/pet-governance/history[?placeId=…]`;
+- `POST /api/admin/pet-governance/places/{placeId}/assertions`;
+- `POST /api/admin/pet-governance/places/{placeId}/assertions/{assertionId}/verify`;
+- `POST /api/admin/pet-governance/places/{placeId}/assertions/{assertionId}/decision`;
+- `POST /api/admin/pet-governance/places/{placeId}/conflicts/resolve`;
+- `GET|POST /api/admin/pet-governance/chains`;
+- `POST /api/admin/pet-governance/chains/{chainId}/policies`;
+- `PUT /api/admin/pet-governance/places/{placeId}/chain`;
+- `POST /api/admin/pet-governance/places/{placeId}/chain-exceptions`.
+
+La regla efectiva és `MANUAL verificada > MANUAL > AUTO`. Les afirmacions revocades, substituïdes, qüestionades o caducades no entren a la selecció. Una política general només és candidata si és vigent, té evidència d'aplicabilitat i coincideix amb l'àmbit territorial del local. Una excepció local verificada és una afirmació manual auditada i preval sobre la política general.
+
+## Fitxers principals de la continuació
+
+- domini: `PetFriendlyGovernance.cs`, `PetGovernanceDecision.cs`;
+- aplicació: `PetGovernanceContracts.cs`, `PetGovernanceApplicationService.cs`, `PetGovernanceAuthorizationPolicy.cs`;
+- API: `PetGovernanceEndpoints.cs`, `Program.cs`;
+- infraestructura: `PetFriendlyRecords.cs`, `PetFriendlyConfigurations.cs`, `PetGovernanceRepository.cs`, `ZuppetoDbContext.cs` i migració `20261013170522_AddPetGovernanceAdminWorkflow`;
+- Angular: `admin.service.ts`, `pet-governance-panel.component.*` i integració a `admin-console-page`;
+- proves: `PetGovernanceWorkflowTests.cs`, `PetGovernancePostgreSqlTests.cs`, `pet-governance-panel.component.spec.ts` i `pet-governance-phase3-cli.ts`.
 
 ## Validació executada
 
-- build API/backend: PASS, 0 errors i 0 avisos;
+- build API/backend: PASS, 0 errors i 0 avisos després de corregir la nul·labilitat de l'actor;
 - build Angular development: PASS;
-- backend focalitzat 18/18 i suite completa 110/110 PASS (la primera execució al sandbox fou bloquejada pel socket; la repetició autoritzada passa);
-- Angular focalitzat Places 8/8 i suite completa 90/90 PASS, inclosa absència de coordenades inventades;
-- PostgreSQL temporal: 1/1 PASS; migració completa, constraints i integritat territorial;
-- reversió explícita en una segona base temporal: `up → down → up → up` PASS; el segon `up` no aplica cap migració;
-- E2E Chrome focalitzat pendent d'un entorn API/DB migrat;
-- runner E2E: build TypeScript i proves PASS; no s'han obert navegadors;
+- backend complet: 118/118 PASS; inclou verificació, conflictes, revocació, caducitat, precedència, cadenes, excepcions, autorització i auditoria;
+- Angular complet: 93/93 PASS en 23 fitxers; el panell focalitzat passa 3/3;
+- PostgreSQL temporal: 1/1 PASS amb persistència i recuperació en un `DbContext` nou, protecció de la dada manual, auditoria, evidència de cadena i camps territorials/coordenades nullable;
+- migració: `up → down fins AddPetFriendlyGovernancePhase3 → up` PASS; `dotnet ef migrations has-pending-model-changes` confirma que model i snapshot són coherents;
+- E2E Google Chrome focalitzat: 10/10 PASS sobre API, Angular i PostgreSQL temporals; comprova Place desconegut, modificació, verificació manual, contradicció externa, precedència, revocació, cadena, excepció local, recàrrega i valors nullable;
+- E2E: 0 crides externes; Google Places i RabbitMQ desactivats. No s'ha executat la bateria completa Chrome/Firefox/WebKit;
+- cleanup: les bases `zuppeto_pet_governance_tests` i `zuppeto_pet_governance_e2e` s'han eliminat; PostgreSQL real no s'ha modificat.
 - PostgreSQL real: no modificat.
 
-## Pendent de Fase IV
+## Incidències i condicions de tancament
 
-- implementar adaptadors només després del gate legal;
-- completar staging i observacions dels altres camps;
-- completar workflow ADMIN de verificació, conflictes i excepcions;
-- executar E2E Chrome focalitzat quan hi hagi un entorn aïllat amb la migració;
-- retirar camps Google i legacy quan sigui compatible;
-- no iniciar imports reals sense autorització.
+- no hi ha cap incidència funcional bloquejant detectada dins l'abast validat;
+- la base real continua sense les dues migracions de Fase III;
+- cal revisar aquest informe i el diff local;
+- cal autorització explícita separada per aplicar les migracions a PostgreSQL real;
+- després de migrar, cal una comprovació de lectura i integritat sense dades destructives;
+- només llavors es podrà declarar tancada la Fase III. La Fase IV, els adaptadors i els imports continuen sense iniciar-se.
+
+## Estat de Git
+
+Canvis locals sense commit ni push. El tall inclou domini, aplicació, API, EF Core, Angular, proves i documentació. No s'ha modificat cap catàleg territorial ni cap integració externa.
