@@ -1,5 +1,9 @@
 # Document tecnic (CA)
 
+## Iteració 7 — Fase II, arquitectura objectiu de Places
+
+La Fase II defineix, sense implementar, ports per capacitat i adaptadors independents, un pipeline asíncron centralitzat, identitat canònica, procedència per camp, deduplicació reversible i cua durable PostgreSQL. La cerca pública llegirà el catàleg propi i no farà fallback síncron extern. RabbitMQ i PostGIS queden ajornats fins que mètriques reals en justifiquin el cost. Especificació, diagrama, contractes previstos i ADR: [Arquitectura, llicències i RGPD de Places](iteracio-7-fase-ii-arquitectura-llicencies-rgpd-ca.md).
+
 ## Iteració 7 — Fase I, auditoria Places
 
 L'auditoria verificable es publica a [Iteració 7 — Fase I](iteracio-7-fase-i-auditoria-places-ca.md). Confirma que repositoris, ports, Specification, merge `MANUAL > AUTO`, snapshots i worker durable PostgreSQL són reutilitzables. Els principals deutes són acoblament Google al domini/EF/DTO, coordenades nul·les convertides a un centre d'Espanya, paginació en memòria, procedència global, política pet binària, pèrdua dels IDs territorials al frontend i component ADMIN monolític. RabbitMQ i PostGIS no queden justificats amb 0 Places. No s'ha refactoritzat ni migrat cap peça.

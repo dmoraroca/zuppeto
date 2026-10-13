@@ -1,5 +1,9 @@
 # Zuppeto - Esquema BBDD (E/R)
 
+## Iteració 7 — Fase II, model de Places proposat
+
+La Fase II documenta un model futur dins `public` per separar `places`, fonts, identificadors externs, observacions per camp, decisions, deduplicació, imports/jobs i media. No forma part encara de l'EF snapshot: no s'ha creat cap migració ni modificat PostgreSQL. La definició i els constraints previstos consten a [Arquitectura, llicències i RGPD de Places](iteracio-7-fase-ii-arquitectura-llicencies-rgpd-ca.md).
+
 Aquest document resumeix l'esquema de base de dades actual (Entity Framework snapshot), amb focus en entitats, relacions i la part d'autenticacio/autoritzacio.
 
 ## Idea clau: rol vs permis

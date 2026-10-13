@@ -1,5 +1,9 @@
 # Necessitats de persistencia (CA)
 
+## Iteració 7 — Fase II, ampliació proposada
+
+El model objectiu de Places necessita identitat canònica, referències externes per font, observacions i procedència per camp, decisions manuals, candidats de deduplicació, imports/jobs auditables, historial i actius media amb llicència. Es manté l'esquema `public`, una cua durable PostgreSQL i coordenades nul·lables; PostGIS queda ajornat. És una proposta sense migració ni canvi de dades. Vegeu [el model detallat de la Fase II](iteracio-7-fase-ii-arquitectura-llicencies-rgpd-ca.md).
+
 ## Objectiu
 
 Aquest document tanca el punt de Fase III:

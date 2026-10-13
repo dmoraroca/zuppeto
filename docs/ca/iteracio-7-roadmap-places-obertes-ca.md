@@ -2,9 +2,11 @@
 
 ## Estat i objectiu
 
-**FASE 0 COMPLETADA. FASE I AUDITADA I CARACTERITZADA EL 12.10.2026. FASE II NO INICIADA.**
+**FASE 0 COMPLETADA. FASE I AUDITADA I CARACTERITZADA. FASE II DOCUMENTADA EL 12.10.2026. FASE III NO INICIADA.**
 
 L'informe verificable de la Fase I és [Iteració 7 — Fase I: auditoria integral de Places](iteracio-7-fase-i-auditoria-places-ca.md). La fase confirma el baseline real, inventaria Google Places, caracteritza backend/PostgreSQL/Angular/E2E i fixa decisions de domini, procedència, deduplicació i llicències. També deixa dos bloquejos prioritaris: el contenidor API en execució és anterior al tall de Google Places i el submit del cercador perd els IDs territorials. Cap dels dos s'ha corregit dins l'auditoria.
+
+La Fase II defineix l'arquitectura objectiu, el model PostgreSQL proposat, la governança pet-friendly, la frontera ODbL, la matriu legal de fonts, la deduplicació, l'actualització, les fotografies i els gates de les fases següents. El lliurable és [Iteració 7 — Fase II: arquitectura, llicències i RGPD](iteracio-7-fase-ii-arquitectura-llicencies-rgpd-ca.md). És una fase documental: no ha creat connectors, migracions o POI, ni ha corregit encara els defectes caracteritzats.
 
 **Mesura operativa prèvia a la Fase I (2026-10-12):** Google Places API ha quedat desactivada immediatament en tots els entorns. La configuració base i Docker fixen `Enabled=false`, Docker ja no injecta `GOOGLE_PLACES_API_KEY` i la variable també s'ha retirat de `.env` i `.env.example`. La política d'aplicació denega totes les crides externes de Places i el client Google conté un tall no configurable que també bloqueja Search, Details i Photos si una configuració antiga intenta reactivar-los. Els adaptadors es conserven per a l'auditoria; Google OAuth no s'ha modificat. Aquesta actuació no inicia la Fase I ni modifica PostgreSQL.
 
@@ -111,12 +113,14 @@ L'inventari ha de distingir què és reutilitzable com a port neutral, què requ
 - avaluar PostGIS amb consultes i volum reals;
 - presentar una matriu `funcionalitat actual → substitut → evidència → gap → decisió`.
 
-### Fase II — Governança pet-friendly
+### Fase II — Arquitectura, llicències i RGPD (**DOCUMENTADA**)
 
-- tancar el model d'admissió, confiança, verificació i procedència;
-- aplicar `MANUAL > AUTO` al domini i a la persistència;
-- definir conflictes, caducitat, revisió i auditoria;
-- provar que «sense etiqueta» continua sent «desconegut».
+- definir l'arquitectura Clean/SOLID i els ports per capacitat;
+- proposar el model d'identitat, procedència per camp, imports i cua durable;
+- tancar documentalment el contracte pet-friendly i la regla `MANUAL > AUTO`;
+- auditar llicències, ODbL, RGPD/LOPDGDD, fotografies i ús comercial;
+- especificar deduplicació reversible, actualització, rendiment, UX i gates;
+- preparar ADR i plans de correcció, sense implementar-los.
 
 ### Fase III — Integració de fonts obertes
 
@@ -168,6 +172,6 @@ Davant un gap no es reintrodueix Google automàticament. Es documenta la limitac
 
 Passarel·la de pagament, VIP/UltraVIP, packs, XP/gamificació, internacionalització completa, Facebook, baixa autogestionada del compte i Iteració 8. Cap d'aquests punts s'inicia durant la Iteració 7.
 
-## Gate d'inici de la Fase II
+## Gate d'inici de la Fase III
 
-La Fase II no s'ha iniciat i requereix una nova ordre. La Fase I no autoritza implementacions funcionals, migracions, importacions, retirada de codi Google, PostGIS/RabbitMQ nous ni regressió E2E multibrowser completa.
+La Fase II queda tancada documentalment i no autoritza per si sola la implementació. La Fase III requereix una nova ordre i l'aprovació explícita dels gates que li corresponguin. Fins llavors no es creen connectors ni migracions, no s'importen POI, no es recrea el contenidor API, no s'activa cap font, no es modifica Google OAuth i no s'executa la regressió E2E multibrowser completa.

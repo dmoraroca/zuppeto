@@ -1,5 +1,7 @@
 # Joc de proves (CA)
 
+**Iteració 7 — Fase II:** fase exclusivament documental. S'han definit els futurs gates unitaris, contractuals, d'integració PostgreSQL, llicències/atribució, deduplicació, territori, coordenades nul·les, paginació i absència de crides externes en cerca pública. No s'han executat ni marcat com a PASS perquè encara no existeix la implementació. La regressió Chrome/Firefox/WebKit continua reservada per al final de la Iteració 7.
+
 **Iteració 6 — Fase VI:** la Gestió Territorial ADMIN afegeix proves backend del contracte administratiu, 69/69 proves backend, 61/61 proves Angular, 55/55 proves del runner i els escenaris sintètics ZUP-154–160 en Chrome (7/7 PASS). Es cobreixen format/mida, metadata, mapping versionat, Unicode, paginació, accés exclusiu Admin, wizard, validació bloquejant, ChangeSet, publicació confirmada, historial i recuperació per URL. ZUP-160 també passa 1/1 sobre el recorregut real Angular → API → EF → PostgreSQL. Cap prova publica datasets oficials.
 
 ## 1. Objectiu

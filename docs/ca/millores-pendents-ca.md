@@ -7,11 +7,21 @@ No substitueix `docs/project-phases.md` ni el joc de proves Excel: aquí només 
 
 ---
 
+## 2026-10-12 — Iteració 7, Fase II documentada
+
+**Àmbit:** arquitectura de Places, fonts, llicències, protecció de dades i qualitat.
+
+**Estat:** **FASE II DOCUMENTADA / IMPLEMENTACIÓ PENDENT D'AUTORITZACIÓ**.
+
+Queden definits els ports per capacitat, la persistència proposada, la procedència per camp, `MANUAL > AUTO`, la deduplicació reversible, la cua PostgreSQL, els gates legals i els plans de correcció dels IDs territorials, coordenades inexistents i contenidor API obsolet. Cap element s'ha implementat, cap font s'ha aprovat i no s'ha iniciat la Fase III. Referència: [Iteració 7 — Fase II](iteracio-7-fase-ii-arquitectura-llicencies-rgpd-ca.md).
+
+---
+
 ## 2026-10-12 — Decisió Iteració 7: retirada de Google Places API
 
 **Àmbit:** catàleg propi de llocs, fonts externes i governança pet-friendly.
 
-**Estat:** **ROADMAP APROVAT / FASE 0 COMPLETADA / FASE I NO INICIADA**.
+**Estat històric d'aquesta entrada:** **ROADMAP APROVAT / FASE 0 COMPLETADA**. La Fase I i la Fase II s'han completat posteriorment.
 
 Google Places API deixa de formar part de l'arquitectura objectiu i no s'ha de completar ni ampliar. La Iteració 7 n'inventariarà les dependències i migrarà progressivament Search, Details, Photos, cache, procedència i deduplicació cap a fonts obertes o serveis gratuïts compatibles amb l'ús comercial. OpenStreetMap/Overpass, Geoapify i Wikidata són candidates pendents de verificar; cap pla gratuït es considera il·limitat ni aprovat automàticament.
 

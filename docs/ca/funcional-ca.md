@@ -1,5 +1,9 @@
 # Document funcional (CA)
 
+## Iteració 7 — Fase II, contracte funcional previst
+
+Queda definit documentalment que l'usuari seleccionarà un país i un municipi del catàleg territorial i consultarà només Places publicats a PostgreSQL. L'admissió distingirà confirmació, no admissió, només terrassa, condicions especials, desconegut i pendent de verificació; absència d'evidència no equival a rebuig. La dada manual verificada prevaldrà sobre l'automàtica i cap font o fotografia es publicarà sense superar els gates documental, legal i de qualitat. Vegeu [el lliurable complet de la Fase II](iteracio-7-fase-ii-arquitectura-llicencies-rgpd-ca.md).
+
 ## Iteració 7 — Fase I, estat funcional de Places
 
 La Fase I ha auditat i caracteritzat el comportament existent sense redissenyar-lo. El catàleg real conté 0 Places i les cerques sense dades es degraden a buit perquè Google Places està bloquejat al codi. El model actual només pot expressar acceptació de gossos/gats i no pot representar rebuig, desconegut, terrassa, condicions, revisió, confiança o data de verificació. Aquestes decisions, amb procedència per camp i deduplicació, són gates de la Fase II. Vegeu [l'informe complet](iteracio-7-fase-i-auditoria-places-ca.md).

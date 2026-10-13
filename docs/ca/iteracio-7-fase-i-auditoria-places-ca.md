@@ -1,5 +1,7 @@
 # Iteració 7 — Fase I: auditoria integral de Places
 
+> Actualització de traçabilitat (12.10.2026): la Fase II posterior ja està documentada a [Arquitectura, llicències i RGPD de Places](iteracio-7-fase-ii-arquitectura-llicencies-rgpd-ca.md). La resta d'aquest document conserva el tall històric de la Fase I.
+
 ## Estat i abast
 
 Auditoria executada el 12.10.2026 sobre el commit inicial `d50b5fd`, branca `main`, sincronitzat amb `origin/main` (`0` commits davant i `0` darrere). La fase només ha afegit proves de caracterització i documentació. No s'han creat migracions, importat POI, modificat PostgreSQL real, retirat adaptadors Google, alterat Google OAuth, afegit PostGIS/RabbitMQ ni iniciat la Fase II.
