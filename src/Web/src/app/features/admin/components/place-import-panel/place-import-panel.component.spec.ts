@@ -17,10 +17,10 @@ describe('PlaceImportPanelComponent', () => {
     await fixture.componentInstance.ngOnInit(); fixture.detectChanges();
   });
 
-  it('shows the ODbL source and the controlled Arenys scope', () => {
+  it('shows the ODbL source and the multiprovider Arenys scope', () => {
     expect(fixture.nativeElement.textContent).toContain('OpenStreetMap');
     expect(fixture.nativeElement.textContent).toContain('Arenys de Mar');
-    expect(fixture.nativeElement.textContent).toContain('publicació real queda bloquejada');
+    expect(fixture.nativeElement.textContent).toContain('Catàleg multiproveïdor');
     expect(fixture.nativeElement.textContent).toContain('Derivative/Collective Database');
   });
 
@@ -30,18 +30,20 @@ describe('PlaceImportPanelComponent', () => {
     expect(api.prepared).toBeNull();
   });
 
-  it('prepares both pilot categories with the territorial UUID', async () => {
+  it('prepares the audited categories in simulation with the territorial UUID', async () => {
     (fixture.componentInstance as any).selectionChanged({countryId:'es',country:'Espanya',territorialUnitId:'arenys',locality:'Arenys de Mar'});
     await (fixture.componentInstance as any).prepare(); fixture.detectChanges();
-    expect(api.prepared).toEqual(expect.objectContaining({countryId:'es',territorialUnitId:'arenys',categories:['restaurant','cafe'],simulationOnly:false}));
+    expect(api.prepared).toEqual(expect.objectContaining({countryId:'es',territorialUnitId:'arenys',categories:['restaurant','cafe','bar'],simulationOnly:true}));
   });
 });
 
 class FakeApi {
   prepared:unknown=null;
-  async context(){return {sources:[{key:'OSM_GEOFABRIK_EXTRACT',label:'OpenStreetMap / extracte Geofabrik',license:'ODbL-1.0',attribution:'© OpenStreetMap contributors'}],countries:['ES'],categories:[{key:'restaurant',label:'Restaurants'},{key:'cafe',label:'Cafeteries'}],simulationOnly:true};}
+  async context(){return {sources:[{key:'OSM_GEOFABRIK_EXTRACT',label:'OpenStreetMap / extracte Geofabrik',license:'ODbL-1.0',attribution:'© OpenStreetMap contributors'}],countries:['ES'],categories:[{key:'restaurant',label:'Restaurants'},{key:'cafe',label:'Cafeteries'},{key:'bar',label:'Bars'}],simulationOnly:true};}
   async list(){return [];}
   async get(){throw new Error('unused');}
   async prepare(request:unknown){this.prepared=request;return {id:'run'};}
   async approve(){} async simulatePublication(){} async publish(){} async cancel(){}
+  async governance(){return {matches:[],conflicts:[],lifecycles:[],sources:[]};}
+  async resolveMatch(){} async resolveConflict(){} async changeLifecycle(){} async registerSource(){return {id:'source'};} async reviewSource(){}
 }

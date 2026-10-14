@@ -15,13 +15,13 @@ internal sealed class OsmPlaceSourceNormalizer : IPlaceSourceNormalizer
         var category = Value(fields, "category");
         if (string.IsNullOrWhiteSpace(name))
             return Result<NormalizedPlaceCandidate>.Fail(FailureKind.Invalid, "El POI OSM no té nom.");
-        if (category is not ("restaurant" or "cafe"))
-            return Result<NormalizedPlaceCandidate>.Fail(FailureKind.Invalid, "La categoria OSM no és publicable en aquest pilot.");
+        if (!OsmPlaceCategoryMapper.SupportedCategories.Contains(category, StringComparer.OrdinalIgnoreCase))
+            return Result<NormalizedPlaceCandidate>.Fail(FailureKind.Invalid, "La categoria OSM no està inclosa en el mapping auditat.");
         var latitude = Decimal(fields, "latitude");
         var longitude = Decimal(fields, "longitude");
         if (latitude is null != (longitude is null))
             return Result<NormalizedPlaceCandidate>.Fail(FailureKind.Invalid, "Les coordenades OSM són parcials.");
-        return Result<NormalizedPlaceCandidate>.Success(new(document.SourceKey, document.ExternalId, name.Trim(), category,
+        return Result<NormalizedPlaceCandidate>.Success(new(document.SourceKey, document.ExternalId, name.Trim(), category!,
             Guid.Empty, Guid.Empty, latitude, longitude, fields));
     }
 

@@ -65,13 +65,10 @@ internal sealed class OverpassPlaceDiscoverySource(HttpClient http, IOptions<Ove
 
     internal static string BuildQuery(PlaceSourceContext context)
     {
-        var categories = context.Categories.Select(category => category switch
-        {
-            "restaurant" => "restaurant",
-            "cafe" => "cafe",
-            _ => throw new InvalidOperationException("Categoria OSM no admesa.")
-        });
-        var categoryExpression = string.Join('|', categories);
+        var selectors = context.Categories.SelectMany(OsmPlaceCategoryMapper.Selectors).Distinct().ToArray();
+        if (selectors.Length == 0) throw new InvalidOperationException("Categoria OSM no admesa.");
+        var clauses = selectors.GroupBy(x => x.Key).Select(group =>
+            $"nwr(area.searchArea)[\"{group.Key}\"~\"^({string.Join('|', group.Select(x => x.Value).Distinct())})$\"];");
         var safeCode = context.OfficialCode.Replace("\"", string.Empty, StringComparison.Ordinal);
         var limit = Math.Clamp(context.Limit, 1, 250);
         return $"""
@@ -79,7 +76,9 @@ internal sealed class OverpassPlaceDiscoverySource(HttpClient http, IOptions<Ove
             rel["boundary"="administrative"]["admin_level"="8"]["ref:ine"~"^{safeCode}(000000)?$"]->.boundary;
             .boundary out tags;
             .boundary map_to_area->.searchArea;
-            nwr(area.searchArea)["amenity"~"^({categoryExpression})$"];
+            (
+              {string.Join("\n  ", clauses)}
+            );
             out center {limit};
             """;
     }
@@ -102,11 +101,11 @@ internal sealed class OverpassPlaceDiscoverySource(HttpClient http, IOptions<Ove
         foreach (var element in elements.EnumerateArray())
         {
             var tags = Tags(element);
-            if (!tags.TryGetValue("amenity", out var amenity) || amenity is not ("restaurant" or "cafe")) continue;
+            if (!OsmPlaceCategoryMapper.TryMap(tags, context.Categories.ToHashSet(StringComparer.OrdinalIgnoreCase), out var category)) continue;
             if (!TryCoordinates(element, out var latitude, out var longitude)) continue;
             var type = element.GetProperty("type").GetString() ?? string.Empty;
             var id = element.GetProperty("id").GetInt64();
-            var fields = MapFields(tags, latitude, longitude, observedAt, boundaryId);
+            var fields = MapFields(tags, latitude, longitude, observedAt, boundaryId, category);
             documents.Add(new PlaceSourceDocument(OpenStreetMapSource.SourceKey, $"{type}/{id}", null, observedAt,
                 new Uri($"https://www.openstreetmap.org/{type}/{id}"), fields));
         }
@@ -144,11 +143,16 @@ internal sealed class OverpassPlaceDiscoverySource(HttpClient http, IOptions<Ove
 
     internal static IReadOnlyDictionary<string, SourceFieldValue> MapFields(
         IReadOnlyDictionary<string, string> tags, decimal latitude, decimal longitude,
-        DateTimeOffset observedAt, string boundaryId)
+        DateTimeOffset observedAt, string boundaryId, string? normalizedCategory = null)
     {
         var fields = new Dictionary<string, SourceFieldValue>(StringComparer.OrdinalIgnoreCase);
         Add(fields, "name", tags.GetValueOrDefault("name"), tags.GetValueOrDefault("name"), observedAt);
-        Add(fields, "category", tags.GetValueOrDefault("amenity"), tags.GetValueOrDefault("amenity"), observedAt);
+        var sourceCategory = First(tags, "amenity", "tourism", "leisure", "shop", "craft");
+        Add(fields, "category", sourceCategory, normalizedCategory ?? sourceCategory, observedAt);
+        Add(fields, "osm.amenity", tags.GetValueOrDefault("amenity"), tags.GetValueOrDefault("amenity"), observedAt);
+        Add(fields, "osm.tourism", tags.GetValueOrDefault("tourism"), tags.GetValueOrDefault("tourism"), observedAt);
+        Add(fields, "osm.leisure", tags.GetValueOrDefault("leisure"), tags.GetValueOrDefault("leisure"), observedAt);
+        Add(fields, "osm.shop", tags.GetValueOrDefault("shop"), tags.GetValueOrDefault("shop"), observedAt);
         Add(fields, "address.street", tags.GetValueOrDefault("addr:street"), tags.GetValueOrDefault("addr:street"), observedAt);
         Add(fields, "address.housenumber", tags.GetValueOrDefault("addr:housenumber"), tags.GetValueOrDefault("addr:housenumber"), observedAt);
         Add(fields, "address.postcode", tags.GetValueOrDefault("addr:postcode"), tags.GetValueOrDefault("addr:postcode"), observedAt);
@@ -157,6 +161,7 @@ internal sealed class OverpassPlaceDiscoverySource(HttpClient http, IOptions<Ove
         Add(fields, "openingHours", tags.GetValueOrDefault("opening_hours"), tags.GetValueOrDefault("opening_hours"), observedAt);
         Add(fields, "brand", tags.GetValueOrDefault("brand"), tags.GetValueOrDefault("brand"), observedAt);
         Add(fields, "operator", tags.GetValueOrDefault("operator"), tags.GetValueOrDefault("operator"), observedAt);
+        Add(fields, "wikidata.id", First(tags, "brand:wikidata", "operator:wikidata", "wikidata"), First(tags, "brand:wikidata", "operator:wikidata", "wikidata"), observedAt);
         Add(fields, "pet.dog", tags.GetValueOrDefault("dog"), NormalizePet(tags.GetValueOrDefault("dog")), observedAt);
         Add(fields, "pet.cat", tags.GetValueOrDefault("cat"), NormalizePet(tags.GetValueOrDefault("cat")), observedAt);
         Add(fields, "pet.pets", First(tags, "pets", "pet"), First(tags, "pets", "pet"), observedAt);

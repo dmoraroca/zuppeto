@@ -3,6 +3,7 @@ using OsmSharp;
 using OsmSharp.Streams;
 using Zuppeto.Application.Places;
 using Zuppeto.Application.Results;
+using System.Diagnostics;
 
 namespace Zuppeto.Infrastructure.Places.OpenStreetMap;
 
@@ -34,8 +35,16 @@ internal sealed class GeofabrikPbfPlaceDiscoverySource(IOptions<GeofabrikExtract
         try
         {
             var bounded = context with { Limit = Math.Min(context.Limit, Math.Clamp(settings.MaximumItems, 1, 250)) };
+            var index = new GeofabrikRegionalIndex(settings.IndexDirectory);
+            if (settings.ReusableIndexEnabled && index.TryRead(settings.ExtractPath, settings.SourceVersion, bounded, out var indexed))
+                return Task.FromResult(Result<PlaceDiscoveryBatch>.Success(indexed!));
+            var started = Stopwatch.StartNew();
             var reader = new GeofabrikPbfReader(settings.ExtractPath, settings.SourceVersion);
-            return Task.FromResult(reader.Read(bounded, cancellationToken));
+            var result = reader.Read(bounded, cancellationToken);
+            started.Stop();
+            if (settings.ReusableIndexEnabled && result.IsSuccess)
+                index.Write(settings.ExtractPath, settings.SourceVersion, bounded, result.Value!, started.Elapsed);
+            return Task.FromResult(result);
         }
         catch (OperationCanceledException) { throw; }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException
@@ -65,7 +74,7 @@ internal sealed class GeofabrikPbfReader(string path, string? sourceVersion)
                 boundaryDiagnostics.Add($"relation/{diagnosticRelation.Id}:boundary={tags.GetValueOrDefault("boundary")};admin_level={tags.GetValueOrDefault("admin_level")};ref:ine={tags.GetValueOrDefault("ref:ine")};name={tags.GetValueOrDefault("name")}");
             if (osm is Relation relation && IsBoundary(tags, context.OfficialCode))
                 boundaries.Add(new(relation.Id!.Value, tags, Members(relation)));
-            if (!tags.TryGetValue("amenity", out var category) || !categories.Contains(category)) return;
+            if (!OsmPlaceCategoryMapper.TryMap(tags, categories, out _)) return;
             switch (osm)
             {
                 case Node node when node.Id.HasValue && node.Latitude.HasValue && node.Longitude.HasValue:
@@ -121,8 +130,9 @@ internal sealed class GeofabrikPbfReader(string path, string? sourceVersion)
             if (coordinate is null || !InsideBoundary(coordinate.Value, outerRings, innerRings)) continue;
             var type = poi.Type.ToString().ToLowerInvariant();
             var externalId = $"{type}/{poi.Id}";
+            OsmPlaceCategoryMapper.TryMap(poi.Tags, categories, out var category);
             var fields = OverpassPlaceDiscoverySource.MapFields(poi.Tags, (decimal)coordinate.Value.Latitude,
-                (decimal)coordinate.Value.Longitude, observedAt, $"relation/{boundary.Id}");
+                (decimal)coordinate.Value.Longitude, observedAt, $"relation/{boundary.Id}", category);
             documents.Add(new(OpenStreetMapSource.SourceKey, externalId, sourceVersion, observedAt,
                 new Uri($"https://www.openstreetmap.org/{type}/{poi.Id}"), fields));
         }

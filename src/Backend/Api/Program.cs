@@ -315,6 +315,7 @@ app.MapTerritorialLocationEndpoints();
 app.MapPlaceEndpoints();
 app.MapPetGovernanceEndpoints();
 app.MapPlaceImportEndpoints();
+app.MapPlaceCatalogGovernanceEndpoints();
 app.MapFavoriteEndpoints();
 
 app.MapUserEndpoints();

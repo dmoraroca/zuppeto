@@ -43,6 +43,7 @@ public static class DependencyInjection
         services.AddScoped<IPlaceApplicationService, PlaceApplicationService>();
         services.AddScoped<IPetGovernanceApplicationService, PetGovernanceApplicationService>();
         services.AddScoped<IPlaceImportApplicationService, PlaceImportApplicationService>();
+        services.AddScoped<IPlaceCatalogGovernanceService, PlaceCatalogGovernanceService>();
         services.AddSingleton<PetAssertionPrecedencePolicy>();
         services.AddScoped<IFavoriteListApplicationService, FavoriteListApplicationService>();
         services.AddScoped<IUserApplicationService, UserApplicationService>();

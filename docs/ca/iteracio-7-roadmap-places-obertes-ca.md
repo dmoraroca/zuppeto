@@ -2,7 +2,9 @@
 
 ## Estat i objectiu
 
-**FASES 0–IV COMPLETADES. PILOT REAL GEOFABRIK PUBLICAT A ARENYS DE MAR. FASE V NO INICIADA.**
+**FASES 0–IV COMPLETADES. FASE V AMB BASE FUNCIONAL VALIDADA I TANCAMENT PENDENT.**
+
+La Fase V ha ampliat la cobertura OSM, ha incorporat enriquiment Wikidata CC0, matching i conflictes auditables, cicle de vida, govern de fonts i un prototip d'índex reutilitzable. La migració real, la publicació ampliada i la ingesta efectiva de diffs diaris no s'han autoritzat ni completat. Estat verificable: [Fase V](iteracio-7-fase-v-cobertura-enriquiment-deduplicacio-ca.md).
 
 L'estat verificable de la Fase IV és [Tancament de la Fase IV](iteracio-7-fase-iv-tancament-ca.md). El PBF real de Catalunya ha produït 18 POI d'Arenys de Mar: se n'han publicat 15 i se n'han rebutjat 3 sense nom. La segona importació ha estat idempotent. Geofabrik és la via batch principal i Overpass queda com a mode auxiliar després del HTTP 504 anterior.
 
@@ -140,14 +142,14 @@ L'inventari ha de distingir què és reutilitzable com a port neutral, què requ
 - migrar funcionalitats de Google de manera incremental;
 - retirar Google Places només quan cada substitució estigui validada.
 
-### Fase IV — Cobertura i tipologies
+### Fase V — Cobertura, enriquiment i deduplicació (**BASE VALIDADA; TANCAMENT PENDENT**)
 
 - validar restaurants, bars, hotels, parcs, comerços i serveis;
 - normalitzar categories al model propi;
 - validar cobertura territorial, coordenades i deduplicació;
 - documentar explícitament qualsevol gap sense alternativa adequada.
 
-### Fase V — Administració, cercador i mapa
+### Fase VI — Administració, cercador i mapa
 
 - refinar alta i edició de llocs;
 - conservar el selector territorial europeu;
@@ -155,7 +157,7 @@ L'inventari ha de distingir què és reutilitzable com a port neutral, què requ
 - presentar la procedència de forma comprensible;
 - mantenir resultats, mapa, responsive i textos en català coherents.
 
-### Fase VI — Validació i tancament
+### Fase VII — Validació i tancament
 
 - executar backend, PostgreSQL aïllat, Angular, builds i integració;
 - verificar costos, quotes, errors, degradació i límits externs;

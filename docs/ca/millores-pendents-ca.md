@@ -7,6 +7,14 @@ No substitueix `docs/project-phases.md` ni el joc de proves Excel: aquí només 
 
 ---
 
+## 2026-10-14 — Iteració 7, Fase V multiproveïdor
+
+**Estat:** **BASE FUNCIONAL VALIDADA / TANCAMENT PENDENT**.
+
+S'han implementat cobertura OSM ampliada, Wikidata CC0, matching reversible, conflictes, cicle de vida, govern de fonts, migració temporal, ADMIN i Chrome focalitzat. Resten l'índex regional únic, l'aplicador de diffs `.osc.gz`, la recuperació per checkpoint i l'autorització de migració/publicació real. També continuen oberts els avisos `NU1902/NU1903`. [Informe](iteracio-7-fase-v-cobertura-enriquiment-deduplicacio-ca.md).
+
+---
+
 ## 2026-10-14 — Iteració 7, Fase IV OSM/Geofabrik
 
 **Estat:** **FASE IV TANCADA**; seguiments d'escala i jurídics pendents.

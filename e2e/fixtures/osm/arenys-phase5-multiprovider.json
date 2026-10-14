@@ -1,0 +1,24 @@
+{
+  "version": 0.6,
+  "generator": "PetiLoc deterministic Phase V fixture",
+  "elements": [
+    {
+      "type": "relation",
+      "id": 340712,
+      "tags": { "boundary": "administrative", "admin_level": "8", "ref:ine": "08006", "name": "Arenys de Mar" }
+    },
+    {
+      "type": "node",
+      "id": 950000001,
+      "lat": 41.579221,
+      "lon": 2.551595,
+      "tags": {
+        "amenity": "restaurant",
+        "name": "La Marina",
+        "addr:street": "Riera del Bisbe Pol",
+        "wikidata": "Q999999999",
+        "dog": "yes"
+      }
+    }
+  ]
+}

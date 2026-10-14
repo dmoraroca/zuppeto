@@ -5,7 +5,8 @@ namespace Zuppeto.Application.Places;
 public sealed class PlaceImportApplicationService(IPlaceImportRepository repository) : IPlaceImportApplicationService
 {
     private static readonly Guid ArenysDeMarTerritorialUnitId = Guid.Parse("8680aa5a-292f-4201-8d52-d6381f438af4");
-    private static readonly HashSet<string> AllowedCategories = new(StringComparer.OrdinalIgnoreCase) { "restaurant", "cafe" };
+    private static readonly HashSet<string> AllowedCategories = new(PlaceCatalogCategories.All, StringComparer.OrdinalIgnoreCase);
+    private static readonly HashSet<string> PhaseFourPublicationCategories = new(StringComparer.OrdinalIgnoreCase) { "restaurant", "cafe" };
 
     public async Task<PlaceImportRunDto> PrepareAsync(PreparePlaceImportRequest request, Guid actorId, CancellationToken ct = default)
     {
@@ -22,8 +23,8 @@ public sealed class PlaceImportApplicationService(IPlaceImportRepository reposit
             || !string.Equals(scope.TerritorialName, "Arenys de Mar", StringComparison.OrdinalIgnoreCase)
             || !string.Equals(scope.OfficialCode, "08006", StringComparison.Ordinal)
             || request.AccessMode != OpenStreetMapSource.GeofabrikExtractAccessMode
-            || categories.Length != AllowedCategories.Count
-            || categories.Any(category => !AllowedCategories.Contains(category))))
+            || categories.Length != PhaseFourPublicationCategories.Count
+            || categories.Any(category => !PhaseFourPublicationCategories.Contains(category))))
             throw new DomainRuleException("La publicació real de la Fase IV està limitada al pilot Geofabrik d’Arenys de Mar per a restaurants i cafeteries.");
         return await repository.CreateAsync(request with { Categories = categories }, scope, actorId, ct);
     }

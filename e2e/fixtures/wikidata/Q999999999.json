@@ -1,0 +1,19 @@
+{
+  "entities": {
+    "Q999999999": {
+      "pageid": 999999999,
+      "lastrevid": 1500000000,
+      "labels": {
+        "ca": { "language": "ca", "value": "La Marina d’Arenys" }
+      },
+      "descriptions": {
+        "ca": { "language": "ca", "value": "Restaurant d’Arenys de Mar" }
+      },
+      "claims": {
+        "P856": [
+          { "rank": "normal", "mainsnak": { "datavalue": { "value": "https://lamarina.example.test" } } }
+        ]
+      }
+    }
+  }
+}

@@ -7,4 +7,6 @@ public sealed class GeofabrikExtractOptions
     public string? ExtractPath { get; set; }
     public string? SourceVersion { get; set; }
     public int MaximumItems { get; set; } = 250;
+    public bool ReusableIndexEnabled { get; set; } = true;
+    public string IndexDirectory { get; set; } = "/tmp/petiloc-osm-index";
 }

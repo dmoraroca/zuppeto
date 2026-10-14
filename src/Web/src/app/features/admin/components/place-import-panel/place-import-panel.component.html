@@ -1,11 +1,11 @@
 <section class="imports" aria-labelledby="place-import-title">
-  <header><div><p class="kicker">Fase IV · Pilot controlat</p><h3 id="place-import-title">Importacions OpenStreetMap</h3></div><span class="badge">Arenys de Mar</span></header>
-  <p>Valida i publica restaurants i cafeteries d’Arenys de Mar dins la frontera administrativa OSM verificada. La publicació real queda bloquejada per backend per a qualsevol altre municipi, font o categoria.</p>
+  <header><div><p class="kicker">Fase V · Catàleg multiproveïdor</p><h3 id="place-import-title">Cobertura i governança de Places</h3></div><span class="badge">Pilot Arenys de Mar</span></header>
+  <p>Prepara imports OSM ampliats, revisa el matching, els conflictes, les fonts i els tancaments sospitosos. Les noves categories continuen en simulació fins que s’autoritzi la migració.</p>
   @if(error()){<p class="message error" role="alert">{{error()}}</p>} @if(success()){<p class="message success" role="status">{{success()}}</p>}
   <div class="form-grid">
     <app-territorial-location-selector [countryId]="countryId" [localityId]="territorialUnitId" [legacyCountry]="country" [legacyLocality]="locality" [required]="true" [disabled]="loading()" (selectionChange)="selectionChanged($event)" />
     <label>Mode d’accés OSM<select [(ngModel)]="accessMode" [disabled]="loading()">@for(source of context()?.sources??[];track source.key){<option [value]="source.key">{{source.label}}</option>}</select></label>
-    <fieldset><legend>Categories</legend><label><input type="checkbox" [(ngModel)]="restaurant"/> Restaurants</label><label><input type="checkbox" [(ngModel)]="cafe"/> Cafeteries</label></fieldset>
+    <fieldset><legend>Categories</legend>@for(category of context()?.categories??[];track category.key){<label><input type="checkbox" [checked]="selectedCategories.has(category.key)" (change)="toggleCategory(category.key,$any($event.target).checked)"/> {{category.label}}</label>}</fieldset>
     <button type="button" (click)="prepare()" [disabled]="loading()">Preparar pilot</button>
   </div>
   @if(context()?.sources?.[0];as source){<p class="license"><strong>{{source.license}}</strong> · {{source.attribution}} · La qualificació Derivative/Collective Database continua pendent de revisió jurídica.</p>}
@@ -21,4 +21,23 @@
       <h5>Historial</h5><ol>@for(decision of item.history;track decision.id){<li><strong>{{decision.action}}</strong> · {{decision.reason}} <small>{{decision.decidedAtUtc|date:'short'}}</small></li>}</ol>
     </section>}
   </div>
+  @if(governance();as catalog){
+    <section class="governance" aria-labelledby="catalog-sources"><h4 id="catalog-sources">Fonts i llicències</h4>
+      <div class="table-wrap"><table><thead><tr><th>Font</th><th>Dataset</th><th>Llicència</th><th>Cobertura</th><th>Estat</th><th>Revisió</th></tr></thead><tbody>@for(source of catalog.sources;track source.id){<tr><td>{{source.sourceKey}}</td><td>{{source.dataset}} · {{source.datasetVersion}}</td><td>{{source.licenseIdentifier}}</td><td>{{source.coverage}}</td><td>{{source.approvalStatus}}</td><td>@if(source.approvalStatus==='PendingReview'){<button type="button" (click)="reviewSource(source.id,true)">Aprovar</button><button type="button" class="danger" (click)="reviewSource(source.id,false)">Rebutjar</button>}@else{Revisada}</td></tr>}</tbody></table></div>
+      <details><summary>Registrar una font oficial candidata</summary><p>La font quedarà pendent i no es podrà activar fins que se n’hagin verificat la llicència, l’atribució, l’ús comercial i la persistència.</p>
+        <div class="form-grid"><label>Clau<input [(ngModel)]="sourceKey" /></label><label>Organització<input [(ngModel)]="sourceOrganisation" /></label><label>Dataset<input [(ngModel)]="sourceDataset" /></label><label>Versió<input [(ngModel)]="sourceVersion" /></label><label>Cobertura<input [(ngModel)]="sourceCoverage" /></label><label>URL<input type="url" [(ngModel)]="sourceUrl" /></label><label>URL d’atribució<input type="url" [(ngModel)]="sourceAttributionUrl" /></label><label>Llicència<input [(ngModel)]="sourceLicense" /></label><label>URL de llicència<input type="url" [(ngModel)]="sourceLicenseUrl" /></label><label>Atribució<input [(ngModel)]="sourceAttribution" /></label><label>Condicions de reutilització<textarea rows="2" [(ngModel)]="sourceReuseConditions"></textarea></label><label><input type="checkbox" [(ngModel)]="sourceCommercialUse" /> Permet ús comercial</label><label><input type="checkbox" [(ngModel)]="sourcePermanentStorage" /> Permet persistència</label><button type="button" (click)="registerSource()" [disabled]="loading()">Registrar per revisar</button></div>
+      </details>
+    </section>
+    <section class="governance" aria-labelledby="catalog-matches"><h4 id="catalog-matches">Possibles duplicats i matching</h4>
+      @if(!catalog.matches.length){<p>No hi ha decisions de matching pendents.</p>}
+      @for(match of catalog.matches;track match.id){<article class="review"><p><strong>{{match.externalId}}</strong> · {{match.outcome}} · {{match.score}} punts</p><p>{{match.signals.join(', ')}}</p>@if(match.contradictions.length){<p class="message error">{{match.contradictions.join(', ')}}</p>}@if(match.outcome==='ProbableMatch'||match.outcome==='NeedsReview'){@if(match.candidatePlaceId){<button type="button" (click)="resolveMatch(match.id,'ConfirmedMatch',match.candidatePlaceId)">Confirmar match amb {{match.candidatePlaceName}}</button>}<button type="button" class="danger" (click)="resolveMatch(match.id,'NotMatch',null)">Descartar match</button>}</article>}
+    </section>
+    <section class="governance" aria-labelledby="catalog-conflicts"><h4 id="catalog-conflicts">Conflictes entre fonts</h4>
+      @if(!catalog.conflicts.length){<p>No hi ha conflictes oberts.</p>}
+      @for(conflict of catalog.conflicts;track conflict.id){<article class="review"><p><strong>{{conflict.placeName}} · {{conflict.fieldName}}</strong></p><button type="button" (click)="resolveConflict(conflict.id,conflict.leftObservationId)">{{conflict.leftSource}}: {{conflict.leftValue}} ({{conflict.leftAuthority}})</button><button type="button" (click)="resolveConflict(conflict.id,conflict.rightObservationId)">{{conflict.rightSource}}: {{conflict.rightValue}} ({{conflict.rightAuthority}})</button></article>}
+    </section>
+    <section class="governance" aria-labelledby="catalog-lifecycle"><h4 id="catalog-lifecycle">Estat de vida del catàleg</h4>
+      @for(place of catalog.lifecycles;track place.placeId){<article class="review"><p><strong>{{place.placeName}}</strong> · {{place.status}}</p>@if(place.status!=='Active'){<button type="button" (click)="lifecycle(place.placeId,'Active')">Marcar actiu</button>}@if(place.status!=='SuspectedClosed'){<button type="button" class="danger" (click)="lifecycle(place.placeId,'SuspectedClosed')">Tancament sospitós</button>}<button type="button" (click)="lifecycle(place.placeId,'TemporarilyClosed')">Tancat temporalment</button><button type="button" class="danger" (click)="lifecycle(place.placeId,'Closed')">Tancat amb evidència</button></article>}
+    </section>
+  }
 </section>

@@ -1,5 +1,7 @@
 # Model de base de dades (CA)
 
+> Actualització 14.10.2026, Fase V: el model preparat incorpora matching reversible, conflictes per observació, cicle de vida, enriquiments separats i checkpoints regionals. `AddPlaceCatalogCoveragePhase5` només s'ha aplicat a PostgreSQL temporal. [Informe de Fase V](iteracio-7-fase-v-cobertura-enriquiment-deduplicacio-ca.md).
+
 ## Objectiu
 
 > Actualització 14.10.2026, Fase IV: el snapshot EF incorpora staging OSM amb set taules de font/importació/observacions, `access_mode` auditable i unicitat `openstreetmap + externalId` compartida per Geofabrik i Overpass. La migració ha quedat aplicada a PostgreSQL real i el pilot ha publicat 15 Places d'Arenys sense duplicats. [Tancament OSM/Geofabrik](iteracio-7-fase-iv-tancament-ca.md).

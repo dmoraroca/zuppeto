@@ -55,6 +55,11 @@ public sealed class ZuppetoDbContext(DbContextOptions<ZuppetoDbContext> options)
     public DbSet<PlaceImportItemRecord> PlaceImportItems => Set<PlaceImportItemRecord>();
     public DbSet<PlaceImportIssueRecord> PlaceImportIssues => Set<PlaceImportIssueRecord>();
     public DbSet<PlaceImportDecisionRecord> PlaceImportDecisions => Set<PlaceImportDecisionRecord>();
+    public DbSet<PlaceMatchDecisionRecord> PlaceMatchDecisions => Set<PlaceMatchDecisionRecord>();
+    public DbSet<PlaceSourceConflictRecord> PlaceSourceConflicts => Set<PlaceSourceConflictRecord>();
+    public DbSet<PlaceLifecycleEventRecord> PlaceLifecycleEvents => Set<PlaceLifecycleEventRecord>();
+    public DbSet<PlaceImportEnrichmentRecord> PlaceImportEnrichments => Set<PlaceImportEnrichmentRecord>();
+    public DbSet<PlaceSourceCheckpointRecord> PlaceSourceCheckpoints => Set<PlaceSourceCheckpointRecord>();
 
     public DbSet<PlaceReviewRecord> PlaceReviews => Set<PlaceReviewRecord>();
 

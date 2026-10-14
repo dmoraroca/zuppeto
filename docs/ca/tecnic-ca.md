@@ -1,5 +1,7 @@
 # Document tecnic (CA)
 
+> Iteració 7, Fase V (14.10.2026): s'han implementat mapping OSM ampliat, connector Wikidata CC0, matching multiproveïdor reversible, conflictes, estats de vida, govern de fonts i prototip d'índex Geofabrik. Backend 139/139, Angular 96/96, build, EF i Chrome focalitzat han passat. La migració real i l'aplicador de diffs diaris continuen pendents. [Informe tècnic](iteracio-7-fase-v-cobertura-enriquiment-deduplicacio-ca.md).
+
 > Iteració 7, Fase IV (14.10.2026): implementats els modes `OSM_GEOFABRIK_EXTRACT` i `OSM_OVERPASS`, lector PBF territorial, worker durable PostgreSQL, normalització, matching conservador, staging auditable, endpoints i panell ADMIN. La migració real s'ha aplicat i el pilot ha publicat 15 Places d'Arenys; la segona importació ha estat idempotent. Regressió backend 133/133, Angular 96/96, coherència EF i Chrome focalitzat han passat. [Tancament tècnic](iteracio-7-fase-iv-tancament-ca.md).
 
 > Iteració 7, Fase III (13.10.2026): implementats domini auditable, prevalença `MANUAL verificada > MANUAL > AUTO`, servei d'aplicació, repositori EF, endpoints ADMIN, cadenes, excepcions i historial. Backend 118/118, regressió PostgreSQL focalitzada 8/8, Angular 93/93, PostgreSQL temporal i Chrome focalitzat 10/10 PASS. Les dues migracions estan aplicades i verificades a PostgreSQL real, amb integritat territorial preservada. [Informe tècnic](iteracio-7-fase-iii-governanca-pet-friendly-ca.md).

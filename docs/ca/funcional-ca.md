@@ -1,5 +1,7 @@
 # Document funcional (CA)
 
+> Iteració 7, Fase V (14.10.2026): ADMIN ja pot revisar possibles duplicats, conflictes, fonts i estats de vida; OSM cobreix 17 categories canòniques i Wikidata enriqueix només QID explícits amb dades CC0 separades. Els 68 candidats d'Arenys s'han mantingut en simulació i PostgreSQL real continua amb els 15 Places de Fase IV. [Informe funcional](iteracio-7-fase-v-cobertura-enriquiment-deduplicacio-ca.md).
+
 > Iteració 7, Fase IV (14.10.2026): ADMIN pot preparar, revisar, aprovar i publicar de manera controlada el pilot OSM d'Arenys. La migració real s'ha aplicat; s'han publicat 15 Places i la segona importació ha acreditat idempotència. La cerca pública els resol des de PostgreSQL i mostra `Unknown` quan OSM no aporta informació pet-friendly. [Tancament funcional](iteracio-7-fase-iv-tancament-ca.md).
 
 > Iteració 7, Fase III (13.10.2026): Places diferencia permès, no permès, només terrassa, desconegut i pendent de revisió. ADMIN gestiona procedència, verificacions, conflictes, revocacions, cadenes, excepcions i historial amb `MANUAL verificada > MANUAL > AUTO`. La fase i les migracions reals autoritzades han quedat completades. [Detall funcional](iteracio-7-fase-iii-governanca-pet-friendly-ca.md).

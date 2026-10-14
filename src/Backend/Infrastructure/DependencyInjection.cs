@@ -9,6 +9,7 @@ using Zuppeto.Application.Places;
 using Zuppeto.Domain.Abstractions;
 using Zuppeto.Infrastructure.Auth;
 using Zuppeto.Infrastructure.GooglePlaces;
+using Zuppeto.Infrastructure.Places.Wikidata;
 using Zuppeto.Infrastructure.Persistence;
 using Zuppeto.Infrastructure.Persistence.Repositories;
 using Zuppeto.Application.TerritorialImports;
@@ -90,6 +91,7 @@ public static class DependencyInjection
             configuration.GetSection(GooglePlacesComplianceOptions.SectionName));
         services.Configure<OverpassOptions>(configuration.GetSection(OverpassOptions.SectionName));
         services.Configure<GeofabrikExtractOptions>(configuration.GetSection(GeofabrikExtractOptions.SectionName));
+        services.Configure<WikidataOptions>(configuration.GetSection(WikidataOptions.SectionName));
         services.AddHostedService<GooglePlacesComplianceRetentionHostedService>();
         services.AddSingleton<PlaceCoverEnrichmentQueue>();
         services.AddSingleton<IPlaceCoverEnrichmentQueue>(sp => sp.GetRequiredService<PlaceCoverEnrichmentQueue>());
@@ -136,10 +138,22 @@ public static class DependencyInjection
         });
         services.AddScoped<IPlaceDiscoverySource, OverpassPolicyDiscoveryDecorator>();
         services.AddScoped<IPlaceDiscoverySource, GeofabrikPbfPlaceDiscoverySource>();
+        services.AddHttpClient<IPlaceEnrichmentSource, WikidataEnrichmentSource>((sp, client) =>
+        {
+            var options = sp.GetRequiredService<IOptions<WikidataOptions>>().Value;
+            client.BaseAddress = new Uri(options.BaseUrl);
+            client.Timeout = TimeSpan.FromSeconds(Math.Clamp(options.TimeoutSeconds, 5, 60));
+            client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "PetiLoc-Wikidata-Enrichment/1.0 (https://github.com/dmoraroca/zuppeto)");
+            client.DefaultRequestHeaders.TryAddWithoutValidation("Accept-Encoding", "gzip, deflate");
+        }).ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+        {
+            AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate
+        });
         services.AddScoped<IPlaceSourceNormalizer, OsmPlaceSourceNormalizer>();
         services.AddScoped<IPlaceStoragePermissionPolicy, OsmStoragePermissionPolicy>();
         services.AddScoped<IPlaceMatcher, ConservativePlaceMatcher>();
         services.AddScoped<IPlaceImportRepository, PlaceImportRepository>();
+        services.AddScoped<IPlaceCatalogGovernanceRepository, PlaceCatalogGovernanceRepository>();
         services.AddScoped<IPlaceImportWorkQueue, PlaceImportWorkQueue>();
         services.AddHostedService<PlaceImportWorker>();
         services.AddSingleton<IPlaceCoverStorage, FilePlaceCoverStorage>();

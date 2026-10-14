@@ -17,6 +17,18 @@ public static class OpenStreetMapSource
     public const string GeofabrikExtractAccessMode = "OSM_GEOFABRIK_EXTRACT";
 }
 
+public static class WikidataSource
+{
+    public const string SourceKey = "wikidata";
+    public const string EntityDataAccessMode = "WIKIDATA_ENTITY_DATA";
+}
+
+public static class PlaceCatalogCategories
+{
+    public static readonly string[] All = ["restaurant", "cafe", "bar", "pub", "fast_food", "ice_cream", "bakery",
+        "hotel", "hostel", "camping", "park", "dog_park", "shop", "pet_shop", "veterinary", "pet_service", "pet_grooming"];
+}
+
 public sealed record PlaceSourceDescriptor(
     string SourceKey, string AccessMode, PlaceSourceCapability Capabilities,
     IReadOnlyCollection<string> Limitations, string LicenseIdentifier,

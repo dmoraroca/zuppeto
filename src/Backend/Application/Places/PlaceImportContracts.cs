@@ -62,7 +62,8 @@ public sealed record PlaceImportStagedItem(
     PlaceSourceDocument Source,
     NormalizedPlaceCandidate Candidate,
     PlaceMatchDecision Match,
-    string ContentHash);
+    string ContentHash,
+    IReadOnlyCollection<PlaceSourceDocument>? Enrichments = null);
 
 public interface IPlaceImportRepository
 {

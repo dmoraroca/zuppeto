@@ -1,5 +1,9 @@
 # API (CA)
 
+## Iteració 7 — Fase V, governança multiproveïdor
+
+S'ha afegit `/api/admin/place-catalog-governance`, protegit per rol exacte `Admin` i `action.places.manage`. Exposa lectura del dashboard i decisions auditades de matching, conflictes, cicle de vida i revisió de fonts oficials. Wikidata i els esquemes OSM continuen encapsulats als adaptadors d'Infrastructure. Contracte, rutes i validació: [Fase V](iteracio-7-fase-v-cobertura-enriquiment-deduplicacio-ca.md).
+
 ## Iteració 7 — Fase IV, importació OSM per Geofabrik o Overpass
 
 El grup `/api/admin/place-imports` implementa context, preparació `202 Accepted`, llista, detall, aprovació, publicació controlada, simulació i cancel·lació. Exigeix rol exacte `Admin` i `action.places.manage`. `POST /api/admin/place-imports/{id}/publish` només admet el pilot Geofabrik d'Arenys amb la unitat territorial, font i categories autoritzades. El contracte exposa `OSM_GEOFABRIK_EXTRACT` i `OSM_OVERPASS` com a modes d'accés a la font canònica `openstreetmap`; cap esquema PBF o Overpass arriba a Angular. El worker executa la descoberta fora de la petició i la cerca pública no consulta fonts externes. [Contracte i resultats](iteracio-7-fase-iv-tancament-ca.md).

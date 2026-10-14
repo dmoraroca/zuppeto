@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text;
+using System.Diagnostics;
 using Microsoft.Extensions.Options;
 using OsmSharp;
 using OsmSharp.Streams;
@@ -8,6 +9,7 @@ using Zuppeto.Application.Places;
 using Zuppeto.Application.Results;
 using Zuppeto.Domain.Places;
 using Zuppeto.Infrastructure.Places.OpenStreetMap;
+using Zuppeto.Infrastructure.Places.Wikidata;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -29,6 +31,74 @@ public sealed class OpenStreetMapPlaceImportTests(ITestOutputHelper output)
         Assert.DoesNotContain("meta", query, StringComparison.OrdinalIgnoreCase);
         Assert.True(GeofabrikPbfReader.OfficialCodesEquivalent("08006000000", "08006"));
         Assert.False(GeofabrikPbfReader.OfficialCodesEquivalent("08006000001", "08006"));
+    }
+
+    [Fact]
+    public void Category_mapping_is_explicit_for_food_lodging_parks_shops_and_pet_services()
+    {
+        var requested = PlaceCatalogCategories.All.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        AssertCategory("bar", ("amenity", "bar"));
+        AssertCategory("bakery", ("shop", "bakery"));
+        AssertCategory("fast_food", ("amenity", "fast_food"));
+        AssertCategory("ice_cream", ("shop", "ice_cream"));
+        AssertCategory("pub", ("amenity", "pub"));
+        AssertCategory("hotel", ("tourism", "hotel"));
+        AssertCategory("hostel", ("tourism", "guest_house"));
+        AssertCategory("camping", ("tourism", "camp_site"));
+        AssertCategory("park", ("leisure", "park"));
+        AssertCategory("dog_park", ("leisure", "dog_park"));
+        AssertCategory("veterinary", ("amenity", "veterinary"));
+        AssertCategory("pet_shop", ("shop", "pet"));
+        AssertCategory("pet_grooming", ("shop", "pet_grooming"));
+        return;
+        void AssertCategory(string expected, params (string Key, string Value)[] values)
+        {
+            var tags = values.ToDictionary(x => x.Key, x => x.Value);
+            Assert.True(OsmPlaceCategoryMapper.TryMap(tags, requested, out var category)); Assert.Equal(expected, category);
+        }
+    }
+
+    [Fact]
+    public async Task Wikidata_connector_keeps_CC0_structured_data_separate_and_rejects_unknown_ids()
+    {
+        using var client = Client(HttpStatusCode.OK, WikidataFixture);
+        var source = new WikidataEnrichmentSource(client, Options.Create(new WikidataOptions()));
+        var result = await source.EnrichAsync("Q123", CancellationToken.None);
+        Assert.True(result.IsSuccess, result.Failure?.Message);
+        Assert.Equal(WikidataSource.SourceKey, result.Value!.SourceKey);
+        Assert.Equal("https://example.test", result.Value.Fields["website"].NormalizedValue);
+        Assert.Equal("Q456", result.Value.Fields["brand.wikidata"].NormalizedValue);
+        Assert.All(result.Value.Fields.Values, field => Assert.Equal("CC0-1.0", field.LicenseIdentifier));
+        Assert.False((await source.EnrichAsync("not-an-id", CancellationToken.None)).IsSuccess);
+    }
+
+    [Fact]
+    public async Task Wikidata_connector_enriches_real_Arenys_QIDs_when_explicitly_enabled()
+    {
+        if (!string.Equals(Environment.GetEnvironmentVariable("ZUPPETO_WIKIDATA_REAL"), "true", StringComparison.OrdinalIgnoreCase)) return;
+        using var handler = new HttpClientHandler { AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate };
+        using var client = new HttpClient(handler) { BaseAddress = new Uri("https://www.wikidata.org/wiki/Special:EntityData/"), Timeout = TimeSpan.FromSeconds(20) };
+        client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "PetiLoc-Wikidata-Enrichment-Test/1.0 (https://github.com/dmoraroca/zuppeto)");
+        client.DefaultRequestHeaders.TryAddWithoutValidation("Accept-Encoding", "gzip, deflate");
+        var source = new WikidataEnrichmentSource(client, Options.Create(new WikidataOptions()));
+        var ids = new[] { "Q151954", "Q17600418", "Q1980781", "Q21034458", "Q377705", "Q38076", "Q57417581" };
+        foreach (var id in ids)
+        {
+            var result = await source.EnrichAsync(id, CancellationToken.None);
+            Assert.True(result.IsSuccess, $"{id}: {result.Failure?.Message}"); Assert.Equal(id, result.Value!.ExternalId);
+            Assert.All(result.Value.Fields.Values, field => Assert.Equal("CC0-1.0", field.LicenseIdentifier));
+        }
+    }
+
+    [Fact]
+    public void Lifecycle_and_authority_policies_prevent_silent_automatic_closure_or_downgrade()
+    {
+        Assert.True(PlaceLifecyclePolicy.CanApplyAutomatically(PlaceLifecycleStatus.Active, PlaceLifecycleStatus.SuspectedClosed, false, 0));
+        Assert.False(PlaceLifecyclePolicy.CanApplyAutomatically(PlaceLifecycleStatus.Active, PlaceLifecycleStatus.Closed, false, 2));
+        Assert.False(PlaceLifecyclePolicy.CanApplyAutomatically(PlaceLifecycleStatus.Active, PlaceLifecycleStatus.Closed, true, 1));
+        Assert.True(PlaceLifecyclePolicy.CanApplyAutomatically(PlaceLifecycleStatus.Active, PlaceLifecycleStatus.Closed, true, 2));
+        Assert.True(PlaceObservationAuthority.MayReplace("AUTO", "MANUAL"));
+        Assert.False(PlaceObservationAuthority.MayReplace("MANUAL_VERIFIED", "AUTO"));
     }
 
     [Fact]
@@ -188,6 +258,40 @@ public sealed class OpenStreetMapPlaceImportTests(ITestOutputHelper output)
         static string? Value(PlaceSourceDocument document, string field) => document.Fields.TryGetValue(field, out var value) ? value.NormalizedValue : null;
     }
 
+    [Fact]
+    public async Task Geofabrik_real_Arenys_phase5_measures_expanded_coverage_and_reusable_index()
+    {
+        var path = Environment.GetEnvironmentVariable("ZUPPETO_GEOFABRIK_PBF");
+        if (string.IsNullOrWhiteSpace(path)) return;
+        var indexDirectory = Path.Combine(Path.GetTempPath(), $"petiloc-osm-index-phase5-{Guid.NewGuid():N}");
+        try
+        {
+            var source = new GeofabrikPbfPlaceDiscoverySource(Options.Create(new GeofabrikExtractOptions
+            {
+                ExtractPath = path, SourceVersion = "cataluna-261013;osm-base=2026-10-13T20:21:31Z",
+                MaximumItems = 250, ReusableIndexEnabled = true, IndexDirectory = indexDirectory
+            }));
+            var context = Scope with { Categories = PlaceCatalogCategories.All };
+            var memoryBefore = GC.GetTotalMemory(true); var firstClock = Stopwatch.StartNew();
+            var first = await source.DiscoverAsync(context, CancellationToken.None); firstClock.Stop();
+            var memoryAfter = GC.GetTotalMemory(true); var secondClock = Stopwatch.StartNew();
+            var second = await source.DiscoverAsync(context, CancellationToken.None); secondClock.Stop();
+            Assert.True(first.IsSuccess, first.Failure?.Message); Assert.True(second.IsSuccess, second.Failure?.Message);
+            Assert.Equal(first.Value!.Documents.Select(x => x.ExternalId), second.Value!.Documents.Select(x => x.ExternalId));
+            var counts = first.Value.Documents.GroupBy(x => DocumentValue(x, "category")).ToDictionary(x => x.Key ?? "unknown", x => x.Count());
+            var indexBytes = Directory.EnumerateFiles(indexDirectory).Sum(file => new FileInfo(file).Length);
+            output.WriteLine(System.Text.Json.JsonSerializer.Serialize(new { total = first.Value.Documents.Count, first.Value.IsPartial,
+                categories = counts, wikidataIds = first.Value.Documents.Where(x => x.Fields.ContainsKey("wikidata.id")).Select(x => x.Fields["wikidata.id"].NormalizedValue).Distinct().Order().ToArray(),
+                petSignals = first.Value.Documents.Count(x => x.Fields.Keys.Any(k => k.StartsWith("pet.", StringComparison.Ordinal))),
+                firstMilliseconds = firstClock.ElapsedMilliseconds, indexedMilliseconds = secondClock.ElapsedMilliseconds,
+                managedMemoryDeltaBytes = memoryAfter - memoryBefore, indexBytes }));
+            Assert.True(first.Value.Documents.Count > 18); Assert.True(counts.GetValueOrDefault("bar") > 0);
+            Assert.True(counts.GetValueOrDefault("bakery") > 0); Assert.True(counts.GetValueOrDefault("fast_food") > 0);
+            Assert.True(secondClock.Elapsed < firstClock.Elapsed); Assert.True(indexBytes > 0);
+        }
+        finally { if (Directory.Exists(indexDirectory)) Directory.Delete(indexDirectory, true); }
+    }
+
     private static void WritePbfFixture(string path)
     {
         using var stream = File.Open(path, FileMode.CreateNew, FileAccess.ReadWrite);
@@ -211,6 +315,7 @@ public sealed class OpenStreetMapPlaceImportTests(ITestOutputHelper output)
     private static TagsCollection Tags(params (string Key, string Value)[] tags) => new(tags.Select(x => new Tag(x.Key, x.Value)));
 
     private static SourceFieldValue Field(string value) => new(value,value,"ODbL-1.0","© OpenStreetMap contributors",true,DateTimeOffset.UtcNow,null,null);
+    private static string? DocumentValue(PlaceSourceDocument document, string field) => document.Fields.TryGetValue(field, out var value) ? value.NormalizedValue : null;
     private static HttpClient Client(HttpStatusCode status,string content) => new(new Handler(status,content)){BaseAddress=new Uri("https://overpass.test/api/interpreter")};
     private sealed class Handler(HttpStatusCode status,string content):HttpMessageHandler
     {
@@ -223,5 +328,8 @@ public sealed class OpenStreetMapPlaceImportTests(ITestOutputHelper output)
       {"type":"way","id":2,"center":{"lat":41.581,"lon":2.551},"tags":{"amenity":"cafe","name":"Cafè Way","dog":"yes","opening_hours":"Mo-Su 08:00-20:00"}},
       {"type":"relation","id":3,"center":{"lat":41.582,"lon":2.552},"tags":{"amenity":"restaurant","name":"Relació Restaurant","dog":"no","contact:website":"https://example.test"}}
     ]}
+    """;
+    private const string WikidataFixture="""
+    {"entities":{"Q123":{"lastrevid":99,"labels":{"ca":{"language":"ca","value":"Can Exemple"}},"descriptions":{"ca":{"language":"ca","value":"Restaurant"}},"claims":{"P856":[{"rank":"normal","mainsnak":{"datavalue":{"value":"https://example.test"}}}],"P1716":[{"rank":"preferred","mainsnak":{"datavalue":{"value":{"id":"Q456"}}}}]}}}}
     """;
 }

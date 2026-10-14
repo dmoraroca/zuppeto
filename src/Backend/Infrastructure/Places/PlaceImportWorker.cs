@@ -36,6 +36,7 @@ internal sealed class PlaceImportWorker(IServiceScopeFactory scopes, ILogger<Pla
             if(await CompleteCancellationIfRequested(repository,work,ct))return;
             var normalizer=s.ServiceProvider.GetRequiredService<IPlaceSourceNormalizer>();var matcher=s.ServiceProvider.GetRequiredService<IPlaceMatcher>();
             var storagePolicy=s.ServiceProvider.GetRequiredService<IPlaceStoragePermissionPolicy>();
+            var enrichers=s.ServiceProvider.GetServices<IPlaceEnrichmentSource>().ToArray();
             var staged=new List<PlaceImportStagedItem>();var issues=new List<PlaceImportIssueDto>();
             foreach(var document in discovery.Value!.Documents)
             {
@@ -50,9 +51,26 @@ internal sealed class PlaceImportWorker(IServiceScopeFactory scopes, ILogger<Pla
                 var normalized=normalizer.Normalize(document);
                 if(!normalized.IsSuccess){issues.Add(new(Guid.NewGuid(),"NORMALIZATION", "Warning",normalized.Failure!.Message,document.ExternalId));continue;}
                 var candidate=normalized.Value! with { CountryId=work.Context.CountryId,TerritorialUnitId=work.Context.TerritorialUnitId };
+                var enrichments=new List<PlaceSourceDocument>();
+                if(candidate.Fields.TryGetValue("wikidata.id",out var wikidataId))
+                {
+                    var enricher=enrichers.SingleOrDefault(x=>x.Descriptor.SourceKey==WikidataSource.SourceKey);
+                    if(enricher is not null)
+                    {
+                        var enrichment=await enricher.EnrichAsync(wikidataId.NormalizedValue,ct);
+                        if(enrichment.IsSuccess)
+                        {
+                            enrichments.Add(enrichment.Value!);
+                            var merged=candidate.Fields.ToDictionary(x=>x.Key,x=>x.Value,StringComparer.OrdinalIgnoreCase);
+                            foreach(var field in enrichment.Value!.Fields)merged.TryAdd(field.Key,field.Value);
+                            candidate=candidate with{Fields=merged};
+                        }
+                        else issues.Add(new(Guid.NewGuid(),"WIKIDATA_ENRICHMENT","Warning",enrichment.Failure!.Message,document.ExternalId));
+                    }
+                }
                 var match=await matcher.MatchAsync(candidate,ct); if(!match.IsSuccess){issues.Add(new(Guid.NewGuid(),"MATCH", "Warning",match.Failure!.Message,document.ExternalId));continue;}
                 var hash=Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(string.Join('|',candidate.Fields.OrderBy(x=>x.Key).Select(x=>$"{x.Key}={x.Value.NormalizedValue}"))))).ToLowerInvariant();
-                staged.Add(new(document,candidate,match.Value!,hash));
+                staged.Add(new(document,candidate,match.Value!,hash,enrichments));
             }
             await repository.StageAsync(work.ImportId,discovery.Value!,staged,issues,ct);
             await s.ServiceProvider.GetRequiredService<IPlaceImportWorkQueue>().CompleteAsync(work.ImportId,owner,ct);

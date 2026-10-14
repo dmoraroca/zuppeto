@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql;
 using Zuppeto.Application.Places;
+using Zuppeto.Domain.Places;
 using Zuppeto.Infrastructure.Persistence;
 using Zuppeto.Infrastructure.Persistence.Entities;
 using Zuppeto.Infrastructure.Places;
@@ -12,9 +13,12 @@ using Xunit;
 
 namespace Backend.Activation.Tests;
 
+[Collection("OSM PostgreSQL serial")]
 public sealed class OpenStreetMapPlaceImportPostgreSqlTests
 {
-    private const string Database = "zuppeto_osm_phase4_tests";
+    private const string SimulationDatabase = "zuppeto_osm_phase4_tests";
+    private const string RealPbfDatabase = "zuppeto_osm_phase5_pbf_tests";
+    private const string GovernanceDatabase = "zuppeto_place_governance_phase5_tests";
     private const string PreviousMigration = "20261013170522_AddPetGovernanceAdminWorkflow";
 
     [Fact]
@@ -94,8 +98,8 @@ public sealed class OpenStreetMapPlaceImportPostgreSqlTests
     {
         var baseConnection=Environment.GetEnvironmentVariable("ZUPPETO_TERRITORIAL_TEST_DB");if(string.IsNullOrWhiteSpace(baseConnection))return;
         var admin=new NpgsqlConnectionStringBuilder(baseConnection){Database="postgres"}.ConnectionString;
-        var connection=new NpgsqlConnectionStringBuilder(baseConnection){Database=Database}.ConnectionString;
-        await Recreate(admin);
+        var connection=new NpgsqlConnectionStringBuilder(baseConnection){Database=SimulationDatabase}.ConnectionString;
+        await Recreate(admin,SimulationDatabase);
         try
         {
             var options=new DbContextOptionsBuilder<ZuppetoDbContext>().UseNpgsql(connection).Options;
@@ -121,7 +125,7 @@ public sealed class OpenStreetMapPlaceImportPostgreSqlTests
             await using(var up=new ZuppetoDbContext(options))await up.Database.MigrateAsync();
             await using(var final=new ZuppetoDbContext(options))Assert.Equal(0,await final.PlaceImportRuns.CountAsync());
         }
-        finally{await Drop(admin);}
+        finally{await Drop(admin,SimulationDatabase);}
     }
 
     [Fact]
@@ -131,8 +135,8 @@ public sealed class OpenStreetMapPlaceImportPostgreSqlTests
         var pbf=Environment.GetEnvironmentVariable("ZUPPETO_GEOFABRIK_PBF");
         if(string.IsNullOrWhiteSpace(baseConnection)||string.IsNullOrWhiteSpace(pbf))return;
         var admin=new NpgsqlConnectionStringBuilder(baseConnection){Database="postgres"}.ConnectionString;
-        var connection=new NpgsqlConnectionStringBuilder(baseConnection){Database=Database}.ConnectionString;
-        await Recreate(admin);
+        var connection=new NpgsqlConnectionStringBuilder(baseConnection){Database=RealPbfDatabase}.ConnectionString;
+        await Recreate(admin,RealPbfDatabase);
         try
         {
             var options=new DbContextOptionsBuilder<ZuppetoDbContext>().UseNpgsql(connection).Options;
@@ -157,7 +161,54 @@ public sealed class OpenStreetMapPlaceImportPostgreSqlTests
             });
             Assert.Equal(15,await verify.PlaceImportRuns.OrderBy(x=>x.CreatedAtUtc).Skip(1).Select(x=>x.DuplicateCount).SingleAsync());
         }
-        finally{await Drop(admin);}
+        finally{await Drop(admin,RealPbfDatabase);}
+    }
+
+    [Fact]
+    public async Task Phase5_governance_is_explainable_reversible_and_preserves_manual_authority()
+    {
+        var baseConnection=Environment.GetEnvironmentVariable("ZUPPETO_TERRITORIAL_TEST_DB");if(string.IsNullOrWhiteSpace(baseConnection))return;
+        var admin=new NpgsqlConnectionStringBuilder(baseConnection){Database="postgres"}.ConnectionString;
+        var connection=new NpgsqlConnectionStringBuilder(baseConnection){Database=GovernanceDatabase}.ConnectionString;
+        await Recreate(admin,GovernanceDatabase);
+        try
+        {
+            var options=new DbContextOptionsBuilder<ZuppetoDbContext>().UseNpgsql(connection).Options;
+            await using(var migration=new ZuppetoDbContext(options))await migration.Database.MigrateAsync();
+            var ids=await Seed(options);await RunSimulation(options,ids,false);
+            Guid decisionId, conflictId, placeId;
+            await using(var seed=new ZuppetoDbContext(options))
+            {
+                placeId=Guid.NewGuid();var now=DateTimeOffset.UtcNow;
+                seed.Places.Add(new PlaceRecord{Id=placeId,Name="Restaurant OSM",Type="Restaurant",ShortDescription="Restaurant",
+                    Description="Prova",AddressLine1="Carrer Major 1",City="Arenys de Mar",Country="Espanya",TerritorialCountryId=ids.Country,
+                    TerritorialUnitId=ids.Unit,Latitude=41.58m,Longitude=2.55m,PetPolicyStatus="Unknown",PetSpeciesJson="[]",PetConditionsJson="[]",
+                    PricingLabel="",DataProvenance="OpenStreetMap",CreatedAtUtc=now,UpdatedAtUtc=now});
+                var osmRecord=await seed.PlaceSourceRecords.SingleAsync();osmRecord.CanonicalPlaceId=placeId;
+                var osmObservation=await seed.PlaceFieldObservations.FirstAsync(x=>x.FieldName=="name");osmObservation.PlaceId=placeId;osmObservation.Authority="MANUAL_VERIFIED";
+                var wikidata=new PlaceDatasetSourceRecord{Id=Guid.NewGuid(),SourceKey="wikidata",Organisation="Wikimedia",Dataset="Wikidata",DatasetVersion="live",Coverage="Global",Url="https://www.wikidata.org",AttributionUrl="https://www.wikidata.org/wiki/Wikidata:Licensing",LicenseIdentifier="CC0-1.0",LicenseUrl="https://creativecommons.org/publicdomain/zero/1.0/",Attribution="Dades de Wikidata",ReuseConditions="Dades estructurades",PermanentStorageAllowed=true,CommercialUseAllowed=true,ApprovalStatus="PilotApproved",ReviewedAtUtc=now,CreatedAtUtc=now};seed.PlaceDatasetSources.Add(wikidata);
+                var wdRecord=new PlaceSourceRecord{Id=Guid.NewGuid(),SourceId=wikidata.Id,ExternalId="Q123",NormalizedPayloadJson="{}",ContentHash="wd",EvidenceUri="https://www.wikidata.org/entity/Q123",ObservedAtUtc=now,RetrievedAtUtc=now,FirstSeenAtUtc=now,LastSeenAtUtc=now,State="Active",CanonicalPlaceId=placeId};seed.PlaceSourceRecords.Add(wdRecord);
+                var run=await seed.PlaceImportRuns.FirstAsync();var wdObservation=new PlaceFieldObservationRecord{Id=Guid.NewGuid(),SourceRecordId=wdRecord.Id,ImportRunId=run.Id,PlaceId=placeId,FieldName="name",OriginalValue="Nom diferent",NormalizedValue="Nom diferent",LicenseIdentifier="CC0-1.0",Attribution="Dades de Wikidata",Authority="AUTO",State="Current",ObservedAtUtc=now};seed.PlaceFieldObservations.Add(wdObservation);
+                conflictId=Guid.NewGuid();seed.PlaceSourceConflicts.Add(new PlaceSourceConflictRecord{Id=conflictId,PlaceId=placeId,FieldName="name",LeftObservationId=osmObservation.Id,RightObservationId=wdObservation.Id,Status="Open",ResolutionReason="",DetectedAtUtc=now});
+                var decision=await seed.PlaceMatchDecisions.SingleAsync();decision.CandidatePlaceId=placeId;decision.Outcome="NeedsReview";decision.Score=75;decisionId=decision.Id;await seed.SaveChangesAsync();
+            }
+            await using(var db=new ZuppetoDbContext(options))
+            {
+                var repository=new PlaceCatalogGovernanceRepository(db);var service=new PlaceCatalogGovernanceService(repository);
+                var overview=await service.GetAsync();Assert.Contains(overview.Matches,x=>x.Id==decisionId);Assert.Contains(overview.Conflicts,x=>x.Id==conflictId);
+                await service.ResolveMatchAsync(decisionId,new("ConfirmedMatch",placeId,"Identitat revisada manualment"),ids.Actor);
+                var replacement=await db.PlaceMatchDecisions.SingleAsync(x=>x.IsCurrent);Assert.Equal("ConfirmedMatch",replacement.Outcome);
+                await service.ResolveMatchAsync(replacement.Id,new("NotMatch",null,"Reversió auditada"),ids.Actor);Assert.Null((await db.PlaceSourceRecords.FirstAsync(x=>x.Source.SourceKey=="openstreetmap")).CanonicalPlaceId);
+                var conflict=await db.PlaceSourceConflicts.Include(x=>x.LeftObservation).Include(x=>x.RightObservation).SingleAsync(x=>x.Id==conflictId);
+                await Assert.ThrowsAsync<Zuppeto.Domain.Common.DomainRuleException>(()=>service.ResolveConflictAsync(conflictId,new(conflict.RightObservationId,"AUTO no pot guanyar"),ids.Actor));
+                await service.ResolveConflictAsync(conflictId,new(conflict.LeftObservationId,"Es preserva MANUAL_VERIFIED"),ids.Actor);
+                await service.ChangeLifecycleAsync(placeId,new("SuspectedClosed",["absent en una actualització"],"Baixa sospitosa, no tancament"),ids.Actor);
+                await service.ChangeLifecycleAsync(placeId,new("Active",["revisió humana"],"Reobertura confirmada"),ids.Actor);Assert.Equal(2,await db.PlaceLifecycleEvents.CountAsync());
+                var sourceId=await service.RegisterDatasetAsync(new("arenys-official-pilot","Ajuntament d’Arenys de Mar","Directori municipal","2026-10-14","Arenys de Mar","https://arenysdemar.cat/directoridempreses","https://arenysdemar.cat","CC-BY-4.0","https://creativecommons.org/licenses/by/4.0/","Ajuntament d’Arenys de Mar","Revisió explícita requerida",true,true),ids.Actor);
+                Assert.Equal("PendingReview",(await db.PlaceDatasetSources.FindAsync(sourceId))!.ApprovalStatus);await service.ReviewDatasetAsync(sourceId,new(true,"Llicència i persistència verificades"),ids.Actor);Assert.Equal("Approved",(await db.PlaceDatasetSources.FindAsync(sourceId))!.ApprovalStatus);
+            }
+        }
+        finally{await Drop(admin,GovernanceDatabase);}
     }
 
     private static async Task StageRealBatch(DbContextOptions<ZuppetoDbContext> options,(Guid Actor,Guid Country,Guid Unit) ids,
@@ -268,7 +319,7 @@ public sealed class OpenStreetMapPlaceImportPostgreSqlTests
         var document=new PlaceSourceDocument(OpenStreetMapSource.SourceKey,"node/123",null,now,new Uri("https://www.openstreetmap.org/node/123"),fields);
         var candidate=new NormalizedPlaceCandidate(OpenStreetMapSource.SourceKey,"node/123","Restaurant OSM","restaurant",ids.Country,ids.Unit,41.58m,2.55m,fields);
         var match=(await new ConservativePlaceMatcher(db).MatchAsync(candidate,CancellationToken.None)).Value!;
-        Assert.Equal(duplicate?"ExistingSourceRecord":"New",match.Band);
+        Assert.Equal(duplicate?PlaceMatchOutcome.NeedsReview.ToString():PlaceMatchOutcome.NotMatch.ToString(),match.Band);
         await repository.StageAsync(run.Id,new(new("osm-relation","relation/347950","08006","Arenys de Mar",true,now),[document],false,null),[new(document,candidate,match,"hash-123")],[]);
         await queue.CompleteAsync(work.ImportId,"test");await service.ApproveAsync(run.Id,"Revisió de prova",ids.Actor);await service.SimulatePublicationAsync(run.Id,"Publicació simulada",ids.Actor);
         Assert.Equal("Published",(await repository.GetAsync(run.Id))!.Run.Status);
@@ -286,6 +337,6 @@ public sealed class OpenStreetMapPlaceImportPostgreSqlTests
         db.Users.Add(new(){Id=actor,Email=$"osm-{actor:N}@test.local",Role="Admin",PrivacyAccepted=true,PrivacyAcceptedAtUtc=now,CreatedAtUtc=now,EmailActivatedAtUtc=now});
         await db.SaveChangesAsync();return(actor,country,unit);
     }
-    private static async Task Recreate(string admin){await using var c=new NpgsqlConnection(admin);await c.OpenAsync();await new NpgsqlCommand($"DROP DATABASE IF EXISTS {Database} WITH (FORCE)",c).ExecuteNonQueryAsync();await new NpgsqlCommand($"CREATE DATABASE {Database}",c).ExecuteNonQueryAsync();}
-    private static async Task Drop(string admin){await using var c=new NpgsqlConnection(admin);await c.OpenAsync();await new NpgsqlCommand($"DROP DATABASE IF EXISTS {Database} WITH (FORCE)",c).ExecuteNonQueryAsync();}
+    private static async Task Recreate(string admin,string database){await using var c=new NpgsqlConnection(admin);await c.OpenAsync();await new NpgsqlCommand($"DROP DATABASE IF EXISTS {database} WITH (FORCE)",c).ExecuteNonQueryAsync();await new NpgsqlCommand($"CREATE DATABASE {database}",c).ExecuteNonQueryAsync();}
+    private static async Task Drop(string admin,string database){await using var c=new NpgsqlConnection(admin);await c.OpenAsync();await new NpgsqlCommand($"DROP DATABASE IF EXISTS {database} WITH (FORCE)",c).ExecuteNonQueryAsync();}
 }

@@ -8,14 +8,15 @@ public sealed class PlaceDatasetSourceConfiguration : IEntityTypeConfiguration<P
 {
     public void Configure(EntityTypeBuilder<PlaceDatasetSourceRecord> b)
     {
-        b.ToTable("place_dataset_sources", t => t.HasCheckConstraint("ck_place_dataset_source_approval", "approval_status IN ('PilotApproved','Suspended')"));
+        b.ToTable("place_dataset_sources", t => t.HasCheckConstraint("ck_place_dataset_source_approval", "approval_status IN ('PendingReview','PilotApproved','Approved','Rejected','Suspended')"));
         b.HasKey(x => x.Id); Id(b, x => x.Id);
         Text(b, x => x.SourceKey, "source_key", 120); b.HasIndex(x => x.SourceKey).IsUnique();
         Text(b, x => x.Organisation, "organisation", 240); Text(b, x => x.Dataset, "dataset", 240);
+        Text(b, x => x.DatasetVersion, "dataset_version", 120); Text(b, x => x.Coverage, "coverage", 240);
         Text(b, x => x.Url, "url", 2048); Text(b, x => x.AttributionUrl, "attribution_url", 2048);
         Text(b, x => x.LicenseIdentifier, "license_identifier", 80); Text(b, x => x.LicenseUrl, "license_url", 2048);
         Text(b, x => x.Attribution, "attribution", 500); b.Property(x => x.ReuseConditions).HasColumnName("reuse_conditions").IsRequired();
-        b.Property(x => x.PermanentStorageAllowed).HasColumnName("permanent_storage_allowed"); b.Property(x => x.OdblDerived).HasColumnName("odbl_derived");
+        b.Property(x => x.PermanentStorageAllowed).HasColumnName("permanent_storage_allowed"); b.Property(x => x.CommercialUseAllowed).HasColumnName("commercial_use_allowed"); b.Property(x => x.OdblDerived).HasColumnName("odbl_derived");
         Text(b, x => x.ApprovalStatus, "approval_status", 20); b.Property(x => x.ReviewedAtUtc).HasColumnName("reviewed_at_utc"); b.Property(x => x.CreatedAtUtc).HasColumnName("created_at_utc");
     }
     private static void Id<T>(EntityTypeBuilder<T> b, System.Linq.Expressions.Expression<Func<T,Guid>> p) where T:class => b.Property(p).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()");
@@ -103,4 +104,69 @@ public sealed class PlaceImportIssueConfiguration : IEntityTypeConfiguration<Pla
 public sealed class PlaceImportDecisionConfiguration : IEntityTypeConfiguration<PlaceImportDecisionRecord>
 {
     public void Configure(EntityTypeBuilder<PlaceImportDecisionRecord> b) { b.ToTable("place_import_decisions"); b.HasKey(x=>x.Id); PlaceImportRunConfiguration.Id(b,x=>x.Id); b.Property(x=>x.ImportRunId).HasColumnName("import_run_id"); b.HasOne(x=>x.ImportRun).WithMany().HasForeignKey(x=>x.ImportRunId).OnDelete(DeleteBehavior.Cascade); PlaceImportRunConfiguration.Text(b,x=>x.Action,"action",60); b.Property(x=>x.Reason).HasColumnName("reason").HasMaxLength(1000).IsRequired(); b.Property(x=>x.ActorId).HasColumnName("actor_id"); b.HasOne(x=>x.Actor).WithMany().HasForeignKey(x=>x.ActorId).OnDelete(DeleteBehavior.Restrict); b.Property(x=>x.DecidedAtUtc).HasColumnName("decided_at_utc"); b.HasIndex(x=>new{x.ImportRunId,x.DecidedAtUtc}); }
+}
+
+public sealed class PlaceMatchDecisionConfiguration : IEntityTypeConfiguration<PlaceMatchDecisionRecord>
+{
+    public void Configure(EntityTypeBuilder<PlaceMatchDecisionRecord> b)
+    {
+        b.ToTable("place_match_decisions", t => t.HasCheckConstraint("ck_place_match_outcome", "outcome IN ('ConfirmedMatch','ProbableMatch','NeedsReview','NotMatch')"));
+        b.HasKey(x => x.Id); PlaceImportRunConfiguration.Id(b, x => x.Id);
+        b.Property(x => x.SourceRecordId).HasColumnName("source_record_id"); b.HasOne(x => x.SourceRecord).WithMany().HasForeignKey(x => x.SourceRecordId).OnDelete(DeleteBehavior.Cascade);
+        b.Property(x => x.CandidatePlaceId).HasColumnName("candidate_place_id"); b.HasOne(x => x.CandidatePlace).WithMany().HasForeignKey(x => x.CandidatePlaceId).OnDelete(DeleteBehavior.SetNull);
+        PlaceImportRunConfiguration.Text(b, x => x.Outcome, "outcome", 24); b.Property(x => x.Score).HasColumnName("score").HasPrecision(5, 2);
+        b.Property(x => x.SignalsJson).HasColumnName("signals").HasColumnType("jsonb"); b.Property(x => x.ContradictionsJson).HasColumnName("contradictions").HasColumnType("jsonb");
+        b.Property(x => x.IsCurrent).HasColumnName("is_current"); b.Property(x => x.DecidedByActorId).HasColumnName("decided_by_actor_id"); b.HasOne(x => x.DecidedByActor).WithMany().HasForeignKey(x => x.DecidedByActorId).OnDelete(DeleteBehavior.Restrict);
+        b.Property(x => x.Reason).HasColumnName("reason").HasMaxLength(1000).IsRequired(); b.Property(x => x.DecidedAtUtc).HasColumnName("decided_at_utc"); b.Property(x => x.ReversedAtUtc).HasColumnName("reversed_at_utc");
+        b.HasIndex(x => new { x.SourceRecordId, x.IsCurrent }); b.HasIndex(x => new { x.Outcome, x.IsCurrent });
+    }
+}
+
+public sealed class PlaceSourceConflictConfiguration : IEntityTypeConfiguration<PlaceSourceConflictRecord>
+{
+    public void Configure(EntityTypeBuilder<PlaceSourceConflictRecord> b)
+    {
+        b.ToTable("place_source_conflicts", t => t.HasCheckConstraint("ck_place_source_conflict_status", "status IN ('Open','Resolved','Dismissed')"));
+        b.HasKey(x => x.Id); PlaceImportRunConfiguration.Id(b, x => x.Id);
+        b.Property(x => x.PlaceId).HasColumnName("place_id"); b.HasOne(x => x.Place).WithMany().HasForeignKey(x => x.PlaceId).OnDelete(DeleteBehavior.Cascade);
+        PlaceImportRunConfiguration.Text(b, x => x.FieldName, "field_name", 120);
+        b.Property(x => x.LeftObservationId).HasColumnName("left_observation_id"); b.HasOne(x => x.LeftObservation).WithMany().HasForeignKey(x => x.LeftObservationId).OnDelete(DeleteBehavior.Restrict);
+        b.Property(x => x.RightObservationId).HasColumnName("right_observation_id"); b.HasOne(x => x.RightObservation).WithMany().HasForeignKey(x => x.RightObservationId).OnDelete(DeleteBehavior.Restrict);
+        PlaceImportRunConfiguration.Text(b, x => x.Status, "status", 20); b.Property(x => x.ResolvedByActorId).HasColumnName("resolved_by_actor_id"); b.HasOne(x => x.ResolvedByActor).WithMany().HasForeignKey(x => x.ResolvedByActorId).OnDelete(DeleteBehavior.Restrict);
+        b.Property(x => x.WinningObservationId).HasColumnName("winning_observation_id"); b.Property(x => x.ResolutionReason).HasColumnName("resolution_reason").HasMaxLength(1000).IsRequired();
+        b.Property(x => x.DetectedAtUtc).HasColumnName("detected_at_utc"); b.Property(x => x.ResolvedAtUtc).HasColumnName("resolved_at_utc"); b.HasIndex(x => new { x.Status, x.PlaceId });
+    }
+}
+
+public sealed class PlaceLifecycleEventConfiguration : IEntityTypeConfiguration<PlaceLifecycleEventRecord>
+{
+    public void Configure(EntityTypeBuilder<PlaceLifecycleEventRecord> b)
+    {
+        b.ToTable("place_lifecycle_events", t => { t.HasCheckConstraint("ck_place_lifecycle_from", "from_status IN ('Active','SuspectedClosed','TemporarilyClosed','Closed','Unknown')"); t.HasCheckConstraint("ck_place_lifecycle_to", "to_status IN ('Active','SuspectedClosed','TemporarilyClosed','Closed','Unknown')"); });
+        b.HasKey(x => x.Id); PlaceImportRunConfiguration.Id(b, x => x.Id); b.Property(x => x.PlaceId).HasColumnName("place_id"); b.HasOne(x => x.Place).WithMany().HasForeignKey(x => x.PlaceId).OnDelete(DeleteBehavior.Cascade);
+        PlaceImportRunConfiguration.Text(b, x => x.FromStatus, "from_status", 24); PlaceImportRunConfiguration.Text(b, x => x.ToStatus, "to_status", 24); b.Property(x => x.EvidenceJson).HasColumnName("evidence").HasColumnType("jsonb");
+        b.Property(x => x.Automatic).HasColumnName("automatic"); b.Property(x => x.ActorId).HasColumnName("actor_id"); b.HasOne(x => x.Actor).WithMany().HasForeignKey(x => x.ActorId).OnDelete(DeleteBehavior.Restrict); b.Property(x => x.Reason).HasColumnName("reason").HasMaxLength(1000).IsRequired(); b.Property(x => x.CreatedAtUtc).HasColumnName("created_at_utc"); b.HasIndex(x => new { x.PlaceId, x.CreatedAtUtc });
+    }
+}
+
+public sealed class PlaceImportEnrichmentConfiguration : IEntityTypeConfiguration<PlaceImportEnrichmentRecord>
+{
+    public void Configure(EntityTypeBuilder<PlaceImportEnrichmentRecord> b)
+    {
+        b.ToTable("place_import_enrichments"); b.HasKey(x => x.Id); PlaceImportRunConfiguration.Id(b, x => x.Id);
+        b.Property(x => x.ImportRunId).HasColumnName("import_run_id"); b.HasOne(x => x.ImportRun).WithMany().HasForeignKey(x => x.ImportRunId).OnDelete(DeleteBehavior.Cascade);
+        b.Property(x => x.ParentSourceRecordId).HasColumnName("parent_source_record_id"); b.HasOne(x => x.ParentSourceRecord).WithMany().HasForeignKey(x => x.ParentSourceRecordId).OnDelete(DeleteBehavior.Cascade);
+        b.Property(x => x.EnrichmentSourceRecordId).HasColumnName("enrichment_source_record_id"); b.HasOne(x => x.EnrichmentSourceRecord).WithMany().HasForeignKey(x => x.EnrichmentSourceRecordId).OnDelete(DeleteBehavior.Restrict);
+        b.Property(x => x.PlaceId).HasColumnName("place_id"); b.HasOne(x => x.Place).WithMany().HasForeignKey(x => x.PlaceId).OnDelete(DeleteBehavior.SetNull); b.Property(x => x.CreatedAtUtc).HasColumnName("created_at_utc"); b.HasIndex(x => new { x.ImportRunId, x.EnrichmentSourceRecordId }).IsUnique();
+    }
+}
+
+public sealed class PlaceSourceCheckpointConfiguration : IEntityTypeConfiguration<PlaceSourceCheckpointRecord>
+{
+    public void Configure(EntityTypeBuilder<PlaceSourceCheckpointRecord> b)
+    {
+        b.ToTable("place_source_checkpoints", t => t.HasCheckConstraint("ck_place_source_checkpoint_status", "status IN ('Building','Ready','Failed','Superseded')")); b.HasKey(x => x.Id); PlaceImportRunConfiguration.Id(b, x => x.Id);
+        b.Property(x => x.SourceId).HasColumnName("source_id"); b.HasOne(x => x.Source).WithMany().HasForeignKey(x => x.SourceId).OnDelete(DeleteBehavior.Restrict); PlaceImportRunConfiguration.Text(b, x => x.RegionKey, "region_key", 120); PlaceImportRunConfiguration.Text(b, x => x.Generation, "generation", 120); PlaceImportRunConfiguration.Text(b, x => x.ExtractSha256, "extract_sha256", 64);
+        b.Property(x => x.ReplicationSequence).HasColumnName("replication_sequence"); PlaceImportRunConfiguration.Text(b, x => x.Status, "status", 20); b.Property(x => x.MetricsJson).HasColumnName("metrics").HasColumnType("jsonb"); b.Property(x => x.CreatedAtUtc).HasColumnName("created_at_utc"); b.Property(x => x.CompletedAtUtc).HasColumnName("completed_at_utc"); b.HasIndex(x => new { x.SourceId, x.RegionKey, x.Generation }).IsUnique();
+    }
 }

@@ -26,7 +26,13 @@ internal static class PlaceImportEndpoints
         Execute(principal,admin,_=>Task.FromResult<object>(new
         {
             sources=sources.Select(source=>new{key=source.Descriptor.AccessMode,label=source.Descriptor.AccessMode==OpenStreetMapSource.GeofabrikExtractAccessMode?"OpenStreetMap / extracte Geofabrik":"OpenStreetMap / Overpass",license=source.Descriptor.LicenseIdentifier,attribution=source.Descriptor.Attribution}),
-            countries=new[]{"ES"},categories=new[]{new{key="restaurant",label="Restaurants"},new{key="cafe",label="Cafeteries"}},simulationOnly=false
+            countries=new[]{"ES"},categories=new[]{
+                new{key="restaurant",label="Restaurants"},new{key="cafe",label="Cafeteries"},new{key="bar",label="Bars"},new{key="pub",label="Pubs"},
+                new{key="fast_food",label="Menjar ràpid"},new{key="ice_cream",label="Gelateries"},new{key="bakery",label="Fleques"},
+                new{key="hotel",label="Hotels"},new{key="hostel",label="Hostals"},new{key="camping",label="Càmpings"},
+                new{key="park",label="Parcs"},new{key="dog_park",label="Parcs canins"},new{key="shop",label="Comerços"},
+                new{key="pet_shop",label="Botigues per mascotes"},new{key="veterinary",label="Veterinaris"},
+                new{key="pet_service",label="Serveis per mascotes"},new{key="pet_grooming",label="Perruqueries canines"}},simulationOnly=true
         }),ct);
     private static Task<IResult> List(ClaimsPrincipal p,IAdminApplicationService a,IPlaceImportApplicationService s,CancellationToken ct)=>Execute(p,a,_=>s.ListAsync(ct),ct);
     private static async Task<IResult> Get(Guid id,ClaimsPrincipal p,IAdminApplicationService a,IPlaceImportApplicationService s,CancellationToken ct)

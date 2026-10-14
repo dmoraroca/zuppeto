@@ -35,7 +35,7 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
 
     public async Task<PlaceImportRunDto> CreateAsync(PreparePlaceImportRequest request, PlaceImportScope scope, Guid actorId, CancellationToken ct = default)
     {
-        var source = await EnsureSourceAsync(ct);
+        var source = await EnsureSourceAsync(OpenStreetMapSource.SourceKey, ct);
         var now = DateTimeOffset.UtcNow;
         var record = new PlaceImportRunRecord
         {
@@ -89,7 +89,9 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
         foreach (var staged in items)
         {
             var sourceRecord = await db.PlaceSourceRecords.SingleOrDefaultAsync(x => x.SourceId == run.SourceId && x.ExternalId == staged.Source.ExternalId, ct);
-            var payload = JsonSerializer.Serialize(staged.Candidate.Fields.ToDictionary(x => x.Key, x => x.Value.NormalizedValue), Json);
+            var sourcePayload = staged.Source.Fields.ToDictionary(x => x.Key, x => x.Value.NormalizedValue);
+            var payload = JsonSerializer.Serialize(sourcePayload, Json);
+            var normalizedPayload = JsonSerializer.Serialize(staged.Candidate.Fields.ToDictionary(x => x.Key, x => x.Value.NormalizedValue), Json);
             if (sourceRecord is null)
             {
                 sourceRecord = new PlaceSourceRecord
@@ -112,7 +114,7 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
             {
                 Id = Guid.NewGuid(), ImportRunId = run.Id, SourceRecordId = sourceRecord.Id,
                 Name = staged.Candidate.Name, Category = staged.Candidate.Category, Latitude = staged.Candidate.Latitude,
-                Longitude = staged.Candidate.Longitude, NormalizedFieldsJson = payload, MatchBand = staged.Match.Band,
+                Longitude = staged.Candidate.Longitude, NormalizedFieldsJson = normalizedPayload, MatchBand = staged.Match.Band,
                 MatchSignalsJson = JsonSerializer.Serialize(staged.Match.Signals, Json), MatchContradictionsJson = JsonSerializer.Serialize(staged.Match.Contradictions, Json),
                 PlaceId = staged.Match.PlaceId, Status = staged.Match.RequiresHumanReview ? "PendingReview" : "Matched", IdempotencyHash = staged.ContentHash
             });
@@ -126,6 +128,46 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
                     Authority = "AUTO", State = "Current", ObservedAtUtc = field.Value.ObservedAtUtc, ValidUntilUtc = field.Value.ExpiresAtUtc
                 });
             }
+            var previousDecisions = await db.PlaceMatchDecisions.Where(x => x.SourceRecordId == sourceRecord.Id && x.IsCurrent).ToArrayAsync(ct);
+            foreach (var previous in previousDecisions) { previous.IsCurrent = false; previous.ReversedAtUtc = now; }
+            db.PlaceMatchDecisions.Add(new PlaceMatchDecisionRecord
+            {
+                Id = Guid.NewGuid(), SourceRecordId = sourceRecord.Id, CandidatePlaceId = staged.Match.PlaceId,
+                Outcome = ToOutcome(staged.Match), Score = MatchScore(staged.Match),
+                SignalsJson = JsonSerializer.Serialize(staged.Match.Signals, Json), ContradictionsJson = JsonSerializer.Serialize(staged.Match.Contradictions, Json),
+                IsCurrent = true, Reason = "Decisió automàtica explicable de la pipeline.", DecidedAtUtc = now
+            });
+            foreach (var enrichment in staged.Enrichments ?? [])
+            {
+                var enrichmentSource = await EnsureSourceAsync(enrichment.SourceKey, ct);
+                var enrichmentPayload = JsonSerializer.Serialize(enrichment.Fields.ToDictionary(x => x.Key, x => x.Value.NormalizedValue), Json);
+                var enrichmentHash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(enrichmentPayload))).ToLowerInvariant();
+                var enrichmentRecord = await db.PlaceSourceRecords.SingleOrDefaultAsync(x => x.SourceId == enrichmentSource.Id && x.ExternalId == enrichment.ExternalId, ct);
+                if (enrichmentRecord is null)
+                {
+                    enrichmentRecord = new PlaceSourceRecord { Id = Guid.NewGuid(), SourceId = enrichmentSource.Id, ExternalId = enrichment.ExternalId,
+                        SourceVersion = enrichment.SourceVersion, NormalizedPayloadJson = enrichmentPayload, ContentHash = enrichmentHash,
+                        EvidenceUri = enrichment.EvidenceUri?.ToString() ?? string.Empty, ObservedAtUtc = enrichment.ObservedAtUtc,
+                        RetrievedAtUtc = now, FirstSeenAtUtc = now, LastSeenAtUtc = now, State = "Active", CanonicalPlaceId = staged.Match.PlaceId };
+                    db.PlaceSourceRecords.Add(enrichmentRecord);
+                }
+                else
+                {
+                    enrichmentRecord.SourceVersion = enrichment.SourceVersion; enrichmentRecord.NormalizedPayloadJson = enrichmentPayload;
+                    enrichmentRecord.ContentHash = enrichmentHash; enrichmentRecord.ObservedAtUtc = enrichment.ObservedAtUtc;
+                    enrichmentRecord.RetrievedAtUtc = now; enrichmentRecord.LastSeenAtUtc = now;
+                }
+                await db.SaveChangesAsync(ct);
+                db.PlaceImportEnrichments.Add(new PlaceImportEnrichmentRecord { Id = Guid.NewGuid(), ImportRunId = run.Id,
+                    ParentSourceRecordId = sourceRecord.Id, EnrichmentSourceRecordId = enrichmentRecord.Id,
+                    PlaceId = staged.Match.PlaceId, CreatedAtUtc = now });
+                foreach (var field in enrichment.Fields)
+                    db.PlaceFieldObservations.Add(new PlaceFieldObservationRecord { Id = Guid.NewGuid(), SourceRecordId = enrichmentRecord.Id,
+                        ImportRunId = run.Id, PlaceId = staged.Match.PlaceId, FieldName = field.Key, OriginalValue = field.Value.OriginalFormat,
+                        NormalizedValue = field.Value.NormalizedValue, LicenseIdentifier = field.Value.LicenseIdentifier,
+                        Attribution = field.Value.Attribution, Authority = "AUTO", State = "Current",
+                        ObservedAtUtc = field.Value.ObservedAtUtc, ValidUntilUtc = field.Value.ExpiresAtUtc });
+            }
         }
         foreach (var issue in issues) db.PlaceImportIssues.Add(new PlaceImportIssueRecord
         {
@@ -133,8 +175,10 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
             Code = issue.Code, Severity = issue.Severity, Message = issue.Message, CreatedAtUtc = now
         });
         run.BoundaryExternalId = batch.Scope.ExternalId; run.DiscoveredCount = batch.Documents.Count; run.ValidCount = items.Count;
-        run.WarningCount = issues.Count; run.DuplicateCount = items.Count(x => x.Match.Band != "New");
+        run.WarningCount = issues.Count; run.DuplicateCount = items.Count(x => x.Match.Band != PlaceMatchOutcome.NotMatch.ToString());
         run.Status = PlaceImportStatus.PendingReview.ToString(); run.Stage = "Review"; run.UpdatedAtUtc = now; run.ProcessingCompletedAtUtc = now;
+        await db.SaveChangesAsync(ct);
+        foreach (var placeId in items.Select(x => x.Match.PlaceId).OfType<Guid>().Distinct()) await DetectConflicts(placeId, now, ct);
         await db.SaveChangesAsync(ct); await transaction.CommitAsync(ct);
     }
 
@@ -170,6 +214,7 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
                 item.PlaceId = existingPlaceId;
                 item.Status = "Existing";
                 await LinkObservations(importId, item.SourceRecordId, existingPlaceId, ct);
+                await LinkEnrichments(importId, item.SourceRecordId, existingPlaceId, ct);
                 continue;
             }
             if (item.Latitude is null || item.Longitude is null)
@@ -185,12 +230,15 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
             item.PlaceId = place.Id;
             item.Status = "Published";
             await LinkObservations(importId, item.SourceRecordId, place.Id, ct);
+            await LinkEnrichments(importId, item.SourceRecordId, place.Id, ct);
         }
 
         run.Status = PlaceImportStatus.Published.ToString();
         run.Stage = "PublicationCompleted";
         run.UpdatedAtUtc = now;
         db.PlaceImportDecisions.Add(Decision(importId, actorId, "Published", reason, now));
+        await db.SaveChangesAsync(ct);
+        foreach (var placeId in items.Select(x => x.PlaceId).OfType<Guid>().Distinct()) await DetectConflicts(placeId, now, ct);
         await db.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
     }
@@ -234,22 +282,80 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
         db.PlaceImportDecisions.Add(Decision(importId, actorId, action, reason, now)); await db.SaveChangesAsync(ct);
     }
 
-    private async Task<PlaceDatasetSourceRecord> EnsureSourceAsync(CancellationToken ct)
+    private async Task<PlaceDatasetSourceRecord> EnsureSourceAsync(string sourceKey, CancellationToken ct)
     {
-        var source = await db.PlaceDatasetSources.SingleOrDefaultAsync(x => x.SourceKey == OpenStreetMapSource.SourceKey, ct);
+        var source = await db.PlaceDatasetSources.SingleOrDefaultAsync(x => x.SourceKey == sourceKey, ct);
         if (source is not null) return source;
+        if (sourceKey == WikidataSource.SourceKey)
+        {
+            source = new PlaceDatasetSourceRecord
+            {
+                Id = Guid.NewGuid(), SourceKey = WikidataSource.SourceKey, Organisation = "Wikimedia Foundation / comunitat Wikidata",
+                Dataset = "Wikidata structured data", DatasetVersion = "live", Coverage = "Global; enriquiment per QID explícit",
+                Url = "https://www.wikidata.org", AttributionUrl = "https://www.wikidata.org/wiki/Wikidata:Licensing",
+                LicenseIdentifier = "CC0-1.0", LicenseUrl = "https://creativecommons.org/publicdomain/zero/1.0/",
+                Attribution = "Dades de Wikidata", ReuseConditions = "Només dades estructurades; no s’importen textos o imatges enllaçats.",
+                PermanentStorageAllowed = true, CommercialUseAllowed = true, OdblDerived = false, ApprovalStatus = "PilotApproved",
+                ReviewedAtUtc = new DateTimeOffset(2026,10,14,0,0,0,TimeSpan.Zero), CreatedAtUtc = DateTimeOffset.UtcNow
+            };
+            db.PlaceDatasetSources.Add(source); await db.SaveChangesAsync(ct); return source;
+        }
+        if (sourceKey != OpenStreetMapSource.SourceKey)
+            throw new InvalidOperationException($"La font d’importació '{sourceKey}' no està registrada.");
         source = new PlaceDatasetSourceRecord
         {
             Id = Guid.NewGuid(), SourceKey = OpenStreetMapSource.SourceKey, Organisation = "OpenStreetMap Foundation / contributors",
-            Dataset = "OpenStreetMap", Url = "https://www.openstreetmap.org",
+            Dataset = "OpenStreetMap", DatasetVersion = "live", Coverage = "Pilot Catalunya / Arenys de Mar", Url = "https://www.openstreetmap.org",
             AttributionUrl = "https://www.openstreetmap.org/copyright", LicenseIdentifier = "ODbL-1.0",
             LicenseUrl = "https://opendatacommons.org/licenses/odbl/1-0/", Attribution = "© OpenStreetMap contributors",
             ReuseConditions = "Traçabilitat i atribució obligatòries; qualificació Derivative/Collective pendent de revisió jurídica.",
-            PermanentStorageAllowed = true, OdblDerived = true, ApprovalStatus = "PilotApproved",
+            PermanentStorageAllowed = true, CommercialUseAllowed = true, OdblDerived = true, ApprovalStatus = "PilotApproved",
             ReviewedAtUtc = new DateTimeOffset(2026,10,13,0,0,0,TimeSpan.Zero), CreatedAtUtc = DateTimeOffset.UtcNow
         };
         db.PlaceDatasetSources.Add(source); await db.SaveChangesAsync(ct); return source;
     }
+
+    private async Task LinkEnrichments(Guid importId, Guid parentSourceRecordId, Guid placeId, CancellationToken ct)
+    {
+        var links = await db.PlaceImportEnrichments.Where(x => x.ImportRunId == importId && x.ParentSourceRecordId == parentSourceRecordId)
+            .Include(x => x.EnrichmentSourceRecord).ToArrayAsync(ct);
+        foreach (var link in links)
+        {
+            link.PlaceId = placeId; link.EnrichmentSourceRecord.CanonicalPlaceId = placeId;
+            await LinkObservations(importId, link.EnrichmentSourceRecordId, placeId, ct);
+        }
+        var decisions = await db.PlaceMatchDecisions.Where(x => x.SourceRecordId == parentSourceRecordId && x.IsCurrent).ToArrayAsync(ct);
+        foreach (var decision in decisions) decision.CandidatePlaceId = placeId;
+    }
+
+    private async Task DetectConflicts(Guid placeId, DateTimeOffset now, CancellationToken ct)
+    {
+        var observations = await db.PlaceFieldObservations.Include(x => x.SourceRecord)
+            .Where(x => x.PlaceId == placeId && x.State == "Current").OrderByDescending(x => x.ObservedAtUtc).ToArrayAsync(ct);
+        foreach (var group in observations.GroupBy(x => x.FieldName, StringComparer.OrdinalIgnoreCase))
+        {
+            var distinct = group.GroupBy(x => x.NormalizedValue, StringComparer.OrdinalIgnoreCase).Select(x => x.First()).Take(2).ToArray();
+            if (distinct.Length < 2 || distinct[0].SourceRecordId == distinct[1].SourceRecordId) continue;
+            var left = distinct[0]; var right = distinct[1];
+            if (await db.PlaceSourceConflicts.AnyAsync(x => x.PlaceId == placeId && x.FieldName == group.Key && x.Status == "Open"
+                && ((x.LeftObservationId == left.Id && x.RightObservationId == right.Id) || (x.LeftObservationId == right.Id && x.RightObservationId == left.Id)), ct)) continue;
+            db.PlaceSourceConflicts.Add(new PlaceSourceConflictRecord { Id = Guid.NewGuid(), PlaceId = placeId, FieldName = group.Key,
+                LeftObservationId = left.Id, RightObservationId = right.Id, Status = "Open", ResolutionReason = string.Empty, DetectedAtUtc = now });
+        }
+    }
+
+    private static string ToOutcome(PlaceMatchDecision match) => match.Band switch
+    {
+        "ExactExternalIdentity" or "ConfirmedMatch" => PlaceMatchOutcome.ConfirmedMatch.ToString(),
+        "ProbableMatch" => PlaceMatchOutcome.ProbableMatch.ToString(),
+        "New" or "NotMatch" => PlaceMatchOutcome.NotMatch.ToString(),
+        _ => PlaceMatchOutcome.NeedsReview.ToString()
+    };
+
+    private static decimal MatchScore(PlaceMatchDecision match) => match.Band switch
+    {
+        "ExactExternalIdentity" => 100, "ConfirmedMatch" => 95, "ProbableMatch" => 75, "NeedsReview" => 50, _ => 0
+    };
 
     private static PlaceImportDecisionRecord Decision(Guid runId, Guid actorId, string action, string reason, DateTimeOffset now) =>
         new() { Id = Guid.NewGuid(), ImportRunId = runId, ActorId = actorId, Action = action, Reason = reason, DecidedAtUtc = now };
@@ -268,9 +374,17 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
         var address = string.Join(" ", new[] { street, houseNumber }.Where(x => !string.IsNullOrWhiteSpace(x)));
         if (string.IsNullOrWhiteSpace(address)) address = "Adreça no informada a OpenStreetMap";
         var (status, species) = PetPolicy(fields);
+        var type = item.Category switch
+        {
+            "restaurant" => PlaceType.Restaurant,
+            "cafe" or "bar" or "pub" or "fast_food" or "ice_cream" or "bakery" => PlaceType.Bar,
+            "hotel" or "hostel" => PlaceType.Hotel,
+            "park" or "dog_park" => PlaceType.Park,
+            _ => PlaceType.Service
+        };
         var place = new Place(Guid.NewGuid(), item.Name,
-            item.Category == "restaurant" ? PlaceType.Restaurant : PlaceType.Bar,
-            item.Category == "restaurant" ? "Restaurant a Arenys de Mar." : "Cafeteria a Arenys de Mar.",
+            type,
+            $"{item.Category.Replace('_', ' ')} a Arenys de Mar.",
             "Informació procedent d’OpenStreetMap. Confirma la política pet-friendly abans d’anar-hi.", string.Empty,
             new PostalAddress(address, run.TerritorialName, "Espanya", string.Empty),
             new GeoLocation(item.Latitude!.Value, item.Longitude!.Value),

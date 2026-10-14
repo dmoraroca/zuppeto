@@ -681,6 +681,16 @@ namespace Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(2048)")
                         .HasColumnName("attribution_url");
 
+                    b.Property<bool>("CommercialUseAllowed")
+                        .HasColumnType("boolean")
+                        .HasColumnName("commercial_use_allowed");
+
+                    b.Property<string>("Coverage")
+                        .IsRequired()
+                        .HasMaxLength(240)
+                        .HasColumnType("character varying(240)")
+                        .HasColumnName("coverage");
+
                     b.Property<DateTimeOffset>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at_utc");
@@ -690,6 +700,12 @@ namespace Infrastructure.Persistence.Migrations
                         .HasMaxLength(240)
                         .HasColumnType("character varying(240)")
                         .HasColumnName("dataset");
+
+                    b.Property<string>("DatasetVersion")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("dataset_version");
 
                     b.Property<string>("LicenseIdentifier")
                         .IsRequired()
@@ -745,7 +761,7 @@ namespace Infrastructure.Persistence.Migrations
 
                     b.ToTable("place_dataset_sources", null, t =>
                         {
-                            t.HasCheckConstraint("ck_place_dataset_source_approval", "approval_status IN ('PilotApproved','Suspended')");
+                            t.HasCheckConstraint("ck_place_dataset_source_approval", "approval_status IN ('PendingReview','PilotApproved','Approved','Rejected','Suspended')");
                         });
                 });
 
@@ -888,6 +904,48 @@ namespace Infrastructure.Persistence.Migrations
                     b.HasIndex("ImportRunId", "DecidedAtUtc");
 
                     b.ToTable("place_import_decisions", (string)null);
+                });
+
+            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.PlaceImportEnrichmentRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<Guid>("EnrichmentSourceRecordId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("enrichment_source_record_id");
+
+                    b.Property<Guid>("ImportRunId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("import_run_id");
+
+                    b.Property<Guid>("ParentSourceRecordId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("parent_source_record_id");
+
+                    b.Property<Guid?>("PlaceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("place_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EnrichmentSourceRecordId");
+
+                    b.HasIndex("ParentSourceRecordId");
+
+                    b.HasIndex("PlaceId");
+
+                    b.HasIndex("ImportRunId", "EnrichmentSourceRecordId")
+                        .IsUnique();
+
+                    b.ToTable("place_import_enrichments", (string)null);
                 });
 
             modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.PlaceImportIssueRecord", b =>
@@ -1195,6 +1253,142 @@ namespace Infrastructure.Persistence.Migrations
                             t.HasCheckConstraint("ck_place_import_counts", "discovered_count >= 0 AND valid_count >= 0 AND warning_count >= 0 AND duplicate_count >= 0");
 
                             t.HasCheckConstraint("ck_place_import_status", "status IN ('Prepared','Running','Validated','PendingReview','Approved','Published','Failed','Cancelled')");
+                        });
+                });
+
+            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.PlaceLifecycleEventRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<Guid?>("ActorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("actor_id");
+
+                    b.Property<bool>("Automatic")
+                        .HasColumnType("boolean")
+                        .HasColumnName("automatic");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("EvidenceJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("evidence");
+
+                    b.Property<string>("FromStatus")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)")
+                        .HasColumnName("from_status");
+
+                    b.Property<Guid>("PlaceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("place_id");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("reason");
+
+                    b.Property<string>("ToStatus")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)")
+                        .HasColumnName("to_status");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorId");
+
+                    b.HasIndex("PlaceId", "CreatedAtUtc");
+
+                    b.ToTable("place_lifecycle_events", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_place_lifecycle_from", "from_status IN ('Active','SuspectedClosed','TemporarilyClosed','Closed','Unknown')");
+
+                            t.HasCheckConstraint("ck_place_lifecycle_to", "to_status IN ('Active','SuspectedClosed','TemporarilyClosed','Closed','Unknown')");
+                        });
+                });
+
+            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.PlaceMatchDecisionRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<Guid?>("CandidatePlaceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("candidate_place_id");
+
+                    b.Property<string>("ContradictionsJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("contradictions");
+
+                    b.Property<DateTimeOffset>("DecidedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("decided_at_utc");
+
+                    b.Property<Guid?>("DecidedByActorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("decided_by_actor_id");
+
+                    b.Property<bool>("IsCurrent")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_current");
+
+                    b.Property<string>("Outcome")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)")
+                        .HasColumnName("outcome");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("reason");
+
+                    b.Property<DateTimeOffset?>("ReversedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("reversed_at_utc");
+
+                    b.Property<decimal>("Score")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)")
+                        .HasColumnName("score");
+
+                    b.Property<string>("SignalsJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("signals");
+
+                    b.Property<Guid>("SourceRecordId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source_record_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CandidatePlaceId");
+
+                    b.HasIndex("DecidedByActorId");
+
+                    b.HasIndex("Outcome", "IsCurrent");
+
+                    b.HasIndex("SourceRecordId", "IsCurrent");
+
+                    b.ToTable("place_match_decisions", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_place_match_outcome", "outcome IN ('ConfirmedMatch','ProbableMatch','NeedsReview','NotMatch')");
                         });
                 });
 
@@ -1563,6 +1757,142 @@ namespace Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_place_search_query_results_query_rank");
 
                     b.ToTable("place_search_query_results", (string)null);
+                });
+
+            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.PlaceSourceCheckpointRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<DateTimeOffset?>("CompletedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at_utc");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("ExtractSha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("extract_sha256");
+
+                    b.Property<string>("Generation")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("generation");
+
+                    b.Property<string>("MetricsJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("metrics");
+
+                    b.Property<string>("RegionKey")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("region_key");
+
+                    b.Property<long?>("ReplicationSequence")
+                        .HasColumnType("bigint")
+                        .HasColumnName("replication_sequence");
+
+                    b.Property<Guid>("SourceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SourceId", "RegionKey", "Generation")
+                        .IsUnique();
+
+                    b.ToTable("place_source_checkpoints", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_place_source_checkpoint_status", "status IN ('Building','Ready','Failed','Superseded')");
+                        });
+                });
+
+            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.PlaceSourceConflictRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<DateTimeOffset>("DetectedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("detected_at_utc");
+
+                    b.Property<string>("FieldName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("field_name");
+
+                    b.Property<Guid>("LeftObservationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("left_observation_id");
+
+                    b.Property<Guid>("PlaceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("place_id");
+
+                    b.Property<string>("ResolutionReason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("resolution_reason");
+
+                    b.Property<DateTimeOffset?>("ResolvedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("resolved_at_utc");
+
+                    b.Property<Guid?>("ResolvedByActorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("resolved_by_actor_id");
+
+                    b.Property<Guid>("RightObservationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("right_observation_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid?>("WinningObservationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("winning_observation_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LeftObservationId");
+
+                    b.HasIndex("PlaceId");
+
+                    b.HasIndex("ResolvedByActorId");
+
+                    b.HasIndex("RightObservationId");
+
+                    b.HasIndex("Status", "PlaceId");
+
+                    b.ToTable("place_source_conflicts", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_place_source_conflict_status", "status IN ('Open','Resolved','Dismissed')");
+                        });
                 });
 
             modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.PlaceSourceRecord", b =>
@@ -3440,6 +3770,40 @@ namespace Infrastructure.Persistence.Migrations
                     b.Navigation("ImportRun");
                 });
 
+            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.PlaceImportEnrichmentRecord", b =>
+                {
+                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.PlaceSourceRecord", "EnrichmentSourceRecord")
+                        .WithMany()
+                        .HasForeignKey("EnrichmentSourceRecordId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.PlaceImportRunRecord", "ImportRun")
+                        .WithMany()
+                        .HasForeignKey("ImportRunId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.PlaceSourceRecord", "ParentSourceRecord")
+                        .WithMany()
+                        .HasForeignKey("ParentSourceRecordId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.PlaceRecord", "Place")
+                        .WithMany()
+                        .HasForeignKey("PlaceId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("EnrichmentSourceRecord");
+
+                    b.Navigation("ImportRun");
+
+                    b.Navigation("ParentSourceRecord");
+
+                    b.Navigation("Place");
+                });
+
             modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.PlaceImportIssueRecord", b =>
                 {
                     b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.PlaceImportRunRecord", "ImportRun")
@@ -3512,6 +3876,49 @@ namespace Infrastructure.Persistence.Migrations
                     b.Navigation("TerritorialUnit");
                 });
 
+            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.PlaceLifecycleEventRecord", b =>
+                {
+                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.UserRecord", "Actor")
+                        .WithMany()
+                        .HasForeignKey("ActorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.PlaceRecord", "Place")
+                        .WithMany()
+                        .HasForeignKey("PlaceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Actor");
+
+                    b.Navigation("Place");
+                });
+
+            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.PlaceMatchDecisionRecord", b =>
+                {
+                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.PlaceRecord", "CandidatePlace")
+                        .WithMany()
+                        .HasForeignKey("CandidatePlaceId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.UserRecord", "DecidedByActor")
+                        .WithMany()
+                        .HasForeignKey("DecidedByActorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.PlaceSourceRecord", "SourceRecord")
+                        .WithMany()
+                        .HasForeignKey("SourceRecordId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CandidatePlace");
+
+                    b.Navigation("DecidedByActor");
+
+                    b.Navigation("SourceRecord");
+                });
+
             modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.PlaceRecord", b =>
                 {
                     b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.CountryRecord", "TerritorialCountry")
@@ -3565,6 +3972,51 @@ namespace Infrastructure.Persistence.Migrations
                     b.Navigation("Place");
 
                     b.Navigation("Query");
+                });
+
+            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.PlaceSourceCheckpointRecord", b =>
+                {
+                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.PlaceDatasetSourceRecord", "Source")
+                        .WithMany()
+                        .HasForeignKey("SourceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Source");
+                });
+
+            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.PlaceSourceConflictRecord", b =>
+                {
+                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.PlaceFieldObservationRecord", "LeftObservation")
+                        .WithMany()
+                        .HasForeignKey("LeftObservationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.PlaceRecord", "Place")
+                        .WithMany()
+                        .HasForeignKey("PlaceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.UserRecord", "ResolvedByActor")
+                        .WithMany()
+                        .HasForeignKey("ResolvedByActorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.PlaceFieldObservationRecord", "RightObservation")
+                        .WithMany()
+                        .HasForeignKey("RightObservationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("LeftObservation");
+
+                    b.Navigation("Place");
+
+                    b.Navigation("ResolvedByActor");
+
+                    b.Navigation("RightObservation");
                 });
 
             modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.PlaceSourceRecord", b =>
