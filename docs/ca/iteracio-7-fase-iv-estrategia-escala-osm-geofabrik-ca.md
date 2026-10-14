@@ -4,6 +4,8 @@
 
 **PROPOSTA DOCUMENTADA I VALIDADA AMB DADES OFICIALS. NO IMPLEMENTADA. POSTGRESQL REAL, LA MIGRACIÓ DE FASE IV I LA PUBLICACIÓ DE POI NO S'HAN TOCAT.**
 
+> **Addenda Fase V, 14.10.2026:** Catalunya ja disposa d'una primera implementació: generació JSON immutable de 206.205.485 bytes, 955 municipis i 70.530 POI, tres passades regionals justificades, lookup sense rellegir el PBF, rollback i diffs `.osc.gz` estrictes. Les geometries de vies/relacions que no es poden resoldre només amb el diff activen reconstrucció completa i no avancen el checkpoint. PostgreSQL real té la migració de Fase V i 50 Places d'Arenys. Les seccions següents conserven la proposta d'escala a països, inclòs l'índex de primitives complet que encara serà necessari per evitar reconstruccions davant qualsevol canvi geomètric.
+
 Tall de la informació: 14.10.2026. Aquest document amplia el [pilot OSM/Geofabrik d'Arenys de Mar](iteracio-7-fase-iv-openstreetmap-overpass-ca.md) i defineix com evolucionar-lo cap a Espanya, Alemanya i Europa. El Regne Unit queda previst per a una fase posterior. No s'ha iniciat la Fase V ni s'ha afegit cap font.
 
 ## 1. Decisió executiva

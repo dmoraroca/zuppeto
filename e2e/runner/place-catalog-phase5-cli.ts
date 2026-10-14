@@ -65,7 +65,8 @@ async function run(): Promise<void> {
 
     await page.reload({waitUntil:'networkidle'});
     await page.getByRole('heading',{name:'Estat de vida del catàleg'}).waitFor();
-    await page.getByText('SuspectedClosed',{exact:false}).first().waitFor();
+    governance = await getGovernance(page,session.accessToken);
+    assert.equal(governance.lifecycles.find(item=>item.placeId===match!.candidatePlaceId)?.status,'SuspectedClosed','El tancament sospitós ha de persistir després de recarregar.');
     assert.equal(externalRequests.length,0,`Crides externes del navegador: ${externalRequests.join(', ')}`);
     await context.close();
     console.log('PASS Chrome focalitzat Fase V: importació, Wikidata CC0, match explicable, conflicte resolt, tancament sospitós, segona importació idempotent i 0 crides externes del navegador.');

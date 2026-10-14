@@ -23,11 +23,14 @@ public sealed class PlaceImportApplicationService(IPlaceImportRepository reposit
             || !string.Equals(scope.TerritorialName, "Arenys de Mar", StringComparison.OrdinalIgnoreCase)
             || !string.Equals(scope.OfficialCode, "08006", StringComparison.Ordinal)
             || request.AccessMode != OpenStreetMapSource.GeofabrikExtractAccessMode
-            || categories.Length != PhaseFourPublicationCategories.Count
-            || categories.Any(category => !PhaseFourPublicationCategories.Contains(category))))
-            throw new DomainRuleException("La publicació real de la Fase IV està limitada al pilot Geofabrik d’Arenys de Mar per a restaurants i cafeteries.");
+            || !IsAuthorizedPilotCategorySet(categories)))
+            throw new DomainRuleException("La publicació real està limitada al pilot Geofabrik d’Arenys de Mar i als conjunts de categories autoritzats de Fase IV o V.");
         return await repository.CreateAsync(request with { Categories = categories }, scope, actorId, ct);
     }
+
+    private static bool IsAuthorizedPilotCategorySet(IReadOnlyCollection<string> categories) =>
+        (categories.Count == PhaseFourPublicationCategories.Count && categories.All(PhaseFourPublicationCategories.Contains))
+        || (categories.Count == AllowedCategories.Count && categories.All(AllowedCategories.Contains));
 
     public Task<IReadOnlyCollection<PlaceImportRunDto>> ListAsync(CancellationToken ct = default) => repository.ListAsync(ct);
     public Task<PlaceImportDetailsDto?> GetAsync(Guid importId, CancellationToken ct = default) => repository.GetAsync(importId, ct);

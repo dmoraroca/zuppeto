@@ -7,11 +7,23 @@ using System.Diagnostics;
 
 namespace Zuppeto.Infrastructure.Places.OpenStreetMap;
 
-internal sealed class GeofabrikPbfPlaceDiscoverySource(IOptions<GeofabrikExtractOptions> options) : IPlaceDiscoverySource
+internal sealed class GeofabrikPbfPlaceDiscoverySource(IOptions<GeofabrikExtractOptions> options) : IPlaceDiscoverySource, IPlaceSourceCheckpointProvider
 {
     private const string License = "ODbL-1.0";
     private const string Attribution = "© OpenStreetMap contributors";
     private readonly GeofabrikExtractOptions settings = options.Value;
+    private readonly GeofabrikRegionalIndex regionalIndex = new(options.Value.IndexDirectory);
+    public PlaceSourceCheckpointSnapshot? CurrentCheckpoint
+    {
+        get
+        {
+            var state = regionalIndex.State();
+            return state is null ? null : new("catalunya", state.GenerationId, state.ExtractSha256,
+                state.ReplicationSequence, state.Status,
+                System.Text.Json.JsonSerializer.Serialize(new { state.MunicipalityCount, state.PoiCount, Diffs = state.Audit.Count }),
+                state.CreatedAtUtc, state.Status == "Ready" ? state.CreatedAtUtc : null);
+        }
+    }
 
     public PlaceSourceDescriptor Descriptor { get; } = new(
         OpenStreetMapSource.SourceKey,
@@ -35,15 +47,16 @@ internal sealed class GeofabrikPbfPlaceDiscoverySource(IOptions<GeofabrikExtract
         try
         {
             var bounded = context with { Limit = Math.Min(context.Limit, Math.Clamp(settings.MaximumItems, 1, 250)) };
-            var index = new GeofabrikRegionalIndex(settings.IndexDirectory);
-            if (settings.ReusableIndexEnabled && index.TryRead(settings.ExtractPath, settings.SourceVersion, bounded, out var indexed))
+            if (settings.ReusableIndexEnabled && regionalIndex.TryRead(settings.ExtractPath, settings.SourceVersion, bounded, out var indexed))
                 return Task.FromResult(Result<PlaceDiscoveryBatch>.Success(indexed!));
-            var started = Stopwatch.StartNew();
+            if (settings.ReusableIndexEnabled)
+            {
+                regionalIndex.Build(settings.ExtractPath, settings.SourceVersion, cancellationToken);
+                if (regionalIndex.TryRead(settings.ExtractPath, settings.SourceVersion, bounded, out indexed))
+                    return Task.FromResult(Result<PlaceDiscoveryBatch>.Success(indexed!));
+            }
             var reader = new GeofabrikPbfReader(settings.ExtractPath, settings.SourceVersion);
             var result = reader.Read(bounded, cancellationToken);
-            started.Stop();
-            if (settings.ReusableIndexEnabled && result.IsSuccess)
-                index.Write(settings.ExtractPath, settings.SourceVersion, bounded, result.Value!, started.Elapsed);
             return Task.FromResult(result);
         }
         catch (OperationCanceledException) { throw; }

@@ -276,7 +276,11 @@ public sealed class OpenStreetMapPlaceImportTests(ITestOutputHelper output)
             var first = await source.DiscoverAsync(context, CancellationToken.None); firstClock.Stop();
             var memoryAfter = GC.GetTotalMemory(true); var secondClock = Stopwatch.StartNew();
             var second = await source.DiscoverAsync(context, CancellationToken.None); secondClock.Stop();
+            var controlClock = Stopwatch.StartNew();
+            var control = await source.DiscoverAsync(context with { TerritorialName = "Canet de Mar", OfficialCode = "08040" }, CancellationToken.None);
+            controlClock.Stop();
             Assert.True(first.IsSuccess, first.Failure?.Message); Assert.True(second.IsSuccess, second.Failure?.Message);
+            Assert.True(control.IsSuccess, control.Failure?.Message);
             Assert.Equal(first.Value!.Documents.Select(x => x.ExternalId), second.Value!.Documents.Select(x => x.ExternalId));
             var counts = first.Value.Documents.GroupBy(x => DocumentValue(x, "category")).ToDictionary(x => x.Key ?? "unknown", x => x.Count());
             var indexBytes = Directory.EnumerateFiles(indexDirectory).Sum(file => new FileInfo(file).Length);
@@ -284,12 +288,64 @@ public sealed class OpenStreetMapPlaceImportTests(ITestOutputHelper output)
                 categories = counts, wikidataIds = first.Value.Documents.Where(x => x.Fields.ContainsKey("wikidata.id")).Select(x => x.Fields["wikidata.id"].NormalizedValue).Distinct().Order().ToArray(),
                 petSignals = first.Value.Documents.Count(x => x.Fields.Keys.Any(k => k.StartsWith("pet.", StringComparison.Ordinal))),
                 firstMilliseconds = firstClock.ElapsedMilliseconds, indexedMilliseconds = secondClock.ElapsedMilliseconds,
-                managedMemoryDeltaBytes = memoryAfter - memoryBefore, indexBytes }));
+                controlMunicipality = "Canet de Mar", controlPoi = control.Value!.Documents.Count,
+                controlMilliseconds = controlClock.ElapsedMilliseconds, managedMemoryDeltaBytes = memoryAfter - memoryBefore,
+                indexBytes, state = new GeofabrikRegionalIndex(indexDirectory).State() }));
             Assert.True(first.Value.Documents.Count > 18); Assert.True(counts.GetValueOrDefault("bar") > 0);
             Assert.True(counts.GetValueOrDefault("bakery") > 0); Assert.True(counts.GetValueOrDefault("fast_food") > 0);
             Assert.True(secondClock.Elapsed < firstClock.Elapsed); Assert.True(indexBytes > 0);
         }
         finally { if (Directory.Exists(indexDirectory)) Directory.Delete(indexDirectory, true); }
+    }
+
+    [Fact]
+    public void Regional_index_supports_two_municipalities_diffs_idempotency_and_rollback()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"zuppeto-regional-index-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+        var pbf = Path.Combine(root, "fixture.osm.pbf");
+        var diff = Path.Combine(root, "000001.osc.gz");
+        try
+        {
+            WritePbfFixture(pbf);
+            var index = new GeofabrikRegionalIndex(Path.Combine(root, "index"));
+            var metrics = index.Build(pbf, "fixture-v1", CancellationToken.None);
+            Assert.Equal(2, metrics.MunicipalityCount);
+            Assert.True(metrics.PoiCount >= 4);
+
+            var arenys = Scope with { Categories = PlaceCatalogCategories.All };
+            var control = arenys with { TerritorialName = "Municipi de control", OfficialCode = "08007" };
+            Assert.True(index.TryRead(pbf, "fixture-v1", arenys, out var first));
+            Assert.True(index.TryRead(pbf, "fixture-v1", control, out var second));
+            Assert.Equal(3, first!.Documents.Count);
+            Assert.Single(second!.Documents);
+            var originalGeneration = index.State()!.GenerationId;
+
+            WriteOsc(diff, """
+                <osmChange version="0.6" generator="Zuppeto-tests">
+                  <create><node id="999" lat="41.5805" lon="2.5505"><tag k="amenity" v="cafe"/><tag k="name" v="Cafè incremental"/></node></create>
+                  <modify><node id="100" lat="41.5800" lon="2.5500"><tag k="amenity" v="restaurant"/><tag k="name" v="Can Node actualitzat"/></node></modify>
+                  <delete><node id="101" lat="41.6000" lon="2.6000"/></delete>
+                </osmChange>
+                """);
+            var applied = index.ApplyDiff(diff, 1, DateTimeOffset.Parse("2026-10-14T00:00:00Z"), null, CancellationToken.None);
+            Assert.Equal(1, applied.Created); Assert.Equal(1, applied.Modified); Assert.Equal(1, applied.Deleted);
+            Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(new { diffMilliseconds = applied.Duration.TotalMilliseconds,
+                applied.Created, applied.Modified, applied.Deleted }));
+            var repeated = index.ApplyDiff(diff, 1, DateTimeOffset.Parse("2026-10-14T00:00:00Z"), null, CancellationToken.None);
+            Assert.True(repeated.AlreadyApplied);
+            Assert.True(index.TryRead(pbf, "fixture-v1", arenys, out var changed));
+            Assert.Contains(changed!.Documents, x => x.ExternalId == "node/999");
+            Assert.Contains(changed.Documents, x => x.Fields.GetValueOrDefault("name")?.NormalizedValue == "Can Node actualitzat");
+            Assert.True(index.TryRead(pbf, "fixture-v1", control, out var emptied)); Assert.Empty(emptied!.Documents);
+            Assert.Throws<InvalidDataException>(() => index.ApplyDiff(diff, 3, DateTimeOffset.UtcNow, null, CancellationToken.None));
+
+            Assert.True(index.Rollback(originalGeneration));
+            Assert.True(index.TryRead(pbf, "fixture-v1", arenys, out var rolledBack));
+            Assert.DoesNotContain(rolledBack!.Documents, x => x.ExternalId == "node/999");
+            Assert.True(index.TryRead(pbf, "fixture-v1", control, out var restored)); Assert.Single(restored!.Documents);
+        }
+        finally { Directory.Delete(root, true); }
     }
 
     private static void WritePbfFixture(string path)
@@ -302,12 +358,24 @@ public sealed class OpenStreetMapPlaceImportTests(ITestOutputHelper output)
         target.AddNode(Node(12, 41.576, 2.546)); target.AddNode(Node(13, 41.576, 2.545));
         target.AddNode(Node(100, 41.58, 2.55, ("amenity", "restaurant"), ("name", "Can Node")));
         target.AddNode(Node(101, 41.60, 2.60, ("amenity", "cafe"), ("name", "Fora")));
+        target.AddNode(Node(20, 41.595, 2.595)); target.AddNode(Node(21, 41.595, 2.605));
+        target.AddNode(Node(22, 41.605, 2.605)); target.AddNode(Node(23, 41.605, 2.595));
         target.AddWay(new Way { Id = 800, Nodes = [1, 2, 3, 4, 1] });
         target.AddWay(new Way { Id = 200, Nodes = [10, 11, 12, 13, 10], Tags = Tags(("amenity", "cafe"), ("name", "Cafè Way"), ("dog", "yes")) });
         target.AddWay(new Way { Id = 301, Nodes = [10, 11, 12, 13, 10] });
+        target.AddWay(new Way { Id = 801, Nodes = [20, 21, 22, 23, 20] });
         target.AddRelation(new Relation { Id = 300, Tags = Tags(("type", "multipolygon"), ("amenity", "restaurant"), ("name", "Relació"), ("pets", "yes")), Members = [new RelationMember { Id = 301, Type = OsmGeoType.Way, Role = "outer" }] });
         target.AddRelation(new Relation { Id = 900, Tags = Tags(("type", "boundary"), ("boundary", "administrative"), ("admin_level", "8"), ("ref:ine", "08006"), ("name", "Arenys de Mar")), Members = [new RelationMember { Id = 800, Type = OsmGeoType.Way, Role = "outer" }] });
+        target.AddRelation(new Relation { Id = 901, Tags = Tags(("type", "boundary"), ("boundary", "administrative"), ("admin_level", "8"), ("ref:ine", "08007"), ("name", "Municipi de control")), Members = [new RelationMember { Id = 801, Type = OsmGeoType.Way, Role = "outer" }] });
         target.Flush(); target.Close();
+    }
+
+    private static void WriteOsc(string path, string xml)
+    {
+        using var file = File.Create(path);
+        using var gzip = new System.IO.Compression.GZipStream(file, System.IO.Compression.CompressionLevel.SmallestSize);
+        using var writer = new StreamWriter(gzip, Encoding.UTF8);
+        writer.Write(xml);
     }
 
     private static Node Node(long id, double latitude, double longitude, params (string Key, string Value)[] tags) =>

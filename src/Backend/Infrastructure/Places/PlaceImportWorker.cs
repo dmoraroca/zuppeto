@@ -33,6 +33,8 @@ internal sealed class PlaceImportWorker(IServiceScopeFactory scopes, ILogger<Pla
             if(await CompleteCancellationIfRequested(repository,work,ct))return;
             var source=providers.Single(x=>x.Descriptor.SourceKey==work.SourceKey&&x.Descriptor.AccessMode==work.AccessMode); var discovery=await source.DiscoverAsync(work.Context,ct);
             if(!discovery.IsSuccess) throw new PlaceSourceException(discovery.Failure!);
+            if(source is IPlaceSourceCheckpointProvider checkpointProvider && checkpointProvider.CurrentCheckpoint is { } checkpoint)
+                await repository.SaveCheckpointAsync(work.ImportId,checkpoint,ct);
             if(await CompleteCancellationIfRequested(repository,work,ct))return;
             var normalizer=s.ServiceProvider.GetRequiredService<IPlaceSourceNormalizer>();var matcher=s.ServiceProvider.GetRequiredService<IPlaceMatcher>();
             var storagePolicy=s.ServiceProvider.GetRequiredService<IPlaceStoragePermissionPolicy>();

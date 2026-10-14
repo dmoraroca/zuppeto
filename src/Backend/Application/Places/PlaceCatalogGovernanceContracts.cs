@@ -17,9 +17,12 @@ public sealed record PlaceLifecycleEventDto(Guid Id, string FromStatus, string T
 public sealed record PlaceDatasetSourceDto(Guid Id, string SourceKey, string Organisation, string Dataset,
     string DatasetVersion, string Coverage, string LicenseIdentifier, string Attribution,
     bool CommercialUseAllowed, bool PermanentStorageAllowed, string ApprovalStatus, DateTimeOffset ReviewedAtUtc);
+public sealed record PlaceSourceCheckpointDto(Guid Id, string SourceKey, string RegionKey, string Generation,
+    string ExtractSha256, long? ReplicationSequence, string Status, string MetricsJson,
+    DateTimeOffset CreatedAtUtc, DateTimeOffset? CompletedAtUtc);
 public sealed record PlaceCatalogGovernanceDto(IReadOnlyCollection<PlaceMatchReviewDto> Matches,
     IReadOnlyCollection<PlaceConflictReviewDto> Conflicts, IReadOnlyCollection<PlaceLifecycleReviewDto> Lifecycles,
-    IReadOnlyCollection<PlaceDatasetSourceDto> Sources);
+    IReadOnlyCollection<PlaceDatasetSourceDto> Sources, IReadOnlyCollection<PlaceSourceCheckpointDto> Checkpoints);
 
 public sealed record ResolvePlaceMatchRequest(string Outcome, Guid? PlaceId, string Reason);
 public sealed record ResolvePlaceConflictRequest(Guid WinningObservationId, string Reason);

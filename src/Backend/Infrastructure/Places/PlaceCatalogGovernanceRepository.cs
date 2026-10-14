@@ -41,7 +41,12 @@ internal sealed class PlaceCatalogGovernanceRepository(ZuppetoDbContext db) : IP
         var sources = await db.PlaceDatasetSources.AsNoTracking().OrderBy(x => x.SourceKey).Select(x => new PlaceDatasetSourceDto(x.Id,
             x.SourceKey, x.Organisation, x.Dataset, x.DatasetVersion, x.Coverage, x.LicenseIdentifier, x.Attribution,
             x.CommercialUseAllowed, x.PermanentStorageAllowed, x.ApprovalStatus, x.ReviewedAtUtc)).ToArrayAsync(ct);
-        return new(matches, conflicts, lifecycles, sources);
+        var checkpoints = await db.PlaceSourceCheckpoints.AsNoTracking().Include(x => x.Source)
+            .OrderByDescending(x => x.CreatedAtUtc).Take(100)
+            .Select(x => new PlaceSourceCheckpointDto(x.Id, x.Source.SourceKey, x.RegionKey, x.Generation,
+                x.ExtractSha256, x.ReplicationSequence, x.Status, x.MetricsJson, x.CreatedAtUtc, x.CompletedAtUtc))
+            .ToArrayAsync(ct);
+        return new(matches, conflicts, lifecycles, sources, checkpoints);
     }
 
     public async Task ResolveMatchAsync(Guid decisionId, PlaceMatchOutcome outcome, Guid? placeId, string reason, Guid actorId, CancellationToken ct = default)

@@ -44,6 +44,6 @@ class FakeApi {
   async get(){throw new Error('unused');}
   async prepare(request:unknown){this.prepared=request;return {id:'run'};}
   async approve(){} async simulatePublication(){} async publish(){} async cancel(){}
-  async governance(){return {matches:[],conflicts:[],lifecycles:[],sources:[]};}
+  async governance(){return {matches:[],conflicts:[],lifecycles:[],sources:[],checkpoints:[]};}
   async resolveMatch(){} async resolveConflict(){} async changeLifecycle(){} async registerSource(){return {id:'source'};} async reviewSource(){}
 }

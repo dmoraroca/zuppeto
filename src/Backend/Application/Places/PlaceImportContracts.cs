@@ -65,6 +65,15 @@ public sealed record PlaceImportStagedItem(
     string ContentHash,
     IReadOnlyCollection<PlaceSourceDocument>? Enrichments = null);
 
+public sealed record PlaceSourceCheckpointSnapshot(string RegionKey, string Generation, string ExtractSha256,
+    long ReplicationSequence, string Status, string MetricsJson, DateTimeOffset CreatedAtUtc,
+    DateTimeOffset? CompletedAtUtc);
+
+public interface IPlaceSourceCheckpointProvider
+{
+    PlaceSourceCheckpointSnapshot? CurrentCheckpoint { get; }
+}
+
 public interface IPlaceImportRepository
 {
     Task<PlaceImportScope> ResolveScopeAsync(Guid countryId, Guid territorialUnitId, CancellationToken cancellationToken = default);
@@ -73,6 +82,7 @@ public interface IPlaceImportRepository
     Task<PlaceImportDetailsDto?> GetAsync(Guid importId, CancellationToken cancellationToken = default);
     Task StageAsync(Guid importId, PlaceDiscoveryBatch batch, IReadOnlyCollection<PlaceImportStagedItem> items,
         IReadOnlyCollection<PlaceImportIssueDto> issues, CancellationToken cancellationToken = default);
+    Task SaveCheckpointAsync(Guid importId, PlaceSourceCheckpointSnapshot checkpoint, CancellationToken cancellationToken = default);
     Task<bool> IsCancellationRequestedAsync(Guid importId, CancellationToken cancellationToken = default);
     Task CompleteCancellationAsync(Guid importId, CancellationToken cancellationToken = default);
     Task ApproveAsync(Guid importId, Guid actorId, string reason, CancellationToken cancellationToken = default);

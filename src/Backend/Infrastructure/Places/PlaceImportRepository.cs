@@ -89,6 +89,7 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
         foreach (var staged in items)
         {
             var sourceRecord = await db.PlaceSourceRecords.SingleOrDefaultAsync(x => x.SourceId == run.SourceId && x.ExternalId == staged.Source.ExternalId, ct);
+            var contentChanged = sourceRecord is null || !string.Equals(sourceRecord.ContentHash, staged.ContentHash, StringComparison.Ordinal);
             var sourcePayload = staged.Source.Fields.ToDictionary(x => x.Key, x => x.Value.NormalizedValue);
             var payload = JsonSerializer.Serialize(sourcePayload, Json);
             var normalizedPayload = JsonSerializer.Serialize(staged.Candidate.Fields.ToDictionary(x => x.Key, x => x.Value.NormalizedValue), Json);
@@ -118,15 +119,24 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
                 MatchSignalsJson = JsonSerializer.Serialize(staged.Match.Signals, Json), MatchContradictionsJson = JsonSerializer.Serialize(staged.Match.Contradictions, Json),
                 PlaceId = staged.Match.PlaceId, Status = staged.Match.RequiresHumanReview ? "PendingReview" : "Matched", IdempotencyHash = staged.ContentHash
             });
-            foreach (var field in staged.Source.Fields)
+            if (contentChanged && sourceRecord.CanonicalPlaceId is not null)
             {
-                db.PlaceFieldObservations.Add(new PlaceFieldObservationRecord
+                var superseded = await db.PlaceFieldObservations.Where(x => x.SourceRecordId == sourceRecord.Id
+                    && x.State == "Current" && x.Authority == "AUTO").ToArrayAsync(ct);
+                foreach (var observation in superseded) observation.State = "Superseded";
+            }
+            if (contentChanged)
+            {
+                foreach (var field in staged.Source.Fields)
                 {
-                    Id = Guid.NewGuid(), SourceRecordId = sourceRecord.Id, ImportRunId = run.Id, PlaceId = staged.Match.PlaceId,
-                    FieldName = field.Key, OriginalValue = field.Value.OriginalFormat, NormalizedValue = field.Value.NormalizedValue,
-                    LicenseIdentifier = field.Value.LicenseIdentifier, Attribution = field.Value.Attribution,
-                    Authority = "AUTO", State = "Current", ObservedAtUtc = field.Value.ObservedAtUtc, ValidUntilUtc = field.Value.ExpiresAtUtc
-                });
+                    db.PlaceFieldObservations.Add(new PlaceFieldObservationRecord
+                    {
+                        Id = Guid.NewGuid(), SourceRecordId = sourceRecord.Id, ImportRunId = run.Id, PlaceId = staged.Match.PlaceId,
+                        FieldName = field.Key, OriginalValue = field.Value.OriginalFormat, NormalizedValue = field.Value.NormalizedValue,
+                        LicenseIdentifier = field.Value.LicenseIdentifier, Attribution = field.Value.Attribution,
+                        Authority = "AUTO", State = "Current", ObservedAtUtc = field.Value.ObservedAtUtc, ValidUntilUtc = field.Value.ExpiresAtUtc
+                    });
+                }
             }
             var previousDecisions = await db.PlaceMatchDecisions.Where(x => x.SourceRecordId == sourceRecord.Id && x.IsCurrent).ToArrayAsync(ct);
             foreach (var previous in previousDecisions) { previous.IsCurrent = false; previous.ReversedAtUtc = now; }
@@ -182,6 +192,26 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
         await db.SaveChangesAsync(ct); await transaction.CommitAsync(ct);
     }
 
+    public async Task SaveCheckpointAsync(Guid importId, PlaceSourceCheckpointSnapshot checkpoint, CancellationToken ct = default)
+    {
+        var sourceId = await db.PlaceImportRuns.Where(x => x.Id == importId).Select(x => x.SourceId).SingleAsync(ct);
+        var existing = await db.PlaceSourceCheckpoints.SingleOrDefaultAsync(x => x.SourceId == sourceId
+            && x.RegionKey == checkpoint.RegionKey && x.Generation == checkpoint.Generation, ct);
+        if (existing is null)
+        {
+            db.PlaceSourceCheckpoints.Add(new PlaceSourceCheckpointRecord { Id = Guid.NewGuid(), SourceId = sourceId,
+                RegionKey = checkpoint.RegionKey, Generation = checkpoint.Generation, ExtractSha256 = checkpoint.ExtractSha256,
+                ReplicationSequence = checkpoint.ReplicationSequence, Status = checkpoint.Status, MetricsJson = checkpoint.MetricsJson,
+                CreatedAtUtc = checkpoint.CreatedAtUtc, CompletedAtUtc = checkpoint.CompletedAtUtc });
+        }
+        else
+        {
+            existing.ExtractSha256 = checkpoint.ExtractSha256; existing.ReplicationSequence = checkpoint.ReplicationSequence;
+            existing.Status = checkpoint.Status; existing.MetricsJson = checkpoint.MetricsJson; existing.CompletedAtUtc = checkpoint.CompletedAtUtc;
+        }
+        await db.SaveChangesAsync(ct);
+    }
+
     public Task ApproveAsync(Guid importId, Guid actorId, string reason, CancellationToken ct = default) =>
         DecideAsync(importId, actorId, reason, PlaceImportStatus.PendingReview, PlaceImportStatus.Approved, "Approved", ct);
 
@@ -215,6 +245,11 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
                 item.Status = "Existing";
                 await LinkObservations(importId, item.SourceRecordId, existingPlaceId, ct);
                 await LinkEnrichments(importId, item.SourceRecordId, existingPlaceId, ct);
+                continue;
+            }
+            if (item.Status == "PendingReview")
+            {
+                item.Status = "RejectedConflict";
                 continue;
             }
             if (item.Latitude is null || item.Longitude is null)

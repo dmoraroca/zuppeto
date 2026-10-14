@@ -2,7 +2,7 @@
 
 ## Iteració 7 — Fase V, governança multiproveïdor
 
-S'ha afegit `/api/admin/place-catalog-governance`, protegit per rol exacte `Admin` i `action.places.manage`. Exposa lectura del dashboard i decisions auditades de matching, conflictes, cicle de vida i revisió de fonts oficials. Wikidata i els esquemes OSM continuen encapsulats als adaptadors d'Infrastructure. Contracte, rutes i validació: [Fase V](iteracio-7-fase-v-cobertura-enriquiment-deduplicacio-ca.md).
+S'ha afegit `/api/admin/place-catalog-governance`, protegit per rol exacte `Admin` i `action.places.manage`. Exposa lectura del dashboard i decisions auditades de matching, conflictes, cicle de vida, revisió de fonts oficials i checkpoints/generacions OSM. Wikidata i els esquemes PBF/OSC continuen encapsulats als adaptadors d'Infrastructure. La migració real i la publicació idempotent de 50 Places d'Arenys han quedat completades. Contracte, rutes i validació: [Fase V](iteracio-7-fase-v-cobertura-enriquiment-deduplicacio-ca.md).
 
 ## Iteració 7 — Fase IV, importació OSM per Geofabrik o Overpass
 

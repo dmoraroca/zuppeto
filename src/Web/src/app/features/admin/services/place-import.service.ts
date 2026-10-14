@@ -22,6 +22,7 @@ export interface PlaceCatalogGovernance {
   conflicts: Array<{id:string;placeId:string;placeName:string;fieldName:string;leftObservationId:string;leftValue:string;leftAuthority:string;leftSource:string;rightObservationId:string;rightValue:string;rightAuthority:string;rightSource:string;status:string;resolutionReason:string;detectedAtUtc:string}>;
   lifecycles: Array<{placeId:string;placeName:string;status:string;history:Array<{id:string;fromStatus:string;toStatus:string;evidence:string[];automatic:boolean;reason:string;createdAtUtc:string}>}>;
   sources: Array<{id:string;sourceKey:string;organisation:string;dataset:string;datasetVersion:string;coverage:string;licenseIdentifier:string;attribution:string;commercialUseAllowed:boolean;permanentStorageAllowed:boolean;approvalStatus:string;reviewedAtUtc:string}>;
+  checkpoints: Array<{id:string;sourceKey:string;regionKey:string;generation:string;extractSha256:string;replicationSequence:number|null;status:string;metricsJson:string;createdAtUtc:string;completedAtUtc:string|null}>;
 }
 
 @Injectable({ providedIn: 'root' })

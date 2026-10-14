@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { chromium } from '@playwright/test';
+import { PilotChromeLauncher } from '../infrastructure/playwright/pilot-chrome-launcher.js';
 
 const webBaseUrl = process.env.E2E_WEB_BASE_URL ?? 'http://localhost:4200';
 const apiBaseUrl = process.env.E2E_API_BASE_URL ?? 'http://localhost:5211';
@@ -24,7 +24,7 @@ interface PlaceSummary {
 interface PlacePage { items: PlaceSummary[]; total: number; }
 
 async function main(): Promise<void> {
-  const browser = await chromium.launch({ headless: true });
+  const browser = await new PilotChromeLauncher().launch(false);
   try {
     const context = await browser.newContext({ baseURL: webBaseUrl });
     const login = await fetch(`${apiBaseUrl}/api/auth/login`, {
@@ -54,14 +54,14 @@ async function main(): Promise<void> {
     });
 
     const response = await context.request.get(`${apiBaseUrl}/api/places`, {
-      params: { countryId, territorialUnitId, take: '50' }
+      params: { countryId, territorialUnitId, take: '100' }
     });
     assert.equal(response.status(), 200);
     const catalog = await response.json() as PlacePage;
-    assert.equal(catalog.total, 15);
-    assert.equal(catalog.items.length, 15);
+    assert.equal(catalog.total, 50);
+    assert.equal(catalog.items.length, 50);
     assert.ok(catalog.items.every(place => place.city === 'Arenys de Mar'));
-    assert.ok(catalog.items.every(place => place.type === 'Restaurant'));
+    assert.deepEqual([...new Set(catalog.items.map(place => place.type))].sort(), ['Bar','Hotel','Park','Restaurant','Service']);
     assert.ok(catalog.items.every(place => place.latitude !== null && place.longitude !== null));
     assert.ok(catalog.items.every(place => place.dataProvenance === 'OpenStreetMap'));
     assert.ok(catalog.items.every(place => place.googlePlaceId === null));
@@ -71,8 +71,9 @@ async function main(): Promise<void> {
     const first = catalog.items[0];
     const page = await context.newPage();
     await page.goto(`/places/${first.id}`, { waitUntil: 'networkidle' });
-    await page.getByRole('heading', { level: 1, name: first.name }).waitFor();
     const bodyText = await page.locator('body').innerText();
+    assert.match(bodyText, new RegExp(first.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+      `El detall no mostra el nom del Place:\n${bodyText}`);
     assert.match(bodyText, /Política pet: Informació pet-friendly desconeguda/,
       `El detall no mostra l'estat pet-friendly desconegut:\n${bodyText}`);
     const attribution = page.getByRole('link', { name: 'OpenStreetMap contributors' });
@@ -82,7 +83,7 @@ async function main(): Promise<void> {
     assert.ok(blockedExternalRequests.every(url => new URL(url).hostname.endsWith('.tile.openstreetmap.org')),
       `Crides externes inesperades del navegador: ${blockedExternalRequests.join(', ')}`);
     await context.close();
-    console.log(`PASS Chrome focalitzat Fase IV: 15 Places d’Arenys des de PostgreSQL, Unknown, ODbL visible, 0 dades Google i ${blockedExternalRequests.length} peticions de tiles bloquejades.`);
+    console.log(`PASS Chrome focalitzat Fase V: 50 Places d’Arenys des de PostgreSQL, cobertura ampliada, Unknown, ODbL visible, 0 dades Google i ${blockedExternalRequests.length} peticions de tiles bloquejades.`);
   } finally {
     await browser.close();
   }

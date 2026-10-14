@@ -1,6 +1,6 @@
 # Model de base de dades (CA)
 
-> Actualització 14.10.2026, Fase V: el model preparat incorpora matching reversible, conflictes per observació, cicle de vida, enriquiments separats i checkpoints regionals. `AddPlaceCatalogCoveragePhase5` només s'ha aplicat a PostgreSQL temporal. [Informe de Fase V](iteracio-7-fase-v-cobertura-enriquiment-deduplicacio-ca.md).
+> Actualització 14.10.2026, Fase V tancada: el model incorpora matching reversible, conflictes per observació, cicle de vida, enriquiments separats i checkpoints regionals. `AddPlaceCatalogCoveragePhase5` està aplicada a PostgreSQL real i Arenys conserva 50 Places després de dues importacions idempotents. [Informe de Fase V](iteracio-7-fase-v-cobertura-enriquiment-deduplicacio-ca.md).
 
 ## Objectiu
 

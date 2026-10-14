@@ -1,6 +1,6 @@
 # Zuppeto - Esquema BBDD (E/R)
 
-> Fase V (14.10.2026): s'ha preparat `AddPlaceCatalogCoveragePhase5` amb decisions de matching, conflictes, cicle de vida, enriquiments, checkpoints i metadades legals de font. La migració ha passat sobre PostgreSQL temporal i el snapshot és coherent, però no s'ha aplicat a PostgreSQL real. [Informe](iteracio-7-fase-v-cobertura-enriquiment-deduplicacio-ca.md).
+> Fase V tancada (14.10.2026): `AddPlaceCatalogCoveragePhase5` està aplicada a PostgreSQL real amb decisions de matching, conflictes, cicle de vida, enriquiments, checkpoints i metadades legals. El backup restaurable, `Up → Down → Up`, la publicació doble idempotent i la integritat territorial han passat; Arenys té 50 Places. [Informe](iteracio-7-fase-v-cobertura-enriquiment-deduplicacio-ca.md).
 
 > Fase IV (14.10.2026): `AddOpenStreetMapPlaceImportPhase4` ha quedat aplicada a PostgreSQL real i afegeix fonts, execucions amb `access_mode`, registres externs, observacions per camp, ítems, incidències i decisions. `openstreetmap + OSM ID` és la identitat comuna de Geofabrik i Overpass. La restauració, la coherència EF i la publicació idempotent han passat. [Tancament](iteracio-7-fase-iv-tancament-ca.md).
 
