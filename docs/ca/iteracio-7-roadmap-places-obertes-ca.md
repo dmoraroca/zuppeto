@@ -2,7 +2,9 @@
 
 ## Estat i objectiu
 
-**FASE 0 COMPLETADA. FASE I AUDITADA. FASE II DOCUMENTADA. FASE III IMPLEMENTADA I VALIDADA EN ENTORN TEMPORAL, PENDENT DE REVISIÓ I MIGRACIÓ REAL AUTORITZADA. FASE IV NO INICIADA.**
+**FASES 0–III COMPLETADES. FASE IV IMPLEMENTADA I VALIDADA AMB EL PILOT REAL GEOFABRIK; REVISIÓ JURÍDICA I MIGRACIÓ REAL NO AUTORITZADA. FASE V NO INICIADA.**
+
+L'estat verificable de la Fase IV és [Pilot OpenStreetMap mitjançant Geofabrik](iteracio-7-fase-iv-openstreetmap-overpass-ca.md). El PBF real de Catalunya ha produït 18 POI d'Arenys de Mar i la mateixa pipeline els ha simulat dues vegades de manera idempotent en PostgreSQL temporal, sense publicar cap Place. Geofabrik és la via batch principal i Overpass queda com a mode auxiliar després del HTTP 504 anterior. La migració no s'ha aplicat a PostgreSQL real.
 
 L'informe verificable de la Fase I és [Iteració 7 — Fase I: auditoria integral de Places](iteracio-7-fase-i-auditoria-places-ca.md). La fase confirma el baseline real, inventaria Google Places, caracteritza backend/PostgreSQL/Angular/E2E i fixa decisions de domini, procedència, deduplicació i llicències. També deixa dos bloquejos prioritaris: el contenidor API en execució és anterior al tall de Google Places i el submit del cercador perd els IDs territorials. Cap dels dos s'ha corregit dins l'auditoria.
 
@@ -122,7 +124,7 @@ L'inventari ha de distingir què és reutilitzable com a port neutral, què requ
 - especificar deduplicació reversible, actualització, rendiment, UX i gates;
 - preparar ADR i plans de correcció, sense implementar-los.
 
-### Fase III — Governança pet-friendly i contractes (**IMPLEMENTADA; VALIDACIÓ PENDENT**)
+### Fase III — Governança pet-friendly i contractes (**COMPLETADA**)
 
 - implementar estats, espècies, condicions, procedència, verificació i `MANUAL > AUTO`;
 - modelar cadenes, vigència, àmbit i excepcions locals;
@@ -130,10 +132,10 @@ L'inventari ha de distingir què és reutilitzable com a port neutral, què requ
 - definir ports neutrals, matriu de fonts i disseny normatiu ES/DE;
 - no connectar ni importar cap font externa.
 
-### Fase IV — Integració de fonts obertes
+### Fase IV — Integració de fonts obertes (**PILOT OSM IMPLEMENTAT; TANCAMENT PENDENT**)
 
 - implementar ports neutrals i adaptadors seleccionats;
-- integrar OpenStreetMap/Overpass, Geoapify i Wikidata només si superen el gate documental;
+- pilotar OpenStreetMap/Overpass en simulació; Geoapify i Wikidata continuen fora d'abast;
 - normalitzar, aplicar cache i persistir únicament allò permès;
 - migrar funcionalitats de Google de manera incremental;
 - retirar Google Places només quan cada substitució estigui validada.

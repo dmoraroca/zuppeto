@@ -10,13 +10,42 @@ public enum PlaceSourceCapability
     ProvenanceVerification = 8, StoragePermissionValidation = 16
 }
 
+public static class OpenStreetMapSource
+{
+    public const string SourceKey = "openstreetmap";
+    public const string OverpassAccessMode = "OSM_OVERPASS";
+    public const string GeofabrikExtractAccessMode = "OSM_GEOFABRIK_EXTRACT";
+}
+
 public sealed record PlaceSourceDescriptor(
-    string SourceKey, PlaceSourceCapability Capabilities,
+    string SourceKey, string AccessMode, PlaceSourceCapability Capabilities,
     IReadOnlyCollection<string> Limitations, string LicenseIdentifier,
     string Attribution, bool PermanentStorageAllowed, DateTimeOffset ReviewedAtUtc);
 
 public sealed record PlaceSourceContext(
-    Guid CountryId, Guid? TerritorialUnitId, string? Cursor, int Limit);
+    Guid CountryId,
+    Guid TerritorialUnitId,
+    string CountryIso2,
+    string TerritorialName,
+    string OfficialCodeScheme,
+    string OfficialCode,
+    IReadOnlyCollection<string> Categories,
+    string? Cursor,
+    int Limit);
+
+public sealed record PlaceSourceScopeEvidence(
+    string Scheme,
+    string ExternalId,
+    string OfficialCode,
+    string Name,
+    bool GeometryVerified,
+    DateTimeOffset ObservedAtUtc);
+
+public sealed record PlaceDiscoveryBatch(
+    PlaceSourceScopeEvidence Scope,
+    IReadOnlyCollection<PlaceSourceDocument> Documents,
+    bool IsPartial,
+    string? Warning);
 
 public sealed record PlaceSourceDocument(
     string SourceKey, string ExternalId, string? SourceVersion,
@@ -31,7 +60,7 @@ public sealed record SourceFieldValue(
 public interface IPlaceSourceConnector { PlaceSourceDescriptor Descriptor { get; } }
 public interface IPlaceDiscoverySource : IPlaceSourceConnector
 {
-    Task<Result<IReadOnlyCollection<PlaceSourceDocument>>> DiscoverAsync(PlaceSourceContext context, CancellationToken cancellationToken);
+    Task<Result<PlaceDiscoveryBatch>> DiscoverAsync(PlaceSourceContext context, CancellationToken cancellationToken);
 }
 public interface IPlaceEnrichmentSource : IPlaceSourceConnector
 {
@@ -61,7 +90,8 @@ public interface IPlaceMatcher
 public sealed record PlaceMediaCandidate(Uri SourceUri, string LicenseIdentifier, string Attribution, bool PersistenceAllowed);
 public sealed record ProvenanceVerification(bool IsVerified, string Method, DateTimeOffset CheckedAtUtc, string? Reason);
 public sealed record StoragePermissionDecision(bool Allowed, string Reason, DateTimeOffset ReviewedAtUtc);
-public sealed record NormalizedPlaceCandidate(string SourceKey, string ExternalId, string Name, Guid CountryId,
-    Guid? TerritorialUnitId, decimal? Latitude, decimal? Longitude, IReadOnlyDictionary<string, SourceFieldValue> Fields);
+public sealed record NormalizedPlaceCandidate(string SourceKey, string ExternalId, string Name, string Category,
+    Guid CountryId, Guid TerritorialUnitId, decimal? Latitude, decimal? Longitude,
+    IReadOnlyDictionary<string, SourceFieldValue> Fields);
 public sealed record PlaceMatchDecision(Guid? PlaceId, string Band, IReadOnlyCollection<string> Signals,
     IReadOnlyCollection<string> Contradictions, bool RequiresHumanReview);

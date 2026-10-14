@@ -48,6 +48,13 @@ public sealed class ZuppetoDbContext(DbContextOptions<ZuppetoDbContext> options)
     public DbSet<ChainPlaceRecord> ChainPlaces => Set<ChainPlaceRecord>();
     public DbSet<ChainPetPolicyRecord> ChainPetPolicies => Set<ChainPetPolicyRecord>();
     public DbSet<PetGovernanceDecisionRecord> PetGovernanceDecisions => Set<PetGovernanceDecisionRecord>();
+    public DbSet<PlaceDatasetSourceRecord> PlaceDatasetSources => Set<PlaceDatasetSourceRecord>();
+    public DbSet<PlaceImportRunRecord> PlaceImportRuns => Set<PlaceImportRunRecord>();
+    public DbSet<PlaceSourceRecord> PlaceSourceRecords => Set<PlaceSourceRecord>();
+    public DbSet<PlaceFieldObservationRecord> PlaceFieldObservations => Set<PlaceFieldObservationRecord>();
+    public DbSet<PlaceImportItemRecord> PlaceImportItems => Set<PlaceImportItemRecord>();
+    public DbSet<PlaceImportIssueRecord> PlaceImportIssues => Set<PlaceImportIssueRecord>();
+    public DbSet<PlaceImportDecisionRecord> PlaceImportDecisions => Set<PlaceImportDecisionRecord>();
 
     public DbSet<PlaceReviewRecord> PlaceReviews => Set<PlaceReviewRecord>();
 

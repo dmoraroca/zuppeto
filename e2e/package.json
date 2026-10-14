@@ -31,6 +31,7 @@
     "e2e:totp": "npm run runner:build && node .runner-build/runner/totp-cli.js",
     "e2e:google-oauth": "npm run runner:build && node .runner-build/runner/google-oauth-cli.js",
     "e2e:pet-governance-phase3": "npm run runner:build && node .runner-build/runner/pet-governance-phase3-cli.js",
+    "e2e:osm-phase4": "npm run runner:build && node .runner-build/runner/osm-place-import-phase4-cli.js",
     "e2e:places-phase-one": "npm run runner:build && node .runner-build/runner/places-phase-one-cli.js"
   },
   "devDependencies": {

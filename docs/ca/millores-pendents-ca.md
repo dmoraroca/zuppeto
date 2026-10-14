@@ -7,13 +7,21 @@ No substitueix `docs/project-phases.md` ni el joc de proves Excel: aquí només 
 
 ---
 
+## 2026-10-14 — Iteració 7, Fase IV OSM/Geofabrik
+
+**Estat:** implementació local i E2E Chrome completats; tancament pendent.
+
+El pilot real Geofabrik ha trobat 18 POI d'Arenys de Mar i la simulació doble passa backend, Angular i PostgreSQL temporal sense duplicar registres de font ni crear Places. Resten la revisió jurídica ODbL, decidir si cal prefiltrat per millorar el temps de lectura i l'autorització separada de migració/publicació. Overpass queda auxiliar; Geoapify, Wikidata i Fase V no s'han iniciat. [Informe](iteracio-7-fase-iv-openstreetmap-overpass-ca.md).
+
+---
+
 ## 2026-10-12 — Iteració 7, Fase II documentada
 
 **Àmbit:** arquitectura de Places, fonts, llicències, protecció de dades i qualitat.
 
 **Estat:** **FASE II DOCUMENTADA / IMPLEMENTACIÓ PENDENT D'AUTORITZACIÓ**.
 
-La Fase III ja implementa i valida el nucli pet-friendly, cadenes, workflow ADMIN, auditoria, correcció d'IDs territorials i coordenades nullable. PostgreSQL temporal i el Chrome focalitzat passen; resta la revisió humana i l'autorització de la migració real. Els adaptadors corresponen a la Fase IV i no s'han iniciat. Cap font s'ha aprovat ni connectat. Referència: [Iteració 7 — Fase III](iteracio-7-fase-iii-governanca-pet-friendly-ca.md). **FET dins l'abast de continuació; tancament formal pendent de migració autoritzada.**
+La Fase III ha implementat i validat el nucli pet-friendly, cadenes, workflow ADMIN, auditoria, correcció d'IDs territorials i coordenades nullable. PostgreSQL temporal i Chrome focalitzat han passat, i les migracions reals s'han aplicat posteriorment amb autorització. La Fase IV ha incorporat després el primer adaptador OSM en mode pilot. Referència: [Iteració 7 — Fase III](iteracio-7-fase-iii-governanca-pet-friendly-ca.md). **FET I TANCAT.**
 
 ---
 

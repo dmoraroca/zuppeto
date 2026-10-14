@@ -1,5 +1,10 @@
 # API (CA)
 
+## Iteració 7 — Fase IV, importació OSM per Geofabrik o Overpass
+
+El grup `/api/admin/place-imports` implementa context, preparació `202 Accepted`, llista, detall, aprovació, publicació simulada i cancel·lació. Exigeix rol exacte `Admin` i `action.places.manage`. El contracte exposa `OSM_GEOFABRIK_EXTRACT` i `OSM_OVERPASS` com a modes d'accés a la font canònica `openstreetmap`; cap esquema PBF o Overpass arriba a Angular. El worker executa la descoberta fora de la petició i la cerca pública no consulta fonts externes. [Contracte i resultats](iteracio-7-fase-iv-openstreetmap-overpass-ca.md).
+
+
 ## Iteració 7 — Fase III, governança de Places
 
 Els contractes Places conserven `countryId` i `territorialUnitId`, retornen coordenades absents com `null` i incorporen `petAccessStatus`, `petSpecies` i `petConditions`. `Unknown` no equival a `NotAllowed`. El grup `/api/admin/pet-governance` cobreix afirmacions, verificació, conflictes, revocació, cadenes, excepcions i historial; exigeix rol `Admin` i `action.places.manage`. Els ports de connectors són interns i no són endpoints públics. Detall a [Fase III](iteracio-7-fase-iii-governanca-pet-friendly-ca.md).

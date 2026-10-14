@@ -1,6 +1,8 @@
 # Document funcional (CA)
 
-> Iteració 7, Fase III (13.10.2026): Places diferencia permès, no permès, només terrassa, desconegut i pendent de revisió. ADMIN ja gestiona procedència, verificacions, conflictes, revocacions, cadenes, excepcions i historial amb `MANUAL verificada > MANUAL > AUTO`. La implementació passa backend, Angular, PostgreSQL temporal i Chrome focalitzat; el tancament formal espera revisió i migració real autoritzada. [Detall funcional](iteracio-7-fase-iii-governanca-pet-friendly-ca.md).
+> Iteració 7, Fase IV (14.10.2026): ADMIN pot escollir Geofabrik o Overpass, preparar i revisar simulacions OSM d'Arenys de Mar per a restaurants/cafeteries, consultar procedència i incidències, aprovar, cancel·lar i completar una publicació simulada. El pilot Geofabrik real ha trobat 18 POI i ha acreditat idempotència; no s'ha publicat cap POI ni aplicat la migració real. [Detall funcional](iteracio-7-fase-iv-openstreetmap-overpass-ca.md).
+
+> Iteració 7, Fase III (13.10.2026): Places diferencia permès, no permès, només terrassa, desconegut i pendent de revisió. ADMIN gestiona procedència, verificacions, conflictes, revocacions, cadenes, excepcions i historial amb `MANUAL verificada > MANUAL > AUTO`. La fase i les migracions reals autoritzades han quedat completades. [Detall funcional](iteracio-7-fase-iii-governanca-pet-friendly-ca.md).
 
 ## Iteració 7 — Fase II, contracte funcional previst
 

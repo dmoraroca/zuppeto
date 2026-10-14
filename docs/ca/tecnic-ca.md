@@ -1,5 +1,7 @@
 # Document tecnic (CA)
 
+> Iteració 7, Fase IV (14.10.2026): implementats els modes `OSM_GEOFABRIK_EXTRACT` i `OSM_OVERPASS`, lector PBF territorial, worker durable PostgreSQL, normalització, matching conservador, staging auditable, endpoints i panell ADMIN. El pilot real ha trobat 18 POI i la simulació doble idempotent ha passat. Regressió backend 132/132, Angular 96/96, `Up → Down → Up` i coherència EF passen. Migració real i publicació no executades. [Informe tècnic](iteracio-7-fase-iv-openstreetmap-overpass-ca.md).
+
 > Iteració 7, Fase III (13.10.2026): implementats domini auditable, prevalença `MANUAL verificada > MANUAL > AUTO`, servei d'aplicació, repositori EF, endpoints ADMIN, cadenes, excepcions i historial. Backend 118/118, regressió PostgreSQL focalitzada 8/8, Angular 93/93, PostgreSQL temporal i Chrome focalitzat 10/10 PASS. Les dues migracions estan aplicades i verificades a PostgreSQL real, amb integritat territorial preservada. [Informe tècnic](iteracio-7-fase-iii-governanca-pet-friendly-ca.md).
 
 ## Iteració 7 — Fase II, arquitectura objectiu de Places

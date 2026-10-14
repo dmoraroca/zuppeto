@@ -16,6 +16,7 @@ using Zuppeto.Infrastructure.TerritorialImports;
 using Zuppeto.Infrastructure.Places;
 using Zuppeto.Infrastructure.RabbitMq;
 using Zuppeto.Infrastructure.Email;
+using Zuppeto.Infrastructure.Places.OpenStreetMap;
 
 namespace Zuppeto.Infrastructure;
 
@@ -87,6 +88,8 @@ public static class DependencyInjection
         services.Configure<GooglePlacesOptions>(configuration.GetSection(GooglePlacesOptions.SectionName));
         services.Configure<GooglePlacesComplianceOptions>(
             configuration.GetSection(GooglePlacesComplianceOptions.SectionName));
+        services.Configure<OverpassOptions>(configuration.GetSection(OverpassOptions.SectionName));
+        services.Configure<GeofabrikExtractOptions>(configuration.GetSection(GeofabrikExtractOptions.SectionName));
         services.AddHostedService<GooglePlacesComplianceRetentionHostedService>();
         services.AddSingleton<PlaceCoverEnrichmentQueue>();
         services.AddSingleton<IPlaceCoverEnrichmentQueue>(sp => sp.GetRequiredService<PlaceCoverEnrichmentQueue>());
@@ -124,6 +127,21 @@ public static class DependencyInjection
             client.Timeout = TimeSpan.FromSeconds(8);
             client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "ZuppetoPlaceEnrichment/1.0");
         });
+        services.AddHttpClient<OverpassPlaceDiscoverySource>((sp, client) =>
+        {
+            var options = sp.GetRequiredService<IOptions<OverpassOptions>>().Value;
+            client.BaseAddress = new Uri(options.BaseUrl);
+            client.Timeout = Timeout.InfiniteTimeSpan;
+            client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "PetiLoc-OSM-Pilot/1.0 (admin import; https://github.com/dmoraroca/zuppeto)");
+        });
+        services.AddScoped<IPlaceDiscoverySource, OverpassPolicyDiscoveryDecorator>();
+        services.AddScoped<IPlaceDiscoverySource, GeofabrikPbfPlaceDiscoverySource>();
+        services.AddScoped<IPlaceSourceNormalizer, OsmPlaceSourceNormalizer>();
+        services.AddScoped<IPlaceStoragePermissionPolicy, OsmStoragePermissionPolicy>();
+        services.AddScoped<IPlaceMatcher, ConservativePlaceMatcher>();
+        services.AddScoped<IPlaceImportRepository, PlaceImportRepository>();
+        services.AddScoped<IPlaceImportWorkQueue, PlaceImportWorkQueue>();
+        services.AddHostedService<PlaceImportWorker>();
         services.AddSingleton<IPlaceCoverStorage, FilePlaceCoverStorage>();
         services.AddScoped<IPasswordHasher, Pbkdf2PasswordHasher>();
         services.AddScoped<IAccessTokenIssuer, JwtAccessTokenIssuer>();

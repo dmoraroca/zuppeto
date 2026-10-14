@@ -1,0 +1,52 @@
+{
+  "version": 0.6,
+  "generator": "PetiLoc deterministic E2E fixture",
+  "elements": [
+    {
+      "type": "relation",
+      "id": 340712,
+      "tags": {
+        "boundary": "administrative",
+        "admin_level": "8",
+        "ref:ine": "08006",
+        "name": "Arenys de Mar"
+      }
+    },
+    {
+      "type": "node",
+      "id": 900000001,
+      "lat": 41.57931,
+      "lon": 2.55148,
+      "tags": {
+        "amenity": "restaurant",
+        "name": "Restaurant Fixture Arenys",
+        "addr:street": "Riera del Bisbe Pol",
+        "addr:housenumber": "1",
+        "addr:postcode": "08350",
+        "opening_hours": "Mo-Su 12:00-23:00",
+        "dog": "yes"
+      }
+    },
+    {
+      "type": "way",
+      "id": 900000002,
+      "center": { "lat": 41.58012, "lon": 2.55073 },
+      "tags": {
+        "amenity": "cafe",
+        "name": "Cafeteria Fixture Arenys",
+        "contact:website": "https://example.invalid/cafeteria",
+        "cat": "outside"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 900000003,
+      "center": { "lat": 41.57888, "lon": 2.55321 },
+      "tags": {
+        "amenity": "restaurant",
+        "name": "Relació Fixture Arenys",
+        "phone": "+34 930 000 000"
+      }
+    }
+  ]
+}

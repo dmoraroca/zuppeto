@@ -4,5 +4,10 @@ public enum FailureKind
 {
     None = 0,
     NotFound,
-    Conflict
+    Conflict,
+    Invalid,
+    ExternalUnavailable,
+    RateLimited,
+    Cancelled,
+    Unauthorized
 }

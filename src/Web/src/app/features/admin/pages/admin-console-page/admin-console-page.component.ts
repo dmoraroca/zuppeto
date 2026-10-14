@@ -43,6 +43,7 @@ import { SectionHeadingComponent } from '../../../../shared/components/section-h
 import { fileToAvatarDataUrl } from '../../../../shared/utils/avatar-image.util';
 import { TerritorialLocationSelectorComponent, TerritorialLocationSelection } from '../../../../shared/components/territorial-location-selector/territorial-location-selector.component';
 import { PetGovernancePanelComponent } from '../../components/pet-governance-panel/pet-governance-panel.component';
+import { PlaceImportPanelComponent } from '../../components/place-import-panel/place-import-panel.component';
 import { PLACE_TYPE_LABELS } from '../../../places/mock/places.fake';
 import {
   AdminMenuCatalog,
@@ -80,7 +81,8 @@ type AvatarSuccessOperation = 'crear' | 'modificar' | 'esborrar';
     SiteFooterComponent,
     SectionHeadingComponent,
     PasswordFieldComponent,
-    PetGovernancePanelComponent
+    PetGovernancePanelComponent,
+    PlaceImportPanelComponent
   ],
   templateUrl: './admin-console-page.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,

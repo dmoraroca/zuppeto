@@ -1,6 +1,8 @@
 # Automatització E2E de Zuppeto
 
-**Iteració 7 — Fase III (2026-10-13):** no s'ha executat regressió multibrowser. El Chrome focalitzat de governança queda pendent d'un entorn API/PostgreSQL aïllat amb `AddPetFriendlyGovernancePhase3`; no s'ha recreat l'API real perquè aplicaria migracions sense autorització. Backend 110/110, PostgreSQL temporal 1/1, reversió EF, Angular 90/90 i build/proves del runner passen. [Informe de Fase III](iteracio-7-fase-iii-governanca-pet-friendly-ca.md).
+**Iteració 7 — Fase IV, OSM/Geofabrik (2026-10-14):** el pilot PBF real ha validat 18 POI d'Arenys i dues simulacions idempotents sobre PostgreSQL temporal: 15 registres de font, 30 ítems, 15 coincidències a la segona execució i 0 Places. Les proves backend cobreixen PBF, frontera, nodes/ways/relations i errors. L'E2E Chrome determinista anterior continua cobrint el mode auxiliar Overpass; no s'ha repetit ni executat la regressió multibrowser en aquesta continuació. [Informe de Fase IV](iteracio-7-fase-iv-openstreetmap-overpass-ca.md).
+
+**Iteració 7 — Fase III (2026-10-13):** Chrome focalitzat de governança 10/10 PASS contra API i PostgreSQL temporals, amb persistència després de recàrrega i 0 crides externes. Backend 118/118 i Angular 93/93 passen; les dues migracions es van aplicar posteriorment a PostgreSQL real amb autorització. No es va executar la regressió multibrowser. [Informe de Fase III](iteracio-7-fase-iii-governanca-pet-friendly-ca.md).
 
 **Iteració 7 — Fase II, arquitectura, llicències i RGPD (2026-10-12):** actuació documental. No s'han modificat Playwright, el runner, l'Excel ni els navegadors, i no s'ha executat cap E2E. Queden definits els casos futurs per IDs territorials, coordenades `null`, governança pet-friendly, procedència/atribució, cerca sense crides externes i errors de connector. La regressió completa Chrome, Firefox i WebKit es manté al final de la Iteració 7.
 
@@ -1196,3 +1198,11 @@ S'ha afegit l'entrada reproduïble `npm run e2e:pet-governance-phase3`, separada
 Resultat final: 10/10 PASS. El recorregut crea un Place amb admissió desconeguda i referències territorials/coordenades nul·les, modifica la política, verifica una afirmació manual, introdueix una font automàtica contradictòria, comprova la precedència manual verificada, revoca, crea i vincula una cadena, registra política general amb evidència, aplica una excepció local i valida la persistència després d'una recàrrega completa de la UI ADMIN. No s'ha executat Firefox, WebKit ni la bateria Chrome completa. No s'ha completat cap crida externa.
 
 La prova elimina el Place temporal; en acabar també s'aturen API i Angular i s'elimina la base temporal completa. La consulta posterior confirma que no existeixen `zuppeto_pet_governance_e2e` ni `zuppeto_pet_governance_tests`. PostgreSQL real no s'ha modificat.
+
+## Iteració 7 — Fase IV, Chrome focalitzat OSM
+
+L'ordre reproduïble és `npm run e2e:osm-phase4`. Requereix `E2E_COUNTRY_ID` i permet fixar `E2E_TERRITORIAL_UNIT_ID`; el pilot usa Arenys de Mar. El backend rep `OpenStreetMap__Overpass__FixturePath` i el runner selecciona explícitament `OSM_OVERPASS`, de manera que l'adaptador auxiliar processa una resposta determinista sense xarxa. El mode principal `OSM_GEOFABRIK_EXTRACT` es valida amb proves backend i PostgreSQL sobre el PBF real, no amb navegador. Playwright bloqueja qualsevol host que no sigui `localhost` o `127.0.0.1`.
+
+La prova prepara una simulació, espera el worker durable, comprova frontera `ref:ine=08006`, els tres tipus d'element OSM, la semàntica de tags pet i l'absència de negació inferida. Després aprova, completa la publicació simulada, repeteix l'import i comprova els duplicats per identitat externa. Finalment recarrega la UI i verifica la persistència.
+
+Resultat: PASS. No s'ha consultat Overpass, no s'ha escrit cap Place, no s'ha executat Firefox/WebKit ni la bateria Chrome completa, i s'han aturat els serveis i eliminat la base temporal.
