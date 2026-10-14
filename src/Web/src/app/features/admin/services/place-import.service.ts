@@ -25,8 +25,9 @@ export class PlaceImportService {
   context(): Promise<PlaceImportContext> { return firstValueFrom(this.http.get<PlaceImportContext>(`${this.url}/context`)); }
   list(): Promise<PlaceImportRun[]> { return firstValueFrom(this.http.get<PlaceImportRun[]>(`${this.url}/`)); }
   get(id: string): Promise<PlaceImportDetails> { return firstValueFrom(this.http.get<PlaceImportDetails>(`${this.url}/${id}`)); }
-  prepare(request: {countryId:string;territorialUnitId:string;categories:string[];accessMode:string;simulationOnly:true}): Promise<PlaceImportRun> { return firstValueFrom(this.http.post<PlaceImportRun>(`${this.url}/`, request)); }
+  prepare(request: {countryId:string;territorialUnitId:string;categories:string[];accessMode:string;simulationOnly:boolean}): Promise<PlaceImportRun> { return firstValueFrom(this.http.post<PlaceImportRun>(`${this.url}/`, request)); }
   approve(id:string,reason:string):Promise<void>{return firstValueFrom(this.http.post<void>(`${this.url}/${id}/approve`,{reason}));}
   simulatePublication(id:string,reason:string):Promise<void>{return firstValueFrom(this.http.post<void>(`${this.url}/${id}/simulate-publication`,{reason}));}
+  publish(id:string,reason:string):Promise<void>{return firstValueFrom(this.http.post<void>(`${this.url}/${id}/publish`,{reason}));}
   cancel(id:string):Promise<void>{return firstValueFrom(this.http.post<void>(`${this.url}/${id}/cancel`,{}));}
 }

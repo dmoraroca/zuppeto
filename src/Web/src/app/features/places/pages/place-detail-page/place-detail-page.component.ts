@@ -104,6 +104,9 @@ export class PlaceDetailPageComponent {
     const provenance = this.place()?.dataProvenance?.trim() ?? '';
     return provenance === 'GooglePlaces' || provenance === 'Mixed';
   });
+  protected readonly showsOpenStreetMapAttribution = computed(() =>
+    this.place()?.dataProvenance?.trim() === 'OpenStreetMap'
+  );
   protected readonly contextDescription = computed(() => {
     const currentPlace = this.place();
     if (!currentPlace || isLocationStubCopy(

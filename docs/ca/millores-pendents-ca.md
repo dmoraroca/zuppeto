@@ -9,9 +9,9 @@ No substitueix `docs/project-phases.md` ni el joc de proves Excel: aquí només 
 
 ## 2026-10-14 — Iteració 7, Fase IV OSM/Geofabrik
 
-**Estat:** implementació local i E2E Chrome completats; tancament pendent.
+**Estat:** **FASE IV TANCADA**; seguiments d'escala i jurídics pendents.
 
-El pilot real Geofabrik ha trobat 18 POI d'Arenys de Mar i la simulació doble passa backend, Angular i PostgreSQL temporal sense duplicar registres de font ni crear Places. Resten la revisió jurídica ODbL, decidir si cal prefiltrat per millorar el temps de lectura i l'autorització separada de migració/publicació. Overpass queda auxiliar; Geoapify, Wikidata i Fase V no s'han iniciat. [Informe](iteracio-7-fase-iv-openstreetmap-overpass-ca.md).
+El pilot real Geofabrik ha trobat 18 POI d'Arenys de Mar, n'ha publicat 15 i n'ha rebutjat 3 sense nom. La migració real, el backup restaurable, la publicació doble idempotent, PostgreSQL i Chrome focalitzat han passat. Resten com a seguiment la revisió jurídica ODbL i decidir amb mètriques si cal prefiltrat per a l'escala. Overpass queda auxiliar; Geoapify, Wikidata i Fase V no s'han iniciat. [Informe](iteracio-7-fase-iv-tancament-ca.md). **FET I TANCAT.**
 
 ---
 

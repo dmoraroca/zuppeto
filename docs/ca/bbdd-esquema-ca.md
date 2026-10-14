@@ -1,6 +1,6 @@
 # Zuppeto - Esquema BBDD (E/R)
 
-> Fase IV (14.10.2026): `AddOpenStreetMapPlaceImportPhase4` afegeix fonts, execucions amb `access_mode`, registres externs, observacions per camp, ítems, incidències i decisions. `openstreetmap + OSM ID` és la identitat comuna de Geofabrik i Overpass. S'ha validat `Up → Down → Up` en PostgreSQL temporal i no hi ha canvis pendents al model EF. La migració no s'ha aplicat a la base real. [Detall](iteracio-7-fase-iv-openstreetmap-overpass-ca.md).
+> Fase IV (14.10.2026): `AddOpenStreetMapPlaceImportPhase4` ha quedat aplicada a PostgreSQL real i afegeix fonts, execucions amb `access_mode`, registres externs, observacions per camp, ítems, incidències i decisions. `openstreetmap + OSM ID` és la identitat comuna de Geofabrik i Overpass. La restauració, la coherència EF i la publicació idempotent han passat. [Tancament](iteracio-7-fase-iv-tancament-ca.md).
 
 > Fase III (13.10.2026): el model pet-friendly, cadenes, evidències i decisions auditades forma part del snapshot EF mitjançant `AddPetFriendlyGovernancePhase3` i `AddPetGovernanceAdminWorkflow`; validat en PostgreSQL temporal amb `Up → Down → Up`, recuperació en un context nou, idempotència i cap canvi de model pendent. Les dues migracions ja estan aplicades i verificades a PostgreSQL real. [Detall](iteracio-7-fase-iii-governanca-pet-friendly-ca.md).
 

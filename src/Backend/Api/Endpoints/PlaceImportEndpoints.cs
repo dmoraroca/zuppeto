@@ -17,6 +17,7 @@ internal static class PlaceImportEndpoints
         group.MapPost("/",Prepare);
         group.MapPost("/{id:guid}/approve",Approve);
         group.MapPost("/{id:guid}/simulate-publication",SimulatePublication);
+        group.MapPost("/{id:guid}/publish",Publish);
         group.MapPost("/{id:guid}/cancel",Cancel);
         return app;
     }
@@ -25,7 +26,7 @@ internal static class PlaceImportEndpoints
         Execute(principal,admin,_=>Task.FromResult<object>(new
         {
             sources=sources.Select(source=>new{key=source.Descriptor.AccessMode,label=source.Descriptor.AccessMode==OpenStreetMapSource.GeofabrikExtractAccessMode?"OpenStreetMap / extracte Geofabrik":"OpenStreetMap / Overpass",license=source.Descriptor.LicenseIdentifier,attribution=source.Descriptor.Attribution}),
-            countries=new[]{"ES"},categories=new[]{new{key="restaurant",label="Restaurants"},new{key="cafe",label="Cafeteries"}},simulationOnly=true
+            countries=new[]{"ES"},categories=new[]{new{key="restaurant",label="Restaurants"},new{key="cafe",label="Cafeteries"}},simulationOnly=false
         }),ct);
     private static Task<IResult> List(ClaimsPrincipal p,IAdminApplicationService a,IPlaceImportApplicationService s,CancellationToken ct)=>Execute(p,a,_=>s.ListAsync(ct),ct);
     private static async Task<IResult> Get(Guid id,ClaimsPrincipal p,IAdminApplicationService a,IPlaceImportApplicationService s,CancellationToken ct)
@@ -35,6 +36,7 @@ internal static class PlaceImportEndpoints
     private static Task<IResult> Prepare(PreparePlaceImportRequest request,ClaimsPrincipal p,IAdminApplicationService a,IPlaceImportApplicationService s,CancellationToken ct)=>Execute(p,a,actor=>s.PrepareAsync(request,actor,ct),ct,true);
     private static Task<IResult> Approve(Guid id,PlaceImportDecisionRequest request,ClaimsPrincipal p,IAdminApplicationService a,IPlaceImportApplicationService s,CancellationToken ct)=>Execute(p,a,async actor=>{await s.ApproveAsync(id,request.Reason,actor,ct);return true;},ct);
     private static Task<IResult> SimulatePublication(Guid id,PlaceImportDecisionRequest request,ClaimsPrincipal p,IAdminApplicationService a,IPlaceImportApplicationService s,CancellationToken ct)=>Execute(p,a,async actor=>{await s.SimulatePublicationAsync(id,request.Reason,actor,ct);return true;},ct);
+    private static Task<IResult> Publish(Guid id,PlaceImportDecisionRequest request,ClaimsPrincipal p,IAdminApplicationService a,IPlaceImportApplicationService s,CancellationToken ct)=>Execute(p,a,async actor=>{await s.PublishAsync(id,request.Reason,actor,ct);return true;},ct);
     private static Task<IResult> Cancel(Guid id,ClaimsPrincipal p,IAdminApplicationService a,IPlaceImportApplicationService s,CancellationToken ct)=>Execute(p,a,async actor=>{await s.CancelAsync(id,actor,ct);return true;},ct);
 
     private static async Task<IResult> Execute<T>(ClaimsPrincipal principal,IAdminApplicationService admin,Func<Guid,Task<T>> action,CancellationToken ct,bool created=false)

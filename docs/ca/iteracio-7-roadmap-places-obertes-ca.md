@@ -2,9 +2,9 @@
 
 ## Estat i objectiu
 
-**FASES 0–III COMPLETADES. FASE IV IMPLEMENTADA I VALIDADA AMB EL PILOT REAL GEOFABRIK; REVISIÓ JURÍDICA I MIGRACIÓ REAL NO AUTORITZADA. FASE V NO INICIADA.**
+**FASES 0–IV COMPLETADES. PILOT REAL GEOFABRIK PUBLICAT A ARENYS DE MAR. FASE V NO INICIADA.**
 
-L'estat verificable de la Fase IV és [Pilot OpenStreetMap mitjançant Geofabrik](iteracio-7-fase-iv-openstreetmap-overpass-ca.md). El PBF real de Catalunya ha produït 18 POI d'Arenys de Mar i la mateixa pipeline els ha simulat dues vegades de manera idempotent en PostgreSQL temporal, sense publicar cap Place. Geofabrik és la via batch principal i Overpass queda com a mode auxiliar després del HTTP 504 anterior. La migració no s'ha aplicat a PostgreSQL real.
+L'estat verificable de la Fase IV és [Tancament de la Fase IV](iteracio-7-fase-iv-tancament-ca.md). El PBF real de Catalunya ha produït 18 POI d'Arenys de Mar: se n'han publicat 15 i se n'han rebutjat 3 sense nom. La segona importació ha estat idempotent. Geofabrik és la via batch principal i Overpass queda com a mode auxiliar després del HTTP 504 anterior.
 
 L'informe verificable de la Fase I és [Iteració 7 — Fase I: auditoria integral de Places](iteracio-7-fase-i-auditoria-places-ca.md). La fase confirma el baseline real, inventaria Google Places, caracteritza backend/PostgreSQL/Angular/E2E i fixa decisions de domini, procedència, deduplicació i llicències. També deixa dos bloquejos prioritaris: el contenidor API en execució és anterior al tall de Google Places i el submit del cercador perd els IDs territorials. Cap dels dos s'ha corregit dins l'auditoria.
 
@@ -132,7 +132,7 @@ L'inventari ha de distingir què és reutilitzable com a port neutral, què requ
 - definir ports neutrals, matriu de fonts i disseny normatiu ES/DE;
 - no connectar ni importar cap font externa.
 
-### Fase IV — Integració de fonts obertes (**PILOT OSM IMPLEMENTAT; TANCAMENT PENDENT**)
+### Fase IV — Integració de fonts obertes (**COMPLETADA**)
 
 - implementar ports neutrals i adaptadors seleccionats;
 - pilotar OpenStreetMap/Overpass en simulació; Geoapify i Wikidata continuen fora d'abast;

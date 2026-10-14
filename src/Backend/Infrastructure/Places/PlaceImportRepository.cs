@@ -2,8 +2,10 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Zuppeto.Application.Places;
 using Zuppeto.Domain.Places;
+using Zuppeto.Domain.Places.ValueObjects;
 using Zuppeto.Infrastructure.Persistence;
 using Zuppeto.Infrastructure.Persistence.Entities;
+using Zuppeto.Infrastructure.Persistence.Mappings;
 
 namespace Zuppeto.Infrastructure.Places;
 
@@ -42,11 +44,13 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
             OfficialCodeScheme = scope.OfficialCodeScheme, OfficialCode = scope.OfficialCode,
             CategoriesJson = JsonSerializer.Serialize(request.Categories, Json), Status = PlaceImportStatus.Prepared.ToString(),
             AccessMode = request.AccessMode,
-            Stage = "Prepared", SimulationOnly = true, CreatedByActorId = actorId, CreatedAtUtc = now, UpdatedAtUtc = now,
+            Stage = "Prepared", SimulationOnly = request.SimulationOnly, CreatedByActorId = actorId, CreatedAtUtc = now, UpdatedAtUtc = now,
             NextAttemptAtUtc = now
         };
         db.PlaceImportRuns.Add(record);
-        db.PlaceImportDecisions.Add(Decision(record.Id, actorId, "Prepared", "Importació OSM preparada en mode simulació.", now));
+        db.PlaceImportDecisions.Add(Decision(record.Id, actorId, "Prepared", request.SimulationOnly
+            ? "Importació OSM preparada en mode simulació."
+            : "Importació OSM real preparada per al pilot controlat d’Arenys de Mar.", now));
         await db.SaveChangesAsync(ct);
         return ToDto(record, source.SourceKey);
     }
@@ -140,6 +144,57 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
     public Task SimulatePublicationAsync(Guid importId, Guid actorId, string reason, CancellationToken ct = default) =>
         DecideAsync(importId, actorId, reason, PlaceImportStatus.Approved, PlaceImportStatus.Published, "SimulationPublished", ct);
 
+    public async Task PublishAsync(Guid importId, Guid actorId, string reason, CancellationToken ct = default)
+    {
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
+        var run = await db.PlaceImportRuns.Include(x => x.Source).SingleAsync(x => x.Id == importId, ct);
+        var current = Enum.Parse<PlaceImportStatus>(run.Status);
+        if (current != PlaceImportStatus.Approved) throw new InvalidOperationException("La importació ha d’estar en estat Approved.");
+        PlaceImportGovernance.EnsureTransition(current, PlaceImportStatus.Published);
+        if (run.SimulationOnly) throw new InvalidOperationException("Una simulació no es pot publicar al catàleg real.");
+        if (run.Source.SourceKey != OpenStreetMapSource.SourceKey
+            || run.AccessMode != OpenStreetMapSource.GeofabrikExtractAccessMode
+            || run.TerritorialUnitId != Guid.Parse("8680aa5a-292f-4201-8d52-d6381f438af4")
+            || run.CountryIso2 != "ES" || run.OfficialCode != "08006")
+            throw new InvalidOperationException("La publicació real no correspon al pilot autoritzat d’Arenys de Mar.");
+        if (await db.PlaceImportIssues.AnyAsync(x => x.ImportRunId == importId && x.Severity == "Error", ct))
+            throw new InvalidOperationException("La importació conté conflictes bloquejants.");
+
+        var items = await db.PlaceImportItems.Include(x => x.SourceRecord)
+            .Where(x => x.ImportRunId == importId).OrderBy(x => x.SourceRecord.ExternalId).ToArrayAsync(ct);
+        var now = DateTimeOffset.UtcNow;
+        foreach (var item in items)
+        {
+            if (item.SourceRecord.CanonicalPlaceId is Guid existingPlaceId)
+            {
+                item.PlaceId = existingPlaceId;
+                item.Status = "Existing";
+                await LinkObservations(importId, item.SourceRecordId, existingPlaceId, ct);
+                continue;
+            }
+            if (item.Latitude is null || item.Longitude is null)
+                throw new InvalidOperationException($"El POI {item.SourceRecord.ExternalId} no té coordenades publicables.");
+
+            var fields = JsonSerializer.Deserialize<Dictionary<string,string>>(item.NormalizedFieldsJson, Json) ?? new();
+            var place = BuildPlace(item, fields, run);
+            var record = PlacePersistenceMapper.ToRecord(place);
+            record.CreatedAtUtc = now;
+            record.UpdatedAtUtc = now;
+            db.Places.Add(record);
+            item.SourceRecord.CanonicalPlaceId = place.Id;
+            item.PlaceId = place.Id;
+            item.Status = "Published";
+            await LinkObservations(importId, item.SourceRecordId, place.Id, ct);
+        }
+
+        run.Status = PlaceImportStatus.Published.ToString();
+        run.Stage = "PublicationCompleted";
+        run.UpdatedAtUtc = now;
+        db.PlaceImportDecisions.Add(Decision(importId, actorId, "Published", reason, now));
+        await db.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
+    }
+
     public async Task CancelAsync(Guid importId, Guid actorId, CancellationToken ct = default)
     {
         var run = await db.PlaceImportRuns.SingleAsync(x => x.Id == importId, ct);
@@ -174,7 +229,7 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
         var current = Enum.Parse<PlaceImportStatus>(run.Status);
         if (current != expected) throw new InvalidOperationException($"La importació ha d’estar en estat {expected}.");
         PlaceImportGovernance.EnsureTransition(current, next);
-        if (next == PlaceImportStatus.Published && !run.SimulationOnly) throw new InvalidOperationException("La publicació real no està autoritzada.");
+        if (next == PlaceImportStatus.Published && !run.SimulationOnly) throw new InvalidOperationException("La importació real s’ha de publicar amb el cas d’ús controlat.");
         var now = DateTimeOffset.UtcNow; run.Status = next.ToString(); run.Stage = next == PlaceImportStatus.Published ? "SimulationCompleted" : "Approved"; run.UpdatedAtUtc = now;
         db.PlaceImportDecisions.Add(Decision(importId, actorId, action, reason, now)); await db.SaveChangesAsync(ct);
     }
@@ -198,6 +253,46 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
 
     private static PlaceImportDecisionRecord Decision(Guid runId, Guid actorId, string action, string reason, DateTimeOffset now) =>
         new() { Id = Guid.NewGuid(), ImportRunId = runId, ActorId = actorId, Action = action, Reason = reason, DecidedAtUtc = now };
+
+    private async Task LinkObservations(Guid importId, Guid sourceRecordId, Guid placeId, CancellationToken ct)
+    {
+        var observations = await db.PlaceFieldObservations
+            .Where(x => x.ImportRunId == importId && x.SourceRecordId == sourceRecordId).ToArrayAsync(ct);
+        foreach (var observation in observations) observation.PlaceId = placeId;
+    }
+
+    private static Place BuildPlace(PlaceImportItemRecord item, IReadOnlyDictionary<string,string> fields, PlaceImportRunRecord run)
+    {
+        var street = fields.GetValueOrDefault("address.street")?.Trim();
+        var houseNumber = fields.GetValueOrDefault("address.housenumber")?.Trim();
+        var address = string.Join(" ", new[] { street, houseNumber }.Where(x => !string.IsNullOrWhiteSpace(x)));
+        if (string.IsNullOrWhiteSpace(address)) address = "Adreça no informada a OpenStreetMap";
+        var (status, species) = PetPolicy(fields);
+        var place = new Place(Guid.NewGuid(), item.Name,
+            item.Category == "restaurant" ? PlaceType.Restaurant : PlaceType.Bar,
+            item.Category == "restaurant" ? "Restaurant a Arenys de Mar." : "Cafeteria a Arenys de Mar.",
+            "Informació procedent d’OpenStreetMap. Confirma la política pet-friendly abans d’anar-hi.", string.Empty,
+            new PostalAddress(address, run.TerritorialName, "Espanya", string.Empty),
+            new GeoLocation(item.Latitude!.Value, item.Longitude!.Value),
+            new Zuppeto.Domain.Places.ValueObjects.PetPolicy(status, species, [],
+                status == PetAccessStatus.Unknown ? "Informació pet-friendly desconeguda" : "Informació pet-friendly d’OpenStreetMap", string.Empty),
+            new Pricing(string.Empty), new RatingSnapshot(0, 0), PlaceDataProvenance.OpenStreetMap,
+            territorialCountryId: run.CountryId, territorialUnitId: run.TerritorialUnitId);
+        return place;
+    }
+
+    private static (PetAccessStatus Status, IReadOnlyCollection<PetSpecies> Species) PetPolicy(IReadOnlyDictionary<string,string> fields)
+    {
+        var species = new List<PetSpecies>();
+        var values = new List<string>();
+        if (fields.TryGetValue("pet.dog", out var dog)) { values.Add(dog); if (dog is "Allowed" or "TerraceOnly") species.Add(PetSpecies.Dog); }
+        if (fields.TryGetValue("pet.cat", out var cat)) { values.Add(cat); if (cat is "Allowed" or "TerraceOnly") species.Add(PetSpecies.Cat); }
+        var status = values.Contains("Allowed") ? PetAccessStatus.Allowed
+            : values.Contains("TerraceOnly") ? PetAccessStatus.TerraceOnly
+            : values.Count > 0 && values.All(x => x == "NotAllowed") ? PetAccessStatus.NotAllowed
+            : PetAccessStatus.Unknown;
+        return (status, species);
+    }
 
     private static PlaceImportRunDto ToDto(PlaceImportRunRecord x, string sourceKey) => new(x.Id, sourceKey, x.AccessMode,
         new(x.CountryId,x.CountryIso2,x.TerritorialUnitId,x.TerritorialName,x.OfficialCodeScheme,x.OfficialCode),

@@ -1,6 +1,6 @@
 # Necessitats de persistencia (CA)
 
-> Fase IV (14.10.2026): ja s'han implementat els registres generals de font, dos modes d'accés OSM, importació durable, observacions per camp, matching, incidències i decisions. El PBF real de Geofabrik s'ha simulat dues vegades de manera idempotent en PostgreSQL temporal. La publicació canònica continua desactivada i la migració no és a PostgreSQL real. [Detall](iteracio-7-fase-iv-openstreetmap-overpass-ca.md).
+> Fase IV (14.10.2026): els registres generals de font, els dos modes d'accés OSM, la importació durable, les observacions per camp, el matching, les incidències i les decisions han quedat implementats. La migració real s'ha aplicat i el pilot Geofabrik ha publicat 15 Places d'Arenys de manera idempotent. [Tancament](iteracio-7-fase-iv-tancament-ca.md).
 
 > Fase III (13.10.2026): implementades les taules d'afirmacions pet-friendly i polítiques de cadena. Els registres generals de font, matching, imports i media continuen reservats a fases posteriors. [Detall](iteracio-7-fase-iii-governanca-pet-friendly-ca.md).
 

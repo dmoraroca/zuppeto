@@ -1,12 +1,12 @@
 <section class="imports" aria-labelledby="place-import-title">
-  <header><div><p class="kicker">Fase IV · Pilot controlat</p><h3 id="place-import-title">Importacions OpenStreetMap</h3></div><span class="badge">Només simulació</span></header>
-  <p>Descobreix restaurants i cafeteries dins una frontera administrativa OSM verificada. Geofabrik és el mode operatiu del pilot i Overpass queda com a mode auxiliar. Aquesta pantalla no publica POI reals.</p>
+  <header><div><p class="kicker">Fase IV · Pilot controlat</p><h3 id="place-import-title">Importacions OpenStreetMap</h3></div><span class="badge">Arenys de Mar</span></header>
+  <p>Valida i publica restaurants i cafeteries d’Arenys de Mar dins la frontera administrativa OSM verificada. La publicació real queda bloquejada per backend per a qualsevol altre municipi, font o categoria.</p>
   @if(error()){<p class="message error" role="alert">{{error()}}</p>} @if(success()){<p class="message success" role="status">{{success()}}</p>}
   <div class="form-grid">
     <app-territorial-location-selector [countryId]="countryId" [localityId]="territorialUnitId" [legacyCountry]="country" [legacyLocality]="locality" [required]="true" [disabled]="loading()" (selectionChange)="selectionChanged($event)" />
     <label>Mode d’accés OSM<select [(ngModel)]="accessMode" [disabled]="loading()">@for(source of context()?.sources??[];track source.key){<option [value]="source.key">{{source.label}}</option>}</select></label>
     <fieldset><legend>Categories</legend><label><input type="checkbox" [(ngModel)]="restaurant"/> Restaurants</label><label><input type="checkbox" [(ngModel)]="cafe"/> Cafeteries</label></fieldset>
-    <button type="button" (click)="prepare()" [disabled]="loading()">Preparar simulació</button>
+    <button type="button" (click)="prepare()" [disabled]="loading()">Preparar pilot</button>
   </div>
   @if(context()?.sources?.[0];as source){<p class="license"><strong>{{source.license}}</strong> · {{source.attribution}} · La qualificació Derivative/Collective Database continua pendent de revisió jurídica.</p>}
   <div class="layout">
@@ -15,7 +15,7 @@
       <dl><dt>Descoberts</dt><dd>{{item.run.discoveredCount}}</dd><dt>Vàlids</dt><dd>{{item.run.validCount}}</dd><dt>Duplicats</dt><dd>{{item.run.duplicateCount}}</dd><dt>Avisos</dt><dd>{{item.run.warningCount}}</dd></dl>
       @if(item.run.errorMessage){<p class="message error">{{item.run.errorCode}} · {{item.run.errorMessage}}</p>}
       <label>Motiu de la decisió<textarea rows="2" [(ngModel)]="reason" placeholder="Justificació auditable"></textarea></label>
-      <div class="actions">@if(item.run.status==='PendingReview'){<button type="button" (click)="approve()">Aprovar simulació</button>}@if(item.run.status==='Approved'){<button type="button" (click)="publish()">Publicar simulació</button>}@if(item.run.status==='Prepared'||item.run.status==='Running'||item.run.status==='PendingReview'){<button class="danger" type="button" (click)="cancel()">Cancel·lar</button>}</div>
+      <div class="actions">@if(item.run.status==='PendingReview'){<button type="button" (click)="approve()">Aprovar importació</button>}@if(item.run.status==='Approved'){<button type="button" (click)="publish()">{{item.run.simulationOnly?'Publicar simulació':'Publicar pilot'}}</button>}@if(item.run.status==='Prepared'||item.run.status==='Running'||item.run.status==='PendingReview'){<button class="danger" type="button" (click)="cancel()">Cancel·lar</button>}</div>
       <h5>Resultats</h5><div class="table-wrap"><table><thead><tr><th>POI</th><th>Categoria</th><th>Identificador</th><th>Matching</th><th>Mascotes</th></tr></thead><tbody>@for(row of item.items;track row.id){<tr><td>{{row.name}}</td><td>{{categoryLabel(row.category)}}</td><td>{{row.externalId}}</td><td>{{row.matchBand}}</td><td>{{row.fields['pet.dog']||row.fields['pet.cat']||'Sense etiqueta'}}</td></tr>}</tbody></table></div>
       @if(item.issues.length){<h5>Incidències</h5><ul>@for(issue of item.issues;track issue.id){<li><strong>{{issue.code}}</strong> · {{issue.message}}</li>}</ul>}
       <h5>Historial</h5><ol>@for(decision of item.history;track decision.id){<li><strong>{{decision.action}}</strong> · {{decision.reason}} <small>{{decision.decidedAtUtc|date:'short'}}</small></li>}</ol>

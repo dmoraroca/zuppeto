@@ -7,5 +7,6 @@ public enum PlaceDataProvenance
 {
     Internal = 0,
     GooglePlaces = 1,
-    Mixed = 2
+    Mixed = 2,
+    OpenStreetMap = 3
 }

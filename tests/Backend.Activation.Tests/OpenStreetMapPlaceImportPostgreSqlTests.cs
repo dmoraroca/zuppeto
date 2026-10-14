@@ -18,6 +18,78 @@ public sealed class OpenStreetMapPlaceImportPostgreSqlTests
     private const string PreviousMigration = "20261013170522_AddPetGovernanceAdminWorkflow";
 
     [Fact]
+    public async Task Final_controlled_Arenys_publishes_real_PBF_twice_idempotently()
+    {
+        var connection = Environment.GetEnvironmentVariable("ZUPPETO_PHASE4_FINAL_DB");
+        var pbf = Environment.GetEnvironmentVariable("ZUPPETO_GEOFABRIK_PBF");
+        if (string.IsNullOrWhiteSpace(connection) || string.IsNullOrWhiteSpace(pbf)) return;
+        var options = new DbContextOptionsBuilder<ZuppetoDbContext>().UseNpgsql(connection).Options;
+        var unitId = Guid.Parse("8680aa5a-292f-4201-8d52-d6381f438af4");
+        await using var baseline = new ZuppetoDbContext(options);
+        var actor = await baseline.Users.Where(x => x.Role == "Admin").OrderBy(x => x.CreatedAtUtc).Select(x => x.Id).FirstAsync();
+        var country = await baseline.Countries.Where(x => x.Iso2 == "ES").Select(x => x.Id).SingleAsync();
+        var esUnits = await baseline.TerritorialUnits.CountAsync(x => x.Country.Iso2 == "ES");
+        var deUnits = await baseline.TerritorialUnits.CountAsync(x => x.Country.Iso2 == "DE");
+        var initialPlaces = await baseline.Places.CountAsync();
+        Assert.Equal(0, initialPlaces);
+        await baseline.DisposeAsync();
+
+        var source = new GeofabrikPbfPlaceDiscoverySource(Options.Create(new GeofabrikExtractOptions
+        { ExtractPath = pbf, SourceVersion = "cataluna-261013;osm-base=2026-10-13T20:21:31Z", MaximumItems = 250 }));
+        var context = new PlaceSourceContext(country, unitId, "ES", "Arenys de Mar", "es:ine:municipality", "08006", ["restaurant", "cafe"], null, 250);
+        var discovery = await source.DiscoverAsync(context, CancellationToken.None);
+        Assert.True(discovery.IsSuccess, discovery.Failure?.Message);
+        Assert.Equal(18, discovery.Value!.Documents.Count);
+
+        var first = await StageAndPublishRealBatch(options, actor, country, unitId, source, discovery.Value!);
+        Assert.Equal(15, first.Run.ValidCount);
+        Assert.Equal(3, first.Run.WarningCount);
+        Assert.Equal(0, first.Run.DuplicateCount);
+        Assert.Equal("Published", first.Run.Status);
+
+        Dictionary<Guid, (string Name, decimal? Latitude, decimal? Longitude, int ManualFields)> firstSnapshot;
+        await using (var afterFirst = new ZuppetoDbContext(options))
+        {
+            firstSnapshot = await afterFirst.Places.AsNoTracking().ToDictionaryAsync(x => x.Id,
+                x => new ValueTuple<string, decimal?, decimal?, int>(x.Name, x.Latitude, x.Longitude, x.ManualFields));
+            Assert.Equal(15, firstSnapshot.Count);
+        }
+
+        var second = await StageAndPublishRealBatch(options, actor, country, unitId, source, discovery.Value!);
+        Assert.Equal(15, second.Run.ValidCount);
+        Assert.Equal(3, second.Run.WarningCount);
+        Assert.Equal(15, second.Run.DuplicateCount);
+        Assert.Equal("Published", second.Run.Status);
+
+        await using var verify = new ZuppetoDbContext(options);
+        Assert.Equal(15, await verify.Places.CountAsync());
+        Assert.Equal(15, await verify.Places.CountAsync(x => x.TerritorialUnitId == unitId && x.TerritorialCountryId == country));
+        Assert.Equal(15, await verify.Places.CountAsync(x => x.DataProvenance == "OpenStreetMap"));
+        Assert.Equal(15, await verify.Places.CountAsync(x => x.PetPolicyStatus == "Unknown"));
+        Assert.Equal(15, await verify.Places.CountAsync(x => x.Latitude != null && x.Longitude != null && x.Latitude != 0 && x.Longitude != 0));
+        Assert.Equal(0, await verify.Places.CountAsync(x => x.TerritorialUnitId != unitId));
+        Assert.Equal(15, await verify.PlaceSourceRecords.CountAsync());
+        Assert.Equal(15, await verify.PlaceSourceRecords.Select(x => x.ExternalId).Distinct().CountAsync());
+        Assert.Equal(15, await verify.PlaceSourceRecords.Where(x => x.CanonicalPlaceId != null).Select(x => x.CanonicalPlaceId).Distinct().CountAsync());
+        Assert.Equal(30, await verify.PlaceImportItems.CountAsync());
+        Assert.Equal(30, await verify.PlaceImportItems.CountAsync(x => x.PlaceId != null));
+        Assert.All(await verify.PlaceFieldObservations.ToArrayAsync(), x =>
+        {
+            Assert.Equal("AUTO", x.Authority);
+            Assert.Equal("ODbL-1.0", x.LicenseIdentifier);
+            Assert.Equal("© OpenStreetMap contributors", x.Attribution);
+            Assert.NotNull(x.PlaceId);
+        });
+        Assert.Equal(2, await verify.PlaceImportDecisions.CountAsync(x => x.Action == "Published"));
+        Assert.Equal(6, await verify.PlaceImportIssues.CountAsync(x => x.Code == "NORMALIZATION" && x.Severity == "Warning"));
+        Assert.Equal(esUnits, await verify.TerritorialUnits.CountAsync(x => x.Country.Iso2 == "ES"));
+        Assert.Equal(deUnits, await verify.TerritorialUnits.CountAsync(x => x.Country.Iso2 == "DE"));
+        var secondSnapshot = await verify.Places.AsNoTracking().ToDictionaryAsync(x => x.Id,
+            x => new ValueTuple<string, decimal?, decimal?, int>(x.Name, x.Latitude, x.Longitude, x.ManualFields));
+        Assert.Equal(firstSnapshot, secondSnapshot);
+    }
+
+    [Fact]
     public async Task Phase4_migrates_round_trips_and_stages_idempotent_simulations_without_places()
     {
         var baseConnection=Environment.GetEnvironmentVariable("ZUPPETO_TERRITORIAL_TEST_DB");if(string.IsNullOrWhiteSpace(baseConnection))return;
@@ -108,6 +180,43 @@ public sealed class OpenStreetMapPlaceImportPostgreSqlTests
             staged.Add(new(document,candidate,match,hash));
         }
         await repository.StageAsync(run.Id,discovery,staged,issues);await queue.CompleteAsync(work.ImportId,"real-pbf-test");
+    }
+
+    private static async Task<PlaceImportDetailsDto> StageAndPublishRealBatch(DbContextOptions<ZuppetoDbContext> options,
+        Guid actor, Guid country, Guid unit, IPlaceDiscoverySource source, PlaceDiscoveryBatch discovery)
+    {
+        await using var db = new ZuppetoDbContext(options);
+        var repository = new PlaceImportRepository(db);
+        var service = new PlaceImportApplicationService(repository);
+        var run = await service.PrepareAsync(new(country, unit, ["restaurant", "cafe"],
+            OpenStreetMapSource.GeofabrikExtractAccessMode, false), actor);
+        var queue = new PlaceImportWorkQueue(db);
+        var work = Assert.IsType<PlaceImportWorkItem>(await queue.ClaimNextAsync("phase4-final", TimeSpan.FromMinutes(5)));
+        var normalizer = new OsmPlaceSourceNormalizer();
+        var policy = new OsmStoragePermissionPolicy();
+        var matcher = new ConservativePlaceMatcher(db);
+        var staged = new List<PlaceImportStagedItem>();
+        var issues = new List<PlaceImportIssueDto>();
+        foreach (var document in discovery.Documents)
+        {
+            Assert.All(document.Fields.Keys, field => Assert.True(policy.Evaluate(source.Descriptor, field).Value!.Allowed));
+            var normalized = normalizer.Normalize(document);
+            if (!normalized.IsSuccess)
+            {
+                issues.Add(new(Guid.NewGuid(), "NORMALIZATION", "Warning", normalized.Failure!.Message, document.ExternalId));
+                continue;
+            }
+            var candidate = normalized.Value! with { CountryId = country, TerritorialUnitId = unit };
+            var match = (await matcher.MatchAsync(candidate, CancellationToken.None)).Value!;
+            var hash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(
+                string.Join('|', candidate.Fields.OrderBy(x => x.Key).Select(x => $"{x.Key}={x.Value.NormalizedValue}"))))).ToLowerInvariant();
+            staged.Add(new(document, candidate, match, hash));
+        }
+        await repository.StageAsync(run.Id, discovery, staged, issues);
+        await queue.CompleteAsync(work.ImportId, "phase4-final");
+        await service.ApproveAsync(run.Id, "Pilot d’Arenys validat abans de la publicació.", actor);
+        await service.PublishAsync(run.Id, "Publicació controlada del pilot OSM/Geofabrik d’Arenys de Mar.", actor);
+        return Assert.IsType<PlaceImportDetailsDto>(await service.GetAsync(run.Id));
     }
 
     private static async Task VerifyExpiredLeaseRecovery(DbContextOptions<ZuppetoDbContext> options,(Guid Actor,Guid Country,Guid Unit) ids)

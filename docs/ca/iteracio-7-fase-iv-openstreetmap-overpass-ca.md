@@ -2,9 +2,11 @@
 
 ## Estat
 
-**PILOT GEOFABRIK REAL I SIMULACIÓ IDEMPOTENT COMPLETATS. OVERPASS ES CONSERVA COM A MODE AUXILIAR. MIGRACIÓ REAL I PUBLICACIÓ DE POI NO AUTORITZADES NI EXECUTADES.**
+**FASE IV COMPLETADA: MIGRACIÓ REAL APLICADA I PILOT GEOFABRIK D’ARENYS PUBLICAT DE MANERA CONTROLADA I IDEMPOTENT. OVERPASS ES CONSERVA COM A MODE AUXILIAR.**
 
 Tall de validació: 14.10.2026. El pilot està restringit a Espanya, Catalunya, Arenys de Mar, restaurants i cafeteries. La cerca pública continua sent PostgreSQL-first i no consulta ni Overpass ni el PBF.
+
+El tancament real, el backup, la restauració, la publicació i la validació posterior es detallen a [Tancament de la Fase IV](iteracio-7-fase-iv-tancament-ca.md).
 
 L'estratègia per evolucionar aquest pilot a Espanya, Alemanya, Europa i, posteriorment, el Regne Unit està documentada a [Estratègia d'escala OSM/Geofabrik](iteracio-7-fase-iv-estrategia-escala-osm-geofabrik-ca.md). La proposta no s'ha implementat i no ha modificat PostgreSQL real.
 
@@ -101,7 +103,7 @@ La qualitat és suficient per demostrar descoberta territorial i pipeline, però
 
 Es normalitzen nom, categoria, adreça, web, telèfon, horaris, marca, operador, coordenades, `dog`, `cat`, `pets`/`pet`, `animals` i `horse`. L'absència d'etiqueta pet continua sent desconeguda, mai `NotAllowed`. Totes les observacions OSM són `AUTO`; les regles `MANUAL_VERIFIED > MANUAL > AUTO` es mantenen intactes.
 
-## 7. Simulació PostgreSQL temporal i idempotència
+## 7. Validació temporal i publicació real idempotent
 
 La pipeline s'ha executat dues vegades amb el mateix extracte real sobre `zuppeto_osm_phase4_tests`:
 
@@ -116,6 +118,8 @@ La pipeline s'ha executat dues vegades amb el mateix extracte real sobre `zuppet
 - base temporal eliminada al final.
 
 La prova sintètica creuada també introdueix el mateix `node/123` primer via `OSM_OVERPASS` i després via `OSM_GEOFABRIK_EXTRACT`: queda un únic registre de font. Això acredita que els modes no són fonts independents de deduplicació.
+
+Després d'aquest gate, la mateixa pipeline real s'ha executat dues vegades sobre PostgreSQL real. La primera execució ha publicat 15 Places; la segona ha detectat les 15 identitats OSM existents i n'ha creat 0 de noves. Els 3 POI sense nom han quedat rebutjats i auditats a cada execució.
 
 ## 8. Geofabrik i Overpass
 
@@ -147,15 +151,16 @@ Els diffs i el directori `cataluna-updates` s'han avaluat documentalment, però 
 
 ## 10. Migració EF Core
 
-`20261013182622_AddOpenStreetMapPlaceImportPhase4` continua sent la migració pendent de Fase IV. Ara incorpora `access_mode` a `place_import_runs`. La font persistent és única per `source_key=openstreetmap`, mentre que el mode queda auditat per execució.
+`20261013182622_AddOpenStreetMapPlaceImportPhase4` ha quedat aplicada a PostgreSQL real. Incorpora `access_mode` a `place_import_runs`. La font persistent és única per `source_key=openstreetmap`, mentre que el mode queda auditat per execució.
 
 Resultats:
 
 - `Up → Down → Up` sobre PostgreSQL temporal: PASS;
 - `dotnet ef migrations has-pending-model-changes`: cap canvi pendent;
-- base real: última migració `20261013170522_AddPetGovernanceAdminWorkflow`;
-- la migració de Fase IV no s'ha aplicat a la base real;
-- la base real no s'ha usat per proves amb escriptura.
+- restauració completa del backup en base temporal: PASS;
+- simulació final sobre la còpia restaurada: PASS;
+- base real: última migració `20261013182622_AddOpenStreetMapPlaceImportPhase4`;
+- publicació real limitada al pilot d'Arenys: PASS.
 
 ## 11. Proves
 
@@ -164,13 +169,14 @@ Resultats:
 | Build API .NET 10 | PASS |
 | Proves PBF/OSM focalitzades | PASS: lectura PBF, frontera, node/way/relation, categories, OSM IDs, tags pet i errors de fitxer |
 | Pilot PBF real | PASS en 1 min 46 s |
-| Regressió backend | PASS, 132/132 |
+| Regressió backend | PASS, 133/133 |
 | PostgreSQL temporal sintètic | PASS: migració, recuperació, cancel·lació i idempotència creuada |
 | PostgreSQL temporal amb PBF real dues vegades | PASS en 1 min 51 s |
 | Proves Angular focalitzades | PASS, 3/3 |
 | Regressió Angular | PASS, 96/96 |
 | Build Angular development | PASS |
 | Build runner E2E | PASS |
+| Chrome focalitzat sobre Places publicats | PASS: 15 Places, `Unknown`, ODbL visible i 0 dades Google |
 | Chrome/Firefox/WebKit complets | no executats, fora d'abast |
 
 El build informa d'advisories ja presents en dependències criptogràfiques de Microsoft; no provenen d'OsmSharp i queden com a incidència de dependències a tractar separadament.
@@ -192,16 +198,8 @@ Geofabrik és distribuïdor; la font continua sent OpenStreetMap sota ODbL 1.0. 
 
 La qualificació final com a Derivative Database o Collective Database i l'abast d'exportabilitat continuen pendents d'assessorament jurídic. No s'han guardat metadades personals de contribuïdors.
 
-## 14. Estat Git i pendents de tancament
+## 14. Estat Git i tancament
 
-El PBF no és al repositori. Hi ha canvis locals de Fase IV i documentació encara sense commit; no s'ha fet commit ni push.
+El PBF i el backup no són al repositori. Hi ha canvis locals de Fase IV i documentació encara sense commit; no s'ha fet commit ni push. Els criteris tècnics de tancament de la tasca 149 han quedat satisfets. La revisió jurídica ODbL i l'optimització d'escala continuen registrades com a seguiment, sense bloquejar aquest pilot controlat.
 
-Per tancar la Fase IV cal:
-
-1. revisar aquest informe i els 18 POI reals;
-2. resoldre el gate jurídic ODbL;
-3. decidir si el temps de lectura de l'extracte complet és acceptable o cal un prefiltrat operacional;
-4. autoritzar separadament la migració de Fase IV a PostgreSQL real;
-5. mantenir la publicació real bloquejada fins a una autorització explícita.
-
-No s'han iniciat la Fase V, Geoapify, Wikidata, Google Places, RabbitMQ, PostGIS ni actualitzacions diàries reals.
+No s'han iniciat la Fase V, Geoapify, Wikidata, Google Places ni actualitzacions diàries reals; tampoc no s'han instal·lat RabbitMQ o PostGIS dins d'aquesta tasca.

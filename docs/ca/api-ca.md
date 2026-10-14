@@ -2,7 +2,7 @@
 
 ## Iteració 7 — Fase IV, importació OSM per Geofabrik o Overpass
 
-El grup `/api/admin/place-imports` implementa context, preparació `202 Accepted`, llista, detall, aprovació, publicació simulada i cancel·lació. Exigeix rol exacte `Admin` i `action.places.manage`. El contracte exposa `OSM_GEOFABRIK_EXTRACT` i `OSM_OVERPASS` com a modes d'accés a la font canònica `openstreetmap`; cap esquema PBF o Overpass arriba a Angular. El worker executa la descoberta fora de la petició i la cerca pública no consulta fonts externes. [Contracte i resultats](iteracio-7-fase-iv-openstreetmap-overpass-ca.md).
+El grup `/api/admin/place-imports` implementa context, preparació `202 Accepted`, llista, detall, aprovació, publicació controlada, simulació i cancel·lació. Exigeix rol exacte `Admin` i `action.places.manage`. `POST /api/admin/place-imports/{id}/publish` només admet el pilot Geofabrik d'Arenys amb la unitat territorial, font i categories autoritzades. El contracte exposa `OSM_GEOFABRIK_EXTRACT` i `OSM_OVERPASS` com a modes d'accés a la font canònica `openstreetmap`; cap esquema PBF o Overpass arriba a Angular. El worker executa la descoberta fora de la petició i la cerca pública no consulta fonts externes. [Contracte i resultats](iteracio-7-fase-iv-tancament-ca.md).
 
 
 ## Iteració 7 — Fase III, governança de Places

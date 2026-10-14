@@ -17,9 +17,10 @@ describe('PlaceImportPanelComponent', () => {
     await fixture.componentInstance.ngOnInit(); fixture.detectChanges();
   });
 
-  it('shows the ODbL source and simulation warning', () => {
+  it('shows the ODbL source and the controlled Arenys scope', () => {
     expect(fixture.nativeElement.textContent).toContain('OpenStreetMap');
-    expect(fixture.nativeElement.textContent).toContain('Només simulació');
+    expect(fixture.nativeElement.textContent).toContain('Arenys de Mar');
+    expect(fixture.nativeElement.textContent).toContain('publicació real queda bloquejada');
     expect(fixture.nativeElement.textContent).toContain('Derivative/Collective Database');
   });
 
@@ -32,7 +33,7 @@ describe('PlaceImportPanelComponent', () => {
   it('prepares both pilot categories with the territorial UUID', async () => {
     (fixture.componentInstance as any).selectionChanged({countryId:'es',country:'Espanya',territorialUnitId:'arenys',locality:'Arenys de Mar'});
     await (fixture.componentInstance as any).prepare(); fixture.detectChanges();
-    expect(api.prepared).toEqual(expect.objectContaining({countryId:'es',territorialUnitId:'arenys',categories:['restaurant','cafe'],simulationOnly:true}));
+    expect(api.prepared).toEqual(expect.objectContaining({countryId:'es',territorialUnitId:'arenys',categories:['restaurant','cafe'],simulationOnly:false}));
   });
 });
 
@@ -42,5 +43,5 @@ class FakeApi {
   async list(){return [];}
   async get(){throw new Error('unused');}
   async prepare(request:unknown){this.prepared=request;return {id:'run'};}
-  async approve(){} async simulatePublication(){} async cancel(){}
+  async approve(){} async simulatePublication(){} async publish(){} async cancel(){}
 }

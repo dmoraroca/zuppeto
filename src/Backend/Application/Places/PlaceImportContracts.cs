@@ -76,6 +76,7 @@ public interface IPlaceImportRepository
     Task CompleteCancellationAsync(Guid importId, CancellationToken cancellationToken = default);
     Task ApproveAsync(Guid importId, Guid actorId, string reason, CancellationToken cancellationToken = default);
     Task SimulatePublicationAsync(Guid importId, Guid actorId, string reason, CancellationToken cancellationToken = default);
+    Task PublishAsync(Guid importId, Guid actorId, string reason, CancellationToken cancellationToken = default);
     Task CancelAsync(Guid importId, Guid actorId, CancellationToken cancellationToken = default);
 }
 
@@ -94,5 +95,6 @@ public interface IPlaceImportApplicationService
     Task<PlaceImportDetailsDto?> GetAsync(Guid importId, CancellationToken cancellationToken = default);
     Task ApproveAsync(Guid importId, string reason, Guid actorId, CancellationToken cancellationToken = default);
     Task SimulatePublicationAsync(Guid importId, string reason, Guid actorId, CancellationToken cancellationToken = default);
+    Task PublishAsync(Guid importId, string reason, Guid actorId, CancellationToken cancellationToken = default);
     Task CancelAsync(Guid importId, Guid actorId, CancellationToken cancellationToken = default);
 }

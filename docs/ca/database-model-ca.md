@@ -2,7 +2,7 @@
 
 ## Objectiu
 
-> Actualització 14.10.2026, Fase IV: el snapshot EF incorpora staging OSM amb set taules de font/importació/observacions, `access_mode` auditable i unicitat `openstreetmap + externalId` compartida per Geofabrik i Overpass. Validació temporal correcta; PostgreSQL real continua sense aquesta migració. [Pilot OSM/Geofabrik](iteracio-7-fase-iv-openstreetmap-overpass-ca.md).
+> Actualització 14.10.2026, Fase IV: el snapshot EF incorpora staging OSM amb set taules de font/importació/observacions, `access_mode` auditable i unicitat `openstreetmap + externalId` compartida per Geofabrik i Overpass. La migració ha quedat aplicada a PostgreSQL real i el pilot ha publicat 15 Places d'Arenys sense duplicats. [Tancament OSM/Geofabrik](iteracio-7-fase-iv-tancament-ca.md).
 
 > Actualització 13.10.2026: la Fase III incorpora `pet_policy_status`, `place_pet_assertions`, `commercial_chains`, `chain_places`, `chain_pet_policies` amb `evidence_uri` i `pet_governance_decisions`; les coordenades de Place són nullable. Les dues migracions s'han validat amb `Up → Down → Up`, són idempotents i ja estan aplicades a PostgreSQL real. Vegeu [governança pet-friendly](iteracio-7-fase-iii-governanca-pet-friendly-ca.md).
 

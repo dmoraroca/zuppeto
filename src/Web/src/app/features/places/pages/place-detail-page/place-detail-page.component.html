@@ -151,6 +151,9 @@
     @if (showsGoogleMapsAttribution()) {
       <p class="place-detail-page__gmp-attr" translate="no">Google Maps</p>
     }
+    @if (showsOpenStreetMapAttribution()) {
+      <p class="place-detail-page__gmp-attr">Dades © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a> · ODbL 1.0</p>
+    }
 
     <section class="place-detail-page__map-block">
       <div class="place-detail-page__map-copy">

@@ -1,6 +1,6 @@
 # Automatització E2E de Zuppeto
 
-**Iteració 7 — Fase IV, OSM/Geofabrik (2026-10-14):** el pilot PBF real ha validat 18 POI d'Arenys i dues simulacions idempotents sobre PostgreSQL temporal: 15 registres de font, 30 ítems, 15 coincidències a la segona execució i 0 Places. Les proves backend cobreixen PBF, frontera, nodes/ways/relations i errors. L'E2E Chrome determinista anterior continua cobrint el mode auxiliar Overpass; no s'ha repetit ni executat la regressió multibrowser en aquesta continuació. [Informe de Fase IV](iteracio-7-fase-iv-openstreetmap-overpass-ca.md).
+**Iteració 7 — Fase IV, OSM/Geofabrik (2026-10-14):** la migració real ha quedat aplicada i el pilot ha publicat 15 Places d'Arenys. Una segona importació ha reutilitzat les 15 identitats OSM sense duplicats ni sobreescriptura manual. El nou Chrome focalitzat ha verificat catàleg PostgreSQL, detall, `Unknown`, atribució ODbL i 0 dades Google; totes les peticions de tiles externes han quedat bloquejades. No s'ha executat la regressió multibrowser. [Tancament de Fase IV](iteracio-7-fase-iv-tancament-ca.md).
 
 **Iteració 7 — Fase III (2026-10-13):** Chrome focalitzat de governança 10/10 PASS contra API i PostgreSQL temporals, amb persistència després de recàrrega i 0 crides externes. Backend 118/118 i Angular 93/93 passen; les dues migracions es van aplicar posteriorment a PostgreSQL real amb autorització. No es va executar la regressió multibrowser. [Informe de Fase III](iteracio-7-fase-iii-governanca-pet-friendly-ca.md).
 
@@ -1200,6 +1200,8 @@ Resultat final: 10/10 PASS. El recorregut crea un Place amb admissió desconegud
 La prova elimina el Place temporal; en acabar també s'aturen API i Angular i s'elimina la base temporal completa. La consulta posterior confirma que no existeixen `zuppeto_pet_governance_e2e` ni `zuppeto_pet_governance_tests`. PostgreSQL real no s'ha modificat.
 
 ## Iteració 7 — Fase IV, Chrome focalitzat OSM
+
+Per al tancament real s'ha afegit `npm run e2e:osm-published-phase4`. El runner inicia sessió ADMIN, consulta l'API pública i valida en Chrome els 15 Places publicats d'Arenys: municipi i unitat territorial exactes, categoria Restaurant, coordenades, procedència OpenStreetMap, estat pet-friendly desconegut, absència de `googlePlaceId` i atribució ODbL visible al detall. Les 10 peticions de tiles del mapa s'han interceptat i avortat; no s'ha completat cap crida externa. Resultat: PASS. Firefox, WebKit i la regressió completa no s'han executat.
 
 L'ordre reproduïble és `npm run e2e:osm-phase4`. Requereix `E2E_COUNTRY_ID` i permet fixar `E2E_TERRITORIAL_UNIT_ID`; el pilot usa Arenys de Mar. El backend rep `OpenStreetMap__Overpass__FixturePath` i el runner selecciona explícitament `OSM_OVERPASS`, de manera que l'adaptador auxiliar processa una resposta determinista sense xarxa. El mode principal `OSM_GEOFABRIK_EXTRACT` es valida amb proves backend i PostgreSQL sobre el PBF real, no amb navegador. Playwright bloqueja qualsevol host que no sigui `localhost` o `127.0.0.1`.
 
