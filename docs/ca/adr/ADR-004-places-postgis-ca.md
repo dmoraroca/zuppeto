@@ -2,7 +2,7 @@
 
 ## Estat
 
-Acceptat: no incorporar PostGIS durant la primera implementació de Places.
+Acceptat i revalidat el 15.10.2026: no incorporar PostGIS durant la Fase VI.
 
 ## Context
 
@@ -31,3 +31,7 @@ El catàleg actual és buit i la selecció principal és país i municipi. Postg
 ## Gate de reconsideració
 
 Caldrà documentar com a mínim una funcionalitat espacial aprovada, dades representatives, comparació de plans i latència, impacte operatiu i proves de migració/reversió.
+
+## Reavaluació de Fase VI
+
+Ja existeixen radi, proximitat, viewport, ordenació per distància i clustering. S'han implementat amb bounding box i distància local a PostgreSQL, Haversine de presentació al backend i tres índexs B-tree. Sobre els 50 Places reals d'Arenys, el pla municipal tarda 0,147 ms i el pla de radi 0,294 ms; l'API calenta queda entre 24 i 40 ms en les mostres de 10 i 50 km. No hi ha evidència de benefici que compensi extensió, tipus espacial, migracions i operació PostGIS. Vegeu [l'informe de Fase VI](../iteracio-7-fase-vi-cercador-mapa-ux-ca.md).

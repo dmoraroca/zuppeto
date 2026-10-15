@@ -12,7 +12,25 @@ internal static class TerritorialLocationEndpoints
             TypedResults.Ok(await service.ListCountriesAsync(ct)));
         group.MapGet("/localities", SearchAsync);
         group.MapPost("/location/validate", ValidateAsync);
+        group.MapGet("/location/nearest", ResolveNearestAsync);
         return app;
+    }
+
+    private static async Task<IResult> ResolveNearestAsync(
+        decimal latitude,
+        decimal longitude,
+        TerritorialLocationService service,
+        CancellationToken ct)
+    {
+        try
+        {
+            var result = await service.ResolveNearestAsync(new TerritorialCoordinateLookupRequest(latitude, longitude), ct);
+            return result is null ? TypedResults.NotFound() : TypedResults.Ok(result);
+        }
+        catch (InvalidOperationException exception)
+        {
+            return TypedResults.BadRequest(new { message = exception.Message });
+        }
     }
 
     private static async Task<IResult> SearchAsync(

@@ -55,7 +55,18 @@ internal static class PlaceEndpoints
                 query.Skip ?? 0,
                 query.Take,
                 query.CountryId,
-                query.TerritorialUnitId),
+                query.TerritorialUnitId,
+                Split(query.Types),
+                Split(query.PetAccessStatuses),
+                query.VerifiedOnly ?? false,
+                query.Sort ?? "Name",
+                query.RadiusKm ?? 0,
+                query.CenterLatitude,
+                query.CenterLongitude,
+                query.North,
+                query.South,
+                query.East,
+                query.West),
             cancellationToken);
 
         return TypedResults.Ok(result);
@@ -191,7 +202,18 @@ internal static class PlaceEndpoints
                 query.Skip ?? 0,
                 query.Take,
                 query.CountryId,
-                query.TerritorialUnitId),
+                query.TerritorialUnitId,
+                Split(query.Types),
+                Split(query.PetAccessStatuses),
+                query.VerifiedOnly ?? false,
+                query.Sort ?? "Name",
+                query.RadiusKm ?? 0,
+                query.CenterLatitude,
+                query.CenterLongitude,
+                query.North,
+                query.South,
+                query.East,
+                query.West),
             cancellationToken);
         return TypedResults.Ok(result.Items);
     }
@@ -302,11 +324,27 @@ internal static class PlaceEndpoints
         int? Skip,
         int? Take,
         Guid? CountryId,
-        Guid? TerritorialUnitId);
+        Guid? TerritorialUnitId,
+        string? Types,
+        string? PetAccessStatuses,
+        bool? VerifiedOnly,
+        string? Sort,
+        int? RadiusKm,
+        decimal? CenterLatitude,
+        decimal? CenterLongitude,
+        decimal? North,
+        decimal? South,
+        decimal? East,
+        decimal? West);
 
     internal sealed record PlaceExternalSearchQuery(
         string? Query,
         string? City,
         string? Type,
         int? Limit);
+
+    private static IReadOnlyCollection<string>? Split(string? values) =>
+        string.IsNullOrWhiteSpace(values)
+            ? null
+            : values.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
 }

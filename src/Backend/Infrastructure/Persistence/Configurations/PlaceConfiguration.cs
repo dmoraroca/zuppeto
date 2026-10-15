@@ -187,6 +187,16 @@ public sealed class PlaceConfiguration : IEntityTypeConfiguration<PlaceRecord>
         builder.HasIndex(place => place.Type)
             .HasDatabaseName("ix_places_type");
 
+        builder.HasIndex(place => new { place.Latitude, place.Longitude })
+            .HasDatabaseName("ix_places_coordinates")
+            .HasFilter("latitude IS NOT NULL AND longitude IS NOT NULL");
+
+        builder.HasIndex(place => new { place.TerritorialUnitId, place.Type, place.PetPolicyStatus, place.Name })
+            .HasDatabaseName("ix_places_public_search");
+
+        builder.HasIndex(place => place.UpdatedAtUtc)
+            .HasDatabaseName("ix_places_updated_at_utc");
+
         builder.ToTable(table =>
         {
             table.HasCheckConstraint("ck_places_pet_policy_status", "pet_policy_status IN ('Allowed','NotAllowed','TerraceOnly','Unknown','PendingReview')");

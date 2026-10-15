@@ -1,5 +1,8 @@
 export type PlaceType = 'bar' | 'restaurant' | 'hotel' | 'apartment' | 'park' | 'service';
 export type PetFilter = 'all' | 'dogs' | 'cats';
+export type PetAccessFilter = 'Allowed' | 'TerraceOnly' | 'Conditional' | 'NotAllowed' | 'Unknown' | 'PendingReview';
+export type PlaceSearchSort = 'distance' | 'verified' | 'recent' | 'name';
+export type PlaceSearchRadius = 0 | 5 | 10 | 20 | 30 | 50;
 
 export interface PlaceCoordinates {
   lat: number;
@@ -39,6 +42,16 @@ export interface Place {
   coverAttribution?: string;
   coverSourceUri?: string;
   categoryLabel?: string;
+  territorialUnitId?: string | null;
+  countryId?: string | null;
+  petAccessStatus?: string;
+  petSpecies?: string[];
+  petConditions?: { code: string; value?: string | null }[];
+  distanceKm?: number | null;
+  isPetPolicyVerified?: boolean;
+  petPolicyVerifiedAtUtc?: string | null;
+  updatedAtUtc?: string | null;
+  businessStatus?: string;
   coordinates: PlaceCoordinates | null;
 }
 
@@ -49,5 +62,16 @@ export interface PlaceFilters {
   countryId?: string;
   territorialUnitId?: string;
   type: string;
+  types?: string[];
   pet: PetFilter;
+  petAccessStatuses?: PetAccessFilter[];
+  verifiedOnly?: boolean;
+  searchSort?: PlaceSearchSort;
+  radiusKm?: PlaceSearchRadius;
+  centerLatitude?: number;
+  centerLongitude?: number;
+  north?: number;
+  south?: number;
+  east?: number;
+  west?: number;
 }

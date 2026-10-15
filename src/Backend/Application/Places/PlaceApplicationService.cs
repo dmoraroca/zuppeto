@@ -16,6 +16,7 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
     private readonly PlaceResponseMapper responseMapper;
     private readonly IOptions<PlaceExternalIntegrationOptions> externalIntegrationOptions;
     private readonly TerritorialLocationService territorialLocations;
+    private readonly IPlacePublicSearchQuery? publicSearchQuery;
 
     public PlaceApplicationService(
         IPlaceRepository placeRepository,
@@ -25,7 +26,8 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
         PlaceSearchPageAssembler searchPageAssembler,
         PlaceResponseMapper responseMapper,
         IOptions<PlaceExternalIntegrationOptions> externalIntegrationOptions,
-        TerritorialLocationService territorialLocations)
+        TerritorialLocationService territorialLocations,
+        IPlacePublicSearchQuery? publicSearchQuery = null)
     {
         this.placeRepository = placeRepository;
         this.placeSearchQueryRepository = placeSearchQueryRepository;
@@ -35,6 +37,7 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
         this.responseMapper = responseMapper;
         this.externalIntegrationOptions = externalIntegrationOptions;
         this.territorialLocations = territorialLocations;
+        this.publicSearchQuery = publicSearchQuery;
     }
 
     private int CoordinateCacheRetentionDays =>
@@ -55,6 +58,11 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
         PlaceSearchRequest request,
         CancellationToken cancellationToken = default)
     {
+        if (request.Take is not null && publicSearchQuery is not null)
+        {
+            return await SearchPublicCatalogAsync(request, cancellationToken);
+        }
+
         var nowUtc = DateTimeOffset.UtcNow;
         var googlePlacesEnabled = externalIntegrationOptions.Value.Enabled;
         var preferExternalFirst =
@@ -128,6 +136,45 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
         return searchPageAssembler.FromPlaces(
             await externalSearchImporter.ImportAsync(request, nowUtc, cancellationToken),
             request);
+    }
+
+    private async Task<PlaceSearchPageDto> SearchPublicCatalogAsync(
+        PlaceSearchRequest request,
+        CancellationToken cancellationToken)
+    {
+        var normalized = request with
+        {
+            Skip = Math.Max(0, request.Skip),
+            Take = Math.Clamp(request.Take ?? 20, 1, 100),
+            RadiusKm = request.RadiusKm is 0 or 5 or 10 or 20 or 30 or 50 ? request.RadiusKm : 0,
+            Sort = request.Sort.Trim().ToLowerInvariant() switch
+            {
+                "distance" => "Distance",
+                "verified" => "Verified",
+                "recent" => "Recent",
+                _ => "Name"
+            },
+            Types = request.Types?.Where(value => !string.IsNullOrWhiteSpace(value)).Select(value => value.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToArray(),
+            PetAccessStatuses = request.PetAccessStatuses?.Where(value => !string.IsNullOrWhiteSpace(value)).Select(value => value.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToArray()
+        };
+
+        var hasViewport = normalized.North is not null && normalized.South is not null &&
+            normalized.East is not null && normalized.West is not null;
+        var hasSelectedMunicipality = normalized.TerritorialUnitId is not null || !string.IsNullOrWhiteSpace(normalized.City);
+        if (!hasViewport && !hasSelectedMunicipality)
+        {
+            return new PlaceSearchPageDto([], 0, normalized.Skip, normalized.Take.Value, false);
+        }
+
+        var result = await publicSearchQuery!.SearchAsync(normalized, cancellationToken);
+        var items = result.Items.Select(responseMapper.ToSummary).ToArray();
+        return new PlaceSearchPageDto(
+            items,
+            result.Total,
+            normalized.Skip,
+            normalized.Take.Value,
+            normalized.Skip + items.Length < result.Total,
+            new PlaceSearchMapDto(result.CenterLatitude, result.CenterLongitude, normalized.RadiusKm, result.Areas));
     }
 
     public async Task<IReadOnlyCollection<PlaceSearchHistoryDto>> GetRecentSearchesAsync(

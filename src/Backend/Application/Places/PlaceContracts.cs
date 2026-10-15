@@ -9,14 +9,39 @@ public sealed record PlaceSearchRequest(
     int Skip = 0,
     int? Take = null,
     Guid? CountryId = null,
-    Guid? TerritorialUnitId = null);
+    Guid? TerritorialUnitId = null,
+    IReadOnlyCollection<string>? Types = null,
+    IReadOnlyCollection<string>? PetAccessStatuses = null,
+    bool VerifiedOnly = false,
+    string Sort = "Name",
+    int RadiusKm = 0,
+    decimal? CenterLatitude = null,
+    decimal? CenterLongitude = null,
+    decimal? North = null,
+    decimal? South = null,
+    decimal? East = null,
+    decimal? West = null);
 
 public sealed record PlaceSearchPageDto(
     IReadOnlyCollection<PlaceSummaryDto> Items,
     int Total,
     int Skip,
     int Take,
-    bool HasMore);
+    bool HasMore,
+    PlaceSearchMapDto? Map = null);
+
+public sealed record PlaceSearchMapDto(
+    decimal? CenterLatitude,
+    decimal? CenterLongitude,
+    int RadiusKm,
+    IReadOnlyCollection<PlaceMapAreaDto> Areas);
+
+public sealed record PlaceMapAreaDto(
+    Guid TerritorialUnitId,
+    string Name,
+    decimal? Latitude,
+    decimal? Longitude,
+    int PlaceCount);
 
 public sealed record PlaceSearchHistoryDto(
     string SearchText,
@@ -130,7 +155,12 @@ public sealed record PlaceSummaryDto(
     Guid? TerritorialUnitId = null,
     string PetAccessStatus = "Unknown",
     IReadOnlyCollection<string>? PetSpecies = null,
-    IReadOnlyCollection<PetConditionDto>? PetConditions = null);
+    IReadOnlyCollection<PetConditionDto>? PetConditions = null,
+    decimal? DistanceKm = null,
+    bool IsPetPolicyVerified = false,
+    DateTimeOffset? PetPolicyVerifiedAtUtc = null,
+    DateTimeOffset? UpdatedAtUtc = null,
+    string BusinessStatus = "Open");
 
 public sealed record PlaceDetailDto(
     Guid Id,
@@ -171,4 +201,28 @@ public sealed record PlaceDetailDto(
     Guid? TerritorialUnitId = null,
     string PetAccessStatus = "Unknown",
     IReadOnlyCollection<string>? PetSpecies = null,
-    IReadOnlyCollection<PetConditionDto>? PetConditions = null);
+    IReadOnlyCollection<PetConditionDto>? PetConditions = null,
+    bool IsPetPolicyVerified = false,
+    DateTimeOffset? PetPolicyVerifiedAtUtc = null,
+    DateTimeOffset? UpdatedAtUtc = null,
+    string BusinessStatus = "Open");
+
+public sealed record PlacePublicSearchRow(
+    Domain.Places.Place Place,
+    decimal? DistanceKm,
+    bool IsPetPolicyVerified,
+    DateTimeOffset? PetPolicyVerifiedAtUtc,
+    DateTimeOffset UpdatedAtUtc,
+    string BusinessStatus);
+
+public sealed record PlacePublicSearchResult(
+    IReadOnlyCollection<PlacePublicSearchRow> Items,
+    int Total,
+    IReadOnlyCollection<PlaceMapAreaDto> Areas,
+    decimal? CenterLatitude,
+    decimal? CenterLongitude);
+
+public interface IPlacePublicSearchQuery
+{
+    Task<PlacePublicSearchResult> SearchAsync(PlaceSearchRequest request, CancellationToken cancellationToken = default);
+}

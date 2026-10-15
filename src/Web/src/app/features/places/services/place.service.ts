@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
-import { catchError, of } from 'rxjs';
+import { catchError, fromEvent, of, takeUntil } from 'rxjs';
 import { firstValueFrom } from 'rxjs';
 
 import { API_BASE_URL } from '../../../core/config/api.config';
@@ -84,7 +84,22 @@ export class PlaceService {
   }
 
   getAvailableTypes(): { value: string; label: string }[] {
-    return Object.entries(PLACE_TYPE_LABELS).map(([value, label]) => ({ value, label }));
+    return [
+      { value: 'restaurant', label: 'Restaurants' },
+      { value: 'cafe', label: 'Cafeteries' },
+      { value: 'bar', label: 'Bars' },
+      { value: 'pub', label: 'Pubs' },
+      { value: 'fast_food', label: 'Fast food' },
+      { value: 'hotel', label: 'Hotels' },
+      { value: 'hostel', label: 'Hostals' },
+      { value: 'camping', label: 'Càmpings' },
+      { value: 'park', label: 'Parcs' },
+      { value: 'shop', label: 'Comerços' },
+      { value: 'veterinary', label: 'Veterinaris' },
+      { value: 'dog_grooming', label: 'Perruqueries canines' },
+      { value: 'pet_service', label: 'Serveis pet' },
+      { value: 'service', label: 'Altres serveis' }
+    ];
   }
 
   getEuropeanCountries(): string[] {
@@ -147,29 +162,31 @@ export class PlaceService {
   async searchPage(
     filters: PlaceFilters,
     skip: number,
-    take = PLACE_LIST_PAGE_SIZE
+    take = PLACE_LIST_PAGE_SIZE,
+    abortSignal?: AbortSignal
   ): Promise<PlaceSearchPage> {
     let params = this.buildPlacesQueryParams(filters);
     params = params.set('skip', String(Math.max(0, skip))).set('take', String(take));
 
+    const request = this.http
+      .get<PlaceSearchPageDto | PlaceApiSummaryDto[]>(`${API_BASE_URL}/places`, { params })
+      .pipe(catchError(() => of({ items: [], total: 0, skip, take, hasMore: false })));
     const payload = await firstValueFrom(
-      this.http
-        .get<PlaceSearchPageDto | PlaceApiSummaryDto[]>(`${API_BASE_URL}/places`, { params })
-        .pipe(catchError(() => of({ items: [], total: 0, skip, take, hasMore: false })))
+      abortSignal ? request.pipe(takeUntil(fromEvent(abortSignal, 'abort'))) : request
     );
 
     const page = normalizePlacesPage(payload, skip, take);
     const mapped = page.items.map((place) => this.toPlace(place));
-    const items = filterPlaces(mapped, { pet: filters.pet });
     this.placesState.update((existing) => this.mergePlacesById(existing, mapped));
     this.loadedState.set(true);
 
     return {
-      items,
+      items: mapped,
       total: page.total,
       skip: page.skip,
       take: page.take,
-      hasMore: page.hasMore
+      hasMore: page.hasMore,
+      map: page.map
     };
   }
 
@@ -240,6 +257,9 @@ export class PlaceService {
       city.length >= 2 ||
       type.length > 0 ||
       (countryId.length > 0 && territorialUnitId.length > 0) ||
+      (filters.types?.length ?? 0) > 0 ||
+      (filters.petAccessStatuses?.length ?? 0) > 0 ||
+      !!filters.verifiedOnly ||
       filters.pet !== 'all'
     );
   }
@@ -270,6 +290,34 @@ export class PlaceService {
 
     if (type.length > 0) {
       params = params.set('type', type);
+    }
+
+    if (filters.types?.length) {
+      params = params.set('types', filters.types.join(','));
+    }
+
+    if (filters.petAccessStatuses?.length) {
+      params = params.set('petAccessStatuses', filters.petAccessStatuses.join(','));
+    }
+
+    if (filters.verifiedOnly) {
+      params = params.set('verifiedOnly', 'true');
+    }
+
+    params = params.set('sort', filters.searchSort ?? 'name');
+    params = params.set('radiusKm', String(filters.radiusKm ?? 0));
+    const numericParameters: [string, number | undefined][] = [
+      ['centerLatitude', filters.centerLatitude],
+      ['centerLongitude', filters.centerLongitude],
+      ['north', filters.north],
+      ['south', filters.south],
+      ['east', filters.east],
+      ['west', filters.west]
+    ];
+    for (const [key, value] of numericParameters) {
+      if (value !== undefined && Number.isFinite(value)) {
+        params = params.set(key, String(value));
+      }
     }
 
     if (filters.pet !== 'all') {
@@ -326,6 +374,16 @@ export class PlaceService {
       coverAttribution: place.coverAttribution ?? '',
       coverSourceUri: place.coverSourceUri ?? '',
       categoryLabel: place.categoryLabel?.trim() ?? '',
+      countryId: place.countryId,
+      territorialUnitId: place.territorialUnitId,
+      petAccessStatus: place.petAccessStatus ?? 'Unknown',
+      petSpecies: [...(place.petSpecies ?? [])],
+      petConditions: [...(place.petConditions ?? [])],
+      distanceKm: place.distanceKm,
+      isPetPolicyVerified: place.isPetPolicyVerified ?? false,
+      petPolicyVerifiedAtUtc: place.petPolicyVerifiedAtUtc,
+      updatedAtUtc: place.updatedAtUtc,
+      businessStatus: place.businessStatus ?? 'Open',
       coordinates: place.latitude === null || place.longitude === null ? null : {
         lat: place.latitude,
         lng: place.longitude
@@ -408,6 +466,16 @@ interface PlaceApiSummaryDto {
   coverAttribution?: string | null;
   coverSourceUri?: string | null;
   categoryLabel?: string | null;
+  countryId?: string | null;
+  territorialUnitId?: string | null;
+  petAccessStatus?: string | null;
+  petSpecies?: string[] | null;
+  petConditions?: { code: string; value?: string | null }[] | null;
+  distanceKm?: number | null;
+  isPetPolicyVerified?: boolean;
+  petPolicyVerifiedAtUtc?: string | null;
+  updatedAtUtc?: string | null;
+  businessStatus?: string | null;
 }
 
 interface PlaceSearchPageDto {
@@ -416,6 +484,22 @@ interface PlaceSearchPageDto {
   skip: number;
   take: number;
   hasMore: boolean;
+  map?: PlaceSearchMap | null;
+}
+
+export interface PlaceSearchMapArea {
+  territorialUnitId: string;
+  name: string;
+  latitude: number | null;
+  longitude: number | null;
+  placeCount: number;
+}
+
+export interface PlaceSearchMap {
+  centerLatitude: number | null;
+  centerLongitude: number | null;
+  radiusKm: number;
+  areas: PlaceSearchMapArea[];
 }
 
 export interface PlaceSearchPage {
@@ -424,6 +508,7 @@ export interface PlaceSearchPage {
   skip: number;
   take: number;
   hasMore: boolean;
+  map?: PlaceSearchMap | null;
 }
 
 function unwrapPlacesPayload(
@@ -457,7 +542,8 @@ function normalizePlacesPage(
     total: payload.total ?? 0,
     skip: payload.skip ?? skip,
     take: payload.take ?? take,
-    hasMore: !!payload.hasMore
+    hasMore: !!payload.hasMore,
+    map: payload.map
   };
 }
 

@@ -5,6 +5,7 @@ import { API_BASE_URL } from '../../core/config/api.config';
 
 export interface TerritorialCountryOption { id: string; code: string; name: string; }
 export interface TerritorialLocalityOption { id: string; countryId: string; name: string; context: string; locale: string | null; }
+export interface TerritorialLocationSelection { countryId: string; country: string; territorialUnitId: string; locality: string; }
 interface Page<T> { items: T[]; }
 
 @Injectable({ providedIn: 'root' })
@@ -23,5 +24,10 @@ export class TerritorialLocationService {
 
   validate(countryId: string, territorialUnitId: string): Promise<void> {
     return firstValueFrom(this.http.post<void>(`${this.url}/location/validate`, { countryId, territorialUnitId }));
+  }
+
+  nearest(latitude: number, longitude: number): Promise<TerritorialLocationSelection> {
+    const params = new HttpParams().set('latitude', latitude).set('longitude', longitude);
+    return firstValueFrom(this.http.get<TerritorialLocationSelection>(`${this.url}/location/nearest`, { params }));
   }
 }

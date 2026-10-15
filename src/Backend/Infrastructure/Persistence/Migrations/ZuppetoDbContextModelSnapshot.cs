@@ -1596,6 +1596,16 @@ namespace Infrastructure.Persistence.Migrations
                     b.HasIndex("Type")
                         .HasDatabaseName("ix_places_type");
 
+                    b.HasIndex("UpdatedAtUtc")
+                        .HasDatabaseName("ix_places_updated_at_utc");
+
+                    b.HasIndex("Latitude", "Longitude")
+                        .HasDatabaseName("ix_places_coordinates")
+                        .HasFilter("latitude IS NOT NULL AND longitude IS NOT NULL");
+
+                    b.HasIndex("TerritorialUnitId", "Type", "PetPolicyStatus", "Name")
+                        .HasDatabaseName("ix_places_public_search");
+
                     b.ToTable("places", null, t =>
                         {
                             t.HasCheckConstraint("ck_places_pet_policy_status", "pet_policy_status IN ('Allowed','NotAllowed','TerraceOnly','Unknown','PendingReview')");

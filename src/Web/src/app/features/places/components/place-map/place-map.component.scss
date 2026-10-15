@@ -51,6 +51,10 @@
   border: 1px solid rgba(15, 118, 110, 0.18);
 }
 
+.place-map__actions .place-map__viewport-button {
+  background: #b45309;
+}
+
 .place-map__canvas {
   width: 100%;
   margin-top: 0.9rem;
@@ -90,6 +94,47 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--yp-color-primary-dark);
+}
+
+:host ::ng-deep .place-map__pet-pin {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 3px solid #fff;
+  border-radius: 55% 55% 55% 12%;
+  transform: rotate(-45deg);
+  color: #0f172a;
+  background: #94a3b8;
+  box-shadow: 0 5px 14px rgba(15, 23, 42, 0.32);
+}
+
+:host ::ng-deep .place-map__pet-pin > span {
+  transform: rotate(45deg);
+  font-size: 17px;
+  line-height: 1;
+}
+
+:host ::ng-deep .place-map__pet-pin--allowed { background: #4ade80; }
+:host ::ng-deep .place-map__pet-pin--conditional { background: #fbbf24; }
+:host ::ng-deep .place-map__pet-pin--denied { background: #f87171; }
+:host ::ng-deep .place-map__pet-pin--unknown { background: #cbd5e1; }
+
+:host ::ng-deep .place-map__pet-pin--selected {
+  width: 42px;
+  height: 42px;
+  border-width: 4px;
+  outline: 4px solid #0f766e;
+  box-shadow: 0 8px 22px rgba(15, 118, 110, 0.48);
+}
+
+:host ::ng-deep .place-map__cluster-label,
+:host ::ng-deep .place-map__municipality-marker + .leaflet-tooltip {
+  border: 0;
+  border-radius: 999px;
+  font-weight: 850;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.18);
 }
 
 @media (max-width: 720px) {

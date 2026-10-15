@@ -9,8 +9,10 @@ import { FavoritesService } from '../../../favorites/services/favorites.service'
 import { PlaceCardComponent } from '../../components/place-card/place-card.component';
 import { PlaceFiltersComponent } from '../../components/place-filters/place-filters.component';
 import { PlaceMapComponent } from '../../components/place-map/place-map.component';
+import { PlaceMapViewport } from '../../components/place-map/place-map.component';
 import { Place, PlaceFilters } from '../../models/place.model';
-import { PLACE_LIST_PAGE_SIZE, PlaceService } from '../../services/place.service';
+import { TerritorialLocationService } from '../../../../shared/services/territorial-location.service';
+import { PLACE_LIST_PAGE_SIZE, PlaceSearchMapArea, PlaceService } from '../../services/place.service';
 import { resolveCityMapFocus } from '../../utils/city-map-focus';
 import { formatCityDisplayLabel, mergeCityLabelsDistinct } from '../../utils/city-typeahead.utils';
 import { parsePetFilter } from '../../utils/place-list-filter';
@@ -38,10 +40,13 @@ export class PlacesPageComponent {
   private readonly router = inject(Router);
   private readonly placeService = inject(PlaceService);
   private readonly favoritesService = inject(FavoritesService);
+  private readonly territorialLocations = inject(TerritorialLocationService);
   private readonly selectedPlaceIdState = signal<string | null>(null);
   private readonly queryParams = toSignal(this.route.queryParamMap, {
     initialValue: this.route.snapshot.queryParamMap
   });
+  protected readonly geolocationState = signal<'idle' | 'locating' | 'ready' | 'denied' | 'unavailable'>('idle');
+  protected readonly nearbyLabel = signal('');
 
   protected readonly filters = computed<PlaceFilters>(() => {
     const map = this.queryParams();
@@ -52,7 +57,12 @@ export class PlacesPageComponent {
       countryId: (map.get('countryId') ?? '').trim(),
       territorialUnitId: (map.get('territorialUnitId') ?? '').trim(),
       type: (map.get('type') ?? '').trim(),
-      pet: parsePetFilter(map.get('pet'))
+      types: splitParam(map.get('types')),
+      pet: parsePetFilter(map.get('pet')),
+      petAccessStatuses: splitParam(map.get('petPolicies')) as PlaceFilters['petAccessStatuses'],
+      verifiedOnly: map.get('verified') === 'true',
+      searchSort: parseSort(map.get('sort')),
+      radiusKm: parseRadius(map.get('radius'))
     };
   });
 
@@ -60,6 +70,7 @@ export class PlacesPageComponent {
   protected readonly listingTotal = signal(0);
   protected readonly listingHasMore = signal(false);
   protected readonly listingLoading = signal(false);
+  protected readonly mapAreas = signal<PlaceSearchMapArea[]>([]);
   private readonly catalogCities = signal<string[]>([]);
   private readonly placeApiCities = signal<string[]>([]);
   private readonly availableCountries = signal<string[]>([]);
@@ -71,9 +82,15 @@ export class PlacesPageComponent {
     countryId: (this.route.snapshot.queryParamMap.get('countryId') ?? '').trim(),
     territorialUnitId: (this.route.snapshot.queryParamMap.get('territorialUnitId') ?? '').trim(),
     type: (this.route.snapshot.queryParamMap.get('type') ?? '').trim(),
-    pet: parsePetFilter(this.route.snapshot.queryParamMap.get('pet'))
+    types: splitParam(this.route.snapshot.queryParamMap.get('types')),
+    pet: parsePetFilter(this.route.snapshot.queryParamMap.get('pet')),
+    petAccessStatuses: splitParam(this.route.snapshot.queryParamMap.get('petPolicies')) as PlaceFilters['petAccessStatuses'],
+    verifiedOnly: this.route.snapshot.queryParamMap.get('verified') === 'true',
+    searchSort: parseSort(this.route.snapshot.queryParamMap.get('sort')),
+    radiusKm: parseRadius(this.route.snapshot.queryParamMap.get('radius'))
   });
   private listingRequest = 0;
+  private listingAbort?: AbortController;
 
   constructor() {
     effect(() => {
@@ -115,7 +132,7 @@ export class PlacesPageComponent {
   });
   /** Stable keys for control-flow @for (avoid NG0956 when labels share text across updates). */
   protected readonly activeFilterChips = computed(() => {
-    const { country, city, type, pet, search } = this.filters();
+    const { country, city, type, types, pet, search, radiusKm, petAccessStatuses, verifiedOnly } = this.filters();
     const chips: { id: string; label: string }[] = [];
 
     if (country.trim()) {
@@ -129,6 +146,11 @@ export class PlacesPageComponent {
     if (type.trim()) {
       chips.push({ id: 'type', label: `Tipus: ${this.placeService.resolveTypeLabel(type)}` });
     }
+
+    if (types?.length) chips.push({ id: 'types', label: `Categories: ${types.length}` });
+    if (radiusKm) chips.push({ id: 'radius', label: `${city || 'Municipi'} + ${radiusKm} km` });
+    if (petAccessStatuses?.length) chips.push({ id: 'policies', label: `Polítiques: ${petAccessStatuses.length}` });
+    if (verifiedOnly) chips.push({ id: 'verified', label: 'Només verificats' });
 
     if (pet !== 'all') {
       chips.push({
@@ -224,7 +246,16 @@ export class PlacesPageComponent {
         countryId: next.countryId?.trim() || null,
         territorialUnitId: next.territorialUnitId?.trim() || null,
         type: type || null,
-        pet: next.pet !== 'all' ? next.pet : null
+        types: next.types?.length ? next.types.join(',') : null,
+        pet: next.pet !== 'all' ? next.pet : null,
+        petPolicies: next.petAccessStatuses?.length ? next.petAccessStatuses.join(',') : null,
+        verified: next.verifiedOnly ? 'true' : null,
+        sort: next.searchSort && next.searchSort !== 'name' ? next.searchSort : null,
+        radius: next.radiusKm ? next.radiusKm : null,
+        north: next.north ?? null,
+        south: next.south ?? null,
+        east: next.east ?? null,
+        west: next.west ?? null
       }
     });
   }
@@ -242,7 +273,10 @@ export class PlacesPageComponent {
   }
 
   protected clearAllFilters(): void {
-    const empty: PlaceFilters = { search: '', country: '', city: '', type: '', pet: 'all' };
+    const empty: PlaceFilters = {
+      search: '', country: '', city: '', type: '', types: [], pet: 'all',
+      petAccessStatuses: [], verifiedOnly: false, searchSort: 'name', radiusKm: 0
+    };
     this.draftFilters.set(empty);
     this.applyFilters(empty);
   }
@@ -258,6 +292,18 @@ export class PlacesPageComponent {
 
     this.selectedPlaceIdState.set(placeId);
     queueMicrotask(() => this.scrollToListedPlace(placeId));
+  }
+
+  protected searchInViewport(viewport: PlaceMapViewport): void {
+    const next: PlaceFilters = {
+      ...this.filters(),
+      city: '',
+      territorialUnitId: '',
+      radiusKm: 0,
+      ...viewport
+    };
+    this.draftFilters.set(next);
+    this.applyFilters(next);
   }
 
   protected async showNextPlaces(): Promise<void> {
@@ -309,11 +355,13 @@ export class PlacesPageComponent {
 
   private async reloadListing(filters: PlaceFilters): Promise<void> {
     const requestId = ++this.listingRequest;
+    this.listingAbort?.abort();
+    this.listingAbort = new AbortController();
     this.listingLoading.set(true);
     this.selectedPlaceIdState.set(null);
 
     try {
-      const page = await this.placeService.searchPage(filters, 0, PLACE_LIST_PAGE_SIZE);
+      const page = await this.placeService.searchPage(filters, 0, PLACE_LIST_PAGE_SIZE, this.listingAbort.signal);
       if (requestId !== this.listingRequest) {
         return;
       }
@@ -321,7 +369,11 @@ export class PlacesPageComponent {
       this.listingPlaces.set(page.items);
       this.listingTotal.set(page.total);
       this.listingHasMore.set(page.hasMore);
+      this.mapAreas.set(page.map?.areas ?? []);
       void this.refreshMissingCovers(filters, requestId);
+    } catch (error) {
+      if (this.listingAbort.signal.aborted) return;
+      throw error;
     } finally {
       if (requestId === this.listingRequest) {
         this.listingLoading.set(false);
@@ -387,12 +439,72 @@ export class PlacesPageComponent {
 
     void this.router.navigate(['/places', selectedPlaceId], {
       queryParams: {
+        ...this.currentSearchQueryParams(),
         fromMap: true
       }
     });
   }
 
+  protected useMyLocation(): void {
+    if (!('geolocation' in navigator)) {
+      this.geolocationState.set('unavailable');
+      return;
+    }
+
+    this.geolocationState.set('locating');
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const location = await this.territorialLocations.nearest(position.coords.latitude, position.coords.longitude);
+          this.nearbyLabel.set(`A prop meu — ${location.locality}`);
+          this.geolocationState.set('ready');
+          this.draftFilters.update((current) => ({
+            ...current,
+            countryId: location.countryId,
+            territorialUnitId: location.territorialUnitId,
+            country: location.country,
+            city: location.locality
+          }));
+        } catch {
+          this.geolocationState.set('unavailable');
+        }
+      },
+      () => this.geolocationState.set('denied'),
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
+    );
+  }
+
+  protected currentSearchQueryParams(): Record<string, string | number | null> {
+    const filters = this.filters();
+    return {
+      search: filters.search || null,
+      country: filters.country || null,
+      city: filters.city || null,
+      countryId: filters.countryId || null,
+      territorialUnitId: filters.territorialUnitId || null,
+      types: filters.types?.length ? filters.types.join(',') : null,
+      pet: filters.pet !== 'all' ? filters.pet : null,
+      petPolicies: filters.petAccessStatuses?.length ? filters.petAccessStatuses.join(',') : null,
+      verified: filters.verifiedOnly ? 'true' : null,
+      sort: filters.searchSort !== 'name' ? filters.searchSort ?? null : null,
+      radius: filters.radiusKm || null
+    };
+  }
+
   private getPetContext(pet: PlaceFilters['pet']): string {
     return pet === 'dogs' ? 'per a gossos' : 'per a gats';
   }
+}
+
+function splitParam(value: string | null): string[] {
+  return (value ?? '').split(',').map((item) => item.trim()).filter(Boolean);
+}
+
+function parseRadius(value: string | null): PlaceFilters['radiusKm'] {
+  const radius = Number(value ?? 0);
+  return [0, 5, 10, 20, 30, 50].includes(radius) ? radius as PlaceFilters['radiusKm'] : 0;
+}
+
+function parseSort(value: string | null): PlaceFilters['searchSort'] {
+  return value === 'distance' || value === 'verified' || value === 'recent' ? value : 'name';
 }

@@ -1,3 +1,4 @@
+import { DatePipe } from '@angular/common';
 import { Component, computed, effect, inject, ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -25,6 +26,7 @@ import {
   selector: 'app-place-detail-page',
   imports: [
     RouterLink,
+    DatePipe,
     SiteHeaderComponent,
     SiteFooterComponent,
     FavoriteToggleButtonComponent,
@@ -73,9 +75,19 @@ export class PlaceDetailPageComponent {
       .slice(0, 3);
   });
   protected readonly backToPlacesQueryParams = computed(() => {
-    const currentPlace = this.place();
+    const params = this.queryParams();
+    const preserved: Record<string, string> = {};
+    for (const key of params.keys) {
+      if (key === 'fromMap') continue;
+      const value = params.get(key);
+      if (value) preserved[key] = value;
+    }
 
-    return currentPlace ? { city: currentPlace.city } : {};
+    if (Object.keys(preserved).length === 0) {
+      const currentPlace = this.place();
+      if (currentPlace) preserved['city'] = currentPlace.city;
+    }
+    return preserved;
   });
   protected readonly cameFromMap = computed(() => this.queryParams().get('fromMap') === 'true');
   protected readonly hasPetPolicy = computed(() => {
@@ -135,6 +147,15 @@ export class PlaceDetailPageComponent {
   protected readonly hasQuickContext = computed(
     () => this.contextDescription().length > 0 || this.contextTags().length > 0
   );
+  protected readonly petStatusLabel = computed(() => {
+    switch (this.place()?.petAccessStatus) {
+      case 'Allowed': return 'Accepta mascotes';
+      case 'TerraceOnly': return 'Només terrassa';
+      case 'NotAllowed': return 'No admet mascotes';
+      case 'PendingReview': return 'Pendent de revisió';
+      default: return 'Desconegut';
+    }
+  });
 
   protected toggleFavorite(placeId: string): void {
     this.favoritesService.toggle(placeId);
@@ -146,6 +167,10 @@ export class PlaceDetailPageComponent {
 
   protected getTypeLabel(type: string): string {
     return this.placeService.resolveTypeLabel(type);
+  }
+
+  protected conditionLabels(conditions: { code: string; value?: string | null }[]): string {
+    return conditions.map((condition) => condition.value || condition.code).join(' · ');
   }
 
   protected get placeAsArray() {

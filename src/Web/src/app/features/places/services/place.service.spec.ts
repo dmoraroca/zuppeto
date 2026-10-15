@@ -87,6 +87,30 @@ describe('PlaceService phase I characterization', () => {
     ]);
   });
 
+  it('sends Phase VI radius, multiselect, policy, verification and ordering to PostgreSQL', async () => {
+    const promise = service.searchPage({
+      search: '', country: 'Espanya', city: 'Arenys de Mar', type: '', pet: 'all',
+      countryId: 'country-es', territorialUnitId: 'arenys',
+      types: ['restaurant', 'bar'], petAccessStatuses: ['Allowed', 'Unknown'],
+      verifiedOnly: true, searchSort: 'distance', radiusKm: 10
+    }, 0, 20);
+    const request = http.expectOne((candidate) => candidate.url.endsWith('/api/places'));
+
+    expect(request.request.params.get('types')).toBe('restaurant,bar');
+    expect(request.request.params.get('petAccessStatuses')).toBe('Allowed,Unknown');
+    expect(request.request.params.get('verifiedOnly')).toBe('true');
+    expect(request.request.params.get('sort')).toBe('distance');
+    expect(request.request.params.get('radiusKm')).toBe('10');
+
+    request.flush({
+      items: [{ ...placeDto(), distanceKm: 1.25, isPetPolicyVerified: true, petAccessStatus: 'Allowed' }],
+      total: 1, skip: 0, take: 20, hasMore: false
+    });
+    await expect(promise).resolves.toEqual(expect.objectContaining({
+      items: [expect.objectContaining({ distanceKm: 1.25, isPetPolicyVerified: true, petAccessStatus: 'Allowed' })]
+    }));
+  });
+
   it('turns a public network failure into an empty result without inventing places', async () => {
     const promise = service.fetchPublicPlaces({ city: 'Abadín' });
     http.expectOne((candidate) => candidate.url.endsWith('/api/places')).flush(

@@ -1,5 +1,7 @@
 # Document tecnic (CA)
 
+> Iteració 7, Fase VI (15.10.2026): s'ha separat el read model públic, amb filtres, radi, recompte, ordenació i paginació a PostgreSQL, peticions Angular cancel·lables i mapa Leaflet per nivells de zoom. PostGIS s'ha descartat en aquest gate amb plans de 0,147/0,294 ms. [Informe tècnic](iteracio-7-fase-vi-cercador-mapa-ux-ca.md).
+
 > Iteració 7, Fase V (14.10.2026): s'han implementat mapping OSM ampliat, connector Wikidata CC0, matching multiproveïdor reversible, conflictes, estats de vida, govern de fonts i prototip d'índex Geofabrik. Backend 139/139, Angular 96/96, build, EF i Chrome focalitzat han passat. La migració real i l'aplicador de diffs diaris continuen pendents. [Informe tècnic](iteracio-7-fase-v-cobertura-enriquiment-deduplicacio-ca.md).
 
 > Iteració 7, Fase IV (14.10.2026): implementats els modes `OSM_GEOFABRIK_EXTRACT` i `OSM_OVERPASS`, lector PBF territorial, worker durable PostgreSQL, normalització, matching conservador, staging auditable, endpoints i panell ADMIN. La migració real s'ha aplicat i el pilot ha publicat 15 Places d'Arenys; la segona importació ha estat idempotent. Regressió backend 133/133, Angular 96/96, coherència EF i Chrome focalitzat han passat. [Tancament tècnic](iteracio-7-fase-iv-tancament-ca.md).

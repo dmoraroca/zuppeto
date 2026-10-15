@@ -278,6 +278,7 @@ public sealed record TerritorialLocalityOptionDto(Guid Id, Guid CountryId, strin
 public sealed record TerritorialLocalitySuggestionDto(Guid Id, Guid CountryId, string Country, string Name, string Context, string? Locale);
 public sealed record TerritorialLocationValidationRequest(Guid CountryId, Guid TerritorialUnitId);
 public sealed record TerritorialLocationSelectionDto(Guid CountryId, string Country, Guid TerritorialUnitId, string Locality);
+public sealed record TerritorialCoordinateLookupRequest(decimal Latitude, decimal Longitude);
 
 public interface ITerritorialAdminRepository
 {
@@ -308,4 +309,9 @@ public interface ITerritorialLocationRepository
     Task<PageResult<TerritorialLocalityOptionDto>> SearchLocalitiesAsync(Guid countryId, string? search, int page, int pageSize, CancellationToken cancellationToken = default);
     Task<IReadOnlyCollection<TerritorialLocalitySuggestionDto>> SearchPublishedLocalitiesAsync(string? search, int limit, CancellationToken cancellationToken = default);
     Task<TerritorialLocationSelectionDto> ResolveSelectionAsync(Guid countryId, Guid territorialUnitId, CancellationToken cancellationToken = default);
+    Task<TerritorialLocationSelectionDto?> ResolveNearestAsync(
+        decimal latitude,
+        decimal longitude,
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult<TerritorialLocationSelectionDto?>(null);
 }

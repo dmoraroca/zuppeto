@@ -18,32 +18,90 @@
       [localityId]="filters().territorialUnitId || ''"
       [legacyCountry]="filters().country"
       [legacyLocality]="filters().city"
+      [allowedCountryCodes]="['ES', 'DE']"
       (selectionChange)="onTerritorialSelection($event)"
     />
   }
 
   @if (showType()) {
-    <label class="place-filters__standard place-filters__type">
-      <span>{{ typeLabel() }}</span>
-      <select [value]="filters().type" (change)="onType($event)">
-        <option value="">Tots</option>
+    <fieldset class="place-filters__group place-filters__categories">
+      <legend>
+        Categories
+        <span>{{ (filters().types ?? []).length }} seleccionades</span>
+      </legend>
+      <div class="place-filters__chips">
         @for (type of types(); track type.value) {
-          <option [value]="type.value">{{ type.label }}</option>
+          <label class="place-filters__chip" [class.place-filters__chip--active]="(filters().types ?? []).includes(type.value)">
+            <input
+              type="checkbox"
+              [checked]="(filters().types ?? []).includes(type.value)"
+              (change)="toggleType(type.value)"
+            />
+            <span>{{ type.label }}</span>
+          </label>
         }
+      </div>
+    </fieldset>
+  }
+
+  @if (showPet()) {
+    <fieldset class="place-filters__group place-filters__policies">
+      <legend>Política pet-friendly</legend>
+      <div class="place-filters__chips">
+        @for (policy of petPolicies; track policy.value) {
+          <label
+            class="place-filters__chip place-filters__chip--policy"
+            [class.place-filters__chip--active]="(filters().petAccessStatuses ?? []).includes(policy.value)"
+            [title]="policy.hint"
+          >
+            <input
+              type="checkbox"
+              [checked]="(filters().petAccessStatuses ?? []).includes(policy.value)"
+              (change)="togglePetPolicy(policy.value)"
+            />
+            <span>{{ policy.label }}</span>
+          </label>
+        }
+      </div>
+    </fieldset>
+
+    <label class="place-filters__standard place-filters__pet">
+      <span>Espècie</span>
+      <select [value]="filters().pet" (change)="onPet($event)">
+        <option value="all">Totes</option>
+        <option value="dogs">Gossos</option>
+        <option value="cats">Gats</option>
       </select>
     </label>
   }
 
-  @if (showPet()) {
-    <label class="place-filters__standard place-filters__pet">
-      <span>Mascota</span>
-      <select [value]="filters().pet" (change)="onPet($event)">
-        <option value="all" [selected]="filters().pet === 'all'">Totes</option>
-        <option value="dogs" [selected]="filters().pet === 'dogs'">Només gossos</option>
-        <option value="cats" [selected]="filters().pet === 'cats'">Només gats</option>
+  <fieldset class="place-filters__group place-filters__radius">
+    <legend>Radi de cerca <strong>{{ filters().radiusKm ?? 0 }} km</strong></legend>
+    <div class="place-filters__radius-options">
+      @for (radius of radii; track radius) {
+        <label [class.place-filters__radius-option--active]="(filters().radiusKm ?? 0) === radius">
+          <input type="radio" name="search-radius" [value]="radius" [checked]="(filters().radiusKm ?? 0) === radius" (change)="onRadius($event)" />
+          <span>{{ radius === 0 ? 'Només municipi' : radius + ' km' }}</span>
+        </label>
+      }
+    </div>
+  </fieldset>
+
+  <div class="place-filters__quality">
+    <label class="place-filters__verified">
+      <input type="checkbox" [checked]="filters().verifiedOnly ?? false" (change)="onVerified($event)" />
+      <span><strong>Només informació verificada</strong><small>Exclou dades exclusivament automàtiques</small></span>
+    </label>
+    <label class="place-filters__standard">
+      <span>Ordena per</span>
+      <select [value]="filters().searchSort ?? 'name'" (change)="onPublicSort($event)">
+        <option value="distance">Més propers</option>
+        <option value="verified">Millor verificats</option>
+        <option value="recent">Actualitzats recentment</option>
+        <option value="name">Nom</option>
       </select>
     </label>
-  }
+  </div>
 
   @if (showSort()) {
     <label class="place-filters__standard place-filters__sort">

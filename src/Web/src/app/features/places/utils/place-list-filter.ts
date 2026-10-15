@@ -8,7 +8,12 @@ export const DEFAULT_PLACE_FILTERS: PlaceFilters = {
   country: '',
   city: '',
   type: '',
-  pet: 'all'
+  pet: 'all',
+  types: [],
+  petAccessStatuses: [],
+  verifiedOnly: false,
+  searchSort: 'name',
+  radiusKm: 0
 };
 
 /** Query `pet` from Inici chips (`dogs` / `cats`) or the Llocs combo. */

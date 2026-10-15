@@ -7,6 +7,21 @@
   </section>
 
   <form class="places-page__search" (submit)="onSearchSubmit($event)">
+    <section class="places-page__nearby" aria-live="polite">
+      <div>
+        <strong>{{ nearbyLabel() || 'Vols començar a prop teu?' }}</strong>
+        @if (geolocationState() === 'denied') {
+          <span>Permís no concedit. Pots seleccionar país i municipi manualment.</span>
+        } @else if (geolocationState() === 'unavailable') {
+          <span>No hem pogut determinar el municipi. La selecció manual continua disponible.</span>
+        } @else {
+          <span>La posició exacta només s’utilitza per trobar el municipi i no es desa.</span>
+        }
+      </div>
+      <button type="button" [disabled]="geolocationState() === 'locating'" (click)="useMyLocation()">
+        {{ geolocationState() === 'locating' ? 'Localitzant…' : '📍 A prop meu' }}
+      </button>
+    </section>
     <app-place-filters
       [filters]="draftFilters()"
       [pinCities]="pinCities()"
@@ -31,6 +46,7 @@
   <section class="places-page__map-block">
     <app-place-map
       [places]="mapPlaces()"
+      [areas]="mapAreas()"
       [selectedPlaceId]="selectedPlaceId()"
       [focusCenter]="cityMapFocus()"
       height="25rem"
@@ -38,6 +54,7 @@
       emptyCopy="Quan els filtres retornin llocs, també els veuràs aquí."
       (placeSelected)="openPlaceFromMap($event)"
       (selectionCleared)="clearMapSelection()"
+      (viewportSearch)="searchInViewport($event)"
     />
 
     <div class="places-page__map-selection">
@@ -104,6 +121,7 @@
           [favorite]="isFavorite(place.id)"
           [showFavoriteAction]="canWriteFavorites()"
           [selected]="selectedPlaceId() === place.id"
+          [detailQueryParams]="currentSearchQueryParams()"
           (favoriteToggled)="toggleFavorite($event)"
           (placeClicked)="openPlaceFromMap($event)"
         />

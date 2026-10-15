@@ -356,4 +356,13 @@ public sealed class TerritorialLocationService(ITerritorialLocationRepository re
             throw new InvalidOperationException("El país i la localitat són obligatoris.");
         return repository.ResolveSelectionAsync(countryId, territorialUnitId, ct);
     }
+
+    public Task<TerritorialLocationSelectionDto?> ResolveNearestAsync(
+        TerritorialCoordinateLookupRequest request,
+        CancellationToken ct = default)
+    {
+        if (request.Latitude is < -90 or > 90 || request.Longitude is < -180 or > 180)
+            throw new InvalidOperationException("Les coordenades no són vàlides.");
+        return repository.ResolveNearestAsync(request.Latitude, request.Longitude, ct);
+    }
 }

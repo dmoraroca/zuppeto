@@ -30,6 +30,9 @@
       @if (place().neighborhood?.trim()) {
         · {{ place().neighborhood }}
       }
+      @if (place().distanceKm != null) {
+        · {{ place().distanceKm!.toFixed(1) }} km
+      }
     </p>
     <p class="place-card__copy">{{ place().shortDescription }}</p>
     @if (hasPrice() || hasPetPolicy()) {
@@ -46,6 +49,22 @@
       </p>
     }
 
+    <div class="place-card__trust">
+      <span class="place-card__pet-status" [attr.data-tone]="petStatus().tone">
+        <span aria-hidden="true">{{ petStatus().icon }}</span> {{ petStatus().label }}
+      </span>
+      @if (place().isPetPolicyVerified) {
+        <span class="place-card__verified" title="Informació pet-friendly revisada amb evidència">
+          ✓ Verificada
+          @if (place().petPolicyVerifiedAtUtc) {
+            · {{ place().petPolicyVerifiedAtUtc | date:'dd/MM/yyyy' }}
+          }
+        </span>
+      } @else {
+        <span class="place-card__unverified">No verificada</span>
+      }
+    </div>
+
     @if (place().tags.length) {
       <div class="place-card__tags">
         @for (tag of place().tags; track tag) {
@@ -56,7 +75,7 @@
 
     <div class="place-card__actions">
       <div class="place-card__links">
-        <a class="place-card__link" [routerLink]="['/places', place().id]">Veure detall</a>
+        <a class="place-card__link" [routerLink]="['/places', place().id]" [queryParams]="detailQueryParams()">Veure detall</a>
         @if (showCityExploreLink() && place().city.trim()) {
           <a
             class="place-card__link place-card__link--city"

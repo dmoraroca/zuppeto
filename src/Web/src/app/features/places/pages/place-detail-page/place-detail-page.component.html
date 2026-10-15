@@ -118,6 +118,44 @@
         @if (selectedPlace.petNotes?.trim()) {
           <p><strong>Notes per mascotes:</strong> {{ selectedPlace.petNotes }}</p>
         }
+        <p><strong>Estat pet-friendly:</strong> {{ petStatusLabel() }}</p>
+        @if (selectedPlace.petSpecies?.length) {
+          <p><strong>Espècies:</strong> {{ selectedPlace.petSpecies!.join(', ') }}</p>
+        }
+        @if (selectedPlace.petConditions?.length) {
+          <p><strong>Condicions:</strong> {{ conditionLabels(selectedPlace.petConditions!) }}</p>
+        }
+        @if (selectedPlace.isPetPolicyVerified) {
+          <p>
+            <strong>Verificació:</strong> Informació verificada
+            @if (selectedPlace.petPolicyVerifiedAtUtc) {
+              el {{ selectedPlace.petPolicyVerifiedAtUtc | date:'dd/MM/yyyy' }}
+            }
+          </p>
+        } @else {
+          <p><strong>Verificació:</strong> Informació encara no verificada</p>
+        }
+      </article>
+
+      <article class="place-detail-page__card">
+        <h2>Procedència i estat</h2>
+        <p><strong>Procedència:</strong> {{ selectedPlace.dataProvenance }}</p>
+        <p><strong>Estat del negoci:</strong> {{ selectedPlace.businessStatus || 'Obert' }}</p>
+        @if (selectedPlace.updatedAtUtc) {
+          <p><strong>Darrera actualització:</strong> {{ selectedPlace.updatedAtUtc | date:'dd/MM/yyyy' }}</p>
+        }
+        @if (selectedPlace.coordinates) {
+          <p><strong>Coordenades:</strong> {{ selectedPlace.coordinates.lat }}, {{ selectedPlace.coordinates.lng }}</p>
+        }
+      </article>
+
+      <article class="place-detail-page__card place-detail-page__regulation">
+        <p class="place-detail-page__eyebrow">Espai preparat per a una fase futura</p>
+        <h2>Normativa sobre mascotes</h2>
+        <p>
+          Aquí es mostrarà la normativa oficial aplicable del país, la regió, el municipi i la categoria
+          de l’establiment, amb font i data de verificació. Encara no hi ha cap connector legislatiu actiu.
+        </p>
       </article>
 
       @if (featureChips().length) {

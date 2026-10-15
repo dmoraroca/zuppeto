@@ -36,6 +36,7 @@ export class TerritorialLocationSelectorComponent implements OnInit, OnChanges, 
   readonly disabled = input(false);
   readonly legacyCountry = input('');
   readonly legacyLocality = input('');
+  readonly allowedCountryCodes = input<string[]>([]);
   readonly countryIdChange = output<string>();
   readonly localityIdChange = output<string>();
   readonly selectionChange = output<TerritorialLocationSelection>();
@@ -75,7 +76,13 @@ export class TerritorialLocationSelectorComponent implements OnInit, OnChanges, 
     this.activeCountryId = this.countryId();
     this.selectedLocalityId = this.localityId();
     this.query = this.selectedLocalityId ? this.legacyLocality() : '';
-    try { this.countries = await this.locations.countries(); }
+    try {
+      const allowed = new Set(this.allowedCountryCodes().map((code) => code.toUpperCase()));
+      const countries = await this.locations.countries();
+      this.countries = allowed.size
+        ? countries.filter((country) => allowed.has((country.code || '').toUpperCase()))
+        : countries;
+    }
     catch { this.error = 'No s’han pogut carregar els països.'; }
     finally {
       this.initialized = true;

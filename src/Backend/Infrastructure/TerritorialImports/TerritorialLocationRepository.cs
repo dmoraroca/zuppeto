@@ -91,4 +91,42 @@ internal sealed class TerritorialLocationRepository(ZuppetoDbContext db) : ITerr
         if (!unit.IsSelectable) throw new InvalidOperationException("La unitat territorial no és una localitat seleccionable.");
         return new TerritorialLocationSelectionDto(country.Id, country.Name, territorialUnitId, unit.Name);
     }
+
+    public async Task<TerritorialLocationSelectionDto?> ResolveNearestAsync(
+        decimal latitude,
+        decimal longitude,
+        CancellationToken ct = default)
+    {
+        var row = await db.TerritorialUnits.AsNoTracking()
+            .Where(x => x.IsActive && x.Country.IsActive && (x.Country.Iso2 == "ES" || x.Country.Iso2 == "DE") &&
+                x.Latitude != null && x.Longitude != null &&
+                (x.ManualSelectableLocality == true ||
+                    (x.ManualSelectableLocality == null && x.TerritorialUnitType.IsSelectableLocality)))
+            .OrderBy(x =>
+                ((x.Latitude!.Value - latitude) * (x.Latitude.Value - latitude)) +
+                ((x.Longitude!.Value - longitude) * (x.Longitude.Value - longitude)))
+            .Select(x => new
+            {
+                x.Id,
+                x.CountryId,
+                Country = x.Country.Name,
+                Name = x.Names.Where(n => n.IsPrimary).Select(n => n.Name).FirstOrDefault()
+                    ?? x.Names.Select(n => n.Name).FirstOrDefault() ?? string.Empty,
+                Latitude = x.Latitude!.Value,
+                Longitude = x.Longitude!.Value
+            })
+            .FirstOrDefaultAsync(ct);
+
+        if (row is null)
+            return null;
+
+        // A centroid is a privacy-preserving catalog lookup, not a persisted user position.
+        var latitudeKm = (row.Latitude - latitude) * 111.32m;
+        var longitudeKm = (row.Longitude - longitude) * 111.32m *
+            (decimal)Math.Cos((double)latitude * Math.PI / 180d);
+        var distanceKm = Math.Sqrt((double)(latitudeKm * latitudeKm + longitudeKm * longitudeKm));
+        return distanceKm > 100d
+            ? null
+            : new TerritorialLocationSelectionDto(row.CountryId, row.Country, row.Id, row.Name);
+    }
 }

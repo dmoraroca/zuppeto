@@ -1,5 +1,9 @@
 # API (CA)
 
+## Iteració 7 — Fase VI, cercador públic geogràfic
+
+`GET /api/places` executa a PostgreSQL filtres multiselecció (`types`, `petAccessStatuses`), qualitat (`verifiedOnly`), ordre (`distance|verified|recent|name`), radi 0/5/10/20/30/50 km, viewport i `skip/take`. La resposta inclou distància, verificació, actualització, estat de negoci i resum territorial del mapa. Sense municipi ni viewport, una petició paginada no descarrega tot un país. `GET /api/territorial/location/nearest` converteix coordenades consentides en país i municipi sense persistir la posició. [Contracte i resultats](iteracio-7-fase-vi-cercador-mapa-ux-ca.md).
+
 ## Iteració 7 — Fase V, governança multiproveïdor
 
 S'ha afegit `/api/admin/place-catalog-governance`, protegit per rol exacte `Admin` i `action.places.manage`. Exposa lectura del dashboard i decisions auditades de matching, conflictes, cicle de vida, revisió de fonts oficials i checkpoints/generacions OSM. Wikidata i els esquemes PBF/OSC continuen encapsulats als adaptadors d'Infrastructure. La migració real i la publicació idempotent de 50 Places d'Arenys han quedat completades. Contracte, rutes i validació: [Fase V](iteracio-7-fase-v-cobertura-enriquiment-deduplicacio-ca.md).

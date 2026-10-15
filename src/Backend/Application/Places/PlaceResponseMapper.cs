@@ -52,6 +52,15 @@ internal sealed class PlaceResponseMapper(IPlaceCoverStorage coverStorage)
             place.PetPolicy.Conditions.Select(x => new PetConditionDto(x.Code, x.Value)).ToArray());
     }
 
+    internal PlaceSummaryDto ToSummary(PlacePublicSearchRow row) => ToSummary(row.Place) with
+    {
+        DistanceKm = row.DistanceKm,
+        IsPetPolicyVerified = row.IsPetPolicyVerified,
+        PetPolicyVerifiedAtUtc = row.PetPolicyVerifiedAtUtc,
+        UpdatedAtUtc = row.UpdatedAtUtc,
+        BusinessStatus = row.BusinessStatus
+    };
+
     internal PlaceDetailDto ToDetail(Place place)
     {
         var summary = ToSummary(place);
@@ -94,7 +103,11 @@ internal sealed class PlaceResponseMapper(IPlaceCoverStorage coverStorage)
             summary.TerritorialUnitId,
             summary.PetAccessStatus,
             summary.PetSpecies,
-            summary.PetConditions);
+            summary.PetConditions,
+            summary.IsPetPolicyVerified,
+            summary.PetPolicyVerifiedAtUtc,
+            summary.UpdatedAtUtc,
+            summary.BusinessStatus);
     }
 
     private static (bool CacheExpired, bool RequiresGoogleMap) ComputeGoogleCoordinateFlags(Place place)

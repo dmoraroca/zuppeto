@@ -34,6 +34,7 @@
     "e2e:osm-phase4": "npm run runner:build && node .runner-build/runner/osm-place-import-phase4-cli.js",
     "e2e:osm-published-phase4": "npm run runner:build && node .runner-build/runner/osm-published-pilot-phase4-cli.js",
     "e2e:place-catalog-phase5": "npm run runner:build && node .runner-build/runner/place-catalog-phase5-cli.js",
+    "e2e:place-search-phase6": "npm run runner:build && node .runner-build/runner/place-search-phase6-cli.js",
     "e2e:places-phase-one": "npm run runner:build && node .runner-build/runner/places-phase-one-cli.js"
   },
   "devDependencies": {
