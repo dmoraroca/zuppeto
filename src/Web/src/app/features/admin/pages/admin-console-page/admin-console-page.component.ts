@@ -1,4 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
+import { DatePipe } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
@@ -50,6 +52,7 @@ import {
   AdminMenuDefinition,
   AdminPlaceDto,
   AdminPlaceMediaAssetDto,
+  AdminPlaceProximityMediaCandidateDto,
   AdminPlaceUpsertRequest,
   AdminService,
   AdminUserListItem,
@@ -77,6 +80,8 @@ type AvatarSuccessOperation = 'crear' | 'modificar' | 'esborrar';
   imports: [
     FormsModule,
     ReactiveFormsModule,
+    DatePipe,
+    DecimalPipe,
     TerritorialLocationSelectorComponent,
     SiteHeaderComponent,
     SiteFooterComponent,
@@ -260,6 +265,8 @@ export class AdminConsolePageComponent {
   protected readonly placeDeleteCandidate = signal<AdminPlaceDto | null>(null);
   protected readonly placeMediaAssets = signal<AdminPlaceMediaAssetDto[]>([]);
   protected readonly placeMediaBusy = signal(false);
+  protected readonly mapillaryCandidates = signal<AdminPlaceProximityMediaCandidateDto[]>([]);
+  protected readonly mapillaryBusy = signal(false);
   protected readonly editablePlace = signal<{
     id?: string;
     name: string;
@@ -2082,6 +2089,7 @@ export class AdminConsolePageComponent {
     this.placeDetailEditMode.set(false);
     this.createMaintenancePrivacyAccepted.set(false);
     this.placeMediaAssets.set([]);
+    this.mapillaryCandidates.set([]);
   }
 
   protected async importWikimediaMedia(): Promise<void> {
@@ -2095,6 +2103,24 @@ export class AdminConsolePageComponent {
       this.notifyHttpError(error, 'No s’han pogut revisar les imatges de Wikimedia Commons.');
     } finally {
       this.placeMediaBusy.set(false);
+    }
+  }
+
+  protected async searchMapillaryMedia(): Promise<void> {
+    const placeId = this.editablePlace().id;
+    if (!placeId || this.mapillaryBusy()) return;
+    this.mapillaryBusy.set(true);
+    try {
+      this.mapillaryCandidates.set(await this.adminService.searchPlaceMediaOnMapillary(placeId));
+      this.notifications.notify(
+        'Candidats de Mapillary',
+        'La cerca per proximitat ha acabat. Cap imatge s’ha desat ni publicat automàticament.',
+        'success'
+      );
+    } catch (error: unknown) {
+      this.notifyHttpError(error, 'No s’han pogut consultar les imatges de Mapillary.');
+    } finally {
+      this.mapillaryBusy.set(false);
     }
   }
 

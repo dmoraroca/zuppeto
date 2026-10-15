@@ -18,6 +18,7 @@ using Zuppeto.Infrastructure.Places;
 using Zuppeto.Infrastructure.RabbitMq;
 using Zuppeto.Infrastructure.Email;
 using Zuppeto.Infrastructure.Places.OpenStreetMap;
+using Zuppeto.Infrastructure.Places.Mapillary;
 
 namespace Zuppeto.Infrastructure;
 
@@ -92,6 +93,10 @@ public static class DependencyInjection
         services.Configure<OverpassOptions>(configuration.GetSection(OverpassOptions.SectionName));
         services.Configure<GeofabrikExtractOptions>(configuration.GetSection(GeofabrikExtractOptions.SectionName));
         services.Configure<WikidataOptions>(configuration.GetSection(WikidataOptions.SectionName));
+        services.AddSingleton<IValidateOptions<MapillaryOptions>, MapillaryOptionsValidator>();
+        services.AddOptions<MapillaryOptions>()
+            .Bind(configuration.GetSection(MapillaryOptions.SectionName))
+            .ValidateOnStart();
         services.AddHostedService<GooglePlacesComplianceRetentionHostedService>();
         services.AddSingleton<PlaceCoverEnrichmentQueue>();
         services.AddSingleton<IPlaceCoverEnrichmentQueue>(sp => sp.GetRequiredService<PlaceCoverEnrichmentQueue>());
@@ -164,6 +169,15 @@ public static class DependencyInjection
             client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "PetiLoc-Media/1.0 (https://github.com/dmoraroca/zuppeto)");
         });
         services.AddScoped<IPlaceMediaSource, WikimediaCommonsMediaSource>();
+        services.AddHttpClient<IPlaceProximityMediaSource, MapillaryMediaSource>((sp, client) =>
+        {
+            var options = sp.GetRequiredService<IOptions<MapillaryOptions>>().Value;
+            client.BaseAddress = new Uri(options.BaseUrl);
+            client.Timeout = TimeSpan.FromSeconds(Math.Clamp(options.TimeoutSeconds, 5, 60));
+            client.DefaultRequestHeaders.TryAddWithoutValidation(
+                "User-Agent",
+                "PetiLoc-Mapillary-Admin/1.0 (https://github.com/dmoraroca/zuppeto)");
+        }).RedactLoggedHeaders(["Authorization"]);
         services.AddScoped<IPlaceSourceNormalizer, OsmPlaceSourceNormalizer>();
         services.AddScoped<IPlaceStoragePermissionPolicy, OsmStoragePermissionPolicy>();
         services.AddScoped<IPlaceMatcher, ConservativePlaceMatcher>();

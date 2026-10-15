@@ -1,6 +1,7 @@
 using System.Text;
 using Zuppeto.Domain.Places;
 using Zuppeto.Infrastructure.Places.Wikidata;
+using Zuppeto.Infrastructure.Persistence.Repositories;
 using Xunit;
 
 namespace Backend.Activation.Tests;
@@ -60,6 +61,21 @@ public sealed class PlaceMediaGovernanceTests
         Assert.Equal("CC BY-SA 4.0", candidate.LicenseIdentifier);
         Assert.Contains("Obra pròpia", candidate.Attribution);
         Assert.Equal("abc123", candidate.ContentHash);
+    }
+
+    [Fact]
+    public void Commons_identity_accepts_only_a_verified_exact_place_qid()
+    {
+        Assert.Equal("Q100", PlaceMediaRepository.ExtractVerifiedExactPlaceQid(
+            """{"place.wikidata.id":"q100","place.wikidata.identity_status":"VerifiedExact"}"""));
+        Assert.Null(PlaceMediaRepository.ExtractVerifiedExactPlaceQid(
+            """{"place.wikidata.id":"Q100","place.wikidata.identity_status":"PendingReview"}"""));
+        Assert.Null(PlaceMediaRepository.ExtractVerifiedExactPlaceQid(
+            """{"brand.wikidata.id":"Q200","place.wikidata.identity_status":"VerifiedExact"}"""));
+        Assert.Null(PlaceMediaRepository.ExtractVerifiedExactPlaceQid(
+            """{"operator.wikidata.id":"Q300","place.wikidata.identity_status":"VerifiedExact"}"""));
+        Assert.Null(PlaceMediaRepository.ExtractVerifiedExactPlaceQid(
+            """{"wikidata.id":"Q400"}"""));
     }
 
     private static PlaceMediaAsset Asset(PlaceMediaSource source) => new(

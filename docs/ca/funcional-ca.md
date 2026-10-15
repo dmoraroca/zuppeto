@@ -8,7 +8,7 @@
 
 > Retoc de mapa de Fase VI (15.10.2026): el mapa comença amb el municipi i el recompte filtrat, passa a clusters a zoom intermedi i mostra POI de Places a zoom proper. Els clics apropen cada nivell, els bounds respecten el radi i el municipi es manté amb `0 locals` quan no hi ha resultats. [Informe](iteracio-7-fase-vi-cercador-mapa-ux-ca.md).
 
-> Tancament definitiu de Fase VI (15.10.2026): les imatges de Places tenen font, autoria, llicència, drets, hash i verificació auditables; Commons només s'accepta des d'un QID explícit. Sense asset fiable es mostra una il·lustració PetiLoc per categoria. Les targetes diferencien amb color suau i text els estats pet verificats, mantenen `Unknown` neutre i tracten la terrassa només com un indici independent. La migració real de media ha quedat aplicada després de backup, restauració i `Up → Down → Up`. [Informe](iteracio-7-fase-vi-cercador-mapa-ux-ca.md).
+> Tancament definitiu de Fase VI (15.10.2026): les imatges de Places tenen font, autoria, llicència, drets, hash i verificació auditables; Commons només s'accepta des d'un QID del Place verificat exactament, mai des d'un QID de marca o operador. Sense asset fiable es mostra una il·lustració PetiLoc per categoria. Les targetes diferencien amb color suau i text els estats pet verificats, mantenen `Unknown` neutre i tracten la terrassa només com un indici independent. [Informe](iteracio-7-fase-vi-cercador-mapa-ux-ca.md).
 
 > Iteració 7, Fase V (14.10.2026): ADMIN ja pot revisar possibles duplicats, conflictes, fonts i estats de vida; OSM cobreix 17 categories canòniques i Wikidata enriqueix només QID explícits amb dades CC0 separades. Els 68 candidats d'Arenys s'han mantingut en simulació i PostgreSQL real continua amb els 15 Places de Fase IV. [Informe funcional](iteracio-7-fase-v-cobertura-enriquiment-deduplicacio-ca.md).
 
@@ -2014,6 +2014,7 @@ Part de la informacio de fitxa i del contingut visual dels locals pot provenir d
 ### 12.3 Regles funcionals per a imatges de locals
 
 - Prioritat: PetiLoc verificada, propietari, usuari, Wikimedia Commons verificada i, finalment, placeholder.
+- L'ADMIN pot cercar fotografies candidates de Mapillary al voltant de les coordenades del Place. La cerca només ajuda a revisar: no identifica automàticament l'establiment, no desa cap candidat i no el converteix en portada sense governança posterior.
 - Si un local no té imatge fiable o la càrrega falla, targetes, favorits, detall i relacionats mostren la il·lustració PetiLoc de la categoria; mai no queda visible un `img` trencat ni una foto genèrica que sembli del local.
 - No es reutilitzen imatges trobades només per nom ni resultats de cercador sense marc legal. Commons exigeix QID explícit, fitxer P18 exacte i comprovació individual de llicència; Openverse només podria descobrir candidats, no autoritzar-los.
 - Cada asset conserva font, URL original/servida, autor, llicència/versió, atribució, obtenció, drets d'emmagatzematge/transformació, hash, verificació i elegibilitat com a portada.

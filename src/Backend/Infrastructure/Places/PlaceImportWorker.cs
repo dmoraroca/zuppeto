@@ -54,7 +54,7 @@ internal sealed class PlaceImportWorker(IServiceScopeFactory scopes, ILogger<Pla
                 if(!normalized.IsSuccess){issues.Add(new(Guid.NewGuid(),"NORMALIZATION", "Warning",normalized.Failure!.Message,document.ExternalId));continue;}
                 var candidate=normalized.Value! with { CountryId=work.Context.CountryId,TerritorialUnitId=work.Context.TerritorialUnitId };
                 var enrichments=new List<PlaceSourceDocument>();
-                if(candidate.Fields.TryGetValue("wikidata.id",out var wikidataId))
+                if(candidate.Fields.TryGetValue(PlaceWikidataFields.PlaceId,out var wikidataId))
                 {
                     var enricher=enrichers.SingleOrDefault(x=>x.Descriptor.SourceKey==WikidataSource.SourceKey);
                     if(enricher is not null)

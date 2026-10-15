@@ -16,7 +16,7 @@
           class="place-detail-page__hero-cover"
           [imageUrl]="selectedPlace.imageUrl"
           [placeName]="selectedPlace.name"
-          [category]="selectedPlace.type"
+          [category]="selectedPlace.categoryLabel || selectedPlace.type"
           [alt]="'Fotografia de ' + selectedPlace.name"
           variant="hero"
         />
@@ -254,7 +254,7 @@
               <app-place-cover-image
                 [imageUrl]="relatedPlace.imageUrl"
                 [placeName]="relatedPlace.name"
-                [category]="relatedPlace.type"
+                [category]="relatedPlace.categoryLabel || relatedPlace.type"
                 [alt]="'Fotografia de ' + relatedPlace.name"
                 variant="related"
               />

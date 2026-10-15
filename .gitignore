@@ -17,7 +17,13 @@
 .NETCoreApp,Version=*.AssemblyAttributes.cs
 .DS_Store
 .env
+.env.*
+**/.env
+**/.env.*
 !.env.example
+!**/.env.example
+**/secrets.json
+**/*.secrets.json
 config/google/*.json
 config/facebook/*.json
 config/data-protection/

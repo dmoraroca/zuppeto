@@ -55,4 +55,24 @@ describe('PlaceCoverImageComponent', () => {
       .toContain('Il·lustració PetiLoc de categoria Restaurant');
     expect(fixture.nativeElement.querySelector('img')).toBeNull();
   });
+
+  it.each([
+    ['restaurant', 'Restaurant'],
+    ['bar', 'Bar'],
+    ['cafeteria', 'Cafeteria'],
+    ['hotel', 'Hotel'],
+    ['camping', 'Càmping'],
+    ['park', 'Espai exterior'],
+    ['veterinary', 'Veterinari'],
+    ['shop', 'Comerç'],
+    ['service', 'Servei']
+  ])('provides a visible PetiLoc illustration for %s', (category, expectedLabel) => {
+    fixture.componentRef.setInput('imageUrl', '');
+    fixture.componentRef.setInput('category', category);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.place-cover__placeholder')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.place-cover__category')?.textContent.trim()).toBe(expectedLabel);
+    expect(fixture.nativeElement.querySelector('.place-cover__caption')?.textContent.trim()).toBe('Il·lustració PetiLoc');
+  });
 });

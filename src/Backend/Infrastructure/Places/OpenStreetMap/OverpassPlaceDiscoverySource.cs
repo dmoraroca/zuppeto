@@ -163,7 +163,11 @@ internal sealed class OverpassPlaceDiscoverySource(HttpClient http, IOptions<Ove
             NormalizeAvailability(tags.GetValueOrDefault("outdoor_seating")), observedAt);
         Add(fields, "brand", tags.GetValueOrDefault("brand"), tags.GetValueOrDefault("brand"), observedAt);
         Add(fields, "operator", tags.GetValueOrDefault("operator"), tags.GetValueOrDefault("operator"), observedAt);
-        Add(fields, "wikidata.id", First(tags, "brand:wikidata", "operator:wikidata", "wikidata"), First(tags, "brand:wikidata", "operator:wikidata", "wikidata"), observedAt);
+        Add(fields, PlaceWikidataFields.PlaceId, tags.GetValueOrDefault("wikidata"), tags.GetValueOrDefault("wikidata"), observedAt);
+        Add(fields, PlaceWikidataFields.BrandId, tags.GetValueOrDefault("brand:wikidata"), tags.GetValueOrDefault("brand:wikidata"), observedAt);
+        Add(fields, PlaceWikidataFields.OperatorId, tags.GetValueOrDefault("operator:wikidata"), tags.GetValueOrDefault("operator:wikidata"), observedAt);
+        if (!string.IsNullOrWhiteSpace(tags.GetValueOrDefault("wikidata")))
+            Add(fields, PlaceWikidataFields.IdentityStatus, PlaceWikidataFields.PendingReview, PlaceWikidataFields.PendingReview, observedAt);
         Add(fields, "pet.dog", tags.GetValueOrDefault("dog"), NormalizePet(tags.GetValueOrDefault("dog")), observedAt);
         Add(fields, "pet.cat", tags.GetValueOrDefault("cat"), NormalizePet(tags.GetValueOrDefault("cat")), observedAt);
         Add(fields, "pet.pets", First(tags, "pets", "pet"), First(tags, "pets", "pet"), observedAt);

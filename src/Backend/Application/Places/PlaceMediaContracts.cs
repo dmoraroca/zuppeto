@@ -1,4 +1,5 @@
 using Zuppeto.Application.Results;
+using Zuppeto.Domain.Abstractions;
 using Zuppeto.Domain.Places;
 
 namespace Zuppeto.Application.Places;
@@ -28,6 +29,18 @@ public sealed record PlaceMediaAssetDto(
 
 public sealed record RejectPlaceMediaRequest(string Reason);
 
+public sealed record PlaceProximityMediaCandidateDto(
+    string ExternalId,
+    string PreviewUrl,
+    string EvidenceUrl,
+    string Author,
+    DateTimeOffset? CapturedAtUtc,
+    decimal? HeadingDegrees,
+    decimal Latitude,
+    decimal Longitude,
+    int DistanceMeters,
+    string Attribution);
+
 public interface IPlaceMediaRepository
 {
     Task<IReadOnlyCollection<PlaceMediaAsset>> ListAsync(Guid placeId, CancellationToken cancellationToken = default);
@@ -43,6 +56,9 @@ public interface IPlaceMediaApplicationService
 {
     Task<IReadOnlyCollection<PlaceMediaAssetDto>> ListAsync(Guid placeId, CancellationToken cancellationToken = default);
     Task<IReadOnlyCollection<PlaceMediaAssetDto>> ImportFromWikimediaAsync(Guid placeId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyCollection<PlaceProximityMediaCandidateDto>> SearchMapillaryAsync(
+        Guid placeId,
+        CancellationToken cancellationToken = default);
     Task SetPrimaryAsync(Guid placeId, Guid assetId, CancellationToken cancellationToken = default);
     Task RejectAsync(Guid placeId, Guid assetId, string reason, CancellationToken cancellationToken = default);
 }
@@ -50,6 +66,8 @@ public interface IPlaceMediaApplicationService
 internal sealed class PlaceMediaApplicationService(
     IPlaceMediaRepository repository,
     IEnumerable<IPlaceMediaSource> sources,
+    IEnumerable<IPlaceProximityMediaSource> proximitySources,
+    IPlaceRepository places,
     PlaceMediaLicensePolicy licensePolicy) : IPlaceMediaApplicationService
 {
     public async Task<IReadOnlyCollection<PlaceMediaAssetDto>> ListAsync(Guid placeId, CancellationToken cancellationToken = default) =>
@@ -104,6 +122,40 @@ internal sealed class PlaceMediaApplicationService(
         }
 
         return await ListAsync(placeId, cancellationToken);
+    }
+
+    public async Task<IReadOnlyCollection<PlaceProximityMediaCandidateDto>> SearchMapillaryAsync(
+        Guid placeId,
+        CancellationToken cancellationToken = default)
+    {
+        var place = await places.GetByIdAsync(placeId, cancellationToken)
+            ?? throw new KeyNotFoundException("No s’ha trobat el Place.");
+        if (place.Location is null)
+            throw new InvalidOperationException("El Place necessita coordenades per cercar fotografies a Mapillary.");
+
+        var source = proximitySources.SingleOrDefault(item => item.Descriptor.SourceKey == MapillarySource.SourceKey)
+            ?? throw new InvalidOperationException("El connector de Mapillary no està disponible.");
+        var result = await source.SearchAsync(
+            new PlaceProximityMediaSearch(
+                place.Location.Latitude,
+                place.Location.Longitude,
+                MapillarySource.DefaultSearchRadiusMeters,
+                MapillarySource.DefaultCandidateLimit),
+            cancellationToken);
+        if (!result.IsSuccess)
+            throw new InvalidOperationException(result.Failure?.Message ?? "No s’han pogut consultar les imatges de Mapillary.");
+
+        return (result.Value ?? []).Select(candidate => new PlaceProximityMediaCandidateDto(
+            candidate.ExternalId,
+            candidate.PreviewUri.ToString(),
+            candidate.EvidenceUri.ToString(),
+            candidate.Author,
+            candidate.CapturedAtUtc,
+            candidate.HeadingDegrees,
+            candidate.Latitude,
+            candidate.Longitude,
+            candidate.DistanceMeters,
+            candidate.Attribution)).ToArray();
     }
 
     public Task SetPrimaryAsync(Guid placeId, Guid assetId, CancellationToken cancellationToken = default) =>

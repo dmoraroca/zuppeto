@@ -6,6 +6,8 @@ const webBaseUrl = process.env.E2E_BASE_URL ?? 'http://localhost:4200';
 const validId = '10000000-0000-0000-0000-000000000001';
 const emptyId = '10000000-0000-0000-0000-000000000002';
 const brokenId = '10000000-0000-0000-0000-000000000003';
+const brandId = '10000000-0000-0000-0000-000000000004';
+const ambiguousId = '10000000-0000-0000-0000-000000000005';
 
 const media = [
   {
@@ -27,7 +29,9 @@ const media = [
 const places = [
   place(validId, 'Local amb fotografia', `${webBaseUrl}/images/westie.jpg`, media, 'Allowed', true),
   place(emptyId, 'Local sense fotografia', '', [], 'Unknown', false, ['Terrassa']),
-  place(brokenId, 'Local amb error de fotografia', `${webBaseUrl}/images/no-existeix.jpg`, [], 'Unknown', false)
+  place(brokenId, 'Local amb error de fotografia', `${webBaseUrl}/images/no-existeix.jpg`, [], 'Unknown', false),
+  place(brandId, 'Marca amb QID corporatiu', '', [], 'Unknown', false),
+  place(ambiguousId, 'Montcalvari ambigu', '', [], 'Unknown', false)
 ];
 
 async function main(): Promise<void> {
@@ -60,6 +64,12 @@ async function main(): Promise<void> {
     await failedImageCard.getByText('Il·lustració PetiLoc').first().waitFor();
     assert.equal(await failedImageCard.locator('.place-card').getAttribute('data-pet-tone'), 'neutral');
 
+    for (const name of ['Marca amb QID corporatiu', 'Montcalvari ambigu']) {
+      const protectedCard = cards.filter({ hasText: name });
+      assert.equal(await protectedCard.locator('img').count(), 0, `${name} no pot usar una fotografia no verificada.`);
+      assert.ok(await protectedCard.getByText('Il·lustració PetiLoc').count() > 0);
+    }
+
     await cards.filter({ hasText: 'Local amb fotografia' }).getByRole('link', { name: 'Veure detall' }).click();
     await page.getByRole('heading', { level: 1, name: 'Local amb fotografia' }).waitFor();
     assert.equal(await page.getByText(/Foto: PetiLoc · imatge pròpia verificada/).count(), 1);
@@ -68,7 +78,7 @@ async function main(): Promise<void> {
     assert.ok(await page.locator('.place-detail-page__gallery figcaption').first().getByText(/PetiLoc/).count() > 0);
 
     await context.close();
-    console.log('PASS Chrome media Fase VI: foto/atribució, placeholders, Allowed, terrassa desconeguda i Unknown neutre.');
+    console.log('PASS Chrome media Fase VI: foto/atribució, placeholders, QID corporatiu i Montcalvari ambigu sense media falsa.');
   } finally {
     await browser.close();
   }

@@ -39,7 +39,13 @@ async function main(): Promise<void> {
     await page.goto(`/places?country=Espanya&city=Arenys%20de%20Mar&countryId=${countryId}&territorialUnitId=${territorialUnitId}`, { waitUntil: 'networkidle' });
     await page.waitForTimeout(1500);
     const initialBody = await page.locator('body').innerText();
-    assert.ok(await page.locator('app-place-card').count() > 0, `La cerca inicial d’Arenys ha de mostrar locals:\n${initialBody}`);
+    const initialCardCount = await page.locator('app-place-card').count();
+    assert.ok(initialCardCount > 0, `La cerca inicial d’Arenys ha de mostrar locals:\n${initialBody}`);
+    assert.equal(
+      await page.locator('app-place-card img, app-place-card .place-cover__placeholder').count(),
+      initialCardCount,
+      'Cada targeta ha de tenir una fotografia o una il·lustració PetiLoc.'
+    );
     assert.ok(await page.getByText('Informació desconeguda').count() > 0, 'Cal mostrar Unknown explícitament.');
     assert.equal(await page.getByLabel('País').locator('option:checked').textContent(), 'Espanya', 'El país visible ha de coincidir amb la cerca efectiva.');
     assert.equal(await page.getByRole('combobox', { name: 'Localitat' }).inputValue(), 'Arenys de Mar', 'El municipi visible ha de coincidir amb la cerca efectiva.');
@@ -51,7 +57,7 @@ async function main(): Promise<void> {
     assert.equal(await page.getByLabel('Gats').isChecked(), false, 'Gats ha de començar sense restringir la cerca.');
     assert.equal(await page.getByLabel('Totes').count(), 0, 'Totes no ha d’aparèixer al filtre d’espècies.');
     assert.equal(await page.getByLabel('Altres', { exact: true }).count(), 0, 'Altres no ha d’aparèixer al filtre d’espècies.');
-    assert.ok(await page.getByText('Sense fotografia').count() > 0, 'Els Places sense actiu multimèdia han de mostrar el fallback discret.');
+    assert.ok(await page.getByText('Il·lustració PetiLoc').count() > 0, 'Els Places sense actiu multimèdia han de mostrar una il·lustració PetiLoc.');
 
     const mapCanvas = page.locator('.place-map__canvas');
     await page.waitForFunction(() => document.querySelector('.place-map__canvas')?.getAttribute('data-map-layer') === 'municipality');

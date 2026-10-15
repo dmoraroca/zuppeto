@@ -23,6 +23,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>petiloc-api-development</UserSecretsId>
   </PropertyGroup>
 
 </Project>

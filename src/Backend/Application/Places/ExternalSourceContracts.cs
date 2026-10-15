@@ -23,6 +23,24 @@ public static class WikidataSource
     public const string EntityDataAccessMode = "WIKIDATA_ENTITY_DATA";
 }
 
+public static class MapillarySource
+{
+    public const string SourceKey = "mapillary";
+    public const string ProximityAccessMode = "MAPILLARY_GRAPH_API";
+    public const int DefaultSearchRadiusMeters = 75;
+    public const int DefaultCandidateLimit = 12;
+}
+
+public static class PlaceWikidataFields
+{
+    public const string PlaceId = "place.wikidata.id";
+    public const string BrandId = "brand.wikidata.id";
+    public const string OperatorId = "operator.wikidata.id";
+    public const string IdentityStatus = "place.wikidata.identity_status";
+    public const string PendingReview = "PendingReview";
+    public const string VerifiedExact = "VerifiedExact";
+}
+
 public static class PlaceCatalogCategories
 {
     public static readonly string[] All = ["restaurant", "cafe", "bar", "pub", "fast_food", "ice_cream", "bakery",
@@ -82,6 +100,12 @@ public interface IPlaceMediaSource : IPlaceSourceConnector
 {
     Task<Result<IReadOnlyCollection<PlaceMediaCandidate>>> GetMediaAsync(string externalId, CancellationToken cancellationToken);
 }
+public interface IPlaceProximityMediaSource : IPlaceSourceConnector
+{
+    Task<Result<IReadOnlyCollection<PlaceProximityMediaCandidate>>> SearchAsync(
+        PlaceProximityMediaSearch search,
+        CancellationToken cancellationToken);
+}
 public interface IPlaceProvenanceVerifier
 {
     Task<Result<ProvenanceVerification>> VerifyAsync(PlaceSourceDocument document, CancellationToken cancellationToken);
@@ -112,6 +136,22 @@ public sealed record PlaceMediaCandidate(
     string ContentHash,
     DateTimeOffset RetrievedAtUtc,
     bool IdentityVerified);
+public sealed record PlaceProximityMediaSearch(
+    decimal Latitude,
+    decimal Longitude,
+    int RadiusMeters,
+    int Limit);
+public sealed record PlaceProximityMediaCandidate(
+    string ExternalId,
+    Uri PreviewUri,
+    Uri EvidenceUri,
+    string Author,
+    DateTimeOffset? CapturedAtUtc,
+    decimal? HeadingDegrees,
+    decimal Latitude,
+    decimal Longitude,
+    int DistanceMeters,
+    string Attribution);
 public sealed record ProvenanceVerification(bool IsVerified, string Method, DateTimeOffset CheckedAtUtc, string? Reason);
 public sealed record StoragePermissionDecision(bool Allowed, string Reason, DateTimeOffset ReviewedAtUtc);
 public sealed record NormalizedPlaceCandidate(string SourceKey, string ExternalId, string Name, string Category,

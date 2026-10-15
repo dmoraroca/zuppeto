@@ -13,6 +13,7 @@ internal static class PlaceMediaEndpoints
             .WithTags("Place media");
         group.MapGet("/", ListAsync);
         group.MapPost("/wikimedia/import", ImportWikimediaAsync);
+        group.MapGet("/mapillary/candidates", SearchMapillaryAsync);
         group.MapPost("/{assetId:guid}/primary", SetPrimaryAsync);
         group.MapPost("/{assetId:guid}/reject", RejectAsync);
         return app;
@@ -25,6 +26,10 @@ internal static class PlaceMediaEndpoints
     private static Task<IResult> ImportWikimediaAsync(Guid placeId, ClaimsPrincipal principal, IAdminApplicationService admin,
         IPlaceMediaApplicationService service, CancellationToken cancellationToken) =>
         ExecuteAsync(principal, admin, () => service.ImportFromWikimediaAsync(placeId, cancellationToken), cancellationToken);
+
+    private static Task<IResult> SearchMapillaryAsync(Guid placeId, ClaimsPrincipal principal, IAdminApplicationService admin,
+        IPlaceMediaApplicationService service, CancellationToken cancellationToken) =>
+        ExecuteAsync(principal, admin, () => service.SearchMapillaryAsync(placeId, cancellationToken), cancellationToken);
 
     private static Task<IResult> SetPrimaryAsync(Guid placeId, Guid assetId, ClaimsPrincipal principal, IAdminApplicationService admin,
         IPlaceMediaApplicationService service, CancellationToken cancellationToken) =>

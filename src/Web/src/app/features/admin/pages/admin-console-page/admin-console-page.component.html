@@ -1751,10 +1751,33 @@
                     <p class="admin-console-kicker">Media governada</p>
                     <h4 id="place-media-title" style="margin:0">Imatges del lloc</h4>
                   </div>
-                  <button type="button" (click)="importWikimediaMedia()" [disabled]="placeMediaBusy()">
-                    {{ placeMediaBusy() ? 'Revisant…' : 'Cercar al QID vinculat' }}
-                  </button>
+                  <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+                    <button type="button" (click)="importWikimediaMedia()" [disabled]="placeMediaBusy()">
+                      {{ placeMediaBusy() ? 'Revisant…' : 'Cercar al QID vinculat' }}
+                    </button>
+                    <button type="button" (click)="searchMapillaryMedia()" [disabled]="mapillaryBusy() || editablePlace().latitude === null || editablePlace().longitude === null">
+                      {{ mapillaryBusy() ? 'Cercant…' : 'Cercar fotos properes a Mapillary' }}
+                    </button>
+                  </div>
                 </div>
+                @if (mapillaryCandidates().length > 0) {
+                  <div style="display:grid;gap:.75rem">
+                    <p style="margin:0">Candidats per proximitat. Cal confirmar manualment que mostren aquest establiment; encara no s’han desat ni publicat.</p>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr));gap:1rem">
+                      @for (candidate of mapillaryCandidates(); track candidate.externalId; let candidateIndex = $index) {
+                        <article style="border:1px solid rgba(148,163,184,.35);border-radius:12px;padding:.8rem;display:grid;gap:.6rem">
+                          <img [src]="candidate.previewUrl" [alt]="'Candidat de Mapillary proper a ' + editablePlace().name" loading="lazy" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px" />
+                          <p style="margin:0"><strong>Mapillary</strong> · {{ candidate.distanceMeters }} m</p>
+                          @if (candidateIndex === 0) { <p style="margin:0;font-size:.8rem"><strong>Primer candidat per orientació i proximitat</strong></p> }
+                          <p style="margin:0;font-size:.85rem">{{ candidate.author }}@if (candidate.capturedAtUtc) { · {{ candidate.capturedAtUtc | date:'mediumDate' }} }</p>
+                          @if (candidate.headingDegrees !== null && candidate.headingDegrees !== undefined) { <p style="margin:0;font-size:.8rem">Orientació: {{ candidate.headingDegrees | number:'1.0-0' }}°</p> }
+                          <p style="margin:0;font-size:.8rem">{{ candidate.attribution }}</p>
+                          <a [href]="candidate.evidenceUrl" target="_blank" rel="noopener noreferrer">Comprovar a Mapillary</a>
+                        </article>
+                      }
+                    </div>
+                  </div>
+                }
                 @if (placeMediaAssets().length === 0) {
                   <p>No hi ha cap imatge governada. El cercador mantindrà el placeholder.</p>
                 } @else {

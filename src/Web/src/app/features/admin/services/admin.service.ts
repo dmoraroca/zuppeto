@@ -300,6 +300,19 @@ export interface AdminPlaceMediaAssetDto {
   rejectionReason?: string | null;
 }
 
+export interface AdminPlaceProximityMediaCandidateDto {
+  externalId: string;
+  previewUrl: string;
+  evidenceUrl: string;
+  author: string;
+  capturedAtUtc?: string | null;
+  headingDegrees?: number | null;
+  latitude: number;
+  longitude: number;
+  distanceMeters: number;
+  attribution: string;
+}
+
 export interface PetConditionDto { code: string; value?: string | null; }
 export interface PetAssertionDto {
   id: string; placeId: string; species: string; status: string; conditions: PetConditionDto[];
@@ -583,6 +596,10 @@ export class AdminService {
 
   async importPlaceMediaFromWikimedia(placeId: string): Promise<AdminPlaceMediaAssetDto[]> {
     return await firstValueFrom(this.http.post<AdminPlaceMediaAssetDto[]>(`${API_BASE_URL}/admin/places/${placeId}/media/wikimedia/import`, {}));
+  }
+
+  async searchPlaceMediaOnMapillary(placeId: string): Promise<AdminPlaceProximityMediaCandidateDto[]> {
+    return await firstValueFrom(this.http.get<AdminPlaceProximityMediaCandidateDto[]>(`${API_BASE_URL}/admin/places/${placeId}/media/mapillary/candidates`));
   }
 
   async setPrimaryPlaceMedia(placeId: string, assetId: string): Promise<void> {

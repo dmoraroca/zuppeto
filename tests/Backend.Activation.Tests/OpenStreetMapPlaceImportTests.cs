@@ -139,6 +139,31 @@ public sealed class OpenStreetMapPlaceImportTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public void Wikidata_identity_is_separated_from_brand_and_operator()
+    {
+        var fields = OverpassPlaceDiscoverySource.MapFields(
+            new Dictionary<string, string>
+            {
+                ["name"] = "Local concret",
+                ["amenity"] = "restaurant",
+                ["wikidata"] = "Q100",
+                ["brand:wikidata"] = "Q200",
+                ["operator:wikidata"] = "Q300"
+            },
+            41.58m,
+            2.55m,
+            DateTimeOffset.UtcNow,
+            "relation/347950",
+            "restaurant");
+
+        Assert.Equal("Q100", fields["place.wikidata.id"].NormalizedValue);
+        Assert.Equal("PendingReview", fields["place.wikidata.identity_status"].NormalizedValue);
+        Assert.Equal("Q200", fields["brand.wikidata.id"].NormalizedValue);
+        Assert.Equal("Q300", fields["operator.wikidata.id"].NormalizedValue);
+        Assert.DoesNotContain("wikidata.id", fields.Keys);
+    }
+
+    [Fact]
     public async Task Connector_rejects_unverified_or_ambiguous_boundary()
     {
         using var client = Client(HttpStatusCode.OK, """{"elements":[{"type":"relation","id":1,"tags":{"boundary":"administrative","admin_level":"8","ref:ine":"99999"}}]}""");

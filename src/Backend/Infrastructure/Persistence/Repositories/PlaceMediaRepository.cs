@@ -26,31 +26,32 @@ internal sealed class PlaceMediaRepository(ZuppetoDbContext db) : IPlaceMediaRep
 
     public async Task<string?> GetLinkedWikidataQidAsync(Guid placeId, CancellationToken cancellationToken = default)
     {
-        var explicitQid = await db.PlaceSourceRecords.AsNoTracking()
-            .Where(record => record.CanonicalPlaceId == placeId && record.Source.SourceKey == WikidataSource.SourceKey && record.State == "Active")
-            .OrderByDescending(record => record.LastSeenAtUtc)
-            .Select(record => record.ExternalId)
-            .FirstOrDefaultAsync(cancellationToken);
-        if (IsQid(explicitQid)) return explicitQid!.ToUpperInvariant();
-
         var payloads = await db.PlaceSourceRecords.AsNoTracking()
-            .Where(record => record.CanonicalPlaceId == placeId && record.State == "Active")
+            .Where(record => record.CanonicalPlaceId == placeId
+                && record.Source.SourceKey == OpenStreetMapSource.SourceKey
+                && record.State == "Active")
             .OrderByDescending(record => record.LastSeenAtUtc)
             .Select(record => record.NormalizedPayloadJson)
             .ToArrayAsync(cancellationToken);
         foreach (var payload in payloads)
         {
-            try
-            {
-                using var json = JsonDocument.Parse(payload);
-                if (json.RootElement.TryGetProperty("wikidata.id", out var value) && IsQid(value.GetString()))
-                    return value.GetString()!.ToUpperInvariant();
-                if (json.RootElement.TryGetProperty("wikidata", out value) && IsQid(value.GetString()))
-                    return value.GetString()!.ToUpperInvariant();
-            }
-            catch (JsonException) { }
+            var qid = ExtractVerifiedExactPlaceQid(payload);
+            if (qid is not null) return qid;
         }
         return null;
+    }
+
+    internal static string? ExtractVerifiedExactPlaceQid(string payload)
+    {
+        try
+        {
+            using var json = JsonDocument.Parse(payload);
+            if (!json.RootElement.TryGetProperty(PlaceWikidataFields.IdentityStatus, out var status)
+                || !string.Equals(status.GetString(), PlaceWikidataFields.VerifiedExact, StringComparison.Ordinal)) return null;
+            if (!json.RootElement.TryGetProperty(PlaceWikidataFields.PlaceId, out var value) || !IsQid(value.GetString())) return null;
+            return value.GetString()!.ToUpperInvariant();
+        }
+        catch (JsonException) { return null; }
     }
 
     public async Task UpsertAsync(PlaceMediaAsset asset, CancellationToken cancellationToken = default)

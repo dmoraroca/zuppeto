@@ -73,6 +73,8 @@ services:
       RabbitMq__UserName: ${RABBITMQ_USER:-guest}
       RabbitMq__Password: ${RABBITMQ_PASSWORD:-guest}
       GooglePlaces__Enabled: "false"
+      Mapillary__Enabled: ${Mapillary__Enabled:-false}
+      Mapillary__AccessToken: ${Mapillary__AccessToken:-}
       COMPlus_EnableDiagnostics: 1
     depends_on:
       db:

@@ -12,7 +12,7 @@
       class="place-card__cover"
       [imageUrl]="place().imageUrl"
       [placeName]="place().name"
-      [category]="place().type"
+      [category]="place().categoryLabel || place().type"
       [alt]="'Fotografia de ' + place().name"
       variant="card"
     />

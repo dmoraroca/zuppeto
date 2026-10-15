@@ -37,8 +37,12 @@
 
 .place-cover__placeholder[data-category='restaurant'] { background-color: #fff7ed; background-image: linear-gradient(145deg, #ffedd5, #fffaf5); }
 .place-cover__placeholder[data-category='bar'] { background-color: #fefce8; background-image: linear-gradient(145deg, #fef3c7, #fffdf3); }
+.place-cover__placeholder[data-category='cafe'] { background-color: #fff7ed; background-image: linear-gradient(145deg, #fed7aa, #fffaf5); }
 .place-cover__placeholder[data-category='hotel'] { background-color: #eff6ff; background-image: linear-gradient(145deg, #dbeafe, #f8fbff); }
+.place-cover__placeholder[data-category='camping'] { background-color: #f0fdf4; background-image: linear-gradient(145deg, #bbf7d0, #f7fff9); }
 .place-cover__placeholder[data-category='park'] { background-color: #f0fdf4; background-image: linear-gradient(145deg, #dcfce7, #f7fff9); }
+.place-cover__placeholder[data-category='veterinary'] { background-color: #ecfeff; background-image: linear-gradient(145deg, #cffafe, #f8feff); }
+.place-cover__placeholder[data-category='shop'] { background-color: #fdf4ff; background-image: linear-gradient(145deg, #fae8ff, #fffaff); }
 .place-cover__placeholder[data-category='service'] { background-color: #f5f3ff; background-image: linear-gradient(145deg, #ede9fe, #fbfaff); }
 
 .place-cover__placeholder-glow {

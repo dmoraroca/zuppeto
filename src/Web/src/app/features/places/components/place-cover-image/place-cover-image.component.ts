@@ -36,10 +36,19 @@ export class PlaceCoverImageComponent {
   protected readonly placeholder = computed(() => {
     switch (this.category().trim().toLocaleLowerCase('ca')) {
       case 'restaurant': return { icon: '🍽', label: 'Restaurant', tone: 'restaurant' };
-      case 'bar': return { icon: '☕', label: 'Bar o cafeteria', tone: 'bar' };
+      case 'bar': return { icon: '◒', label: 'Bar', tone: 'bar' };
+      case 'cafe':
+      case 'cafeteria': return { icon: '☕', label: 'Cafeteria', tone: 'cafe' };
       case 'hotel': return { icon: '⌂', label: 'Hotel', tone: 'hotel' };
       case 'apartment': return { icon: '⌂', label: 'Allotjament', tone: 'hotel' };
+      case 'camping':
+      case 'camp_site': return { icon: '△', label: 'Càmping', tone: 'camping' };
       case 'park': return { icon: '♧', label: 'Espai exterior', tone: 'park' };
+      case 'veterinary':
+      case 'veterinari': return { icon: '✚', label: 'Veterinari', tone: 'veterinary' };
+      case 'shop':
+      case 'pet_shop':
+      case 'comerç': return { icon: '◇', label: 'Comerç', tone: 'shop' };
       default: return { icon: '✦', label: 'Servei', tone: 'service' };
     }
   });
