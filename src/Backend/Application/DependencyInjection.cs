@@ -41,6 +41,9 @@ public static class DependencyInjection
         services.AddScoped<IPlaceExternalDataSynchronizer, PlaceExternalDataSynchronizer>();
         services.AddSingleton<IExternalPlaceCallPolicy, DisabledExternalPlaceCallsPolicy>();
         services.AddScoped<IPlaceApplicationService, PlaceApplicationService>();
+        services.AddScoped<IPlaceMediaApplicationService, PlaceMediaApplicationService>();
+        services.AddSingleton<PlaceMediaSelectionPolicy>();
+        services.AddSingleton<PlaceMediaLicensePolicy>();
         services.AddScoped<IPetGovernanceApplicationService, PetGovernanceApplicationService>();
         services.AddScoped<IPlaceImportApplicationService, PlaceImportApplicationService>();
         services.AddScoped<IPlaceCatalogGovernanceService, PlaceCatalogGovernanceService>();

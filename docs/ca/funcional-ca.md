@@ -2,6 +2,14 @@
 
 > Iteració 7, Fase VI (15.10.2026): el cercador públic ja treballa amb municipi territorial, radi, categories, política pet-friendly, qualitat i ordre; sincronitza llista/mapa, conserva filtres, ofereix GPS opcional sense persistir-lo i amplia la fitxa Place. [Informe funcional](iteracio-7-fase-vi-cercador-mapa-ux-ca.md).
 
+> Poliment de Fase VI (15.10.2026): el municipi visible i l'efectiu s'han unificat, els canvis territorials i el GPS actualitzen cerca/mapa/URL amb radi 0, els filtres comparteixen chips i switch accessibles, i els Places sense foto mostren un fallback discret sense simular imatges. [Informe](iteracio-7-fase-vi-cercador-mapa-ux-ca.md).
+
+> Ajust final de Fase VI (15.10.2026): el filtre d'espècies queda reduït a `Gossos` i `Gats` com a seleccions independents; cap selecció no restringeix la cerca. `Hotels`, `Bars` i `Restaurants` són categories reals inicials dins del municipi seleccionat, i el mapa disposa de focus inicial específic per a Arenys de Mar. [Informe](iteracio-7-fase-vi-cercador-mapa-ux-ca.md).
+
+> Retoc de mapa de Fase VI (15.10.2026): el mapa comença amb el municipi i el recompte filtrat, passa a clusters a zoom intermedi i mostra POI de Places a zoom proper. Els clics apropen cada nivell, els bounds respecten el radi i el municipi es manté amb `0 locals` quan no hi ha resultats. [Informe](iteracio-7-fase-vi-cercador-mapa-ux-ca.md).
+
+> Tancament definitiu de Fase VI (15.10.2026): les imatges de Places tenen font, autoria, llicència, drets, hash i verificació auditables; Commons només s'accepta des d'un QID explícit. Sense asset fiable es mostra una il·lustració PetiLoc per categoria. Les targetes diferencien amb color suau i text els estats pet verificats, mantenen `Unknown` neutre i tracten la terrassa només com un indici independent. La migració real de media ha quedat aplicada després de backup, restauració i `Up → Down → Up`. [Informe](iteracio-7-fase-vi-cercador-mapa-ux-ca.md).
+
 > Iteració 7, Fase V (14.10.2026): ADMIN ja pot revisar possibles duplicats, conflictes, fonts i estats de vida; OSM cobreix 17 categories canòniques i Wikidata enriqueix només QID explícits amb dades CC0 separades. Els 68 candidats d'Arenys s'han mantingut en simulació i PostgreSQL real continua amb els 15 Places de Fase IV. [Informe funcional](iteracio-7-fase-v-cobertura-enriquiment-deduplicacio-ca.md).
 
 > Iteració 7, Fase IV (14.10.2026): ADMIN pot preparar, revisar, aprovar i publicar de manera controlada el pilot OSM d'Arenys. La migració real s'ha aplicat; s'han publicat 15 Places i la segona importació ha acreditat idempotència. La cerca pública els resol des de PostgreSQL i mostra `Unknown` quan OSM no aporta informació pet-friendly. [Tancament funcional](iteracio-7-fase-iv-tancament-ca.md).
@@ -1668,7 +1676,7 @@ Flux principal:
 2. consulta descripcio, adreca, notes pet-friendly i tags
 3. veu la ubicacio aproximada en el mapa
 
-Si el lloc no té imatge de portada (URL nul·la, buida o només amb espais) o la càrrega falla, la fitxa mostra el fallback compartit: una rodona amb les sigles del lloc i el text diagonal «NO DISPONIBLE». Mai no queda visible la icona nativa d'imatge trencada ni el text alternatiu accidental.
+Si el lloc no té cap imatge de portada verificada (URL nul·la, buida o només amb espais) o la càrrega falla, la fitxa mostra una il·lustració pròpia de PetiLoc adaptada a la categoria i identificada explícitament com a placeholder. Mai no queda visible la icona nativa d'imatge trencada ni una fotografia genèrica que sembli del local.
 
 ### UC-04 Guardar favorits
 
@@ -2005,10 +2013,11 @@ Part de la informacio de fitxa i del contingut visual dels locals pot provenir d
 
 ### 12.3 Regles funcionals per a imatges de locals
 
-- font objectiu: imatges pròpies o de fonts amb llicència, atribució, ús comercial i persistència verificats; Google Places Photo resta només com a dependència heretada a substituir.
-- si un local no té imatge o la càrrega falla, targetes, favorits, detall i relacionats mostren una rodona amb les sigles calculades de manera compartida i «NO DISPONIBLE» en diagonal (mai un `img` buit o trencat).
-- no es considera valid reutilitzar imatges extretes directament de cercadors sense marc legal clar.
-- per cada imatge s'ha de conservar traca minima de font i atribucio per poder auditar origen i condicions d'us.
+- Prioritat: PetiLoc verificada, propietari, usuari, Wikimedia Commons verificada i, finalment, placeholder.
+- Si un local no té imatge fiable o la càrrega falla, targetes, favorits, detall i relacionats mostren la il·lustració PetiLoc de la categoria; mai no queda visible un `img` trencat ni una foto genèrica que sembli del local.
+- No es reutilitzen imatges trobades només per nom ni resultats de cercador sense marc legal. Commons exigeix QID explícit, fitxer P18 exacte i comprovació individual de llicència; Openverse només podria descobrir candidats, no autoritzar-los.
+- Cada asset conserva font, URL original/servida, autor, llicència/versió, atribució, obtenció, drets d'emmagatzematge/transformació, hash, verificació i elegibilitat com a portada.
+- Google Places Photos no forma part del pipeline governat.
 
 ### 12.4 Decisió històrica: catàleg Zuppeto + Google + enriquiment Gemini
 

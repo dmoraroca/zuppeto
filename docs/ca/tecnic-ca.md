@@ -939,7 +939,7 @@ Diferenciacio tecnica prevista de producte:
 
 Compliment i contingut visual (resum tecnic):
 
-- les imatges de locals han de provenir de fonts pròpies o amb llicència, atribució, ús comercial i retenció verificables; Google Places Photo és dependència heretada pendent de substitució.
+- les imatges de locals provenen del pipeline governat `place_media_assets`, amb llicència, atribució, ús comercial, transformació i retenció verificables; Google Places Photos queda exclòs i el sincronitzador heretat ja no el descarrega.
 - no es considera valida la reutilitzacio d'imatges extretes directament de cercadors sense marc legal clar.
 - el runtime ha de conservar metadades minimes per auditoria (`sourceType`, `externalId`, `attributionText`, `fetchedAtUtc`, `termsScope`).
 
@@ -1568,7 +1568,10 @@ Decisions tecniques rellevants:
 - filtre intern de noms prohibits (**Factory**): `IProhibitedPlaceTermsCatalog` per idioma (`CatalanProhibitedPlaceTermsCatalog` ara); `ProhibitedPlaceTermsCatalogFactory.Create` / `CreateAll`; `ProhibitedPlaceNameFilter` al llistat i a l’ingest Google. Un idioma nou = una classe nova registrada a DI. Web: el mateix a `prohibited-place-terms/`
 - `place-map` es reutilitzable i parametritzable; el popup del llistat és nom + ciutat
 - `place-card` es reutilitza a llistat i favorits; **a les dues pantalles** és una fila ampla (foto esquerra), no una graella de 3 columnes.
-- `place-cover-image` centralitza la portada per a targetes, favorits, detall i llocs relacionats. Davant URL nul·la/buida/whitespace o error de càrrega elimina l'`img` i pinta el fallback estable: rodona, sigles calculades per `placeInitials` i «NO DISPONIBLE» en diagonal.
+- `place-cover-image` centralitza la portada per a targetes, favorits, detall i llocs relacionats. Davant URL nul·la/buida/whitespace o error de càrrega elimina l'`img` i pinta una il·lustració PetiLoc accessible per categoria, sense simular una foto real; les imatges vàlides usen lazy loading, alt descriptiu i `object-fit: cover`.
+- `place_media_assets` conserva font, URL original/servida, autor, llicència/versió, atribució, obtenció, drets d'emmagatzematge/transformació, hash, verificació, portada, QID/fitxer Commons i evidència. `PlaceMediaSelectionPolicy` resol `PetiLoc > Owner > User > WikimediaCommons`; una selecció ADMIN explícita només és vàlida per a assets verificats.
+- `WikimediaCommonsMediaSource` consulta P18 exclusivament des d'un QID ja vinculat, i després `imageinfo` amb `extmetadata` per fitxer. `PlaceMediaLicensePolicy` accepta CC0/domini públic, CC BY i CC BY-SA, i rebutja NC, ND o desconegudes.
+- `place-card-visual-state` centralitza la presentació pet-friendly: només les polítiques verificades reben els tints verd/ambre/vermell; `PendingReview` té un tractament propi i `Unknown` és neutre. `outdoor_seating` es conserva com a feature `Terrassa`, però mai modifica la política pet; amb estat desconegut només mostra l'indici textual corresponent.
 - `place-detail-page` carrega `GET /api/places/{id}` (`loadById`) per enriquir; els apartats van en fila (`auto-fit`); **Context ràpid** s’amaga si no hi ha editorial ni tags útils (no es pinta «tipus a ciutat»); copy tècnic Google no es pinta (vegeu §2.11.3.1)
 
 ### 5.3 Favorites

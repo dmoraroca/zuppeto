@@ -4,10 +4,10 @@ import { firstValueFrom } from 'rxjs';
 
 import { API_BASE_URL } from '../../../core/config/api.config';
 
-/** Traça a consola (filtra per «Zuppeto admin» al DevTools). */
+/** Traça a consola (filtra per «PetiLoc admin» al DevTools). */
 const adminLog = (msg: string, extra?: unknown): void => {
   if (typeof console !== 'undefined') {
-    console.log(`[Zuppeto admin] ${msg}`, extra !== undefined ? extra : '');
+    console.log(`[PetiLoc admin] ${msg}`, extra !== undefined ? extra : '');
   }
 };
 
@@ -274,6 +274,30 @@ export interface AdminPlaceUpsertRequest {
   googlePlaceId?: string;
   googleCoordinatesCachedUntil?: string;
   lastGoogleSyncAt?: string;
+}
+
+export interface AdminPlaceMediaAssetDto {
+  id: string;
+  placeId: string;
+  source: string;
+  originalUrl: string;
+  servedUrl: string;
+  author: string;
+  licenseIdentifier: string;
+  licenseVersion?: string | null;
+  licenseUrl?: string | null;
+  attribution: string;
+  retrievedAtUtc: string;
+  permanentStorageAllowed: boolean;
+  transformationAllowed: boolean;
+  contentHash: string;
+  verificationStatus: 'Pending' | 'Verified' | 'Rejected';
+  canBePrimary: boolean;
+  isPrimary: boolean;
+  wikidataQid?: string | null;
+  wikimediaFileName?: string | null;
+  evidenceUrl?: string | null;
+  rejectionReason?: string | null;
 }
 
 export interface PetConditionDto { code: string; value?: string | null; }
@@ -551,6 +575,22 @@ export class AdminService {
 
   async deletePlace(id: string): Promise<void> {
     await firstValueFrom(this.http.delete(`${API_BASE_URL}/admin/places/${id}`));
+  }
+
+  async listPlaceMedia(placeId: string): Promise<AdminPlaceMediaAssetDto[]> {
+    return await firstValueFrom(this.http.get<AdminPlaceMediaAssetDto[]>(`${API_BASE_URL}/admin/places/${placeId}/media`));
+  }
+
+  async importPlaceMediaFromWikimedia(placeId: string): Promise<AdminPlaceMediaAssetDto[]> {
+    return await firstValueFrom(this.http.post<AdminPlaceMediaAssetDto[]>(`${API_BASE_URL}/admin/places/${placeId}/media/wikimedia/import`, {}));
+  }
+
+  async setPrimaryPlaceMedia(placeId: string, assetId: string): Promise<void> {
+    await firstValueFrom(this.http.post(`${API_BASE_URL}/admin/places/${placeId}/media/${assetId}/primary`, {}));
+  }
+
+  async rejectPlaceMedia(placeId: string, assetId: string, reason: string): Promise<void> {
+    await firstValueFrom(this.http.post(`${API_BASE_URL}/admin/places/${placeId}/media/${assetId}/reject`, { reason }));
   }
 
   getPetGovernance(placeId: string): Promise<PetGovernanceOverviewDto> {

@@ -22,6 +22,14 @@
   overflow: visible;
 }
 
+.places-page__filters-toggle {
+  display: none;
+}
+
+.places-page__filters-panel {
+  min-width: 0;
+}
+
 .places-page__nearby {
   display: flex;
   justify-content: space-between;
@@ -286,6 +294,32 @@
 
   .places-page__search-actions button {
     width: 100%;
+  }
+
+  .places-page__filters-toggle {
+    display: inline-flex;
+    justify-content: center;
+    min-height: 2.75rem;
+    padding: 0.7rem 1rem;
+    border: 1px solid rgba(15, 118, 110, 0.25);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.9);
+    color: var(--yp-color-primary-dark);
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  .places-page__filters-toggle:focus-visible {
+    outline: 3px solid #f59e0b;
+    outline-offset: 2px;
+  }
+
+  .places-page__filters-panel {
+    display: none;
+  }
+
+  .places-page__filters-panel--expanded {
+    display: block;
   }
 
   .places-page__active-filters-header {

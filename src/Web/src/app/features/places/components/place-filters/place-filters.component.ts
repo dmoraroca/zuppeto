@@ -1,7 +1,7 @@
 import { Component, input, output, ChangeDetectionStrategy } from '@angular/core';
 
 import { TerritorialLocationSelectorComponent, TerritorialLocationSelection } from '../../../../shared/components/territorial-location-selector/territorial-location-selector.component';
-import { PetAccessFilter, PlaceFilters, PlaceSearchRadius, PlaceSearchSort } from '../../models/place.model';
+import { PetAccessFilter, PetSpeciesFilter, PlaceFilters, PlaceSearchRadius, PlaceSearchSort } from '../../models/place.model';
 
 export type PlaceFilterSort = 'recent' | 'rating' | 'name';
 
@@ -15,6 +15,10 @@ export type PlaceFilterSort = 'recent' | 'rating' | 'name';
 })
 export class PlaceFiltersComponent {
   protected readonly radii: PlaceSearchRadius[] = [0, 5, 10, 20, 30, 50];
+  protected readonly petSpecies: { value: PetSpeciesFilter; label: string }[] = [
+    { value: 'dogs', label: 'Gossos' },
+    { value: 'cats', label: 'Gats' }
+  ];
   protected readonly petPolicies: { value: PetAccessFilter; label: string; hint: string }[] = [
     { value: 'Allowed', label: 'Accepta mascotes', hint: 'Entrada permesa segons la informació disponible' },
     { value: 'TerraceOnly', label: 'Només terrassa', hint: 'Mascotes admeses només a l’espai exterior' },
@@ -93,9 +97,22 @@ export class PlaceFiltersComponent {
     this.filtersChanged.emit({ searchSort: (event.target as HTMLSelectElement).value as PlaceSearchSort });
   }
 
-  protected onPet(event: Event): void {
-    const value = (event.target as HTMLSelectElement).value as PlaceFilters['pet'];
-    this.filtersChanged.emit({ pet: value });
+  protected togglePetSpecies(value: PetSpeciesFilter): void {
+    const current = this.selectedPetSpecies();
+    const petSpecies = current.includes(value)
+      ? current.filter((item) => item !== value)
+      : [...current, value];
+    this.filtersChanged.emit({
+      petSpecies,
+      pet: petSpecies.length === 1 ? petSpecies[0] : 'all'
+    });
+  }
+
+  protected selectedPetSpecies(): PetSpeciesFilter[] {
+    const explicit = this.filters().petSpecies;
+    if (explicit) return explicit;
+    const legacy = this.filters().pet;
+    return legacy === 'dogs' || legacy === 'cats' ? [legacy] : [];
   }
 
   protected onSort(event: Event): void {
@@ -112,6 +129,7 @@ export class PlaceFiltersComponent {
       type: '',
       types: [],
       pet: 'all',
+      petSpecies: [],
       petAccessStatuses: [],
       verifiedOnly: false,
       searchSort: 'name',

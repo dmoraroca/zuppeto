@@ -1,6 +1,6 @@
 # Automatització E2E de Zuppeto
 
-**Iteració 7 — Fase VI tancada, cercador i mapa (2026-10-15):** després del backup restaurat i la migració real, `npm run e2e:place-search-phase6` ha passat en Chrome amb Arenys, categoria, `Unknown`, radi 0/10 km, selecció llista/mapa, detall i retorn amb filtres, GPS simulat, fallback sense GPS i «Cercar en aquesta zona». El runner ha bloquejat 82 tiles en l'execució final i ha confirmat 0 crides externes de dades. No s'ha executat la regressió multibrowser. [Informe](iteracio-7-fase-vi-cercador-mapa-ux-ca.md).
+**Iteració 7 — Fase VI tancada i polida, cercador i mapa (2026-10-15):** després del backup restaurat i la migració real, `npm run e2e:place-search-phase6` ha passat en Chrome amb Arenys centrat, transició territorial a zoom 9 → clusters a 10–12 → POI des de 13, clics de municipi/cluster/Place i preservació del municipi amb `0 locals`. També valida categories inicials, espècies independents, radi 0/10 km, llista/detall, GPS/fallback, viewport i mòbil. S'han bloquejat 118 tiles OSM i totes les crides externes de dades. No s'ha executat la regressió multibrowser. [Informe](iteracio-7-fase-vi-cercador-mapa-ux-ca.md).
 
 **Iteració 7 — Fase V tancada, catàleg multiproveïdor (2026-10-14):** `npm run e2e:place-catalog-phase5` ha validat sobre PostgreSQL temporal importació OSM, Wikidata CC0, match explicable, conflicte, `SuspectedClosed`, recàrrega i idempotència amb 0 crides externes. Després de la migració/publicació real, `npm run e2e:osm-published-phase4` s'ha actualitzat al tall de Fase V i ha validat 50 Places d'Arenys, cinc tipus, coordenades, `Unknown`, ODbL visible, cap dada Google i 10 tiles bloquejats. No s'han executat Firefox, WebKit ni la bateria Chrome completa. [Informe de Fase V](iteracio-7-fase-v-cobertura-enriquiment-deduplicacio-ca.md).
 
@@ -1212,3 +1212,11 @@ L'ordre reproduïble és `npm run e2e:osm-phase4`. Requereix `E2E_COUNTRY_ID` i 
 La prova prepara una simulació, espera el worker durable, comprova frontera `ref:ine=08006`, els tres tipus d'element OSM, la semàntica de tags pet i l'absència de negació inferida. Després aprova, completa la publicació simulada, repeteix l'import i comprova els duplicats per identitat externa. Finalment recarrega la UI i verifica la persistència.
 
 Resultat: PASS. No s'ha consultat Overpass, no s'ha escrit cap Place, no s'ha executat Firefox/WebKit ni la bateria Chrome completa, i s'han aturat els serveis i eliminat la base temporal.
+
+## Iteració 7 — Fase VI, Chrome focalitzat de media
+
+S'ha afegit l'entrada `npm run e2e:place-media-phase6`. Executa només Google Chrome contra Angular i intercepta els contractes API amb fixtures sintètiques; no necessita ni modifica PostgreSQL i bloqueja tota crida externa. La fixture usa recursos propis ja inclosos al web per representar un asset PetiLoc verificat, sense publicar ni atribuir una fotografia a cap establiment real.
+
+L'escenari comprova una targeta amb portada vàlida, `loading="lazy"` i alt descriptiu; una targeta sense asset amb il·lustració PetiLoc per categoria; una URL que falla i activa el mateix fallback; i una fitxa amb atribució accessible i galeria de dues imatges verificades. També acredita el tint i el text d'un `Allowed` verificat, l'indici de terrassa amb admissió `Unknown` sense conversió automàtica, i un `Unknown` sense indicis que continua neutre. Firefox, WebKit i la bateria completa no formen part d'aquest retoc.
+
+Resultat final: PASS. La fixture de navegador no ha fet cap crida externa ni cap escriptura a PostgreSQL. La migració real de media s'ha validat separadament mitjançant backup, restauració i `Up → Down → Up` abans d'aplicar-la.

@@ -17,6 +17,7 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
     private readonly IOptions<PlaceExternalIntegrationOptions> externalIntegrationOptions;
     private readonly TerritorialLocationService territorialLocations;
     private readonly IPlacePublicSearchQuery? publicSearchQuery;
+    private readonly IPlaceMediaRepository? placeMediaRepository;
 
     public PlaceApplicationService(
         IPlaceRepository placeRepository,
@@ -27,6 +28,7 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
         PlaceResponseMapper responseMapper,
         IOptions<PlaceExternalIntegrationOptions> externalIntegrationOptions,
         TerritorialLocationService territorialLocations,
+        IPlaceMediaRepository? placeMediaRepository = null,
         IPlacePublicSearchQuery? publicSearchQuery = null)
     {
         this.placeRepository = placeRepository;
@@ -37,6 +39,7 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
         this.responseMapper = responseMapper;
         this.externalIntegrationOptions = externalIntegrationOptions;
         this.territorialLocations = territorialLocations;
+        this.placeMediaRepository = placeMediaRepository;
         this.publicSearchQuery = publicSearchQuery;
     }
 
@@ -51,7 +54,8 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
             return null;
         }
 
-        return responseMapper.ToDetail(place);
+        var media = placeMediaRepository is null ? [] : await placeMediaRepository.ListAsync(place.Id, cancellationToken);
+        return responseMapper.ToDetail(place, media);
     }
 
     public async Task<PlaceSearchPageDto> SearchAsync(
@@ -167,7 +171,19 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
         }
 
         var result = await publicSearchQuery!.SearchAsync(normalized, cancellationToken);
-        var items = result.Items.Select(responseMapper.ToSummary).ToArray();
+        var mediaByPlace = placeMediaRepository is null
+            ? new Dictionary<Guid, IReadOnlyCollection<PlaceMediaAsset>>()
+            : await placeMediaRepository.ListByPlaceIdsAsync(result.Items.Select(item => item.Place.Id).ToArray(), cancellationToken);
+        var items = result.Items.Select(item => responseMapper.ToSummary(
+            item.Place,
+            mediaByPlace.GetValueOrDefault(item.Place.Id)) with
+        {
+            DistanceKm = item.DistanceKm,
+            IsPetPolicyVerified = item.IsPetPolicyVerified,
+            PetPolicyVerifiedAtUtc = item.PetPolicyVerifiedAtUtc,
+            UpdatedAtUtc = item.UpdatedAtUtc,
+            BusinessStatus = item.BusinessStatus
+        }).ToArray();
         return new PlaceSearchPageDto(
             items,
             result.Total,

@@ -65,32 +65,57 @@
       </div>
     </fieldset>
 
-    <label class="place-filters__standard place-filters__pet">
-      <span>Espècie</span>
-      <select [value]="filters().pet" (change)="onPet($event)">
-        <option value="all">Totes</option>
-        <option value="dogs">Gossos</option>
-        <option value="cats">Gats</option>
-      </select>
-    </label>
   }
 
-  <fieldset class="place-filters__group place-filters__radius">
-    <legend>Radi de cerca <strong>{{ filters().radiusKm ?? 0 }} km</strong></legend>
-    <div class="place-filters__radius-options">
-      @for (radius of radii; track radius) {
-        <label [class.place-filters__radius-option--active]="(filters().radiusKm ?? 0) === radius">
-          <input type="radio" name="search-radius" [value]="radius" [checked]="(filters().radiusKm ?? 0) === radius" (change)="onRadius($event)" />
-          <span>{{ radius === 0 ? 'Només municipi' : radius + ' km' }}</span>
-        </label>
-      }
-    </div>
-  </fieldset>
+  <div class="place-filters__compact-row">
+    @if (showPet()) {
+      <fieldset class="place-filters__group place-filters__species">
+        <legend>Espècie</legend>
+        <div class="place-filters__chips">
+          @for (species of petSpecies; track species.value) {
+            <label class="place-filters__chip" [class.place-filters__chip--active]="selectedPetSpecies().includes(species.value)">
+              <input
+                type="checkbox"
+                [value]="species.value"
+                [checked]="selectedPetSpecies().includes(species.value)"
+                (change)="togglePetSpecies(species.value)"
+              />
+              <span>{{ species.label }}</span>
+            </label>
+          }
+        </div>
+      </fieldset>
+    }
+
+    <fieldset class="place-filters__group place-filters__radius">
+      <legend>Radi de cerca <strong>{{ filters().radiusKm ?? 0 }} km</strong></legend>
+      <div class="place-filters__radius-options">
+        @for (radius of radii; track radius) {
+          <label [class.place-filters__radius-option--active]="(filters().radiusKm ?? 0) === radius">
+            <input type="radio" name="search-radius" [value]="radius" [checked]="(filters().radiusKm ?? 0) === radius" (change)="onRadius($event)" />
+            <span>{{ radius === 0 ? 'Només municipi' : radius + ' km' }}</span>
+          </label>
+        }
+      </div>
+    </fieldset>
+  </div>
 
   <div class="place-filters__quality">
     <label class="place-filters__verified">
-      <input type="checkbox" [checked]="filters().verifiedOnly ?? false" (change)="onVerified($event)" />
-      <span><strong>Només informació verificada</strong><small>Exclou dades exclusivament automàtiques</small></span>
+      <span class="place-filters__verified-copy">
+        <strong>Només informació verificada</strong>
+        <small>Exclou dades exclusivament automàtiques</small>
+      </span>
+      <span class="place-filters__switch">
+        <input
+          type="checkbox"
+          role="switch"
+          aria-label="Només informació verificada"
+          [checked]="filters().verifiedOnly ?? false"
+          (change)="onVerified($event)"
+        />
+        <span class="place-filters__switch-track" aria-hidden="true"><span></span></span>
+      </span>
     </label>
     <label class="place-filters__standard">
       <span>Ordena per</span>

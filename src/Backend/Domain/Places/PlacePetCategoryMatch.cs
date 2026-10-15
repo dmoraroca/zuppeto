@@ -34,6 +34,11 @@ public static class PlacePetCategoryMatch
             return acceptsCats && !IsDogExclusive(name);
         }
 
+        if (category == PetCategory.Others)
+        {
+            return false;
+        }
+
         return true;
     }
 

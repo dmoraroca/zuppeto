@@ -1,5 +1,6 @@
 export type PlaceType = 'bar' | 'restaurant' | 'hotel' | 'apartment' | 'park' | 'service';
-export type PetFilter = 'all' | 'dogs' | 'cats';
+export type PetFilter = 'all' | 'dogs' | 'cats' | 'others';
+export type PetSpeciesFilter = 'dogs' | 'cats';
 export type PetAccessFilter = 'Allowed' | 'TerraceOnly' | 'Conditional' | 'NotAllowed' | 'Unknown' | 'PendingReview';
 export type PlaceSearchSort = 'distance' | 'verified' | 'recent' | 'name';
 export type PlaceSearchRadius = 0 | 5 | 10 | 20 | 30 | 50;
@@ -7,6 +8,22 @@ export type PlaceSearchRadius = 0 | 5 | 10 | 20 | 30 | 50;
 export interface PlaceCoordinates {
   lat: number;
   lng: number;
+}
+
+export interface PlaceMediaAsset {
+  id: string;
+  source: string;
+  originalUrl: string;
+  servedUrl: string;
+  author: string;
+  licenseIdentifier: string;
+  licenseVersion?: string | null;
+  licenseUrl?: string | null;
+  attribution: string;
+  verificationStatus: string;
+  canBePrimary: boolean;
+  isPrimary: boolean;
+  evidenceUrl?: string | null;
 }
 
 export interface Place {
@@ -41,6 +58,7 @@ export interface Place {
   website?: string;
   coverAttribution?: string;
   coverSourceUri?: string;
+  media?: PlaceMediaAsset[];
   categoryLabel?: string;
   territorialUnitId?: string | null;
   countryId?: string | null;
@@ -64,6 +82,7 @@ export interface PlaceFilters {
   type: string;
   types?: string[];
   pet: PetFilter;
+  petSpecies?: PetSpeciesFilter[];
   petAccessStatuses?: PetAccessFilter[];
   verifiedOnly?: boolean;
   searchSort?: PlaceSearchSort;

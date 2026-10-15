@@ -156,6 +156,21 @@ export class PlaceDetailPageComponent {
       default: return 'Desconegut';
     }
   });
+  protected readonly galleryMedia = computed(() =>
+    (this.place()?.media ?? []).filter((asset) =>
+      asset.verificationStatus === 'Verified' && asset.servedUrl.trim().length > 0
+    )
+  );
+
+  protected mediaSourceLabel(source: string): string {
+    switch (source) {
+      case 'PetiLoc': return 'PetiLoc';
+      case 'Owner': return 'Propietari';
+      case 'User': return 'Usuari';
+      case 'WikimediaCommons': return 'Wikimedia Commons';
+      default: return source;
+    }
+  }
 
   protected toggleFavorite(placeId: string): void {
     this.favoritesService.toggle(placeId);

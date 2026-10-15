@@ -31,7 +31,11 @@ public sealed class PlacePublicSearchPhase6PostgreSqlTests
             var proper = Place("Proper", "Restaurant", "Unknown", 41.581m, 2.550m, now.AddMinutes(-3));
             var distant = Place("Llunyà", "Restaurant", "Allowed", 41.620m, 2.590m, now.AddMinutes(-2));
             var outside = Place("Fora", "Hotel", "Unknown", 42.500m, 3.000m, now.AddMinutes(-1));
-            db.Places.AddRange(proper, distant, outside);
+            var otherSpecies = Place("Espai per a conills", "Service", "Allowed", 41.582m, 2.552m, now);
+            proper.AcceptsDogs = true;
+            distant.AcceptsCats = true;
+            otherSpecies.PetSpeciesJson = "[\"rabbit\"]";
+            db.Places.AddRange(proper, distant, outside, otherSpecies);
             AddImportedCategory(db, proper, "pub", now);
             await db.SaveChangesAsync();
 
@@ -61,6 +65,19 @@ public sealed class PlacePublicSearchPhase6PostgreSqlTests
 
             Assert.Equal(1, importedCategory.Total);
             Assert.Equal("Proper", Assert.Single(importedCategory.Items).Place.Name);
+
+            var otherSpeciesResult = await query.SearchAsync(new PlaceSearchRequest(
+                null, null, "Arenys de Mar", null, "Others", 0, 20));
+
+            Assert.Equal(1, otherSpeciesResult.Total);
+            Assert.Equal("Espai per a conills", Assert.Single(otherSpeciesResult.Items).Place.Name);
+
+            var dogsOrCats = await query.SearchAsync(new PlaceSearchRequest(
+                null, null, "Arenys de Mar", null, "Dogs,Cats", 0, 20));
+
+            Assert.Equal(2, dogsOrCats.Total);
+            Assert.Contains(dogsOrCats.Items, item => item.Place.Name == "Proper");
+            Assert.Contains(dogsOrCats.Items, item => item.Place.Name == "Llunyà");
         }
         finally
         {

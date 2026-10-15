@@ -205,7 +205,7 @@ public sealed class DevelopmentIdentitySeeder(
             email: "admin@admin.adm",
             password: "Admin123",
             role: "Admin",
-            displayName: "Administrador Zuppeto",
+            displayName: "Administrador PetiLoc",
             city: "Barcelona",
             country: "Espanya",
             comments: "",

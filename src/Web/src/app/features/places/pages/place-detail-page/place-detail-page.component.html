@@ -16,7 +16,8 @@
           class="place-detail-page__hero-cover"
           [imageUrl]="selectedPlace.imageUrl"
           [placeName]="selectedPlace.name"
-          [alt]="selectedPlace.name"
+          [category]="selectedPlace.type"
+          [alt]="'Fotografia de ' + selectedPlace.name"
           variant="hero"
         />
         @if (selectedPlace.coverAttribution?.trim()) {
@@ -25,7 +26,7 @@
             @if (selectedPlace.coverSourceUri?.trim()) {
               ·
               <a [href]="selectedPlace.coverSourceUri" target="_blank" rel="noopener noreferrer">
-                Veure a Google Maps
+                Veure la font original
               </a>
             }
           </p>
@@ -55,6 +56,35 @@
         </div>
       </div>
     </section>
+
+    @if (galleryMedia().length > 1) {
+      <section class="place-detail-page__gallery" aria-labelledby="place-gallery-title">
+        <h2 id="place-gallery-title">Galeria</h2>
+        <div class="place-detail-page__gallery-grid">
+          @for (asset of galleryMedia(); track asset.id; let index = $index) {
+            <figure>
+              <img
+                [src]="asset.servedUrl"
+                [alt]="'Fotografia ' + (index + 1) + ' de ' + selectedPlace.name"
+                loading="lazy"
+                decoding="async"
+              />
+              <figcaption>
+                {{ asset.author || 'Autoria no indicada' }} · {{ mediaSourceLabel(asset.source) }} ·
+                @if (asset.licenseUrl) {
+                  <a [href]="asset.licenseUrl" target="_blank" rel="noopener noreferrer">{{ asset.licenseIdentifier }}</a>
+                } @else {
+                  {{ asset.licenseIdentifier }}
+                }
+                @if (asset.evidenceUrl) {
+                  · <a [href]="asset.evidenceUrl" target="_blank" rel="noopener noreferrer">fitxa original</a>
+                }
+              </figcaption>
+            </figure>
+          }
+        </div>
+      </section>
+    }
 
     <section class="place-detail-page__stack">
       <article class="place-detail-page__card">
@@ -224,7 +254,8 @@
               <app-place-cover-image
                 [imageUrl]="relatedPlace.imageUrl"
                 [placeName]="relatedPlace.name"
-                [alt]="relatedPlace.name"
+                [category]="relatedPlace.type"
+                [alt]="'Fotografia de ' + relatedPlace.name"
                 variant="related"
               />
               <div>

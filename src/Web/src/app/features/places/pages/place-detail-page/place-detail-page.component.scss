@@ -56,6 +56,43 @@
   line-height: 0.98;
 }
 
+.place-detail-page__gallery {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.place-detail-page__gallery h2 {
+  margin: 0;
+}
+
+.place-detail-page__gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 1rem;
+}
+
+.place-detail-page__gallery figure {
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 1rem;
+  background: #fff;
+}
+
+.place-detail-page__gallery img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.place-detail-page__gallery figcaption {
+  padding: 0.7rem 0.85rem;
+  color: var(--yp-color-text-muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
 .place-detail-page__copy {
   margin: 1rem 0 0;
   line-height: 1.75;

@@ -48,7 +48,7 @@ internal sealed class SmtpAccountActivationEmailSender(IOptions<AccountActivatio
         };
         using var email = new MailMessage(value.FromAddress, message.RecipientEmail)
         {
-            Subject = "Activa el teu compte de Zuppeto",
+            Subject = "Activa el teu compte de PetiLoc",
             Body = $"Obre aquest enllaç per activar el teu compte: {activationUrl}",
             IsBodyHtml = false
         };
@@ -74,7 +74,7 @@ internal sealed class SmtpPasswordRecoveryEmailSender(IOptions<AccountActivation
         };
         using var email = new MailMessage(value.FromAddress, message.RecipientEmail)
         {
-            Subject = "Recupera la contrasenya de Zuppeto",
+            Subject = "Recupera la contrasenya de PetiLoc",
             Body = $"Obre aquest enllaç per establir una contrasenya nova: {resetUrl}",
             IsBodyHtml = false
         };

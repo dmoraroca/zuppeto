@@ -6,6 +6,7 @@ import { FavoriteToggleButtonComponent } from '../../../../shared/components/fav
 import { PlaceCoverImageComponent } from '../place-cover-image/place-cover-image.component';
 import { Place } from '../../models/place.model';
 import { hasPublicPetPolicy, hasPublicPrice, hasPublicRating } from '../../utils/place-detail-copy';
+import { resolvePlaceCardVisualState } from '../../utils/place-card-visual-state';
 
 @Component({
   selector: 'app-place-card',
@@ -28,6 +29,7 @@ export class PlaceCardComponent {
   protected readonly hasRating = computed(() => hasPublicRating(this.place()));
   protected readonly hasPrice = computed(() => hasPublicPrice(this.place()));
   protected readonly hasPetPolicy = computed(() => hasPublicPetPolicy(this.place()));
+  protected readonly visualState = computed(() => resolvePlaceCardVisualState(this.place()));
   protected readonly petStatus = computed(() => {
     switch (this.place().petAccessStatus) {
       case 'Allowed': return { icon: '✓', label: 'Accepta mascotes', tone: 'positive' };

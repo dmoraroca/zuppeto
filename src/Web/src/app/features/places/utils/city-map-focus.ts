@@ -9,6 +9,7 @@ export const SPAIN_MAP_ZOOM = 6;
 export type CityMapFocus = { lat: number; lng: number };
 
 const CITY_MAP_FOCUS: Record<string, CityMapFocus> = {
+  'arenys de mar': { lat: 41.5803, lng: 2.5508 },
   barcelona: { lat: 41.3874, lng: 2.1686 },
   madrid: { lat: 40.4168, lng: -3.7038 },
   lisboa: { lat: 38.7223, lng: -9.1393 },

@@ -160,7 +160,8 @@ public sealed record PlaceSummaryDto(
     bool IsPetPolicyVerified = false,
     DateTimeOffset? PetPolicyVerifiedAtUtc = null,
     DateTimeOffset? UpdatedAtUtc = null,
-    string BusinessStatus = "Open");
+    string BusinessStatus = "Open",
+    IReadOnlyCollection<PlaceMediaAssetDto>? Media = null);
 
 public sealed record PlaceDetailDto(
     Guid Id,
@@ -205,7 +206,8 @@ public sealed record PlaceDetailDto(
     bool IsPetPolicyVerified = false,
     DateTimeOffset? PetPolicyVerifiedAtUtc = null,
     DateTimeOffset? UpdatedAtUtc = null,
-    string BusinessStatus = "Open");
+    string BusinessStatus = "Open",
+    IReadOnlyCollection<PlaceMediaAssetDto>? Media = null);
 
 public sealed record PlacePublicSearchRow(
     Domain.Places.Place Place,

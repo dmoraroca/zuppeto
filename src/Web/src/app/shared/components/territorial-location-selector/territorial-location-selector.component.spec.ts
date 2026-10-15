@@ -114,6 +114,40 @@ describe('TerritorialLocationSelectorComponent', () => {
     key(fixture, 'Escape');
     expect(fixture.nativeElement.querySelector('[role="listbox"]')).toBeNull();
   });
+
+  it('keeps the visible locality synchronized when a routed selection arrives after initialization', async () => {
+    const api = locationApi([locality('arenys', 'es', 'Arenys de Mar', 'Maresme · Catalunya · Espanya')]);
+    const fixture = await create(api, 'es');
+
+    fixture.componentRef.setInput('legacyLocality', 'Arenys de Mar');
+    fixture.componentRef.setInput('localityId', 'arenys');
+    fixture.detectChanges();
+    await delay(0);
+    fixture.detectChanges();
+
+    expect(combobox(fixture).value).toBe('Arenys de Mar');
+  });
+
+  it('resolves a unique legacy country and locality so visible and effective search share one state', async () => {
+    const api = locationApi([locality('arenys', 'es', 'Arenys de Mar', 'Maresme · Catalunya · Espanya')]);
+    await TestBed.configureTestingModule({
+      imports: [TerritorialLocationSelectorComponent],
+      providers: [{ provide: TerritorialLocationService, useValue: api }]
+    }).compileComponents();
+    const fixture = TestBed.createComponent(TerritorialLocationSelectorComponent);
+    fixture.componentRef.setInput('legacyCountry', 'Espanya');
+    fixture.componentRef.setInput('legacyLocality', 'Arenys de Mar');
+    const selections: TerritorialLocationSelection[] = [];
+    fixture.componentInstance.selectionChange.subscribe((value) => selections.push(value));
+    fixture.detectChanges();
+    await fixture.whenStable();
+    await delay(0);
+    fixture.detectChanges();
+
+    expect((fixture.nativeElement.querySelector('select') as HTMLSelectElement).value).toBe('es');
+    expect(combobox(fixture).value).toBe('Arenys de Mar');
+    expect(selections.at(-1)?.territorialUnitId).toBe('arenys');
+  });
 });
 
 function locationApi(items = [locality('vila', 'es', 'Vila E2E À', 'Regió E2E À · Espanya')]) {

@@ -13,16 +13,22 @@ internal sealed class PlaceSearchPageAssembler(
 {
     internal PlaceSearchPageDto FromPlaces(IReadOnlyCollection<Place> places, PlaceSearchRequest request)
     {
-        var category = PlaceCatalogEnums.ParsePetCategory(request.PetCategory);
+        var categories = request.PetCategory
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(PlaceCatalogEnums.ParsePetCategory)
+            .Where(category => category != PetCategory.All)
+            .Distinct()
+            .ToArray();
         var filtered = places
             .Where(place => !prohibitedPlaceNameFilter.IsProhibited(place.Name))
-            .Where(place => PlacePetCategoryMatch.Fits(
-                place.Name,
-                place.PetPolicy.AcceptsDogs,
-                place.PetPolicy.AcceptsCats,
-                category))
+            .Where(place => categories.Length == 0 || categories.Any(category =>
+                PlacePetCategoryMatch.Fits(
+                    place.Name,
+                    place.PetPolicy.AcceptsDogs,
+                    place.PetPolicy.AcceptsCats,
+                    category)))
             .ToArray();
-        return FromSummaries(filtered.Select(responseMapper.ToSummary).ToArray(), request);
+        return FromSummaries(filtered.Select(place => responseMapper.ToSummary(place)).ToArray(), request);
     }
 
     internal PlaceSearchPageDto Empty(PlaceSearchRequest request) => FromSummaries([], request);
@@ -35,16 +41,14 @@ internal sealed class PlaceSearchPageAssembler(
             return page;
         }
 
-        var missingCovers = page.Items
-            .Where(item =>
-                string.IsNullOrWhiteSpace(item.CoverImageUrl)
-                || item.Features.Count == 0)
+        var enrichmentCandidates = page.Items
+            .Where(item => item.Features.Count == 0)
             .Select(item => item.Id)
             .Take(Math.Clamp(externalIntegrationOptions.Value.MaxBackgroundEnrichmentsPerPage, 0, 10))
             .ToArray();
-        if (missingCovers.Length > 0)
+        if (enrichmentCandidates.Length > 0)
         {
-            enrichmentQueue.Enqueue(missingCovers);
+            enrichmentQueue.Enqueue(enrichmentCandidates);
         }
 
         return page;

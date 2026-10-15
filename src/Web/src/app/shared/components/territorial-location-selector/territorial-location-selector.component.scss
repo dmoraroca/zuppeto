@@ -10,11 +10,11 @@
 }
 
 :host(.place-filters__territory) .location-pair > label:first-child {
-  grid-column: span 2;
+  grid-column: span 3;
 }
 
 :host(.place-filters__territory) .location-pair > label:last-child {
-  grid-column: span 3;
+  grid-column: span 5;
 }
 
 :host(.place-filters__territory) .location-pair > label {

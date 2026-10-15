@@ -1392,6 +1392,150 @@ namespace Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.PlaceMediaAssetRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<string>("Attribution")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("attribution");
+
+                    b.Property<string>("Author")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("author");
+
+                    b.Property<bool>("CanBePrimary")
+                        .HasColumnType("boolean")
+                        .HasColumnName("can_be_primary");
+
+                    b.Property<string>("ContentHash")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("content_hash");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<string>("EvidenceUrl")
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)")
+                        .HasColumnName("evidence_url");
+
+                    b.Property<bool>("IsPrimary")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_primary");
+
+                    b.Property<string>("LicenseIdentifier")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("license_identifier");
+
+                    b.Property<string>("LicenseUrl")
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)")
+                        .HasColumnName("license_url");
+
+                    b.Property<string>("LicenseVersion")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("license_version");
+
+                    b.Property<string>("OriginalUrl")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)")
+                        .HasColumnName("original_url");
+
+                    b.Property<bool>("PermanentStorageAllowed")
+                        .HasColumnType("boolean")
+                        .HasColumnName("permanent_storage_allowed");
+
+                    b.Property<Guid>("PlaceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("place_id");
+
+                    b.Property<string>("RejectionReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("rejection_reason");
+
+                    b.Property<DateTimeOffset>("RetrievedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("retrieved_at_utc");
+
+                    b.Property<string>("ServedUrl")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)")
+                        .HasColumnName("served_url");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("source");
+
+                    b.Property<bool>("TransformationAllowed")
+                        .HasColumnType("boolean")
+                        .HasColumnName("transformation_allowed");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<string>("VerificationStatus")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)")
+                        .HasColumnName("verification_status");
+
+                    b.Property<string>("WikidataQid")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("wikidata_qid");
+
+                    b.Property<string>("WikimediaFileName")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("wikimedia_file_name");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlaceId")
+                        .HasDatabaseName("ix_place_media_place");
+
+                    b.HasIndex("PlaceId", "ContentHash")
+                        .IsUnique()
+                        .HasDatabaseName("ux_place_media_place_hash");
+
+                    b.HasIndex("PlaceId", "IsPrimary")
+                        .IsUnique()
+                        .HasDatabaseName("ux_place_media_primary")
+                        .HasFilter("is_primary = TRUE");
+
+                    b.ToTable("place_media_assets", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_place_media_source", "source IN ('PetiLoc','Owner','User','WikimediaCommons')");
+
+                            t.HasCheckConstraint("ck_place_media_verification", "verification_status IN ('Pending','Verified','Rejected')");
+                        });
+                });
+
             modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.PlaceRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3927,6 +4071,17 @@ namespace Infrastructure.Persistence.Migrations
                     b.Navigation("DecidedByActor");
 
                     b.Navigation("SourceRecord");
+                });
+
+            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.PlaceMediaAssetRecord", b =>
+                {
+                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.PlaceRecord", "Place")
+                        .WithMany()
+                        .HasForeignKey("PlaceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Place");
                 });
 
             modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.PlaceRecord", b =>

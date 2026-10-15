@@ -159,6 +159,8 @@ internal sealed class OverpassPlaceDiscoverySource(HttpClient http, IOptions<Ove
         Add(fields, "website", First(tags, "contact:website", "website"), First(tags, "contact:website", "website"), observedAt);
         Add(fields, "phone", First(tags, "contact:phone", "phone"), First(tags, "contact:phone", "phone"), observedAt);
         Add(fields, "openingHours", tags.GetValueOrDefault("opening_hours"), tags.GetValueOrDefault("opening_hours"), observedAt);
+        Add(fields, "amenity.outdoor_seating", tags.GetValueOrDefault("outdoor_seating"),
+            NormalizeAvailability(tags.GetValueOrDefault("outdoor_seating")), observedAt);
         Add(fields, "brand", tags.GetValueOrDefault("brand"), tags.GetValueOrDefault("brand"), observedAt);
         Add(fields, "operator", tags.GetValueOrDefault("operator"), tags.GetValueOrDefault("operator"), observedAt);
         Add(fields, "wikidata.id", First(tags, "brand:wikidata", "operator:wikidata", "wikidata"), First(tags, "brand:wikidata", "operator:wikidata", "wikidata"), observedAt);
@@ -179,6 +181,14 @@ internal sealed class OverpassPlaceDiscoverySource(HttpClient http, IOptions<Ove
         "no" => "NotAllowed",
         "outside" => "TerraceOnly",
         "leashed" => "Allowed:leash-required",
+        null or "" => null,
+        _ => "PendingReview"
+    };
+
+    private static string? NormalizeAvailability(string? value) => value?.ToLowerInvariant() switch
+    {
+        "yes" or "covered" or "seasonal" => "Available",
+        "no" => "Unavailable",
         null or "" => null,
         _ => "PendingReview"
     };

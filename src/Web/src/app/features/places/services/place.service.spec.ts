@@ -111,6 +111,27 @@ describe('PlaceService phase I characterization', () => {
     }));
   });
 
+  it('maps the Altres species chip to the explicit backend category', async () => {
+    const promise = service.searchPage({
+      search: '', country: 'Espanya', city: 'Arenys de Mar', type: '', pet: 'others'
+    }, 0, 20);
+    const request = http.expectOne((candidate) => candidate.url.endsWith('/api/places'));
+    expect(request.request.params.get('petCategory')).toBe('Others');
+    request.flush({ items: [], total: 0, skip: 0, take: 20, hasMore: false });
+    await expect(promise).resolves.toEqual(expect.objectContaining({ total: 0 }));
+  });
+
+  it('sends independently selected dogs and cats as an inclusive backend filter', async () => {
+    const promise = service.searchPage({
+      search: '', country: 'Espanya', city: 'Arenys de Mar', type: '', pet: 'all',
+      petSpecies: ['dogs', 'cats']
+    }, 0, 20);
+    const request = http.expectOne((candidate) => candidate.url.endsWith('/api/places'));
+    expect(request.request.params.get('petCategory')).toBe('Dogs,Cats');
+    request.flush({ items: [], total: 0, skip: 0, take: 20, hasMore: false });
+    await expect(promise).resolves.toEqual(expect.objectContaining({ total: 0 }));
+  });
+
   it('turns a public network failure into an empty result without inventing places', async () => {
     const promise = service.fetchPublicPlaces({ city: 'Abadín' });
     http.expectOne((candidate) => candidate.url.endsWith('/api/places')).flush(

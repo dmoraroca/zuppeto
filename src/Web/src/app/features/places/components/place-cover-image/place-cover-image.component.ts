@@ -1,5 +1,5 @@
 import { Component, computed, effect, input, signal, ChangeDetectionStrategy } from '@angular/core';
-import { placeInitials } from '../../utils/place-initials';
+import { PlaceType } from '../../models/place.model';
 
 export type PlaceCoverImageVariant = 'hero' | 'related' | 'card';
 
@@ -13,7 +13,7 @@ export class PlaceCoverImageComponent {
   readonly imageUrl = input<string | null | undefined>('');
   readonly placeName = input('');
   readonly alt = input('');
-  readonly caption = input('NO DISPONIBLE');
+  readonly category = input<PlaceType | string>('service');
   readonly variant = input<PlaceCoverImageVariant>('hero');
 
   private readonly loadFailed = signal(false);
@@ -30,8 +30,19 @@ export class PlaceCoverImageComponent {
     const url = this.imageUrl()?.trim();
     return Boolean(url) && !this.loadFailed();
   });
-
-  protected readonly initials = computed(() => placeInitials(this.placeName() || this.alt()));
+  protected readonly resolvedAlt = computed(() =>
+    this.alt().trim() || (this.placeName().trim() ? `Fotografia de ${this.placeName().trim()}` : 'Fotografia del lloc')
+  );
+  protected readonly placeholder = computed(() => {
+    switch (this.category().trim().toLocaleLowerCase('ca')) {
+      case 'restaurant': return { icon: '🍽', label: 'Restaurant', tone: 'restaurant' };
+      case 'bar': return { icon: '☕', label: 'Bar o cafeteria', tone: 'bar' };
+      case 'hotel': return { icon: '⌂', label: 'Hotel', tone: 'hotel' };
+      case 'apartment': return { icon: '⌂', label: 'Allotjament', tone: 'hotel' };
+      case 'park': return { icon: '♧', label: 'Espai exterior', tone: 'park' };
+      default: return { icon: '✦', label: 'Servei', tone: 'service' };
+    }
+  });
 
   protected onImageError(): void {
     this.loadFailed.set(true);

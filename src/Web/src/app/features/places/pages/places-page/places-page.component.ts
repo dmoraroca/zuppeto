@@ -8,14 +8,14 @@ import { SectionHeadingComponent } from '../../../../shared/components/section-h
 import { FavoritesService } from '../../../favorites/services/favorites.service';
 import { PlaceCardComponent } from '../../components/place-card/place-card.component';
 import { PlaceFiltersComponent } from '../../components/place-filters/place-filters.component';
-import { PlaceMapComponent } from '../../components/place-map/place-map.component';
+import { PlaceMapComponent, PlaceMapMunicipality } from '../../components/place-map/place-map.component';
 import { PlaceMapViewport } from '../../components/place-map/place-map.component';
 import { Place, PlaceFilters } from '../../models/place.model';
 import { TerritorialLocationService } from '../../../../shared/services/territorial-location.service';
-import { PLACE_LIST_PAGE_SIZE, PlaceSearchMapArea, PlaceService } from '../../services/place.service';
+import { PLACE_LIST_PAGE_SIZE, PlaceSearchMap, PlaceSearchMapArea, PlaceService } from '../../services/place.service';
 import { resolveCityMapFocus } from '../../utils/city-map-focus';
 import { formatCityDisplayLabel, mergeCityLabelsDistinct } from '../../utils/city-typeahead.utils';
-import { parsePetFilter } from '../../utils/place-list-filter';
+import { DEFAULT_PLACE_TYPES, parsePetFilter, parsePetSpecies, parsePlaceTypes } from '../../utils/place-list-filter';
 import { placesVisibleOnOsmMap } from '../../utils/places-osm-map';
 
 @Component({
@@ -47,6 +47,7 @@ export class PlacesPageComponent {
   });
   protected readonly geolocationState = signal<'idle' | 'locating' | 'ready' | 'denied' | 'unavailable'>('idle');
   protected readonly nearbyLabel = signal('');
+  protected readonly filtersExpanded = signal(false);
 
   protected readonly filters = computed<PlaceFilters>(() => {
     const map = this.queryParams();
@@ -57,8 +58,9 @@ export class PlacesPageComponent {
       countryId: (map.get('countryId') ?? '').trim(),
       territorialUnitId: (map.get('territorialUnitId') ?? '').trim(),
       type: (map.get('type') ?? '').trim(),
-      types: splitParam(map.get('types')),
-      pet: parsePetFilter(map.get('pet')),
+      types: parsePlaceTypes(map.get('types'), map.get('type')),
+      pet: parseSinglePet(map.get('pets'), map.get('pet')),
+      petSpecies: parsePetSpecies(map.get('pets'), map.get('pet')),
       petAccessStatuses: splitParam(map.get('petPolicies')) as PlaceFilters['petAccessStatuses'],
       verifiedOnly: map.get('verified') === 'true',
       searchSort: parseSort(map.get('sort')),
@@ -71,6 +73,7 @@ export class PlacesPageComponent {
   protected readonly listingHasMore = signal(false);
   protected readonly listingLoading = signal(false);
   protected readonly mapAreas = signal<PlaceSearchMapArea[]>([]);
+  private readonly mapContext = signal<PlaceSearchMap | null>(null);
   private readonly catalogCities = signal<string[]>([]);
   private readonly placeApiCities = signal<string[]>([]);
   private readonly availableCountries = signal<string[]>([]);
@@ -82,8 +85,18 @@ export class PlacesPageComponent {
     countryId: (this.route.snapshot.queryParamMap.get('countryId') ?? '').trim(),
     territorialUnitId: (this.route.snapshot.queryParamMap.get('territorialUnitId') ?? '').trim(),
     type: (this.route.snapshot.queryParamMap.get('type') ?? '').trim(),
-    types: splitParam(this.route.snapshot.queryParamMap.get('types')),
-    pet: parsePetFilter(this.route.snapshot.queryParamMap.get('pet')),
+    types: parsePlaceTypes(
+      this.route.snapshot.queryParamMap.get('types'),
+      this.route.snapshot.queryParamMap.get('type')
+    ),
+    pet: parseSinglePet(
+      this.route.snapshot.queryParamMap.get('pets'),
+      this.route.snapshot.queryParamMap.get('pet')
+    ),
+    petSpecies: parsePetSpecies(
+      this.route.snapshot.queryParamMap.get('pets'),
+      this.route.snapshot.queryParamMap.get('pet')
+    ),
     petAccessStatuses: splitParam(this.route.snapshot.queryParamMap.get('petPolicies')) as PlaceFilters['petAccessStatuses'],
     verifiedOnly: this.route.snapshot.queryParamMap.get('verified') === 'true',
     searchSort: parseSort(this.route.snapshot.queryParamMap.get('sort')),
@@ -123,6 +136,17 @@ export class PlacesPageComponent {
   );
   /** City centre when the filter has a known city but no pins (e.g. Berlin / Lisboa). */
   protected readonly cityMapFocus = computed(() => resolveCityMapFocus(this.filters().city));
+  protected readonly activeMunicipality = computed<PlaceMapMunicipality | null>(() => {
+    const city = this.filters().city.trim();
+    if (!city) return null;
+    const map = this.mapContext();
+    const fallback = this.cityMapFocus();
+    const lat = map?.centerLatitude ?? fallback?.lat;
+    const lng = map?.centerLongitude ?? fallback?.lng;
+    return lat == null || lng == null
+      ? null
+      : { name: city, lat, lng, placeCount: this.listingTotal() };
+  });
   protected readonly selectedPlaceId = this.selectedPlaceIdState.asReadonly();
   protected readonly canWriteFavorites = this.favoritesService.canWrite;
   protected readonly selectedPlace = computed(() => {
@@ -132,7 +156,7 @@ export class PlacesPageComponent {
   });
   /** Stable keys for control-flow @for (avoid NG0956 when labels share text across updates). */
   protected readonly activeFilterChips = computed(() => {
-    const { country, city, type, types, pet, search, radiusKm, petAccessStatuses, verifiedOnly } = this.filters();
+    const { country, city, type, types, petSpecies, search, radiusKm, petAccessStatuses, verifiedOnly } = this.filters();
     const chips: { id: string; label: string }[] = [];
 
     if (country.trim()) {
@@ -152,12 +176,10 @@ export class PlacesPageComponent {
     if (petAccessStatuses?.length) chips.push({ id: 'policies', label: `Polítiques: ${petAccessStatuses.length}` });
     if (verifiedOnly) chips.push({ id: 'verified', label: 'Només verificats' });
 
-    if (pet !== 'all') {
-      chips.push({
-        id: 'pet',
-        label: pet === 'dogs' ? 'Mascota: gossos' : 'Mascota: gats'
-      });
-    }
+    if (petSpecies?.length) chips.push({
+      id: 'pets',
+      label: `Espècies: ${petSpecies.map((pet) => pet === 'dogs' ? 'gossos' : 'gats').join(' i ')}`
+    });
 
     if (search.trim()) {
       chips.push({ id: 'search', label: `Cerca: ${search.trim()}` });
@@ -214,7 +236,7 @@ export class PlacesPageComponent {
     }
 
     if (pet !== 'all') {
-      details.push(pet === 'dogs' ? 'pensat per a gossos' : 'pensat per a gats');
+      details.push(pet === 'dogs' ? 'pensat per a gossos' : pet === 'cats' ? 'pensat per a gats' : 'pensat per a altres espècies');
     }
 
     if (safeSearch) {
@@ -229,7 +251,26 @@ export class PlacesPageComponent {
   });
 
   protected onDraftFiltersChanged(partial: Partial<PlaceFilters>): void {
-    this.draftFilters.update((current) => ({ ...current, ...partial }));
+    const territorialChange = Object.prototype.hasOwnProperty.call(partial, 'territorialUnitId');
+    const next: PlaceFilters = {
+      ...this.draftFilters(),
+      ...partial,
+      ...(territorialChange ? {
+        radiusKm: 0 as const,
+        centerLatitude: undefined,
+        centerLongitude: undefined,
+        north: undefined,
+        south: undefined,
+        east: undefined,
+        west: undefined
+      } : {})
+    };
+    this.draftFilters.set(next);
+    if (territorialChange) this.applyFilters(next);
+  }
+
+  protected toggleFilters(): void {
+    this.filtersExpanded.update((expanded) => !expanded);
   }
 
   protected applyFilters(next: PlaceFilters): void {
@@ -246,8 +287,9 @@ export class PlacesPageComponent {
         countryId: next.countryId?.trim() || null,
         territorialUnitId: next.territorialUnitId?.trim() || null,
         type: type || null,
-        types: next.types?.length ? next.types.join(',') : null,
-        pet: next.pet !== 'all' ? next.pet : null,
+        types: serializePlaceTypes(next.types),
+        pets: next.petSpecies?.length ? next.petSpecies.join(',') : null,
+        pet: null,
         petPolicies: next.petAccessStatuses?.length ? next.petAccessStatuses.join(',') : null,
         verified: next.verifiedOnly ? 'true' : null,
         sort: next.searchSort && next.searchSort !== 'name' ? next.searchSort : null,
@@ -274,7 +316,7 @@ export class PlacesPageComponent {
 
   protected clearAllFilters(): void {
     const empty: PlaceFilters = {
-      search: '', country: '', city: '', type: '', types: [], pet: 'all',
+      search: '', country: '', city: '', type: '', types: [], pet: 'all', petSpecies: [],
       petAccessStatuses: [], verifiedOnly: false, searchSort: 'name', radiusKm: 0
     };
     this.draftFilters.set(empty);
@@ -331,34 +373,13 @@ export class PlacesPageComponent {
     );
   }
 
-  private async refreshMissingCovers(filters: PlaceFilters, requestId: number): Promise<void> {
-    for (let attempt = 0; attempt < 8; attempt++) {
-      if (!this.listingPlaces().some((place) => !place.imageUrl?.trim())) {
-        return;
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      if (requestId !== this.listingRequest) {
-        return;
-      }
-
-      const take = Math.max(PLACE_LIST_PAGE_SIZE, this.listingPlaces().length);
-      const page = await this.placeService.searchPage(filters, 0, take);
-      if (requestId !== this.listingRequest) {
-        return;
-      }
-
-      const byId = new Map(page.items.map((place) => [place.id, place]));
-      this.listingPlaces.update((current) => current.map((place) => byId.get(place.id) ?? place));
-    }
-  }
-
   private async reloadListing(filters: PlaceFilters): Promise<void> {
     const requestId = ++this.listingRequest;
     this.listingAbort?.abort();
     this.listingAbort = new AbortController();
     this.listingLoading.set(true);
     this.selectedPlaceIdState.set(null);
+    this.mapContext.set(null);
 
     try {
       const page = await this.placeService.searchPage(filters, 0, PLACE_LIST_PAGE_SIZE, this.listingAbort.signal);
@@ -370,7 +391,7 @@ export class PlacesPageComponent {
       this.listingTotal.set(page.total);
       this.listingHasMore.set(page.hasMore);
       this.mapAreas.set(page.map?.areas ?? []);
-      void this.refreshMissingCovers(filters, requestId);
+      this.mapContext.set(page.map ?? null);
     } catch (error) {
       if (this.listingAbort.signal.aborted) return;
       throw error;
@@ -398,7 +419,6 @@ export class PlacesPageComponent {
       });
       this.listingTotal.set(page.total);
       this.listingHasMore.set(page.hasMore);
-      void this.refreshMissingCovers(filters, requestId);
     } finally {
       if (requestId === this.listingRequest) {
         this.listingLoading.set(false);
@@ -458,13 +478,22 @@ export class PlacesPageComponent {
           const location = await this.territorialLocations.nearest(position.coords.latitude, position.coords.longitude);
           this.nearbyLabel.set(`A prop meu — ${location.locality}`);
           this.geolocationState.set('ready');
-          this.draftFilters.update((current) => ({
-            ...current,
+          const next: PlaceFilters = {
+            ...this.draftFilters(),
             countryId: location.countryId,
             territorialUnitId: location.territorialUnitId,
             country: location.country,
-            city: location.locality
-          }));
+            city: location.locality,
+            radiusKm: 0,
+            centerLatitude: undefined,
+            centerLongitude: undefined,
+            north: undefined,
+            south: undefined,
+            east: undefined,
+            west: undefined
+          };
+          this.draftFilters.set(next);
+          this.applyFilters(next);
         } catch {
           this.geolocationState.set('unavailable');
         }
@@ -482,8 +511,9 @@ export class PlacesPageComponent {
       city: filters.city || null,
       countryId: filters.countryId || null,
       territorialUnitId: filters.territorialUnitId || null,
-      types: filters.types?.length ? filters.types.join(',') : null,
-      pet: filters.pet !== 'all' ? filters.pet : null,
+      types: serializePlaceTypes(filters.types),
+      pets: filters.petSpecies?.length ? filters.petSpecies.join(',') : null,
+      pet: null,
       petPolicies: filters.petAccessStatuses?.length ? filters.petAccessStatuses.join(',') : null,
       verified: filters.verifiedOnly ? 'true' : null,
       sort: filters.searchSort !== 'name' ? filters.searchSort ?? null : null,
@@ -492,8 +522,22 @@ export class PlacesPageComponent {
   }
 
   private getPetContext(pet: PlaceFilters['pet']): string {
-    return pet === 'dogs' ? 'per a gossos' : 'per a gats';
+    return pet === 'dogs' ? 'per a gossos' : pet === 'cats' ? 'per a gats' : 'per a altres espècies';
   }
+}
+
+function serializePlaceTypes(types: string[] | undefined): string | null {
+  if (!types?.length) return 'all';
+  const normalized = [...types].sort();
+  const defaults = [...DEFAULT_PLACE_TYPES].sort();
+  return normalized.length === defaults.length && normalized.every((value, index) => value === defaults[index])
+    ? null
+    : types.join(',');
+}
+
+function parseSinglePet(pets: string | null, legacyPet: string | null): PlaceFilters['pet'] {
+  const species = parsePetSpecies(pets, legacyPet);
+  return species.length === 1 ? species[0] : parsePetFilter(legacyPet);
 }
 
 function splitParam(value: string | null): string[] {

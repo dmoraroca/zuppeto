@@ -23,11 +23,11 @@ export class ContactPageComponent {
   protected readonly channels = [
     {
       title: 'Col·laboracions',
-      body: 'Per col·laboracions, contingut o noves ciutats: partnerships@zuppeto.fake'
+      body: 'Per col·laboracions, contingut o noves ciutats: partnerships@petiloc.fake'
     },
     {
       title: 'Suport de producte',
-      body: 'Per dubtes de navegació, favorits, perfil o cerca: suport@zuppeto.fake'
+      body: 'Per dubtes de navegació, favorits, perfil o cerca: suport@petiloc.fake'
     },
     {
       title: 'Temps de resposta',

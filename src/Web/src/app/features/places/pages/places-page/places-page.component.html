@@ -22,16 +22,32 @@
         {{ geolocationState() === 'locating' ? 'Localitzant…' : '📍 A prop meu' }}
       </button>
     </section>
-    <app-place-filters
-      [filters]="draftFilters()"
-      [pinCities]="pinCities()"
-      [apiCities]="apiCities()"
-      [cities]="cities()"
-      [countries]="countries()"
-      [types]="types"
-      [showClearButton]="false"
-      (filtersChanged)="onDraftFiltersChanged($event)"
-    />
+    <button
+      type="button"
+      class="places-page__filters-toggle"
+      aria-controls="places-search-filters"
+      [attr.aria-expanded]="filtersExpanded()"
+      (click)="toggleFilters()"
+    >
+      {{ filtersExpanded() ? 'Amagar filtres' : 'Mostrar filtres' }}
+    </button>
+
+    <div
+      id="places-search-filters"
+      class="places-page__filters-panel"
+      [class.places-page__filters-panel--expanded]="filtersExpanded()"
+    >
+      <app-place-filters
+        [filters]="draftFilters()"
+        [pinCities]="pinCities()"
+        [apiCities]="apiCities()"
+        [cities]="cities()"
+        [countries]="countries()"
+        [types]="types"
+        [showClearButton]="false"
+        (filtersChanged)="onDraftFiltersChanged($event)"
+      />
+    </div>
 
     <section class="places-page__search-actions" aria-label="Accions de cerca">
       <button type="submit" class="places-page__search-primary">
@@ -49,6 +65,8 @@
       [areas]="mapAreas()"
       [selectedPlaceId]="selectedPlaceId()"
       [focusCenter]="cityMapFocus()"
+      [municipality]="activeMunicipality()"
+      [radiusKm]="filters().radiusKm ?? 0"
       height="25rem"
       emptyTitle="Cap resultat al mapa"
       emptyCopy="Quan els filtres retornin llocs, també els veuràs aquí."

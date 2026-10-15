@@ -260,7 +260,7 @@ export class PlaceService {
       (filters.types?.length ?? 0) > 0 ||
       (filters.petAccessStatuses?.length ?? 0) > 0 ||
       !!filters.verifiedOnly ||
-      filters.pet !== 'all'
+      (filters.petSpecies?.length ?? 0) > 0 || filters.pet !== 'all'
     );
   }
 
@@ -320,8 +320,11 @@ export class PlaceService {
       }
     }
 
-    if (filters.pet !== 'all') {
-      params = params.set('petCategory', filters.pet === 'dogs' ? 'Dogs' : 'Cats');
+    const petSpecies = filters.petSpecies ?? (filters.pet === 'dogs' || filters.pet === 'cats' ? [filters.pet] : []);
+    if (petSpecies.length > 0) {
+      params = params.set('petCategory', petSpecies.map((pet) => pet === 'dogs' ? 'Dogs' : 'Cats').join(','));
+    } else if (filters.pet === 'others') {
+      params = params.set('petCategory', 'Others');
     }
 
     return params;
@@ -373,6 +376,7 @@ export class PlaceService {
       website: place.website ?? '',
       coverAttribution: place.coverAttribution ?? '',
       coverSourceUri: place.coverSourceUri ?? '',
+      media: (place.media ?? []).map((asset) => ({ ...asset, servedUrl: resolveMediaUrl(asset.servedUrl) })),
       categoryLabel: place.categoryLabel?.trim() ?? '',
       countryId: place.countryId,
       territorialUnitId: place.territorialUnitId,
@@ -476,6 +480,21 @@ interface PlaceApiSummaryDto {
   petPolicyVerifiedAtUtc?: string | null;
   updatedAtUtc?: string | null;
   businessStatus?: string | null;
+  media?: Array<{
+    id: string;
+    source: string;
+    originalUrl: string;
+    servedUrl: string;
+    author: string;
+    licenseIdentifier: string;
+    licenseVersion?: string | null;
+    licenseUrl?: string | null;
+    attribution: string;
+    verificationStatus: string;
+    canBePrimary: boolean;
+    isPrimary: boolean;
+    evidenceUrl?: string | null;
+  }> | null;
 }
 
 interface PlaceSearchPageDto {

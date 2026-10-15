@@ -75,13 +75,15 @@ export class TerritorialLocationSelectorComponent implements OnInit, OnChanges, 
   async ngOnInit(): Promise<void> {
     this.activeCountryId = this.countryId();
     this.selectedLocalityId = this.localityId();
-    this.query = this.selectedLocalityId ? this.legacyLocality() : '';
+    this.query = this.legacyLocality();
     try {
       const allowed = new Set(this.allowedCountryCodes().map((code) => code.toUpperCase()));
       const countries = await this.locations.countries();
       this.countries = allowed.size
         ? countries.filter((country) => allowed.has((country.code || '').toUpperCase()))
         : countries;
+      this.resolveLegacyCountry();
+      await this.resolveLegacyLocality();
     }
     catch { this.error = 'No s’han pogut carregar els països.'; }
     finally {
@@ -96,7 +98,15 @@ export class TerritorialLocationSelectorComponent implements OnInit, OnChanges, 
       this.activeCountryId = this.countryId();
       this.resetLocality(false);
     }
-    if (changes['localityId'] && !this.localityId() && this.selectedLocalityId) this.resetLocality(false);
+    if (changes['localityId'] && this.localityId() !== this.selectedLocalityId) {
+      this.selectedLocalityId = this.localityId();
+      this.query = this.selectedLocalityId ? this.legacyLocality() : '';
+      this.localities = [];
+      this.closeResults();
+    } else if (changes['legacyLocality'] && this.legacyLocality() !== this.query) {
+      this.query = this.legacyLocality();
+    }
+    this.cdr.markForCheck();
   }
 
   ngOnDestroy(): void { this.subscriptions.unsubscribe(); }
@@ -162,6 +172,34 @@ export class TerritorialLocationSelectorComponent implements OnInit, OnChanges, 
   }
 
   protected optionId(index: number): string { return `${this.inputId}-option-${index}`; }
+
+  private resolveLegacyCountry(): void {
+    if (this.activeCountryId || !this.legacyCountry().trim()) return;
+    const legacy = this.legacyCountry().trim();
+    this.activeCountryId = this.countries.find((country) =>
+      country.name.localeCompare(legacy, 'und', { sensitivity: 'base' }) === 0 ||
+      country.code.localeCompare(legacy, 'und', { sensitivity: 'base' }) === 0
+    )?.id ?? '';
+  }
+
+  private async resolveLegacyLocality(): Promise<void> {
+    const legacy = this.legacyLocality().trim();
+    if (!this.activeCountryId || this.selectedLocalityId || !legacy) return;
+    const matches = (await this.locations.localities(this.activeCountryId, legacy)).filter((locality) =>
+      locality.name.localeCompare(legacy, 'und', { sensitivity: 'base' }) === 0
+    );
+    if (matches.length !== 1) return;
+    this.selectedLocalityId = matches[0].id;
+    this.query = matches[0].name;
+    this.localityIdChange.emit(matches[0].id);
+    const country = this.countries.find((item) => item.id === this.activeCountryId);
+    this.selectionChange.emit({
+      countryId: this.activeCountryId,
+      country: country?.name ?? this.legacyCountry(),
+      territorialUnitId: matches[0].id,
+      locality: matches[0].name
+    });
+  }
 
   private requestSearch(value: string): void {
     if (!this.activeCountryId) return;

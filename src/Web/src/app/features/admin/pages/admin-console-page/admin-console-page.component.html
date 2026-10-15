@@ -1744,6 +1744,40 @@
 
             @if (!placeIsNew() && editablePlace().id; as placeId) {
               <app-pet-governance-panel [placeId]="placeId" />
+
+              <section class="admin-console-form admin-console-form--readonly" style="grid-column: 1 / -1" aria-labelledby="place-media-title">
+                <div style="display:flex;justify-content:space-between;gap:1rem;align-items:center;flex-wrap:wrap">
+                  <div>
+                    <p class="admin-console-kicker">Media governada</p>
+                    <h4 id="place-media-title" style="margin:0">Imatges del lloc</h4>
+                  </div>
+                  <button type="button" (click)="importWikimediaMedia()" [disabled]="placeMediaBusy()">
+                    {{ placeMediaBusy() ? 'Revisant…' : 'Cercar al QID vinculat' }}
+                  </button>
+                </div>
+                @if (placeMediaAssets().length === 0) {
+                  <p>No hi ha cap imatge governada. El cercador mantindrà el placeholder.</p>
+                } @else {
+                  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr));gap:1rem">
+                    @for (asset of placeMediaAssets(); track asset.id) {
+                      <article style="border:1px solid rgba(148,163,184,.35);border-radius:12px;padding:.8rem;display:grid;gap:.6rem">
+                        <img [src]="asset.servedUrl" [alt]="'Imatge candidata de ' + editablePlace().name" loading="lazy" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px" />
+                        <p style="margin:0"><strong>{{ asset.source }}</strong> · {{ asset.verificationStatus }}</p>
+                        <p style="margin:0;font-size:.85rem">{{ asset.author || 'Autoria no indicada' }} · {{ asset.licenseIdentifier }} {{ asset.licenseVersion || '' }}</p>
+                        <p style="margin:0;font-size:.8rem">{{ asset.attribution }}</p>
+                        @if (asset.rejectionReason) { <p style="margin:0;color:#991b1b">{{ asset.rejectionReason }}</p> }
+                        <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+                          <button type="button" (click)="setPrimaryMedia(asset.id)" [disabled]="!asset.canBePrimary || asset.verificationStatus !== 'Verified' || asset.isPrimary">
+                            {{ asset.isPrimary ? 'Principal' : 'Fer principal' }}
+                          </button>
+                          <button type="button" (click)="rejectMedia(asset)" [disabled]="asset.verificationStatus === 'Rejected'">Rebutjar</button>
+                          @if (asset.evidenceUrl) { <a [href]="asset.evidenceUrl" target="_blank" rel="noopener noreferrer">Veure atribució</a> }
+                        </div>
+                      </article>
+                    }
+                  </div>
+                }
+              </section>
             }
 
             @if (!placeIsNew()) {

@@ -5,15 +5,18 @@
   [class.place-cover--card]="variant() === 'card'"
 >
   @if (showImage()) {
-    <img [src]="imageUrl()" [alt]="alt()" (error)="onImageError()" />
+    <img [src]="imageUrl()" [alt]="resolvedAlt()" loading="lazy" decoding="async" (error)="onImageError()" />
   } @else {
     <div
       class="place-cover__placeholder"
       role="img"
-      [attr.aria-label]="caption() + ': ' + (placeName() || alt())"
+      [attr.data-category]="placeholder().tone"
+      [attr.aria-label]="'Il·lustració PetiLoc de categoria ' + placeholder().label + ' per a ' + (placeName() || 'aquest lloc')"
     >
-      <div class="place-cover__monogram" aria-hidden="true">{{ initials() }}</div>
-      <p class="place-cover__caption place-cover__caption--diagonal">{{ caption() }}</p>
+      <span class="place-cover__placeholder-glow" aria-hidden="true"></span>
+      <span class="place-cover__placeholder-icon" aria-hidden="true">{{ placeholder().icon }}</span>
+      <span class="place-cover__category">{{ placeholder().label }}</span>
+      <p class="place-cover__caption">Il·lustració PetiLoc</p>
     </div>
   }
 </div>

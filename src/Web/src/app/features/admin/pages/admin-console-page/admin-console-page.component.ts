@@ -49,6 +49,7 @@ import {
   AdminMenuCatalog,
   AdminMenuDefinition,
   AdminPlaceDto,
+  AdminPlaceMediaAssetDto,
   AdminPlaceUpsertRequest,
   AdminService,
   AdminUserListItem,
@@ -257,6 +258,8 @@ export class AdminConsolePageComponent {
   protected readonly placeDetailEditMode = signal(false);
   protected readonly placeIsNew = signal(false);
   protected readonly placeDeleteCandidate = signal<AdminPlaceDto | null>(null);
+  protected readonly placeMediaAssets = signal<AdminPlaceMediaAssetDto[]>([]);
+  protected readonly placeMediaBusy = signal(false);
   protected readonly editablePlace = signal<{
     id?: string;
     name: string;
@@ -2071,12 +2074,54 @@ export class AdminConsolePageComponent {
       googleMetaCacheExpired: place.googleCoordinatesCacheExpired
     });
     this.placeModalOpen.set(true);
+    void this.loadPlaceMedia(place.id);
   }
 
   protected closePlaceModal(): void {
     this.placeModalOpen.set(false);
     this.placeDetailEditMode.set(false);
     this.createMaintenancePrivacyAccepted.set(false);
+    this.placeMediaAssets.set([]);
+  }
+
+  protected async importWikimediaMedia(): Promise<void> {
+    const placeId = this.editablePlace().id;
+    if (!placeId || this.placeMediaBusy()) return;
+    this.placeMediaBusy.set(true);
+    try {
+      this.placeMediaAssets.set(await this.adminService.importPlaceMediaFromWikimedia(placeId));
+      this.notifications.notify('Imatges revisades', 'S’han importat només els fitxers de Commons amb identitat i llicència verificades.', 'success');
+    } catch (error: unknown) {
+      this.notifyHttpError(error, 'No s’han pogut revisar les imatges de Wikimedia Commons.');
+    } finally {
+      this.placeMediaBusy.set(false);
+    }
+  }
+
+  protected async setPrimaryMedia(assetId: string): Promise<void> {
+    const placeId = this.editablePlace().id;
+    if (!placeId) return;
+    try {
+      await this.adminService.setPrimaryPlaceMedia(placeId, assetId);
+      await this.loadPlaceMedia(placeId);
+      this.notifications.notify('Imatge principal', 'S’ha actualitzat la imatge principal del lloc.', 'success');
+    } catch (error: unknown) {
+      this.notifyHttpError(error, 'No s’ha pogut marcar la imatge com a principal.');
+    }
+  }
+
+  protected async rejectMedia(asset: AdminPlaceMediaAssetDto): Promise<void> {
+    const placeId = this.editablePlace().id;
+    if (!placeId) return;
+    const reason = window.prompt('Motiu del rebuig de la imatge:')?.trim();
+    if (!reason) return;
+    try {
+      await this.adminService.rejectPlaceMedia(placeId, asset.id, reason);
+      await this.loadPlaceMedia(placeId);
+      this.notifications.notify('Imatge rebutjada', 'La imatge ja no pot aparèixer públicament.', 'success');
+    } catch (error: unknown) {
+      this.notifyHttpError(error, 'No s’ha pogut rebutjar la imatge.');
+    }
   }
 
   protected beginPlaceDetailEdit(): void {
@@ -2433,6 +2478,14 @@ export class AdminConsolePageComponent {
         return;
       }
       this.notifications.notify('Error', 'No s’han pogut carregar els llocs.', 'error');
+    }
+  }
+
+  private async loadPlaceMedia(placeId: string): Promise<void> {
+    try {
+      this.placeMediaAssets.set(await this.adminService.listPlaceMedia(placeId));
+    } catch {
+      this.placeMediaAssets.set([]);
     }
   }
 

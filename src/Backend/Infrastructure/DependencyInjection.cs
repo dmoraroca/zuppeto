@@ -149,6 +149,21 @@ public static class DependencyInjection
         {
             AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate
         });
+        services.AddHttpClient("WikidataMedia", (sp, client) =>
+        {
+            var options = sp.GetRequiredService<IOptions<WikidataOptions>>().Value;
+            client.BaseAddress = new Uri(options.BaseUrl);
+            client.Timeout = TimeSpan.FromSeconds(Math.Clamp(options.TimeoutSeconds, 5, 60));
+            client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "PetiLoc-Media/1.0 (https://github.com/dmoraroca/zuppeto)");
+        });
+        services.AddHttpClient("CommonsMedia", (sp, client) =>
+        {
+            var options = sp.GetRequiredService<IOptions<WikidataOptions>>().Value;
+            client.BaseAddress = new Uri(options.CommonsApiBaseUrl);
+            client.Timeout = TimeSpan.FromSeconds(Math.Clamp(options.TimeoutSeconds, 5, 60));
+            client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "PetiLoc-Media/1.0 (https://github.com/dmoraroca/zuppeto)");
+        });
+        services.AddScoped<IPlaceMediaSource, WikimediaCommonsMediaSource>();
         services.AddScoped<IPlaceSourceNormalizer, OsmPlaceSourceNormalizer>();
         services.AddScoped<IPlaceStoragePermissionPolicy, OsmStoragePermissionPolicy>();
         services.AddScoped<IPlaceMatcher, ConservativePlaceMatcher>();
@@ -168,6 +183,7 @@ public static class DependencyInjection
         services.AddScoped<TerritorialPilotConfigurationSeeder>();
         services.AddScoped<IMenuRepository, MenuRepository>();
         services.AddScoped<IPlaceRepository, PlaceRepository>();
+        services.AddScoped<IPlaceMediaRepository, PlaceMediaRepository>();
         services.AddScoped<IPlacePublicSearchQuery, PlacePublicSearchQuery>();
         services.AddScoped<IPetGovernanceRepository, PetGovernanceRepository>();
         services.AddScoped<IUserRepository, UserRepository>();

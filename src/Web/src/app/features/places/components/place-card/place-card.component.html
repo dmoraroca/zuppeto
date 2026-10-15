@@ -1,6 +1,7 @@
 <article
   class="place-card"
   [class.place-card--selected]="selected()"
+  [attr.data-pet-tone]="visualState().tone"
   (click)="onCardSelect($event)"
 >
   <div class="place-card__image-wrap">
@@ -11,7 +12,8 @@
       class="place-card__cover"
       [imageUrl]="place().imageUrl"
       [placeName]="place().name"
-      [alt]="place().name"
+      [category]="place().type"
+      [alt]="'Fotografia de ' + place().name"
       variant="card"
     />
   </div>
@@ -64,6 +66,12 @@
         <span class="place-card__unverified">No verificada</span>
       }
     </div>
+
+    @if (visualState().supportingText; as supportingText) {
+      <p class="place-card__pet-clue" [attr.data-tone]="visualState().tone">
+        <span aria-hidden="true">i</span> {{ supportingText }}
+      </p>
+    }
 
     @if (place().tags.length) {
       <div class="place-card__tags">

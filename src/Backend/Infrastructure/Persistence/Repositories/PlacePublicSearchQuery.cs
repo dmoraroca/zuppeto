@@ -62,10 +62,16 @@ internal sealed class PlacePublicSearchQuery(ZuppetoDbContext dbContext) : IPlac
         else if (conditional)
             query = query.Where(place => place.PetConditionsJson != "[]");
 
-        if (request.PetCategory.Equals("Dogs", StringComparison.OrdinalIgnoreCase))
-            query = query.Where(place => place.AcceptsDogs);
-        else if (request.PetCategory.Equals("Cats", StringComparison.OrdinalIgnoreCase))
-            query = query.Where(place => place.AcceptsCats);
+        var petCategories = request.PetCategory
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var dogsSelected = petCategories.Contains("Dogs", StringComparer.OrdinalIgnoreCase);
+        var catsSelected = petCategories.Contains("Cats", StringComparer.OrdinalIgnoreCase);
+        if (dogsSelected || catsSelected)
+            query = query.Where(place =>
+                (dogsSelected && place.AcceptsDogs) ||
+                (catsSelected && place.AcceptsCats));
+        else if (petCategories.Contains("Others", StringComparer.OrdinalIgnoreCase))
+            query = query.Where(place => !place.AcceptsDogs && !place.AcceptsCats && place.PetSpeciesJson != "[]");
 
         var verifiedPlaceIds = dbContext.PetFriendlyAssertions
             .AsNoTracking()

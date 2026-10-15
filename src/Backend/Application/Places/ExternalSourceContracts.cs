@@ -99,7 +99,19 @@ public interface IPlaceMatcher
     Task<Result<PlaceMatchDecision>> MatchAsync(NormalizedPlaceCandidate candidate, CancellationToken cancellationToken);
 }
 
-public sealed record PlaceMediaCandidate(Uri SourceUri, string LicenseIdentifier, string Attribution, bool PersistenceAllowed);
+public sealed record PlaceMediaCandidate(
+    Guid Id,
+    Uri OriginalUri,
+    Uri ServedUri,
+    Uri EvidenceUri,
+    string FileName,
+    string Author,
+    string LicenseIdentifier,
+    Uri? LicenseUri,
+    string Attribution,
+    string ContentHash,
+    DateTimeOffset RetrievedAtUtc,
+    bool IdentityVerified);
 public sealed record ProvenanceVerification(bool IsVerified, string Method, DateTimeOffset CheckedAtUtc, string? Reason);
 public sealed record StoragePermissionDecision(bool Allowed, string Reason, DateTimeOffset ReviewedAtUtc);
 public sealed record NormalizedPlaceCandidate(string SourceKey, string ExternalId, string Name, string Category,

@@ -15,11 +15,24 @@ import { signal } from '@angular/core';
 import { Place } from '../../models/place.model';
 import { PlaceSearchMapArea } from '../../services/place.service';
 import { SPAIN_MAP_CENTER, SPAIN_MAP_ZOOM } from '../../utils/city-map-focus';
+import {
+  CITY_CLICK_ZOOM,
+  CITY_INITIAL_ZOOM,
+  PLACE_MARKER_MIN_ZOOM,
+  placeMapLayerMode
+} from './place-map-zoom';
+import { PlaceMapLayerMode } from './place-map-zoom';
 
 type LeafletModule = typeof import('leaflet');
 type LeafletMap = import('leaflet').Map;
 type LeafletLayerGroup = import('leaflet').LayerGroup;
 export interface PlaceMapViewport { north: number; south: number; east: number; west: number; }
+export interface PlaceMapMunicipality {
+  name: string;
+  lat: number;
+  lng: number;
+  placeCount: number;
+}
 
 @Component({
   selector: 'app-place-map',
@@ -39,6 +52,8 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   readonly showToolbarActions = input(true);
   /** When there are no markers, centre the map here (selected city) instead of Europe. */
   readonly focusCenter = input<{ lat: number; lng: number } | null>(null);
+  readonly municipality = input<PlaceMapMunicipality | null>(null);
+  readonly radiusKm = input(0);
   readonly placeSelected = output<string>();
   readonly selectionCleared = output<void>();
   readonly viewportSearch = output<PlaceMapViewport>();
@@ -48,15 +63,17 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   private markersLayer?: LeafletLayerGroup;
   private readonly markers = new Map<string, import('leaflet').Marker>();
   private mapInitialization?: Promise<void>;
-  private lastPlaceIdsKey = '';
+  private lastDataKey = '';
+  private lastCameraContextKey = '';
   protected readonly viewportChanged = signal(false);
+  protected readonly visibleLayer = signal<PlaceMapLayerMode>('municipality');
+  protected readonly currentZoom = signal(CITY_INITIAL_ZOOM);
+  protected readonly currentCenter = signal<{ lat: number; lng: number } | null>(null);
   private automaticCameraUntil = 0;
 
   /** Spain-first listing view (do not fitBounds when a pin is in Australia, etc.). */
   private static readonly defaultMapCenter: [number, number] = SPAIN_MAP_CENTER;
   private static readonly defaultMapZoom = SPAIN_MAP_ZOOM;
-  /** City-level zoom when a city is selected but there are no place pins. */
-  private static readonly cityFocusZoom = 13;
   /** If visible pins span more than this, keep the camera on Spain instead of the world. */
   private static readonly maxFitSpanMeters = 1_200_000;
 
@@ -91,7 +108,9 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   }
 
   protected focusAllPlaces(): void {
-    if (this.hasPlaces) {
+    if (this.municipality()) {
+      this.setMunicipalityView();
+    } else if (this.hasPlaces) {
       this.fitMapToPlaces();
     } else {
       this.setEmptyMapView();
@@ -100,7 +119,9 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
 
   protected clearSelection(): void {
     this.selectionCleared.emit();
-    if (this.hasPlaces) {
+    if (this.municipality()) {
+      this.setMunicipalityView();
+    } else if (this.hasPlaces) {
       this.fitMapToPlaces();
     } else {
       this.setEmptyMapView();
@@ -171,21 +192,30 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
         return;
       }
 
-      if (!this.hasPlaces) {
-        this.markersLayer.clearLayers();
-        this.markers.clear();
-        this.lastPlaceIdsKey = '';
+      const municipality = this.municipality();
+      const dataKey = [
+        ...this.places().map((place) => place.id),
+        ...(municipality ? [municipality.name, municipality.placeCount] : []),
+        ...this.areas().map((area) => `${area.territorialUnitId}:${area.placeCount}`)
+      ].join('|');
+      const dataChanged = dataKey !== this.lastDataKey;
+      const cameraContextKey = municipality
+        ? `${municipality.lat}:${municipality.lng}:${this.radiusKm()}`
+        : '';
+      const cameraContextChanged = cameraContextKey !== this.lastCameraContextKey;
+
+      if (cameraContextChanged) {
+        municipality ? this.setMunicipalityView() : this.setEmptyMapView();
+        this.lastCameraContextKey = cameraContextKey;
+      } else if (!municipality && dataChanged && this.hasPlaces) {
+        this.fitMapToPlaces();
+      } else if (!this.hasPlaces && !municipality) {
         this.setEmptyMapView();
-        return;
       }
 
-      const placeIdsKey = this.places()
-        .map((place) => place.id)
-        .join(',');
-      const placesChanged = placeIdsKey !== this.lastPlaceIdsKey;
-      if (placesChanged) {
+      if (dataChanged || cameraContextChanged) {
         this.redrawMarkers();
-        this.lastPlaceIdsKey = placeIdsKey;
+        this.lastDataKey = dataKey;
       }
 
       const selectedPlaceId = this.selectedPlaceId();
@@ -201,9 +231,6 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
         }
       }
 
-      if (placesChanged) {
-        this.fitMapToPlaces();
-      }
     });
   }
 
@@ -215,53 +242,21 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     this.markersLayer.clearLayers();
     this.markers.clear();
 
-    const zoom = this.map?.getZoom() ?? 13;
-    if (zoom < 10) {
+    const zoom = this.map?.getZoom() ?? CITY_INITIAL_ZOOM;
+    const mode = placeMapLayerMode(zoom, this.hasPlaces);
+    this.currentZoom.set(zoom);
+    this.visibleLayer.set(mode);
+    const center = this.map?.getCenter();
+    this.currentCenter.set(center ? { lat: center.lat, lng: center.lng } : null);
+    if (mode === 'municipality') {
       this.drawMunicipalities();
       return;
     }
-    if (zoom < 13) {
+    if (mode === 'clusters') {
       this.drawClusters(zoom);
       return;
     }
-
-    for (const place of this.places()) {
-      const marker = this.leaflet.marker([place.coordinates!.lat, place.coordinates!.lng], {
-        icon: this.placeIcon(place, place.id === this.selectedPlaceId()),
-        keyboard: true,
-        title: `${place.name}: ${this.petStatusLabel(place.petAccessStatus)}`
-      });
-
-      marker.bindPopup(
-        `
-            <div class="place-map__popup">
-              <p class="place-map__popup-type">${escapeHtml(place.categoryLabel || place.type)}</p>
-              <strong>${escapeHtml(place.name)}</strong>
-              <span>${escapeHtml(place.city)} · ${escapeHtml(this.petStatusLabel(place.petAccessStatus))}</span>
-              <span>${place.isPetPolicyVerified ? '✓ Informació verificada' : 'Informació no verificada'}${place.distanceKm != null ? ` · ${place.distanceKm.toFixed(1)} km` : ''}</span>
-            </div>
-          `,
-        {
-          className: 'place-map__popup-shell'
-        }
-      );
-      marker.on('click', () => this.placeSelected.emit(place.id));
-      marker.on('add', () => {
-        const markerElement = marker.getElement();
-        markerElement?.setAttribute('role', 'button');
-        markerElement?.setAttribute('aria-label', `Seleccionar ${place.name} al mapa`);
-        markerElement?.setAttribute('tabindex', '0');
-        markerElement?.addEventListener('keydown', (event) => {
-          const keyEvent = event as KeyboardEvent;
-          if (keyEvent.key === 'Enter' || keyEvent.key === ' ') {
-            event.preventDefault();
-            this.placeSelected.emit(place.id);
-          }
-        });
-      });
-      marker.addTo(this.markersLayer);
-      this.markers.set(place.id, marker);
-    }
+    this.drawPlacesWithCollisionClusters(zoom);
   }
 
   private applyMarkerSelection(selectedPlaceId: string | null): void {
@@ -285,12 +280,30 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     const focus = this.focusCenter();
     if (focus) {
       this.markAutomaticCamera();
-      this.map.setView([focus.lat, focus.lng], PlaceMapComponent.cityFocusZoom);
+      this.map.setView([focus.lat, focus.lng], CITY_INITIAL_ZOOM);
       return;
     }
 
     this.markAutomaticCamera();
     this.map.setView(PlaceMapComponent.defaultMapCenter, PlaceMapComponent.defaultMapZoom);
+  }
+
+  private setMunicipalityView(): void {
+    if (!this.leaflet || !this.map) return;
+    const municipality = this.municipality();
+    if (!municipality) return;
+
+    this.markAutomaticCamera();
+    if (this.radiusKm() > 0) {
+      const bounds = this.leaflet.circle(
+        [municipality.lat, municipality.lng],
+        { radius: this.radiusKm() * 1000 }
+      ).getBounds();
+      this.map.fitBounds(bounds, { padding: [28, 28], maxZoom: PLACE_MARKER_MIN_ZOOM - 1 });
+      return;
+    }
+
+    this.map.setView([municipality.lat, municipality.lng], CITY_INITIAL_ZOOM);
   }
 
   private fitMapToPlaces(existingBounds?: import('leaflet').LatLngBounds): void {
@@ -322,14 +335,21 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
 
   private drawMunicipalities(): void {
     if (!this.leaflet || !this.markersLayer) return;
+    const municipality = this.municipality();
+    if (municipality) {
+      this.drawMunicipalityMarker(municipality);
+      return;
+    }
+
     const suppliedAreas = this.areas().filter(area => area.latitude != null && area.longitude != null);
     if (suppliedAreas.length > 0) {
       for (const area of suppliedAreas) {
-        this.leaflet.circleMarker([area.latitude!, area.longitude!], {
-          radius: Math.min(22, 10 + Math.sqrt(area.placeCount) * 2),
-          weight: 3, color: '#0f766e', fillColor: '#f0fdfa', fillOpacity: 0.95,
-          className: 'place-map__municipality-marker'
-        }).bindTooltip(`${escapeHtml(area.name)} · ${area.placeCount}`, { permanent: true, direction: 'top' }).addTo(this.markersLayer);
+        this.drawMunicipalityMarker({
+          name: area.name,
+          lat: area.latitude!,
+          lng: area.longitude!,
+          placeCount: area.placeCount
+        });
       }
       return;
     }
@@ -338,40 +358,140 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     for (const [city, places] of groups) {
       const lat = places.reduce((sum, place) => sum + place.coordinates!.lat, 0) / places.length;
       const lng = places.reduce((sum, place) => sum + place.coordinates!.lng, 0) / places.length;
-      this.leaflet.circleMarker([lat, lng], {
-        radius: Math.min(22, 10 + Math.sqrt(places.length) * 2),
-        weight: 3,
-        color: '#0f766e',
-        fillColor: '#f0fdfa',
-        fillOpacity: 0.95,
-        className: 'place-map__municipality-marker'
-      }).bindTooltip(`${escapeHtml(city)} · ${places.length}`, { permanent: true, direction: 'top' }).addTo(this.markersLayer);
+      this.drawMunicipalityMarker({ name: city, lat, lng, placeCount: places.length });
     }
   }
 
-  private drawClusters(zoom: number): void {
+  private drawMunicipalityMarker(municipality: PlaceMapMunicipality): void {
     if (!this.leaflet || !this.markersLayer) return;
-    const cell = zoom === 10 ? 0.12 : zoom === 11 ? 0.06 : 0.025;
+    const countLabel = municipality.placeCount === 1 ? '1 local' : `${municipality.placeCount} locals`;
+    const marker = this.leaflet.circleMarker([municipality.lat, municipality.lng], {
+      radius: Math.min(22, 10 + Math.sqrt(municipality.placeCount) * 2),
+      weight: 3,
+      color: '#0f766e',
+      fillColor: '#f0fdfa',
+      fillOpacity: 0.96,
+      className: 'place-map__municipality-marker'
+    });
+    marker.bindTooltip(
+      `<strong>${escapeHtml(municipality.name)}</strong><span>${countLabel}</span>`,
+      { permanent: true, direction: 'top', className: 'place-map__municipality-label' }
+    );
+    marker.on('click', () => this.zoomToMunicipality(municipality));
+    marker.on('add', () => this.makeCircleInteractive(
+      marker,
+      `Apropar-se a ${municipality.name}, ${countLabel}`,
+      () => this.zoomToMunicipality(municipality)
+    ));
+    marker.addTo(this.markersLayer);
+  }
+
+  private zoomToMunicipality(municipality: PlaceMapMunicipality): void {
+    if (!this.map) return;
+    this.markAutomaticCamera();
+    this.map.setView([municipality.lat, municipality.lng], CITY_CLICK_ZOOM);
+  }
+
+  private drawClusters(_zoom: number): void {
+    for (const places of this.groupPlacesByPixels(72)) this.drawCluster(places, true);
+  }
+
+  private drawPlacesWithCollisionClusters(zoom: number): void {
+    const collisionPixels = zoom >= 15 ? 24 : 36;
+    for (const places of this.groupPlacesByPixels(collisionPixels)) {
+      if (places.length > 1) this.drawCluster(places, false);
+      else this.drawPlaceMarker(places[0]);
+    }
+  }
+
+  private groupPlacesByPixels(cellSize: number): Place[][] {
+    if (!this.map) return [];
     const groups = new Map<string, Place[]>();
     for (const place of this.places()) {
-      const key = `${Math.round(place.coordinates!.lat / cell)}:${Math.round(place.coordinates!.lng / cell)}`;
+      const point = this.map.latLngToLayerPoint([place.coordinates!.lat, place.coordinates!.lng]);
+      const key = `${Math.floor(point.x / cellSize)}:${Math.floor(point.y / cellSize)}`;
       groups.set(key, [...(groups.get(key) ?? []), place]);
     }
-    for (const places of groups.values()) {
-      if (places.length === 1) {
-        const place = places[0];
-        this.leaflet.circleMarker([place.coordinates!.lat, place.coordinates!.lng], {
-          radius: 7, color: '#0f766e', fillColor: '#99f6e4', fillOpacity: 0.9, weight: 2
-        }).bindTooltip(escapeHtml(place.name)).addTo(this.markersLayer);
-        continue;
+    return [...groups.values()];
+  }
+
+  private drawCluster(places: Place[], permanentLabel: boolean): void {
+    if (!this.leaflet || !this.map || !this.markersLayer || places.length === 0) return;
+    const lat = places.reduce((sum, place) => sum + place.coordinates!.lat, 0) / places.length;
+    const lng = places.reduce((sum, place) => sum + place.coordinates!.lng, 0) / places.length;
+    const countLabel = places.length === 1 ? '1 local' : `${places.length} locals`;
+    const marker = this.leaflet.circleMarker([lat, lng], {
+      radius: Math.min(20, 8 + Math.sqrt(places.length) * 2),
+      color: '#92400e',
+      fillColor: '#fbbf24',
+      fillOpacity: 0.92,
+      weight: 3,
+      className: 'place-map__cluster-marker'
+    });
+    marker.bindTooltip(countLabel, {
+      permanent: permanentLabel,
+      direction: 'center',
+      className: 'place-map__cluster-label'
+    });
+    const zoomIn = () => {
+      this.markAutomaticCamera();
+      this.map!.setView([lat, lng], Math.min(this.map!.getZoom() + 2, 17));
+    };
+    marker.on('click', zoomIn);
+    marker.on('add', () => this.makeCircleInteractive(marker, `Apropar cluster de ${countLabel}`, zoomIn));
+    marker.addTo(this.markersLayer);
+  }
+
+  private drawPlaceMarker(place: Place): void {
+    if (!this.leaflet || !this.markersLayer) return;
+    const marker = this.leaflet.marker([place.coordinates!.lat, place.coordinates!.lng], {
+      icon: this.placeIcon(place, place.id === this.selectedPlaceId()),
+      keyboard: true,
+      title: `${place.name}: ${this.petStatusLabel(place.petAccessStatus)}`
+    });
+    marker.bindPopup(
+      `<div class="place-map__popup">
+        <p class="place-map__popup-type">${escapeHtml(place.categoryLabel || place.type)}</p>
+        <strong>${escapeHtml(place.name)}</strong>
+        <span>${escapeHtml(place.city)} · ${escapeHtml(this.petStatusLabel(place.petAccessStatus))}</span>
+        <span>${place.isPetPolicyVerified ? '✓ Informació verificada' : 'Informació no verificada'}${place.distanceKm != null ? ` · ${place.distanceKm.toFixed(1)} km` : ''}</span>
+      </div>`,
+      { className: 'place-map__popup-shell' }
+    );
+    marker.on('click', () => this.placeSelected.emit(place.id));
+    marker.on('add', () => {
+      const markerElement = marker.getElement();
+      markerElement?.setAttribute('role', 'button');
+      markerElement?.setAttribute('aria-label', `Seleccionar ${place.name} al mapa`);
+      markerElement?.setAttribute('tabindex', '0');
+      markerElement?.addEventListener('keydown', (event) => {
+        const keyEvent = event as KeyboardEvent;
+        if (keyEvent.key === 'Enter' || keyEvent.key === ' ') {
+          event.preventDefault();
+          this.placeSelected.emit(place.id);
+        }
+      });
+    });
+    marker.addTo(this.markersLayer);
+    this.markers.set(place.id, marker);
+  }
+
+  private makeCircleInteractive(
+    marker: import('leaflet').CircleMarker,
+    label: string,
+    activate: () => void
+  ): void {
+    const element = marker.getElement();
+    element?.setAttribute('role', 'button');
+    element?.setAttribute('aria-label', label);
+    element?.setAttribute('tabindex', '0');
+    element?.addEventListener('keydown', (event) => {
+      const keyEvent = event as KeyboardEvent;
+      if (keyEvent.key === 'Enter' || keyEvent.key === ' ') {
+        event.preventDefault();
+        activate();
       }
-      const lat = places.reduce((sum, place) => sum + place.coordinates!.lat, 0) / places.length;
-      const lng = places.reduce((sum, place) => sum + place.coordinates!.lng, 0) / places.length;
-      this.leaflet.circleMarker([lat, lng], {
-        radius: Math.min(20, 8 + Math.sqrt(places.length) * 2),
-        color: '#92400e', fillColor: '#fbbf24', fillOpacity: 0.92, weight: 3
-      }).bindTooltip(`${places.length} llocs`, { permanent: true, direction: 'center', className: 'place-map__cluster-label' }).addTo(this.markersLayer);
-    }
+    });
   }
 
   private placeIcon(place: Place, selected: boolean): import('leaflet').DivIcon {
@@ -405,6 +525,8 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   }
 
   private markViewportChanged(): void {
+    const center = this.map?.getCenter();
+    this.currentCenter.set(center ? { lat: center.lat, lng: center.lng } : null);
     if (Date.now() >= this.automaticCameraUntil) this.viewportChanged.set(true);
   }
 }

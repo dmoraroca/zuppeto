@@ -3,6 +3,16 @@
 **Data de validació:** 15.10.2026  
 **Estat:** tancada tècnicament; migració aplicada i validació final superada sobre PostgreSQL real. La Fase VII no s'ha iniciat.
 
+## Poliment UX posterior al tancament
+
+El 15.10.2026 s'ha corregit la divergència entre el municipi efectiu i el visible: el selector territorial ara sincronitza canvis d'ID després d'inicialitzar-se, resol de manera segura una localitat legacy única i aplica immediatament els canvis manuals o GPS amb radi 0. Arenys, Espanya, la URL, els resultats i el mapa comparteixen una sola font d'estat.
+
+Els filtres s'han compactat i unificat: categories, política, espècie (`Gossos` i `Gats`) i radi utilitzen chips accessibles; verificació és un switch discret; ordenació ocupa una amplada limitada. Les dues espècies són checkboxes independents i cap selecció equival a no restringir la cerca. En mòbil el panell comença plegat i es pot desplegar amb un botó que exposa `aria-expanded`.
+
+L'estat inicial activa `Hotels`, `Bars` i `Restaurants` com a filtres reals, mantenint el municipi seleccionat i el radi 0 com a àmbit. Aquesta decisió prioritza una primera càrrega útil i explícita: es mostren els locals d'aquestes tres categories dins del municipi, no tot el catàleg municipal. El mapa utilitza el focus municipal d'Arenys de Mar fins i tot quan el resultat no aporta marcadors.
+
+La investigació d'imatges ha confirmat que els 50 Places actuals tenen `cover_image_url` buit i que encara no existeix cap actiu multimèdia persistent. No s'han inventat fotografies: el fallback ara és neutre, mostra una petjada i el text secundari «Sense fotografia», sense monogrames grans ni segells diagonals. També s'ha retirat el polling de cobertes que repetia consultes sense cap productor d'imatges actiu.
+
 ## Arquitectura i backend
 
 La cerca pública segueix `Angular → API PetiLoc → PostgreSQL`. No consulta OSM, Wikidata, Google Places ni cap proveïdor durant la interacció. `IPlacePublicSearchQuery` és el port de lectura d'Application i `PlacePublicSearchQuery` l'adaptador EF Core; el repositori d'agregats conserva la seva responsabilitat.
@@ -12,6 +22,7 @@ El backend aplica filtres, recompte, ordenació, `Skip/Take`, bounding box i dis
 `GET /api/places` amplia el contracte amb:
 
 - `types`: categories separades per coma;
+- `petCategory`: una o més espècies compatibles separades per coma (`Dogs,Cats`), amb semàntica OR;
 - `petAccessStatuses`: `Allowed`, `TerraceOnly`, `Conditional`, `NotAllowed`, `Unknown` o `PendingReview`;
 - `verifiedOnly`;
 - `sort`: `distance`, `verified`, `recent` o `name`;
@@ -55,12 +66,14 @@ La UI limita el país a Espanya i Alemanya, selecciona municipi per ID territori
 
 ## Mapa, marcadors, targetes i fitxa
 
-- zoom llunyà: marcador territorial diferenciat i recompte total (`Arenys de Mar · 50`);
-- zoom mitjà: clusters locals amb recompte;
-- zoom proper: pin PetiLoc provisional amb gos i estat per color, text i tooltip;
+- zoom llunyà, fins a 9 inclòs: marcador territorial diferenciat amb coordenades oficials, nom i recompte filtrat (`Arenys de Mar` / `N locals`);
+- zoom intermedi, de 10 a 12: clusters locals calculats en píxels de pantalla, amb recompte i zoom en clicar;
+- zoom proper, des de 13: pin PetiLoc provisional amb gos i estat per color, text i tooltip; només els solapaments visuals continuen agrupats;
 - selecció de targeta i marcador sincronitzada;
 - popup mínim amb categoria, nom, municipi, política, verificació i distància;
 - moure o ampliar el mapa no consulta automàticament; apareix «Cercar en aquesta zona».
+
+Els thresholds viuen en un únic contracte (`CITY_MARKER_MAX_ZOOM = 9`, `CLUSTER_MIN_ZOOM = 10`, `PLACE_MARKER_MIN_ZOOM = 13`). El municipi comença a zoom 9; clicar-lo porta a zoom 11. Amb radi superior a zero s'ajusten els bounds del cercle sense obrir Espanya sencera. Si els filtres retornen 0 Places, el marcador territorial es conserva a qualsevol zoom amb `0 locals`.
 
 Els colors no són l'únic senyal. Els strings del popup s'escapen abans d'inserir-los a Leaflet. Les targetes mostren fotografia o placeholder, categoria, municipi, distància, política, verificació/data i CTA. La fitxa afegeix espècies, condicions, verificació, procedència, estat, actualització i coordenades, i reserva «Normativa sobre mascotes» sense activar connectors legislatius.
 
@@ -74,12 +87,12 @@ Els filtres usen `fieldset`, `legend`, labels i inputs reals, amb focus visible 
 
 - backend: 142/142 PASS;
 - PostgreSQL focalitzat: 1/1 PASS sobre base temporal eliminada;
-- Angular: 99/99 PASS en 25 fitxers;
+- Angular: 108/108 PASS en 26 fitxers;
 - build API: PASS, 0 errors i 0 warnings;
 - build Angular producció: PASS;
 - EF Core: Up→Down→Up PASS i model coherent;
-- Chrome focalitzat: PASS per Arenys, categoria, `Unknown`, radi 0/10 km, llista/mapa, detall/retorn, GPS, fallback sense GPS i viewport explícit;
-- xarxa Chrome: 0 crides externes de dades; 82 tiles OSM bloquejades en l'execució final;
+- Chrome focalitzat: PASS per Arenys centrat, marcador municipal, clusters, POI, clics ciutat/cluster/Place, 0 resultats amb context, categories i espècies, radi 0/10 km, llista/mapa, detall/retorn, GPS, viewport i responsive mòbil;
+- xarxa Chrome: 0 crides externes de dades; 118 tiles OSM bloquejades en l'execució final;
 - Firefox/WebKit: no executats segons l'abast.
 
 ## Tancament sobre PostgreSQL real
@@ -93,7 +106,7 @@ Els filtres usen `fieldset`, `legend`, labels i inputs reals, amb focus visible 
 - integritat posterior: 50 Places d'Arenys, 51 OSM IDs únics (50 vinculats), 577 observacions `AUTO`, zero coordenades nul·les o zero i zero dades Google;
 - territorial: DE 15.770 unitats/26.820 codis/15.794 noms; ES 8.199 unitats/8.201 codis/8.199 noms;
 - API real: `pub` retorna 2 Places, `Unknown` 50 i radi 10 km retorna 50 amb pàgina de 20 ordenada per distància;
-- Chrome focalitzat final: PASS i 82 tiles bloquejats, sense crides externes de dades.
+- Chrome focalitzat de poliment: PASS per municipi sincronitzat, transició municipi → clusters → POI, interaccions de mapa, 0 resultats amb context, resultats inicials de les tres categories preferides, radi 0/10 km, `Gossos`/`Gats`, detall/retorn, GPS i responsive mòbil; 118 tiles bloquejats i cap crida externa de dades.
 
 ## Incidències, PostgreSQL i Git
 
@@ -108,3 +121,25 @@ PostgreSQL real ha rebut exclusivament la migració EF Core autoritzada; conserv
 ## Pendents per Fase VII
 
 La Fase VII no s'ha iniciat. Queden fora: connectors legislatius, vista editorial sticky completa, IA o recomanacions, noves fonts/països, publicació massiva, PostGIS sense gate i regressió multibrowser completa.
+
+## Retoc final: imatges governades de Places
+
+La portada deixa de dependre exclusivament de `places.cover_image_url`. La nova taula `place_media_assets` conserva Place, font, URL original i servida, autoria, llicència i versió, atribució, data d'obtenció, drets d'emmagatzematge i transformació, hash, verificació, elegibilitat/principal, QID, fitxer Commons, evidència i motiu de rebuig. `CoverImageUrl` es manté només com a compatibilitat amb dades anteriors.
+
+La política central és `PetiLoc > propietari > usuari > Wikimedia Commons > placeholder`, tret d'una selecció principal explícita feta per ADMIN entre assets verificats. Un asset rebutjat o pendent no pot ser portada. ADMIN pot consultar assets, importar des del QID vinculat, marcar-ne un com a principal i rebutjar-lo amb motiu; tots els endpoints exigeixen `action.places.manage`.
+
+La integració inicial no cerca per nom. Només consulta P18 d'un QID ja vinculat al Place, recupera `imageinfo/extmetadata` del fitxer exacte i valida individualment autoria, URL, hash i llicència. S'admeten inicialment domini públic/CC0, CC BY i CC BY-SA; NC, ND i llicències desconegudes fallen tancades. Openverse no s'ha integrat com a autoritat final i Google Places Photos no s'utilitza.
+
+Targetes i fitxa carreguen la portada amb lazy loading, `object-fit: cover`, alt descriptiu i fallback compartit tant per absència com per error. El fallback ja no presenta «Sense fotografia» com a element principal: mostra una il·lustració pròpia de PetiLoc, identificada explícitament com a tal i diferenciada per restaurant, bar/cafeteria, hotel/allotjament, parc o servei. La fitxa mostra galeria de verificades i una atribució compacta amb autor, font, llicència i enllaç a l'evidència.
+
+La migració `20261015144014_AddPlaceMediaAssetsPhase6` ha superat `Up → Down → Up` sobre una restauració íntegra del backup en PostgreSQL 17, amb 23 columnes, FK en cascada, checks de font/estat, unicitat per Place+hash i una sola principal per Place. Després dels gates s'ha aplicat exclusivament aquesta migració a PostgreSQL real. El contenidor temporal s'ha eliminat.
+
+### Tancament definitiu: media i codificació pet-friendly
+
+La targeta aplica una codificació visual suau i textual: `Allowed` verificat en verd, `TerraceOnly` verificat en ambre, `NotAllowed` verificat en vermell, `PendingReview` amb estil violeta discontinu i `Unknown` neutre. Els estats no verificats no reben un tint que suggereixi confirmació. La terrassa és només un indici independent: quan `features` acredita terrassa però la política continua `Unknown`, es mostra «Terrassa disponible · admissió pendent de confirmar» amb un groc diferenciat. El connector OSM conserva `outdoor_seating` com a equipament i no el converteix en `Allowed` ni `TerraceOnly`.
+
+El backup complet s'ha desat fora del repositori a `/DATA/backups/zuppeto/zuppeto-before-phase6-media-20261015.dump` (25.894.229 bytes), SHA-256 `04c1218b2ccb9a33f79ac6c8c1cba1ce7fc30c743d19464953fae73456741cb5`. La restauració ha conservat 50 Places, 577 observacions i 23.969 unitats territorials; `Up → Down → Up` i la comprovació EF sense canvis pendents han passat.
+
+La inspecció real no ha trobat cap source record Wikidata ni cap QID vinculat als 50 Places; només hi ha 51 registres OpenStreetMap, 50 de vinculats. Per tant, s'han creat 0 assets Wikimedia: no s'ha fet matching pel nom, no s'ha inventat cap correspondència i no s'ha consultat Google Places Photos. PostgreSQL real té la migració aplicada, `place_media_assets` buida, els índexs `PK_place_media_assets`, `ix_place_media_place`, `ux_place_media_place_hash` i `ux_place_media_primary`, i conserva 50/50 Places d'Arenys, 577 observacions, 23.969 unitats territorials i 0 Google Place IDs.
+
+Validació final: backend 151/151, Angular 113/113, build Angular sense errors i Chrome focalitzat PASS amb foto/atribució governada, placeholders, `Allowed` verificat, terrassa amb política desconeguda i `Unknown` neutre. No s'ha executat la regressió multibrowser. Amb aquests resultats, la Fase VI es pot declarar definitivament tancada; la Fase VII no s'ha iniciat i no s'ha fet commit ni push.

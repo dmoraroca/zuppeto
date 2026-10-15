@@ -13,7 +13,7 @@ internal sealed class TotpService(IDataProtectionProvider protectionProvider) : 
     public TotpSetupMaterial CreateSetup(string accountEmail)
     {
         var secret = Base32Encoding.ToString(KeyGeneration.GenerateRandomKey(20));
-        var uri = new OtpUri(OtpType.Totp, secret, accountEmail.Trim(), "Zuppeto", algorithm: OtpHashMode.Sha1, digits: 6, period: 30).ToString();
+        var uri = new OtpUri(OtpType.Totp, secret, accountEmail.Trim(), "PetiLoc", algorithm: OtpHashMode.Sha1, digits: 6, period: 30).ToString();
         using var generator = new QRCodeGenerator();
         using var data = generator.CreateQrCode(uri, QRCodeGenerator.ECCLevel.Q);
         var svg = new SvgQRCode(data).GetGraphic(4);

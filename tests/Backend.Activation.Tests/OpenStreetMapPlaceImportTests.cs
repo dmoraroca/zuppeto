@@ -118,6 +118,27 @@ public sealed class OpenStreetMapPlaceImportTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public void Terrace_is_preserved_as_an_amenity_clue_without_inventing_pet_access()
+    {
+        var fields = OverpassPlaceDiscoverySource.MapFields(
+            new Dictionary<string, string>
+            {
+                ["name"] = "Restaurant amb terrassa",
+                ["amenity"] = "restaurant",
+                ["outdoor_seating"] = "yes"
+            },
+            41.58m,
+            2.55m,
+            DateTimeOffset.UtcNow,
+            "relation/347950",
+            "restaurant");
+
+        Assert.Equal("Available", fields["amenity.outdoor_seating"].NormalizedValue);
+        Assert.DoesNotContain("pet.dog", fields.Keys);
+        Assert.DoesNotContain("pet.cat", fields.Keys);
+    }
+
+    [Fact]
     public async Task Connector_rejects_unverified_or_ambiguous_boundary()
     {
         using var client = Client(HttpStatusCode.OK, """{"elements":[{"type":"relation","id":1,"tags":{"boundary":"administrative","admin_level":"8","ref:ine":"99999"}}]}""");

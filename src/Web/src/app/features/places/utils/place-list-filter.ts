@@ -1,4 +1,6 @@
-import { PetFilter, Place, PlaceFilters } from '../models/place.model';
+import { PetFilter, PetSpeciesFilter, Place, PlaceFilters } from '../models/place.model';
+
+export const DEFAULT_PLACE_TYPES = ['hotel', 'bar', 'restaurant'] as const;
 import { stripPostalPrefixFromCity } from './city-typeahead.utils';
 import { normalizeSearchQuery, placeMatchesFreeTextSearch } from './place-text-search';
 import { isProhibitedPlaceName } from './prohibited-place-terms/prohibited-place-name.filter';
@@ -27,7 +29,31 @@ export function parsePetFilter(raw: string | null | undefined): PetFilter {
     return 'cats';
   }
 
+  if (value === 'others' || value === 'altres') {
+    return 'others';
+  }
+
   return 'all';
+}
+
+export function parsePetSpecies(
+  raw: string | null | undefined,
+  legacyPet?: string | null
+): PetSpeciesFilter[] {
+  const values = (raw ?? '')
+    .split(',')
+    .map((value) => value.trim().toLowerCase())
+    .filter((value): value is PetSpeciesFilter => value === 'dogs' || value === 'cats');
+  if (values.length > 0) return [...new Set(values)];
+
+  const legacy = parsePetFilter(legacyPet);
+  return legacy === 'dogs' || legacy === 'cats' ? [legacy] : [];
+}
+
+export function parsePlaceTypes(raw: string | null | undefined, legacyType?: string | null): string[] {
+  if (raw == null) return legacyType?.trim() ? [] : [...DEFAULT_PLACE_TYPES];
+  if (raw.trim().toLowerCase() === 'all') return [];
+  return raw.split(',').map((value) => value.trim()).filter(Boolean);
 }
 
 /** Client-side filter over an already loaded catalog (no HTTP). */
@@ -46,11 +72,20 @@ export function filterPlaces(places: Place[], filters: Partial<PlaceFilters> = {
     const placeCity = (place.city ?? '').trim();
     const matchesCity = !cityFilter || cityNamesMatch(placeCity, cityFilter);
     const matchesType = !typeFilter || place.type.toString().toLowerCase() === typeFilter;
-    const matchesPet = placeMatchesPet(place, safeFilters.pet);
+    const matchesPet = placeMatchesPetSpecies(place, safeFilters.petSpecies ?? legacyPetSpecies(safeFilters.pet));
     const onTopic = !isProhibitedPlaceName(place.name);
 
     return matchesSearch && matchesCountry && matchesCity && matchesType && matchesPet && onTopic;
   });
+}
+
+function legacyPetSpecies(pet: PetFilter): PetSpeciesFilter[] {
+  return pet === 'dogs' || pet === 'cats' ? [pet] : [];
+}
+
+function placeMatchesPetSpecies(place: Place, species: PetSpeciesFilter[]): boolean {
+  if (species.length === 0) return true;
+  return species.some((item) => placeMatchesPet(place, item));
 }
 
 function cityNamesMatch(placeCity: string, filterCity: string): boolean {
@@ -68,6 +103,10 @@ function placeMatchesPet(place: Place, pet: PetFilter): boolean {
 
   if (pet === 'cats') {
     return place.acceptsCats && !isDogExclusiveName(place.name);
+  }
+
+  if (pet === 'others') {
+    return (place.petSpecies ?? []).some((species) => !['dog', 'cat'].includes(species.toLowerCase()));
   }
 
   return true;

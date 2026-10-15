@@ -39,6 +39,7 @@ internal sealed class PlaceSearchSpecification(PlaceSearchCriteria criteria) : I
         {
             PetCategory.Dogs => query.Where(place => place.AcceptsDogs),
             PetCategory.Cats => query.Where(place => place.AcceptsCats),
+            PetCategory.Others => query.Where(place => !place.AcceptsDogs && !place.AcceptsCats && place.PetSpeciesJson != "[]"),
             _ => query
         };
 

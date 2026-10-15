@@ -34,6 +34,10 @@
     class="place-map__canvas"
     #mapContainer
     [style.height]="height()"
+    [attr.data-map-layer]="visibleLayer()"
+    [attr.data-map-zoom]="currentZoom()"
+    [attr.data-center-lat]="currentCenter()?.lat ?? null"
+    [attr.data-center-lng]="currentCenter()?.lng ?? null"
     role="region"
     aria-label="Mapa interactiu de llocs"
   ></div>

@@ -9,6 +9,7 @@ export const EMPTY_FAVORITE_REVIEW_FILTERS: FavoriteReviewFilters = {
   city: '',
   type: '',
   pet: 'all',
+  petSpecies: [],
   sort: 'recent'
 };
 
@@ -20,6 +21,7 @@ export function toPlaceFilters(filters: FavoriteReviewFilters): PlaceFilters {
     countryId: filters.countryId,
     territorialUnitId: filters.territorialUnitId,
     type: filters.type,
-    pet: filters.pet
+    pet: filters.pet,
+    petSpecies: filters.petSpecies
   };
 }

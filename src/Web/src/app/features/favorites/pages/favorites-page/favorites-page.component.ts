@@ -78,7 +78,7 @@ export class FavoritesPageComponent {
   protected readonly types = this.placeService.getAvailableTypes();
   protected readonly draftPlaceFilters = computed<PlaceFilters>(() => toPlaceFilters(this.draftFilters()));
   protected readonly activeFilterChips = computed(() => {
-    const { city, type, pet, search, sort } = this.appliedFilters();
+    const { city, type, petSpecies, search, sort } = this.appliedFilters();
     const chips: { id: string; label: string }[] = [];
 
     if (city.trim()) {
@@ -89,12 +89,10 @@ export class FavoritesPageComponent {
       chips.push({ id: 'type', label: `Tipus: ${this.placeService.resolveTypeLabel(type)}` });
     }
 
-    if (pet !== 'all') {
-      chips.push({
-        id: 'pet',
-        label: pet === 'dogs' ? 'Mascota: gossos' : 'Mascota: gats'
-      });
-    }
+    if (petSpecies?.length) chips.push({
+      id: 'pets',
+      label: `Espècies: ${petSpecies.map((pet) => pet === 'dogs' ? 'gossos' : 'gats').join(' i ')}`
+    });
 
     if (search.trim()) {
       chips.push({ id: 'search', label: `Cerca: ${search.trim()}` });
@@ -194,6 +192,7 @@ export class FavoritesPageComponent {
       city: next.city?.trim() ?? '',
       type: next.type?.trim() ?? '',
       pet: next.pet ?? 'all',
+      petSpecies: next.petSpecies ?? [],
       sort: next.sort ?? 'recent'
     });
   }

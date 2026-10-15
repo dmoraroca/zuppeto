@@ -64,7 +64,7 @@ static void AddApiFileSink(LoggerConfiguration loggerConfiguration, string logsD
         rollOnFileSizeLimit: true,
         shared: true,
         outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {SourceContext}: {Message:lj} {Properties:j}{NewLine}{Exception}");
-    Console.Error.WriteLine($"[Zuppeto] Serilog escriu logs a: {logsDir} (fitxers zuppeto-YYYYMMDD.log)");
+    Console.Error.WriteLine($"[PetiLoc] Serilog escriu logs a: {logsDir} (fitxers zuppeto-YYYYMMDD.log)");
 }
 
 var builder = WebApplication.CreateBuilder(args);
@@ -83,7 +83,7 @@ builder.Host.UseSerilog((context, services, loggerConfiguration) =>
             StringComparison.OrdinalIgnoreCase);
 
     Console.Error.WriteLine(
-        "[Zuppeto] Serilog: Environment={0} Development={1} Zuppeto:WriteLogsToFile={2} → fitxer activat={3}",
+        "[PetiLoc] Serilog: Environment={0} Development={1} Zuppeto:WriteLogsToFile={2} → fitxer activat={3}",
         context.HostingEnvironment.EnvironmentName,
         context.HostingEnvironment.IsDevelopment(),
         context.Configuration.GetValue("Zuppeto:WriteLogsToFile", false),
@@ -101,7 +101,7 @@ builder.Host.UseSerilog((context, services, loggerConfiguration) =>
         {
             var logsDir = ApiProjectLogsDirectory();
             Console.Error.WriteLine(
-                "[Zuppeto] BaseDirectory={0} CurrentDirectory={1} → logsDir={2}",
+                "[PetiLoc] BaseDirectory={0} CurrentDirectory={1} → logsDir={2}",
                 AppContext.BaseDirectory,
                 Directory.GetCurrentDirectory(),
                 logsDir);
@@ -110,13 +110,13 @@ builder.Host.UseSerilog((context, services, loggerConfiguration) =>
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"[Zuppeto] Error preparant logs a disc: {ex}");
+            Console.Error.WriteLine($"[PetiLoc] Error preparant logs a disc: {ex}");
         }
     }
     else
     {
         Console.Error.WriteLine(
-            "[Zuppeto] Logs a disc desactivats. Per activar-los: ASPNETCORE_ENVIRONMENT=Development, o Zuppeto:WriteLogsToFile=true, o ZUPPETO_FILE_LOGS=true.");
+            "[PetiLoc] Logs a disc desactivats. Per activar-los: ASPNETCORE_ENVIRONMENT=Development, o Zuppeto:WriteLogsToFile=true, o ZUPPETO_FILE_LOGS=true.");
     }
 
     loggerConfiguration
@@ -192,7 +192,7 @@ builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new()
     {
-        Title = "Zuppeto API",
+        Title = "PetiLoc API",
         Version = "v1"
     });
 
@@ -230,7 +230,7 @@ var fileLogsActive = app.Environment.IsDevelopment()
     || string.Equals(Environment.GetEnvironmentVariable("ZUPPETO_FILE_LOGS"), "true", StringComparison.OrdinalIgnoreCase);
 
 Log.Information(
-    "Zuppeto API iniciada; entorn {Environment}; logs a disc (Backend/Api/logs): actius={FileLogs}; directori={ApiLogs} (patró: zuppeto-YYYYMMDD.log); ContentRoot={ContentRoot}",
+    "PetiLoc API iniciada; entorn {Environment}; logs a disc (Backend/Api/logs): actius={FileLogs}; directori={ApiLogs} (patró: zuppeto-YYYYMMDD.log); ContentRoot={ContentRoot}",
     app.Environment.EnvironmentName,
     fileLogsActive,
     fileLogsActive ? apiLogsPath : "(desactivat)",
@@ -298,7 +298,7 @@ app.UseStaticFiles(new StaticFileOptions
 app.UseSwagger();
 app.UseSwaggerUI(options =>
 {
-    options.SwaggerEndpoint("/swagger/v1/swagger.json", "Zuppeto API v1");
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "PetiLoc API v1");
     options.RoutePrefix = "swagger";
     options.EnablePersistAuthorization();
 });
@@ -313,6 +313,7 @@ app.MapGeographicAdminEndpoints();
 app.MapTerritorialAdminEndpoints();
 app.MapTerritorialLocationEndpoints();
 app.MapPlaceEndpoints();
+app.MapPlaceMediaEndpoints();
 app.MapPetGovernanceEndpoints();
 app.MapPlaceImportEndpoints();
 app.MapPlaceCatalogGovernanceEndpoints();

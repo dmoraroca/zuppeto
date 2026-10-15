@@ -427,6 +427,8 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
                 status == PetAccessStatus.Unknown ? "Informació pet-friendly desconeguda" : "Informació pet-friendly d’OpenStreetMap", string.Empty),
             new Pricing(string.Empty), new RatingSnapshot(0, 0), PlaceDataProvenance.OpenStreetMap,
             territorialCountryId: run.CountryId, territorialUnitId: run.TerritorialUnitId);
+        if (fields.GetValueOrDefault("amenity.outdoor_seating") == "Available")
+            place.ReplaceFeatures(["Terrassa"]);
         return place;
     }
 

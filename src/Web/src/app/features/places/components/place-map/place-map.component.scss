@@ -130,11 +130,36 @@
 }
 
 :host ::ng-deep .place-map__cluster-label,
-:host ::ng-deep .place-map__municipality-marker + .leaflet-tooltip {
+:host ::ng-deep .place-map__municipality-label {
   border: 0;
   border-radius: 999px;
   font-weight: 850;
   box-shadow: 0 4px 12px rgba(15, 23, 42, 0.18);
+}
+
+:host ::ng-deep .place-map__municipality-label {
+  display: grid;
+  gap: 0.05rem;
+  min-width: 7.5rem;
+  padding: 0.45rem 0.7rem;
+  text-align: center;
+  color: #134e4a;
+  background: rgba(240, 253, 250, 0.96);
+}
+
+:host ::ng-deep .place-map__municipality-label strong,
+:host ::ng-deep .place-map__municipality-label span {
+  display: block;
+}
+
+:host ::ng-deep .place-map__municipality-label span {
+  color: #475569;
+  font-size: 0.72rem;
+}
+
+:host ::ng-deep .place-map__municipality-marker,
+:host ::ng-deep .place-map__cluster-marker {
+  cursor: pointer;
 }
 
 @media (max-width: 720px) {
@@ -148,5 +173,12 @@
 
   .place-map__actions button {
     flex: 1 1 12rem;
+  }
+
+  :host ::ng-deep .place-map__municipality-label {
+    min-width: 0;
+    max-width: 7rem;
+    padding: 0.35rem 0.5rem;
+    white-space: normal;
   }
 }

@@ -11,9 +11,7 @@ namespace Zuppeto.Application.Places;
 internal sealed class PlaceExternalDataSynchronizer(
     IPlaceRepository placeRepository,
     IExternalPlaceDetailsProvider detailsProvider,
-    IPlaceCoverStorage coverStorage,
     IPlaceWebsitePageReader websitePageReader,
-    PlaceCoverPhotoStore coverPhotoStore,
     PlaceExternalDataMergePolicy mergePolicy,
     IOptions<PlaceExternalIntegrationOptions> externalIntegrationOptions,
     IExternalPlaceCallPolicy externalCallPolicy,
@@ -51,8 +49,6 @@ internal sealed class PlaceExternalDataSynchronizer(
                 || nowUtc > place.GoogleCoordinatesCachedUntil.Value);
         var syncStale = place.LastGoogleSyncAt is null
             || nowUtc - place.LastGoogleSyncAt.Value > TimeSpan.FromDays(CoordinateCacheRetentionDays);
-        var missingCover = !place.IsManuallyMaintained(PlaceManualFields.Cover)
-            && string.IsNullOrWhiteSpace(place.CoverImageUrl);
         var missingHighlights = !place.IsManuallyMaintained(PlaceManualFields.Features)
             && (PlaceGoogleHighlights.NeedsChipRefresh(
                 place.Features,
@@ -64,13 +60,8 @@ internal sealed class PlaceExternalDataSynchronizer(
                     place.Name,
                     place.Address.Line1,
                     place.Address.City)));
-        var recentCoverAttempt = coverStorage.HasRecentEnrichmentAttempt(
-            place.Id,
-            nowUtc,
-            CoordinateCacheRetentionDays);
         var hasExternallyManagedFields = place.ManualFields != PlaceManualFields.All;
-        if ((!missingCover || recentCoverAttempt)
-            && !missingHighlights
+        if (!missingHighlights
             && !cacheExpired
             && (!syncStale || !hasExternallyManagedFields))
         {
@@ -80,13 +71,11 @@ internal sealed class PlaceExternalDataSynchronizer(
         var details = await detailsProvider.GetDetailsAsync(place.GooglePlaceId, cancellationToken);
         if (details is null)
         {
-            coverStorage.MarkEnrichmentAttempt(place.Id, null);
             return place;
         }
 
-        var coverUrl = place.IsManuallyMaintained(PlaceManualFields.Cover)
-            ? place.CoverImageUrl
-            : await ResolveCoverUrlAsync(place, details, cancellationToken);
+        // Google Places Photos is deliberately excluded from the governed media pipeline.
+        var coverUrl = place.CoverImageUrl;
         var needsWebsiteContext = !place.IsManuallyMaintained(PlaceManualFields.Descriptions)
             || !place.IsManuallyMaintained(PlaceManualFields.Features);
         var websiteText = needsWebsiteContext
@@ -115,39 +104,5 @@ internal sealed class PlaceExternalDataSynchronizer(
         }
 
         return enriched;
-    }
-
-    private async Task<string?> ResolveCoverUrlAsync(
-        Place place,
-        PlaceExternalDetailsDto details,
-        CancellationToken cancellationToken)
-    {
-        var coverUrl = place.CoverImageUrl;
-        if (!string.IsNullOrWhiteSpace(coverUrl))
-        {
-            return coverUrl;
-        }
-
-        var maximumDownloads = Math.Clamp(
-            externalIntegrationOptions.Value.MaxPhotoDownloadsPerPlace,
-            0,
-            5);
-        foreach (var photoReference in details.PhotoReferenceCandidates().Take(maximumDownloads))
-        {
-            coverUrl = await coverPhotoStore.TryStoreFromReferenceAsync(
-                place.Id,
-                photoReference,
-                new PlaceCoverAttribution(details.PhotoAttribution, details.PhotoSourceUri),
-                cancellationToken);
-            if (!string.IsNullOrWhiteSpace(coverUrl))
-            {
-                return coverUrl;
-            }
-        }
-
-        coverStorage.MarkEnrichmentAttempt(
-            place.Id,
-            new PlaceCoverAttribution(details.PhotoAttribution, details.PhotoSourceUri));
-        return coverUrl;
     }
 }

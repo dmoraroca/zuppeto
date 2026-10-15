@@ -16,6 +16,8 @@ describe('PlaceCoverImageComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('img')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('img')?.getAttribute('loading')).toBe('lazy');
+    expect(fixture.nativeElement.querySelector('img')?.getAttribute('alt')).toBe('Fotografia de Can Pep');
     expect(fixture.nativeElement.querySelector('.place-cover__placeholder')).toBeNull();
   });
 
@@ -24,8 +26,8 @@ describe('PlaceCoverImageComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('img')).toBeNull();
-    expect(fixture.nativeElement.querySelector('.place-cover__monogram')?.textContent.trim()).toBe('CP');
-    expect(fixture.nativeElement.querySelector('.place-cover__caption')?.textContent.trim()).toBe('NO DISPONIBLE');
+    expect(fixture.nativeElement.querySelector('.place-cover__placeholder-icon')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.place-cover__caption')?.textContent.trim()).toBe('Il·lustració PetiLoc');
   });
 
   it('removes a failed img and activates the same fallback', () => {
@@ -40,13 +42,17 @@ describe('PlaceCoverImageComponent', () => {
     expect(fixture.nativeElement.querySelector('.place-cover__placeholder')).not.toBeNull();
   });
 
-  it('uses stable initials and keeps the unavailable label diagonal', () => {
+  it('uses a category illustration without implying a real photograph', () => {
     fixture.componentRef.setInput('placeName', 'DMR School');
     fixture.componentRef.setInput('imageUrl', '');
+    fixture.componentRef.setInput('category', 'restaurant');
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('.place-cover__monogram')?.textContent.trim()).toBe('DS');
-    expect(fixture.nativeElement.querySelector('.place-cover__caption--diagonal')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.place-cover__placeholder-icon')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.place-cover__category')?.textContent.trim()).toBe('Restaurant');
+    expect(fixture.nativeElement.querySelector('.place-cover__caption')?.textContent.trim()).toBe('Il·lustració PetiLoc');
+    expect(fixture.nativeElement.querySelector('.place-cover__placeholder')?.getAttribute('aria-label'))
+      .toContain('Il·lustració PetiLoc de categoria Restaurant');
     expect(fixture.nativeElement.querySelector('img')).toBeNull();
   });
 });

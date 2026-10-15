@@ -2,21 +2,23 @@ using Zuppeto.Domain.Places;
 
 namespace Zuppeto.Application.Places;
 
-internal sealed class PlaceResponseMapper(IPlaceCoverStorage coverStorage)
+internal sealed class PlaceResponseMapper(IPlaceCoverStorage coverStorage, PlaceMediaSelectionPolicy? configuredMediaSelectionPolicy = null)
 {
-    internal PlaceSummaryDto ToSummary(Place place)
+    private readonly PlaceMediaSelectionPolicy mediaSelectionPolicy = configuredMediaSelectionPolicy ?? new PlaceMediaSelectionPolicy();
+    internal PlaceSummaryDto ToSummary(Place place, IReadOnlyCollection<PlaceMediaAsset>? media = null)
     {
         var (cacheExpired, requiresGoogleMap) = ComputeGoogleCoordinateFlags(place);
         var excludeFromOsmMap = place.ExcludeFromOsmMap && !requiresGoogleMap;
         var visit = PlaceVisitNotes.Split(place.PetPolicy.Notes);
         var attribution = coverStorage.ReadAttribution(place.Id);
+        var primaryMedia = mediaSelectionPolicy.SelectPrimary(media ?? []);
         return new PlaceSummaryDto(
             place.Id,
             place.Name,
             place.Type.ToString(),
             PlacePublicCopy.SanitizeDescription(place.ShortDescription, place.Name),
             PlacePublicCopy.PublicNarrative(place.Description, place.Name, place.Address.Line1, place.Address.City),
-            place.CoverImageUrl,
+            primaryMedia?.ServedUri.ToString() ?? LegacyCoverUrl(place),
             place.Address.Line1,
             place.Address.City,
             place.Address.Country,
@@ -43,13 +45,14 @@ internal sealed class PlaceResponseMapper(IPlaceCoverStorage coverStorage)
             visit.Phone,
             visit.Website,
             PlaceGoogleHighlights.CategoryLabel(place.Features, PlaceTypeLabels.From(place.Type)),
-            attribution?.AuthorName,
-            attribution?.SourceUri,
+            primaryMedia?.Attribution ?? attribution?.AuthorName,
+            primaryMedia?.EvidenceUri?.ToString() ?? attribution?.SourceUri,
             place.TerritorialCountryId,
             place.TerritorialUnitId,
             place.PetPolicy.Status.ToString(),
             place.PetPolicy.Species.Select(x => x.Code).ToArray(),
-            place.PetPolicy.Conditions.Select(x => new PetConditionDto(x.Code, x.Value)).ToArray());
+            place.PetPolicy.Conditions.Select(x => new PetConditionDto(x.Code, x.Value)).ToArray(),
+            Media: media?.Select(PlaceMediaApplicationService.ToDto).ToArray());
     }
 
     internal PlaceSummaryDto ToSummary(PlacePublicSearchRow row) => ToSummary(row.Place) with
@@ -61,9 +64,9 @@ internal sealed class PlaceResponseMapper(IPlaceCoverStorage coverStorage)
         BusinessStatus = row.BusinessStatus
     };
 
-    internal PlaceDetailDto ToDetail(Place place)
+    internal PlaceDetailDto ToDetail(Place place, IReadOnlyCollection<PlaceMediaAsset>? media = null)
     {
-        var summary = ToSummary(place);
+        var summary = ToSummary(place, media);
         return new PlaceDetailDto(
             summary.Id,
             summary.Name,
@@ -107,7 +110,8 @@ internal sealed class PlaceResponseMapper(IPlaceCoverStorage coverStorage)
             summary.IsPetPolicyVerified,
             summary.PetPolicyVerifiedAtUtc,
             summary.UpdatedAtUtc,
-            summary.BusinessStatus);
+            summary.BusinessStatus,
+            summary.Media);
     }
 
     private static (bool CacheExpired, bool RequiresGoogleMap) ComputeGoogleCoordinateFlags(Place place)
@@ -126,4 +130,9 @@ internal sealed class PlaceResponseMapper(IPlaceCoverStorage coverStorage)
         var expired = now > place.GoogleCoordinatesCachedUntil.Value;
         return (CacheExpired: expired, RequiresGoogleMap: !expired);
     }
+
+    private static string LegacyCoverUrl(Place place) =>
+        place.DataProvenance is PlaceDataProvenance.GooglePlaces or PlaceDataProvenance.Mixed
+            ? string.Empty
+            : place.CoverImageUrl;
 }

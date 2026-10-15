@@ -1,7 +1,8 @@
 import { sortPlacesForFavoriteReview } from '../../favorites/utils/favorite-places-sort';
 import { Place } from '../models/place.model';
 import { hasConfirmedPetPolicy, petAccessLabelForPlace } from './place-detail-copy';
-import { filterPlaces } from './place-list-filter';
+import { filterPlaces, parsePetSpecies, parsePlaceTypes } from './place-list-filter';
+import { resolveCityMapFocus } from './city-map-focus';
 import { placesVisibleOnOsmMap } from './places-osm-map';
 
 describe('Places phase I presentation rules', () => {
@@ -29,6 +30,18 @@ describe('Places phase I presentation rules', () => {
       dogPlace,
       bothPlace
     ]);
+    expect(filterPlaces([dogPlace, catPlace, bothPlace], { pet: 'all', petSpecies: ['dogs', 'cats'] }))
+      .toEqual([dogPlace, catPlace, bothPlace]);
+    expect(filterPlaces([dogPlace, catPlace, bothPlace], { pet: 'all', petSpecies: [] }))
+      .toEqual([dogPlace, catPlace, bothPlace]);
+  });
+
+  it('provides the intended initial categories and Arenys map focus', () => {
+    expect(parsePlaceTypes(null)).toEqual(['hotel', 'bar', 'restaurant']);
+    expect(parsePlaceTypes(null, 'restaurant')).toEqual([]);
+    expect(parsePlaceTypes('all')).toEqual([]);
+    expect(parsePetSpecies('dogs,cats')).toEqual(['dogs', 'cats']);
+    expect(resolveCityMapFocus('Arenys de Mar')).toEqual({ lat: 41.5803, lng: 2.5508 });
   });
 
   it('keeps an expired Google coordinate off OSM unless the Google overlay is requested', () => {

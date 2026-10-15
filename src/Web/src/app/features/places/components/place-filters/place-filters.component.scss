@@ -1,15 +1,15 @@
 .place-filters {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: 1rem;
-  padding: 1rem;
+  gap: 0.8rem;
+  padding: 0.9rem;
   border-radius: 1.5rem;
   background: rgba(255, 255, 255, 0.88);
   border: 1px solid rgba(209, 213, 219, 0.75);
 }
 
 .place-filters__search {
-  grid-column: span 3;
+  grid-column: span 4;
 }
 
 .place-filters__standard {
@@ -24,7 +24,7 @@
   grid-column: 1 / -1;
   min-width: 0;
   margin: 0;
-  padding: 0.85rem;
+  padding: 0.72rem 0.8rem 0.8rem;
   border: 1px solid rgba(15, 118, 110, 0.14);
   border-radius: 1.15rem;
   background: linear-gradient(135deg, rgba(240, 253, 250, 0.88), rgba(255, 255, 255, 0.94));
@@ -45,7 +45,7 @@
 .place-filters__radius-options {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.55rem;
+  gap: 0.45rem;
 }
 
 .place-filters .place-filters__chip,
@@ -78,8 +78,19 @@
   transition: 140ms ease;
 }
 
-.place-filters__chip--active span,
-.place-filters__radius-option--active span {
+.place-filters__compact-row {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(17rem, 0.75fr) minmax(28rem, 1.25fr);
+  gap: 0.8rem;
+}
+
+.place-filters__compact-row > .place-filters__group {
+  grid-column: auto;
+}
+
+.place-filters .place-filters__chip--active span,
+.place-filters .place-filters__radius-option--active span {
   border-color: #0f766e;
   background: #0f766e;
   color: #fff;
@@ -95,37 +106,86 @@
 .place-filters__quality {
   grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: minmax(15rem, 1fr) minmax(12rem, 0.45fr);
-  gap: 0.85rem;
+  grid-template-columns: minmax(24rem, 1fr) minmax(13rem, 18rem);
+  gap: 0.8rem;
   align-items: end;
 }
 
 .place-filters .place-filters__verified {
   display: flex;
-  grid-template-columns: none;
+  justify-content: space-between;
   align-items: center;
   gap: 0.75rem;
   min-height: 3rem;
   padding: 0.7rem 0.85rem;
   border-radius: 1rem;
-  background: rgba(245, 158, 11, 0.1);
-  border: 1px solid rgba(217, 119, 6, 0.25);
+  background: rgba(240, 253, 250, 0.72);
+  border: 1px solid rgba(15, 118, 110, 0.16);
 }
 
-.place-filters__verified input {
-  width: 1.2rem;
-  min-height: 1.2rem;
-  accent-color: #0f766e;
-}
-
-.place-filters__verified span {
-  display: grid;
+.place-filters .place-filters__verified-copy {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.1rem 0.55rem;
   color: var(--yp-color-text);
 }
 
 .place-filters__verified small {
   color: var(--yp-color-text-muted);
   font-weight: 500;
+}
+
+.place-filters .place-filters__switch {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+  width: 2.8rem;
+  height: 1.55rem;
+}
+
+.place-filters__switch input {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.place-filters .place-filters__switch-track {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0.18rem;
+  border-radius: 999px;
+  background: #94a3b8;
+  transition: 150ms ease;
+}
+
+.place-filters .place-filters__switch-track > span {
+  display: block;
+  width: 1.18rem;
+  height: 1.18rem;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 5px rgba(15, 23, 42, 0.24);
+  transition: 150ms ease;
+}
+
+.place-filters__switch input:checked + .place-filters__switch-track {
+  background: #0f766e;
+}
+
+.place-filters__switch input:checked + .place-filters__switch-track > span {
+  transform: translateX(1.25rem);
+}
+
+.place-filters__switch input:focus-visible + .place-filters__switch-track {
+  outline: 3px solid #f59e0b;
+  outline-offset: 2px;
 }
 
 .place-filters label {
@@ -140,7 +200,7 @@
   color: var(--yp-color-text-muted);
 }
 
-.place-filters input,
+.place-filters input:not([type='checkbox']):not([type='radio']),
 .place-filters select,
 .place-filters button {
   width: 100%;
@@ -174,6 +234,10 @@
   .place-filters__quality {
     grid-column: 1 / -1;
   }
+
+  .place-filters__compact-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 640px) {
@@ -185,5 +249,11 @@
 
   .place-filters__quality {
     grid-template-columns: 1fr;
+  }
+
+  .place-filters__chip span,
+  .place-filters__radius-options span {
+    min-height: 2.4rem;
+    padding: 0.55rem 0.75rem;
   }
 }
