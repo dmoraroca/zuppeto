@@ -1,7 +1,7 @@
 # PETILOC — Iteració 7 · Fase VI — Cercador, mapa, fitxes i UX
 
 **Data de validació:** 15.10.2026  
-**Estat:** implementada i validada en entorn local; migració preparada però no aplicada a PostgreSQL real. La Fase VII no s'ha iniciat.
+**Estat:** tancada tècnicament; migració aplicada i validació final superada sobre PostgreSQL real. La Fase VII no s'ha iniciat.
 
 ## Arquitectura i backend
 
@@ -33,11 +33,11 @@ La migració `20261014222827_AddPlacePublicSearchPhase6` afegeix:
 - `ix_places_public_search (territorial_unit_id, type, pet_policy_status, name)`;
 - `ix_places_updated_at_utc`.
 
-Ha superat `Up → Down → Up` a `zuppeto_phase6_migration_validation`, eliminada després. EF informa que no hi ha canvis de model pendents. No s'ha aplicat a la base real.
+Ha superat `Up → Down → Up` sobre la restauració temporal `zuppeto_phase6_final_validation`, sense canvis en els 50 Places, les 577 observacions ni les 23.969 unitats territorials. EF informa que no hi ha canvis de model pendents. S'ha aplicat exclusivament aquesta migració a PostgreSQL real el 15.10.2026.
 
 ## Decisió PostGIS i rendiment
 
-**No s'incorpora PostGIS en Fase VI.** Amb els 50 Places reals d'Arenys, `EXPLAIN (ANALYZE, BUFFERS)` dona 0,147 ms per municipi i 0,294 ms per bounding box amb distància. PostgreSQL tria seq scan perquè 50 files caben en quatre pàgines compartides; és el pla correcte a aquest volum.
+**No s'incorpora PostGIS en Fase VI.** Amb els 50 Places reals d'Arenys, l'auditoria final sobre la còpia restaurada dona 0,084 ms per filtre municipal/categoria/estat i 0,146 ms per bounding box amb ordenació de distància. PostgreSQL tria seq scan perquè 50 files caben en poques pàgines compartides; és el pla correcte a aquest volum. Els tres índexs ocupen 16 kB cadascun i preparen el creixement sense justificar PostGIS.
 
 | Cerca | Cinc mesures de l'API |
 |---|---|
@@ -79,8 +79,21 @@ Els filtres usen `fieldset`, `legend`, labels i inputs reals, amb focus visible 
 - build Angular producció: PASS;
 - EF Core: Up→Down→Up PASS i model coherent;
 - Chrome focalitzat: PASS per Arenys, categoria, `Unknown`, radi 0/10 km, llista/mapa, detall/retorn, GPS, fallback sense GPS i viewport explícit;
-- xarxa Chrome: 0 crides externes de dades; 94 tiles OSM bloquejades;
+- xarxa Chrome: 0 crides externes de dades; 82 tiles OSM bloquejades en l'execució final;
 - Firefox/WebKit: no executats segons l'abast.
+
+## Tancament sobre PostgreSQL real
+
+- commit base auditat: `5acd95b78d30a4b82fe0e4a31cf431be3ab991e2` (155), amb arbre net abans del tancament;
+- backup complet: `/DATA/backups/zuppeto/zuppeto-before-phase6-20261015.dump`, 25.766.038 bytes;
+- SHA-256: `f8977378a8773136e3d667d15417e3334fb702ab906ee31dd15ae895f23fe641`;
+- restauració completa verificada abans de migrar;
+- migració real aplicada: `20261014222827_AddPlacePublicSearchPhase6`;
+- índexs presents: `ix_places_coordinates`, `ix_places_public_search` i `ix_places_updated_at_utc`;
+- integritat posterior: 50 Places d'Arenys, 51 OSM IDs únics (50 vinculats), 577 observacions `AUTO`, zero coordenades nul·les o zero i zero dades Google;
+- territorial: DE 15.770 unitats/26.820 codis/15.794 noms; ES 8.199 unitats/8.201 codis/8.199 noms;
+- API real: `pub` retorna 2 Places, `Unknown` 50 i radi 10 km retorna 50 amb pàgina de 20 ordenada per distància;
+- Chrome focalitzat final: PASS i 82 tiles bloquejats, sense crides externes de dades.
 
 ## Incidències, PostgreSQL i Git
 
@@ -88,9 +101,9 @@ Els filtres usen `fieldset`, `legend`, labels i inputs reals, amb focus visible 
 - el pin amb gos és provisional;
 - offset pagination s'haurà de reavaluar amb offsets profunds;
 - el clustering és client-side sobre POI carregats i el recompte municipal prové de PostgreSQL; milers de punts requeririen clustering server-side;
-- la migració continua pendent d'autorització per a PostgreSQL real.
+- la revisió visual final ha confirmat filtres, radi, mapa, marcadors diferenciats, targetes i retorn amb estat restaurat, sense redisseny addicional.
 
-PostgreSQL real només s'ha consultat amb lectures i `EXPLAIN ANALYZE`; conserva 50 Places d'Arenys. Google Places continua desactivat. No s'ha fet commit ni push.
+PostgreSQL real ha rebut exclusivament la migració EF Core autoritzada; conserva 50 Places d'Arenys. Google Places continua desactivat i Google OAuth no s'ha modificat. No s'ha fet commit ni push durant el tancament.
 
 ## Pendents per Fase VII
 

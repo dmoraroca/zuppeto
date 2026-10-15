@@ -1,6 +1,6 @@
 # Zuppeto - Esquema BBDD (E/R)
 
-> Fase VI (15.10.2026): `AddPlacePublicSearchPhase6` prepara `ix_places_coordinates`, `ix_places_public_search` i `ix_places_updated_at_utc`. EF és coherent i el cicle Up→Down→Up temporal ha passat; la base real continua a Fase V. [Informe](iteracio-7-fase-vi-cercador-mapa-ux-ca.md).
+> Fase VI (15.10.2026): `AddPlacePublicSearchPhase6` ha aplicat `ix_places_coordinates`, `ix_places_public_search` i `ix_places_updated_at_utc` a PostgreSQL real. EF és coherent, el cicle Up→Down→Up temporal ha passat i els 50 Places han quedat intactes. [Informe](iteracio-7-fase-vi-cercador-mapa-ux-ca.md).
 
 > Fase V tancada (14.10.2026): `AddPlaceCatalogCoveragePhase5` està aplicada a PostgreSQL real amb decisions de matching, conflictes, cicle de vida, enriquiments, checkpoints i metadades legals. El backup restaurable, `Up → Down → Up`, la publicació doble idempotent i la integritat territorial han passat; Arenys té 50 Places. [Informe](iteracio-7-fase-v-cobertura-enriquiment-deduplicacio-ca.md).
 

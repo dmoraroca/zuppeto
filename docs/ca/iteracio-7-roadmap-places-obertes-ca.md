@@ -6,7 +6,7 @@
 
 La Fase V ha completat cobertura OSM, Wikidata CC0, matching i conflictes auditables, cicle de vida, índex regional de Catalunya, diffs amb checkpoints i recuperació, migració real i publicació idempotent de 50 Places d'Arenys. Estat verificable: [Fase V](iteracio-7-fase-v-cobertura-enriquiment-deduplicacio-ca.md).
 
-La Fase VI ha implementat el cercador PostgreSQL amb municipi, radi i viewport, paginació server-side, filtres i ordenació, geolocalització privada, mapa sincronitzat, clusters, marcadors PetiLoc i fitxa completa. La migració d'índexs queda preparada i validada, pendent d'aplicació real. Estat verificable: [Fase VI](iteracio-7-fase-vi-cercador-mapa-ux-ca.md).
+La Fase VI ha implementat el cercador PostgreSQL amb municipi, radi i viewport, paginació server-side, filtres i ordenació, geolocalització privada, mapa sincronitzat, clusters, marcadors PetiLoc i fitxa completa. La migració d'índexs ha quedat aplicada i validada sobre PostgreSQL real, amb els 50 Places intactes. Estat verificable: [Fase VI](iteracio-7-fase-vi-cercador-mapa-ux-ca.md).
 
 L'estat verificable de la Fase IV és [Tancament de la Fase IV](iteracio-7-fase-iv-tancament-ca.md). El PBF real de Catalunya ha produït 18 POI d'Arenys de Mar: se n'han publicat 15 i se n'han rebutjat 3 sense nom. La segona importació ha estat idempotent. Geofabrik és la via batch principal i Overpass queda com a mode auxiliar després del HTTP 504 anterior.
 

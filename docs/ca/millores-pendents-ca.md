@@ -2,7 +2,7 @@
 
 ## Iteració 7 — després de Fase VI
 
-La cerca, el radi, la paginació PostgreSQL, el GPS privat, el mapa sincronitzat i la fitxa ampliada estan implementats. Resten com a millores no bloquejants: validar un municipi amb més de 50 Places quan existeixi, mesurar offsets profunds, revisar visualment el pin provisional i reobrir clustering server-side/PostGIS només amb mètriques representatives. La migració d'índexs està pendent d'autorització per a PostgreSQL real. [Informe](iteracio-7-fase-vi-cercador-mapa-ux-ca.md).
+La cerca, el radi, la paginació PostgreSQL, el GPS privat, el mapa sincronitzat i la fitxa ampliada estan implementats, i la migració d'índexs ja s'ha aplicat a PostgreSQL real. Resten com a millores no bloquejants: validar un municipi amb més de 50 Places quan existeixi, mesurar offsets profunds, revisar visualment el pin provisional i reobrir clustering server-side/PostGIS només amb mètriques representatives. [Informe](iteracio-7-fase-vi-cercador-mapa-ux-ca.md).
 
 Backlog de millores detectades mentre es treballa o es fan proves manuals.
 No substitueix `docs/project-phases.md` ni el joc de proves Excel: aquí només anotem idees per comentar i prioritzar després.

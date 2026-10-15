@@ -1,6 +1,6 @@
 # Model de base de dades (CA)
 
-> Actualització 15.10.2026, Fase VI: la migració `AddPlacePublicSearchPhase6` afegeix índexs parcials de coordenades, cerca pública composta i actualització. Ha superat Up→Down→Up en base temporal, però no s'ha aplicat a PostgreSQL real. [Informe](iteracio-7-fase-vi-cercador-mapa-ux-ca.md).
+> Actualització 15.10.2026, Fase VI: la migració `AddPlacePublicSearchPhase6` ha afegit a PostgreSQL real els índexs de coordenades, cerca pública composta i actualització, després de superar restauració i Up→Down→Up temporals. [Informe](iteracio-7-fase-vi-cercador-mapa-ux-ca.md).
 
 > Actualització 14.10.2026, Fase V tancada: el model incorpora matching reversible, conflictes per observació, cicle de vida, enriquiments separats i checkpoints regionals. `AddPlaceCatalogCoveragePhase5` està aplicada a PostgreSQL real i Arenys conserva 50 Places després de dues importacions idempotents. [Informe de Fase V](iteracio-7-fase-v-cobertura-enriquiment-deduplicacio-ca.md).
 
