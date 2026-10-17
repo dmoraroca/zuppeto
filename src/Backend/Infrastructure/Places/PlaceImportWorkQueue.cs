@@ -26,7 +26,7 @@ internal sealed class PlaceImportWorkQueue(ZuppetoDbContext db) : IPlaceImportWo
         record.LastHeartbeatAtUtc=now; record.ProcessingStartedAtUtc??=now; record.AttemptCount++; record.NextAttemptAtUtc=null; record.UpdatedAtUtc=now;
         await db.SaveChangesAsync(ct); await transaction.CommitAsync(ct);
         return new(record.Id,record.Source.SourceKey,record.AccessMode,new(record.CountryId,record.TerritorialUnitId,record.CountryIso2,record.TerritorialName,
-            record.OfficialCodeScheme,record.OfficialCode,JsonSerializer.Deserialize<string[]>(record.CategoriesJson)??[],null,250),owner);
+            record.OfficialCodeScheme,record.OfficialCode,JsonSerializer.Deserialize<string[]>(record.CategoriesJson)??[],null,int.MaxValue),owner);
     }
 
     public Task HeartbeatAsync(Guid id,string owner,TimeSpan lease,CancellationToken ct=default) { var now=DateTimeOffset.UtcNow; return db.PlaceImportRuns.Where(x=>x.Id==id&&x.LeaseOwner==owner).ExecuteUpdateAsync(u=>u.SetProperty(x=>x.LastHeartbeatAtUtc,now).SetProperty(x=>x.LeaseExpiresAtUtc,now.Add(lease)).SetProperty(x=>x.UpdatedAtUtc,now),ct); }

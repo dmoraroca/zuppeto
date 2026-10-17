@@ -40,6 +40,7 @@ async function main(): Promise<void> {
         const filteredPlaces = types.length === 0
           ? places
           : places.filter(item => types.includes(item.commercialCategory) || types.includes(item.type.toLowerCase()));
+        if (types.length === 2) await new Promise(resolve => setTimeout(resolve, 300));
         return json(route, {
           items: filteredPlaces.slice(skip, skip + take), total: filteredPlaces.length, skip, take,
           hasMore: skip + take < filteredPlaces.length,
@@ -84,6 +85,9 @@ async function main(): Promise<void> {
     const initialHeight = (await mapCanvas.boundingBox())!.height;
     const initialZoom = await mapCanvas.getAttribute('data-map-zoom');
     const initialCenter = await mapCenter(mapCanvas);
+    assert.equal(initialZoom, '9', 'Arenys ha d’aplicar el zoom territorial inicial encara que la resposta sigui asíncrona.');
+    assertCenter({ lat: 41.5803, lng: 2.5508 }, initialCenter,
+      'El mapa inicial ha d’estar centrat a Arenys, no a la península.');
     await resizeHandle.dispatchEvent('pointerdown', { pointerId: 7, clientY: 100, button: 0 });
     await resizeHandle.dispatchEvent('pointermove', { pointerId: 7, clientY: 196, buttons: 1 });
     await resizeHandle.dispatchEvent('pointerup', { pointerId: 7, clientY: 196, button: 0 });
@@ -100,35 +104,57 @@ async function main(): Promise<void> {
     assert.equal(await mapCanvas.getAttribute('data-map-zoom'), initialZoom, 'La pantalla completa ha de conservar el zoom.');
     assertCenter(initialCenter, await mapCenter(mapCanvas), 'La pantalla completa ha de conservar el centre.');
     assert.equal(placeSearchRequests, initialRequests, 'La pantalla completa no ha de repetir la consulta.');
+    assert.ok(await visibleMapSymbols(page) > 0, 'La pantalla completa no ha de fer desaparèixer el marcador municipal.');
     await page.getByRole('button', { name: 'Sortir de pantalla completa' }).click();
     await page.waitForFunction(() => document.querySelector('.place-map')?.getAttribute('data-fullscreen') === 'false');
     await page.waitForTimeout(250);
     assert.ok(Math.abs((await mapCanvas.boundingBox())!.height - resizedHeight) <= 2,
       'En sortir de pantalla completa s’ha de recuperar exactament la mida redimensionada.');
 
-    await page.locator('.leaflet-control-zoom-in').click();
-    const zoomBeforeRecenter = await mapCanvas.getAttribute('data-map-zoom');
+    await setMapZoom(page, mapCanvas, 16);
+    await panMap(page, mapCanvas);
+    const pannedAtZoom16 = await mapCenter(mapCanvas);
+    assert.ok(centerDistance(pannedAtZoom16, { lat: 41.5803, lng: 2.5508 }) > 0.001,
+      `El desplaçament manual ha de separar el centre del municipi abans del recentrat. Centre=${JSON.stringify(pannedAtZoom16)}`);
     await page.getByRole('button', { name: 'Recentrar mapa' }).click();
-    assert.equal(await mapCanvas.getAttribute('data-map-zoom'), zoomBeforeRecenter,
-      'Recentrar no ha de restablir el zoom.');
-    await page.locator('.leaflet-control-zoom-out').click();
+    await page.waitForTimeout(500);
+    assert.equal(await mapCanvas.getAttribute('data-map-zoom'), '16',
+      'Recentrar ha de conservar exactament el zoom manual 16.');
+    assertCenter({ lat: 41.5803, lng: 2.5508 }, await mapCenter(mapCanvas),
+      'Recentrar a zoom 16 ha de tornar al centre d’Arenys.');
+    const zoom16Symbols = await visibleMapSymbols(page);
+    assert.ok(zoom16Symbols > 0, 'Els POI han de continuar visibles després del recentrat a zoom 16.');
+
+    await setMapZoom(page, mapCanvas, 12);
+    await panMap(page, mapCanvas);
+    await page.getByRole('button', { name: 'Recentrar mapa' }).click();
+    await page.waitForTimeout(500);
+    assert.equal(await mapCanvas.getAttribute('data-map-zoom'), '12',
+      'Recentrar ha de conservar exactament el zoom manual 12.');
+    assertCenter({ lat: 41.5803, lng: 2.5508 }, await mapCenter(mapCanvas),
+      'Recentrar a zoom 12 ha de tornar al centre d’Arenys.');
+    const zoom12Symbols = await visibleMapSymbols(page);
+    assert.ok(zoom12Symbols > 0, 'Els clusters han de continuar visibles després del recentrat a zoom 12.');
 
     await page.getByLabel('Hotels').uncheck();
     const filteredResponse = page.waitForResponse(response => new URL(response.url()).pathname.replace(/\/$/, '') === '/api/places');
     await page.getByRole('button', { name: 'Cercar', exact: true }).click();
+    await page.waitForTimeout(100);
+    assert.match(await page.locator('.place-map__summary').innerText(), /23 ubicacions visibles/,
+      'Mentre arriba el filtre nou, el mapa ha de conservar l’últim conjunt vàlid.');
+    assert.ok(await visibleMapSymbols(page) > 0, 'La recàrrega asíncrona no ha de deixar el mapa sense marcadors.');
     await filteredResponse;
     await page.waitForURL(/types=/);
     await page.getByText('15 ubicacions visibles').waitFor();
-    assert.equal(await mapCanvas.getAttribute('data-map-zoom'), initialZoom,
+    assert.equal(await mapCanvas.getAttribute('data-map-zoom'), '12',
       'Canviar filtres no ha de restablir el zoom del mapa.');
+    assert.ok(await visibleMapSymbols(page) > 0, 'Canviar filtres no ha d’esborrar els marcadors del mapa.');
     await page.getByLabel('Hotels').check();
     const restoredResponse = page.waitForResponse(response => new URL(response.url()).pathname.replace(/\/$/, '') === '/api/places');
     await page.getByRole('button', { name: 'Cercar', exact: true }).click();
     await restoredResponse;
     await page.getByText('23 ubicacions visibles').waitFor();
 
-    await page.locator('.leaflet-control-zoom-in').click();
-    await page.locator('.leaflet-control-zoom-in').click();
     await page.waitForFunction(() => document.querySelector('.place-map__canvas')?.getAttribute('data-map-layer') === 'clusters');
     assert.ok(await page.locator('.place-map__cluster-marker').count() > 0,
       `El zoom intermedi ha de crear clusters. zoom=${await mapCanvas.getAttribute('data-map-zoom')} layer=${await mapCanvas.getAttribute('data-map-layer')}`);
@@ -176,7 +202,7 @@ async function main(): Promise<void> {
     assert.ok(Math.abs((await mapCanvas.boundingBox())!.height - mobileHeightAfter) <= 2,
       'La sortida de pantalla completa mòbil ha de recuperar la mida anterior.');
 
-    console.log('PASS Chrome focalitzat: mapa redimensionable i fullscreen en escriptori/mòbil; 23 punts amb llista 20+3, 50 punts amb llista 20, zoom/centre/filtres preservats i cap UUID duplicat.');
+    console.log(`PASS Chrome focalitzat: mapa redimensionable i fullscreen en escriptori/mòbil; 23 punts amb llista 20+3, 50 punts amb llista 20; ${zoom16Symbols} símbols visibles a zoom 16 i ${zoom12Symbols} a zoom 12; zoom/centre/filtres preservats i cap UUID duplicat.`);
   } finally {
     await browser.close();
   }
@@ -187,6 +213,40 @@ async function mapCenter(locator: import('@playwright/test').Locator): Promise<{
     lat: Number(await locator.getAttribute('data-center-lat')),
     lng: Number(await locator.getAttribute('data-center-lng'))
   };
+}
+
+async function setMapZoom(
+  page: import('@playwright/test').Page,
+  mapCanvas: import('@playwright/test').Locator,
+  target: number
+): Promise<void> {
+  for (let attempts = 0; attempts < 20; attempts++) {
+    const current = Number(await mapCanvas.getAttribute('data-map-zoom'));
+    if (current === target) return;
+    await page.locator(current < target ? '.leaflet-control-zoom-in' : '.leaflet-control-zoom-out').click();
+  }
+  assert.equal(Number(await mapCanvas.getAttribute('data-map-zoom')), target);
+}
+
+async function panMap(
+  page: import('@playwright/test').Page,
+  mapCanvas: import('@playwright/test').Locator
+): Promise<void> {
+  await mapCanvas.focus();
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('ArrowDown');
+  await page.waitForTimeout(500);
+}
+
+function centerDistance(left: { lat: number; lng: number }, right: { lat: number; lng: number }): number {
+  return Math.max(Math.abs(left.lat - right.lat), Math.abs(left.lng - right.lng));
+}
+
+async function visibleMapSymbols(page: import('@playwright/test').Page): Promise<number> {
+  return await page.locator(
+    '.place-map__pet-pin, .place-map__cluster-marker, .place-map__municipality-marker'
+  ).count();
 }
 
 function assertCenter(expected: { lat: number; lng: number }, actual: { lat: number; lng: number }, message: string): void {

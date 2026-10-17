@@ -32,6 +32,7 @@ type LeafletMap = import('leaflet').Map;
 type LeafletLayerGroup = import('leaflet').LayerGroup;
 export interface PlaceMapViewport { north: number; south: number; east: number; west: number; }
 export interface PlaceMapMunicipality {
+  id: string;
   name: string;
   lat: number;
   lng: number;
@@ -71,11 +72,12 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   private readonly markers = new Map<string, import('leaflet').Marker>();
   private mapInitialization?: Promise<void>;
   private lastDataKey = '';
-  private lastCameraContextKey = '';
-  private cameraInitialized = false;
+  private activeMunicipalityKey = '';
+  private initialCameraApplied = false;
   private hadPlaces = false;
   private resizeObserver?: ResizeObserver;
   private resizeFrame?: number;
+  private markerRedrawFrame?: number;
   private resizingPointerId: number | null = null;
   private resizeStartY = 0;
   private resizeStartHeight = 0;
@@ -138,6 +140,7 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     this.document.removeEventListener('fullscreenchange', this.onFullscreenChange);
     this.document.removeEventListener('keydown', this.onDocumentKeydown);
     if (this.resizeFrame !== undefined) cancelAnimationFrame(this.resizeFrame);
+    if (this.markerRedrawFrame !== undefined) cancelAnimationFrame(this.markerRedrawFrame);
     if (this.layoutCameraReleaseTimer !== undefined) window.clearTimeout(this.layoutCameraReleaseTimer);
     this.map?.remove();
     this.map = undefined;
@@ -317,6 +320,7 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       });
       this.map.on('moveend', () => {
         this.recordStableCamera();
+        this.scheduleMarkerRedraw();
         this.markViewportChanged();
       });
     })();
@@ -337,26 +341,28 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
         ...this.areas().map((area) => `${area.territorialUnitId}:${area.placeCount}`)
       ].join('|');
       const dataChanged = dataKey !== this.lastDataKey;
-      const cameraContextKey = municipality
-        ? `${municipality.lat}:${municipality.lng}:${this.radiusKm()}`
+      const municipalityKey = municipality
+        ? `${municipality.id}:${municipality.lat}:${municipality.lng}`
         : '';
-      const cameraContextChanged = cameraContextKey !== this.lastCameraContextKey;
+      const municipalityChanged = municipalityKey !== '' && municipalityKey !== this.activeMunicipalityKey;
 
-      if (!this.cameraInitialized) {
+      if (municipalityChanged) {
+        // The municipality usually arrives after the first async search. It must
+        // establish the territorial camera even if Leaflet already showed Spain.
+        this.setMunicipalityView();
+        this.initialCameraApplied = true;
+      } else if (!this.initialCameraApplied) {
         if (municipality) this.setMunicipalityView();
         else if (this.hasPlaces) this.fitMapToPlaces();
         else this.setEmptyMapView();
-        this.cameraInitialized = true;
-      } else if (cameraContextChanged && municipality) {
-        this.markAutomaticCamera();
-        this.map.panTo([municipality.lat, municipality.lng]);
+        this.initialCameraApplied = true;
       } else if (!municipality && !this.hadPlaces && this.hasPlaces) {
         this.fitMapToPlaces();
       }
-      this.lastCameraContextKey = cameraContextKey;
+      this.activeMunicipalityKey = municipalityKey;
       this.hadPlaces = this.hasPlaces;
 
-      if (dataChanged || cameraContextChanged) {
+      if (dataChanged || municipalityChanged) {
         this.redrawMarkers();
         this.lastDataKey = dataKey;
       }
@@ -402,6 +408,16 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       }
       const center = this.map?.getCenter();
       this.currentCenter.set(center ? { lat: center.lat, lng: center.lng } : null);
+      this.scheduleMarkerRedraw();
+    });
+  }
+
+  private scheduleMarkerRedraw(): void {
+    if (this.markerRedrawFrame !== undefined) cancelAnimationFrame(this.markerRedrawFrame);
+    this.markerRedrawFrame = requestAnimationFrame(() => {
+      this.markerRedrawFrame = undefined;
+      this.redrawMarkers();
+      this.applyMarkerSelection(this.selectedPlaceId());
     });
   }
 
@@ -536,6 +552,7 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     if (suppliedAreas.length > 0) {
       for (const area of suppliedAreas) {
         this.drawMunicipalityMarker({
+          id: area.territorialUnitId,
           name: area.name,
           lat: area.latitude!,
           lng: area.longitude!,
@@ -549,7 +566,7 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     for (const [city, places] of groups) {
       const lat = places.reduce((sum, place) => sum + place.coordinates!.lat, 0) / places.length;
       const lng = places.reduce((sum, place) => sum + place.coordinates!.lng, 0) / places.length;
-      this.drawMunicipalityMarker({ name: city, lat, lng, placeCount: places.length });
+      this.drawMunicipalityMarker({ id: city, name: city, lat, lng, placeCount: places.length });
     }
   }
 

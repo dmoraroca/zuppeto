@@ -131,15 +131,15 @@ export function petMatchSummaryForPlace(place: Pick<Place, 'acceptsDogs' | 'acce
 }
 
 export function visitContextForPlaceType(type: PlaceType): string {
-  if (type === 'hotel' || type === 'apartment') {
+  if (type === 'hotel' || type === 'apartment' || type === 'accommodation') {
     return 'Bona opció si vols resoldre estada i confort pet-friendly en un sol punt.';
   }
 
-  if (type === 'park') {
+  if (type === 'park' || type === 'outdoor') {
     return 'Especialment útil com a parada ràpida, descans o passeig durant el dia.';
   }
 
-  if (type === 'bar') {
+  if (type === 'bar' || type === 'foodanddrink') {
     return 'Bona opció per una parada informal amb la mascota (terrassa o ambient relaxat).';
   }
 

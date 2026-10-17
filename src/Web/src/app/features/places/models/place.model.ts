@@ -1,4 +1,7 @@
-export type PlaceType = 'bar' | 'restaurant' | 'hotel' | 'apartment' | 'park' | 'service';
+export type PlaceType =
+  | 'bar' | 'restaurant' | 'hotel' | 'apartment' | 'park' | 'service'
+  | 'foodanddrink' | 'accommodation' | 'retail' | 'health'
+  | 'mobility' | 'outdoor' | 'petcare' | 'entertainment';
 export type PetFilter = 'all' | 'dogs' | 'cats' | 'others';
 export type PetSpeciesFilter = 'dogs' | 'cats';
 export type PetAccessFilter = 'Allowed' | 'TerraceOnly' | 'Conditional' | 'NotAllowed' | 'Unknown' | 'PendingReview';

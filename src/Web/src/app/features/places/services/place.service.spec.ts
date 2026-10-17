@@ -29,6 +29,12 @@ describe('PlaceService phase I characterization', () => {
 
   afterEach(() => http.verify());
 
+  it('uses the canonical pet_grooming category exposed by the backend', () => {
+    const values = service.getAvailableTypes().map((item) => item.value);
+    expect(values).toContain('pet_grooming');
+    expect(values).not.toContain('dog_grooming');
+  });
+
   it('maps the public API DTO, media URL and address without requiring a session', async () => {
     const promise = service.fetchPublicPlaces();
     const request = http.expectOne('http://localhost:5211/api/places');
@@ -75,6 +81,19 @@ describe('PlaceService phase I characterization', () => {
 
     request.flush({ items: [placeDto()], total: 21, skip: 20, take: 10, hasMore: false });
     await expect(promise).resolves.toEqual(expect.objectContaining({ total: 21, skip: 20, take: 10 }));
+  });
+
+  it('keeps the municipality identifier when no country identifier is available', async () => {
+    const promise = service.searchPage({
+      search: '', country: 'Espanya', city: 'Arenys de Mar', type: '', pet: 'all',
+      territorialUnitId: 'arenys'
+    }, 0, 20);
+    const request = http.expectOne((candidate) => candidate.url.endsWith('/api/places'));
+
+    expect(request.request.params.get('territorialUnitId')).toBe('arenys');
+    expect(request.request.params.has('countryId')).toBe(false);
+    request.flush({ items: [], total: 0, skip: 0, take: 20, hasMore: false });
+    await expect(promise).resolves.toEqual(expect.objectContaining({ total: 0 }));
   });
 
   it('preserves missing coordinates instead of inventing a map position', async () => {

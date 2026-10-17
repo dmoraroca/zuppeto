@@ -43,6 +43,7 @@ public sealed class PlacePublicSearchPhase6PostgreSqlTests
             {
                 var place = await verify.Places.Include(item => item.PlaceFeatures).ThenInclude(link => link.Feature).SingleAsync();
                 Assert.Equal("bakery", place.CommercialCategory);
+                Assert.Equal("FoodAndDrink", place.Type);
                 Assert.Contains(place.PlaceFeatures, link => link.Feature.Code == "Terrassa");
                 Assert.Equal("Unknown", place.PetPolicyStatus);
                 Assert.False(place.AcceptsDogs);
@@ -53,6 +54,48 @@ public sealed class PlacePublicSearchPhase6PostgreSqlTests
                 await upAgain.Database.MigrateAsync();
             await using (var idempotent = new ZuppetoDbContext(options))
                 Assert.Equal(1, await idempotent.PlaceFeatures.CountAsync());
+        }
+        finally
+        {
+            await DropDatabaseAsync(adminConnection);
+        }
+    }
+
+    [Fact]
+    public async Task Commercial_filters_do_not_expand_bar_to_bakery_or_fast_food()
+    {
+        var baseConnection = Environment.GetEnvironmentVariable("ZUPPETO_TERRITORIAL_TEST_DB");
+        if (string.IsNullOrWhiteSpace(baseConnection)) return;
+        var adminConnection = new NpgsqlConnectionStringBuilder(baseConnection) { Database = "postgres" }.ConnectionString;
+        var testConnection = new NpgsqlConnectionStringBuilder(baseConnection) { Database = TemporaryDatabase }.ConnectionString;
+        await RecreateDatabaseAsync(adminConnection);
+        try
+        {
+            var options = new DbContextOptionsBuilder<ZuppetoDbContext>().UseNpgsql(testConnection).Options;
+            await using var db = new ZuppetoDbContext(options);
+            await db.Database.MigrateAsync();
+            var now = DateTimeOffset.UtcNow;
+            db.Places.AddRange(
+                Place("Bar exacte", "FoodAndDrink", "Unknown", 41.580m, 2.550m, now, "bar"),
+                Place("Ca la Manela", "Bar", "Unknown", 41.581m, 2.551m, now, "bakery"),
+                Place("McDonald's", "Bar", "Unknown", 41.582m, 2.552m, now, "fast_food"),
+                Place("Bar heretat", "Bar", "Unknown", 41.583m, 2.553m, now));
+            await db.SaveChangesAsync();
+            var query = new PlacePublicSearchQuery(db);
+
+            var bars = await query.SearchAsync(new PlaceSearchRequest(
+                null, null, "Arenys de Mar", null, "All", 0, 20, Types: ["bar"]));
+            Assert.Equal(2, bars.Total);
+            Assert.Contains(bars.Items, item => item.Place.Name == "Bar exacte");
+            Assert.Contains(bars.Items, item => item.Place.Name == "Bar heretat");
+            Assert.DoesNotContain(bars.Items, item => item.Place.Name is "Ca la Manela" or "McDonald's");
+
+            var bakeries = await query.SearchAsync(new PlaceSearchRequest(
+                null, null, "Arenys de Mar", null, "All", 0, 20, Types: ["bakery"]));
+            Assert.Equal("Ca la Manela", Assert.Single(bakeries.Items).Place.Name);
+            var fastFood = await query.SearchAsync(new PlaceSearchRequest(
+                null, null, "Arenys de Mar", null, "All", 0, 20, Types: ["fast_food"]));
+            Assert.Equal("McDonald's", Assert.Single(fastFood.Items).Place.Name);
         }
         finally
         {
@@ -204,7 +247,7 @@ public sealed class PlacePublicSearchPhase6PostgreSqlTests
 
             var services = await query.SearchAsync(new PlaceSearchRequest(
                 null, null, "Arenys de Mar", null, "All", 0, 20, Types: ["service"]));
-            Assert.Equal(18, services.Total);
+            Assert.Equal(0, services.Total);
             var parks = await query.SearchAsync(new PlaceSearchRequest(
                 null, null, "Arenys de Mar", null, "All", 0, 20, Types: ["park"]));
             Assert.Equal(9, parks.Total);

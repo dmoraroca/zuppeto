@@ -52,9 +52,10 @@ internal sealed class PlacePublicSearchQuery(ZuppetoDbContext dbContext) : IPlac
             : string.IsNullOrWhiteSpace(request.Type) ? [] : [request.Type.Trim().ToLowerInvariant()];
         if (types.Length > 0)
             query = query.Where(place =>
-                types.Contains(place.Type.ToLower()) ||
                 (place.CommercialCategory != null && types.Contains(place.CommercialCategory.ToLower())) ||
-                dbContext.PlaceImportItems.Any(item => item.PlaceId == place.Id && types.Contains(item.Category.ToLower())));
+                (place.CommercialCategory == null &&
+                    (types.Contains(place.Type.ToLower()) ||
+                     dbContext.PlaceImportItems.Any(item => item.PlaceId == place.Id && types.Contains(item.Category.ToLower())))));
 
         var petCategories = request.PetCategory
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);

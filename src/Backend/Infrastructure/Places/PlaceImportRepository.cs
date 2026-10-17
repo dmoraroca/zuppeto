@@ -410,14 +410,7 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
         var address = string.Join(" ", new[] { street, houseNumber }.Where(x => !string.IsNullOrWhiteSpace(x)));
         if (string.IsNullOrWhiteSpace(address)) address = "Adreça no informada a OpenStreetMap";
         var (status, species) = PetPolicy(fields);
-        var type = item.Category switch
-        {
-            "restaurant" => PlaceType.Restaurant,
-            "cafe" or "bar" or "pub" or "fast_food" or "ice_cream" or "bakery" => PlaceType.Bar,
-            "hotel" or "hostel" => PlaceType.Hotel,
-            "park" or "dog_park" => PlaceType.Park,
-            _ => PlaceType.Service
-        };
+        var type = PlaceCommercialClassification.GeneralType(item.Category);
         var place = new Place(Guid.NewGuid(), item.Name,
             type,
             $"{item.Category.Replace('_', ' ')} a Arenys de Mar.",

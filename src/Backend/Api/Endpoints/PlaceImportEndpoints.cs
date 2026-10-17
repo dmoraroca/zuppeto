@@ -18,6 +18,7 @@ internal static class PlaceImportEndpoints
         group.MapPost("/{id:guid}/approve",Approve);
         group.MapPost("/{id:guid}/simulate-publication",SimulatePublication);
         group.MapPost("/{id:guid}/publish",Publish);
+        group.MapPost("/{id:guid}/media/import-available",ImportAvailableMedia);
         group.MapPost("/{id:guid}/cancel",Cancel);
         return app;
     }
@@ -51,6 +52,7 @@ internal static class PlaceImportEndpoints
     private static Task<IResult> Approve(Guid id,PlaceImportDecisionRequest request,ClaimsPrincipal p,IAdminApplicationService a,IPlaceImportApplicationService s,CancellationToken ct)=>Execute(p,a,async actor=>{await s.ApproveAsync(id,request.Reason,actor,ct);return true;},ct);
     private static Task<IResult> SimulatePublication(Guid id,PlaceImportDecisionRequest request,ClaimsPrincipal p,IAdminApplicationService a,IPlaceImportApplicationService s,CancellationToken ct)=>Execute(p,a,async actor=>{await s.SimulatePublicationAsync(id,request.Reason,actor,ct);return true;},ct);
     private static Task<IResult> Publish(Guid id,PlaceImportDecisionRequest request,ClaimsPrincipal p,IAdminApplicationService a,IPlaceImportApplicationService s,CancellationToken ct)=>Execute(p,a,async actor=>{await s.PublishAsync(id,request.Reason,actor,ct);return true;},ct);
+    private static Task<IResult> ImportAvailableMedia(Guid id,ClaimsPrincipal p,IAdminApplicationService a,IPlaceImportApplicationService s,CancellationToken ct)=>Execute(p,a,_=>s.ImportAvailableMediaAsync(id,ct),ct);
     private static Task<IResult> Cancel(Guid id,ClaimsPrincipal p,IAdminApplicationService a,IPlaceImportApplicationService s,CancellationToken ct)=>Execute(p,a,async actor=>{await s.CancelAsync(id,actor,ct);return true;},ct);
 
     private static async Task<IResult> Execute<T>(ClaimsPrincipal principal,IAdminApplicationService admin,Func<Guid,Task<T>> action,CancellationToken ct,bool created=false)

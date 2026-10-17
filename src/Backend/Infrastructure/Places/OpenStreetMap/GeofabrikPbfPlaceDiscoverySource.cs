@@ -46,7 +46,8 @@ internal sealed class GeofabrikPbfPlaceDiscoverySource(IOptions<GeofabrikExtract
 
         try
         {
-            var bounded = context with { Limit = Math.Min(context.Limit, Math.Clamp(settings.MaximumItems, 1, 250)) };
+            var configuredLimit = settings.MaximumItems <= 0 ? int.MaxValue : settings.MaximumItems;
+            var bounded = context with { Limit = Math.Min(context.Limit, configuredLimit) };
             if (settings.ReusableIndexEnabled && regionalIndex.TryRead(settings.ExtractPath, settings.SourceVersion, bounded, out var indexed))
                 return Task.FromResult(Result<PlaceDiscoveryBatch>.Success(indexed!));
             if (settings.ReusableIndexEnabled)

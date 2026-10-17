@@ -1,8 +1,11 @@
 using Zuppeto.Domain.Common;
+using Zuppeto.Domain.Places;
 
 namespace Zuppeto.Application.Places;
 
-public sealed class PlaceImportApplicationService(IPlaceImportRepository repository) : IPlaceImportApplicationService
+public sealed class PlaceImportApplicationService(
+    IPlaceImportRepository repository,
+    IPlaceMediaApplicationService? media = null) : IPlaceImportApplicationService
 {
     private static readonly Guid ArenysDeMarTerritorialUnitId = Guid.Parse("8680aa5a-292f-4201-8d52-d6381f438af4");
     private static readonly HashSet<string> AllowedCategories = new(PlaceCatalogCategories.All, StringComparer.OrdinalIgnoreCase);
@@ -53,6 +56,41 @@ public sealed class PlaceImportApplicationService(IPlaceImportRepository reposit
     {
         if (string.IsNullOrWhiteSpace(reason)) throw new DomainRuleException("El motiu de publicació és obligatori.");
         return repository.PublishAsync(importId, actorId, reason.Trim(), ct);
+    }
+
+    public async Task<PlaceImportMediaResultDto> ImportAvailableMediaAsync(Guid importId, CancellationToken ct = default)
+    {
+        var details = await repository.GetAsync(importId, ct) ?? throw new KeyNotFoundException("No s’ha trobat la importació.");
+        if (!string.Equals(details.Run.Status, PlaceImportStatus.Published.ToString(), StringComparison.Ordinal))
+            throw new InvalidOperationException("Només es pot enriquir una importació publicada.");
+        if (media is null) throw new InvalidOperationException("El servei de media no està disponible.");
+
+        var placeIds = details.Items.Select(item => item.PlaceId).OfType<Guid>().Distinct().ToArray();
+        var withIdentity = 0;
+        var withoutIdentity = 0;
+        var verifiedCreated = 0;
+        var errors = new List<string>();
+        foreach (var placeId in placeIds)
+        {
+            ct.ThrowIfCancellationRequested();
+            try
+            {
+                var before = await media.ListAsync(placeId, ct);
+                var after = await media.ImportFromWikimediaAsync(placeId, ct);
+                withIdentity++;
+                verifiedCreated += after.Count(asset => asset.VerificationStatus == "Verified")
+                    - before.Count(asset => asset.VerificationStatus == "Verified");
+            }
+            catch (InvalidOperationException exception) when (exception.Message.Contains("QID", StringComparison.OrdinalIgnoreCase))
+            {
+                withoutIdentity++;
+            }
+            catch (Exception exception) when (exception is InvalidOperationException or HttpRequestException)
+            {
+                errors.Add($"{placeId}: {exception.Message}");
+            }
+        }
+        return new(placeIds.Length, withIdentity, withoutIdentity, Math.Max(0, verifiedCreated), errors);
     }
 
     public Task CancelAsync(Guid importId, Guid actorId, CancellationToken ct = default) => repository.CancelAsync(importId, actorId, ct);

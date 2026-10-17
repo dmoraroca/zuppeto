@@ -241,6 +241,35 @@ public sealed class OpenStreetMapPlaceImportTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public async Task Geofabrik_connector_can_disable_the_per_municipality_result_limit()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"zuppeto-osm-unlimited-{Guid.NewGuid():N}.osm.pbf");
+        try
+        {
+            WritePbfFixture(path);
+            var limited = new GeofabrikPbfPlaceDiscoverySource(Options.Create(new GeofabrikExtractOptions
+            {
+                ExtractPath = path, SourceVersion = "fixture-v1", MaximumItems = 1, ReusableIndexEnabled = false
+            }));
+            var unlimited = new GeofabrikPbfPlaceDiscoverySource(Options.Create(new GeofabrikExtractOptions
+            {
+                ExtractPath = path, SourceVersion = "fixture-v1", MaximumItems = 0, ReusableIndexEnabled = false
+            }));
+
+            var limitedResult = await limited.DiscoverAsync(Scope, CancellationToken.None);
+            var unlimitedResult = await unlimited.DiscoverAsync(Scope, CancellationToken.None);
+
+            Assert.True(limitedResult.IsSuccess, limitedResult.Failure?.Message);
+            Assert.True(limitedResult.Value!.IsPartial);
+            Assert.Single(limitedResult.Value.Documents);
+            Assert.True(unlimitedResult.IsSuccess, unlimitedResult.Failure?.Message);
+            Assert.False(unlimitedResult.Value!.IsPartial);
+            Assert.Equal(3, unlimitedResult.Value.Documents.Count);
+        }
+        finally { if (File.Exists(path)) File.Delete(path); }
+    }
+
+    [Fact]
     public async Task Geofabrik_connector_reports_missing_extract_as_external_unavailability()
     {
         var source = new GeofabrikPbfPlaceDiscoverySource(Options.Create(new GeofabrikExtractOptions { ExtractPath = "/tmp/zuppeto-missing.osm.pbf" }));

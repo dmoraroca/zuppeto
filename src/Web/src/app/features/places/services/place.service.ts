@@ -101,7 +101,7 @@ export class PlaceService {
       { value: 'veterinary', label: 'Veterinaris' },
       { value: 'pharmacy', label: 'Farmàcies' },
       { value: 'fuel', label: 'Benzineres' },
-      { value: 'dog_grooming', label: 'Perruqueries canines' },
+      { value: 'pet_grooming', label: 'Perruqueries canines' },
       { value: 'pet_service', label: 'Serveis pet' },
       { value: 'service', label: 'Altres serveis' }
     ];
@@ -264,7 +264,8 @@ export class PlaceService {
       country.length > 0 ||
       city.length >= 2 ||
       type.length > 0 ||
-      (countryId.length > 0 && territorialUnitId.length > 0) ||
+      countryId.length > 0 ||
+      territorialUnitId.length > 0 ||
       (filters.types?.length ?? 0) > 0 ||
       (filters.petAccessStatuses?.length ?? 0) > 0 ||
       !!filters.verifiedOnly ||
@@ -279,8 +280,10 @@ export class PlaceService {
     const city = (filters.city ?? '').trim();
     const type = (filters.type ?? '').trim();
 
-    if (filters.countryId && filters.territorialUnitId) {
+    if (filters.countryId) {
       params = params.set('countryId', filters.countryId);
+    }
+    if (filters.territorialUnitId) {
       params = params.set('territorialUnitId', filters.territorialUnitId);
     }
 

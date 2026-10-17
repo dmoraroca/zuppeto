@@ -54,6 +54,8 @@ services:
     working_dir: /app
     volumes:
       - ./:/app:cached
+      - ${PETILOC_GEOFABRIK_DIR:-/tmp/petiloc-geofabrik}:/data/geofabrik:ro
+      - zuppeto_geofabrik_index:/data/geofabrik-index
     entrypoint: ["/bin/bash", "-lc"]
     command:
       [
@@ -73,6 +75,10 @@ services:
       RabbitMq__UserName: ${RABBITMQ_USER:-guest}
       RabbitMq__Password: ${RABBITMQ_PASSWORD:-guest}
       GooglePlaces__Enabled: "false"
+      OpenStreetMap__GeofabrikExtract__ExtractPath: /data/geofabrik/cataluna-latest.osm.pbf
+      OpenStreetMap__GeofabrikExtract__SourceVersion: ${GEOFABRIK_SOURCE_VERSION:-cataluna-latest}
+      OpenStreetMap__GeofabrikExtract__MaximumItems: "0"
+      OpenStreetMap__GeofabrikExtract__IndexDirectory: /data/geofabrik-index
       Mapillary__Enabled: ${Mapillary__Enabled:-false}
       Mapillary__AccessToken: ${Mapillary__AccessToken:-}
       COMPlus_EnableDiagnostics: 1
@@ -151,3 +157,4 @@ volumes:
   zuppeto_pg_data:
   zuppeto_web_node_modules:
   zuppeto_e2e_node_modules:
+  zuppeto_geofabrik_index:

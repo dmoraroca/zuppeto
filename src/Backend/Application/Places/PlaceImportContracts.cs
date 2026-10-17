@@ -56,6 +56,13 @@ public sealed record PlaceImportDetailsDto(
     IReadOnlyCollection<PlaceImportIssueDto> Issues,
     IReadOnlyCollection<PlaceImportDecisionDto> History);
 
+public sealed record PlaceImportMediaResultDto(
+    int PlacesConsidered,
+    int PlacesWithReliableWikidataIdentity,
+    int PlacesWithoutReliableWikidataIdentity,
+    int VerifiedAssetsCreated,
+    IReadOnlyCollection<string> Errors);
+
 public sealed record PlaceImportWorkItem(Guid ImportId, string SourceKey, string AccessMode, PlaceSourceContext Context, string LeaseOwner);
 
 public sealed record PlaceImportStagedItem(
@@ -107,5 +114,6 @@ public interface IPlaceImportApplicationService
     Task ApproveAsync(Guid importId, string reason, Guid actorId, CancellationToken cancellationToken = default);
     Task SimulatePublicationAsync(Guid importId, string reason, Guid actorId, CancellationToken cancellationToken = default);
     Task PublishAsync(Guid importId, string reason, Guid actorId, CancellationToken cancellationToken = default);
+    Task<PlaceImportMediaResultDto> ImportAvailableMediaAsync(Guid importId, CancellationToken cancellationToken = default);
     Task CancelAsync(Guid importId, Guid actorId, CancellationToken cancellationToken = default);
 }

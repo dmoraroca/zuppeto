@@ -146,7 +146,13 @@ export class PlacesPageComponent {
     const lng = map?.centerLongitude ?? fallback?.lng;
     return lat == null || lng == null
       ? null
-      : { name: city, lat, lng, placeCount: this.listingTotal() };
+      : {
+          id: this.filters().territorialUnitId || city,
+          name: city,
+          lat,
+          lng,
+          placeCount: this.listingTotal()
+        };
   });
   protected readonly selectedPlaceId = this.selectedPlaceIdState.asReadonly();
   protected readonly canWriteFavorites = this.favoritesService.canWrite;
@@ -379,8 +385,6 @@ export class PlacesPageComponent {
     this.listingAbort = abortController;
     this.listingLoading.set(true);
     this.selectedPlaceIdState.set(null);
-    this.mapContext.set(null);
-    this.mapPointPlaces.set([]);
 
     try {
       const page = await this.placeService.searchPage(filters, 0, PLACE_LIST_PAGE_SIZE, abortController.signal);

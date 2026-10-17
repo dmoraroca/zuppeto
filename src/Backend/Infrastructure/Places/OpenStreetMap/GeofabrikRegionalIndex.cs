@@ -13,6 +13,7 @@ namespace Zuppeto.Infrastructure.Places.OpenStreetMap;
 internal sealed class GeofabrikRegionalIndex(string directory)
 {
     private const string Region = "catalunya";
+    private const int IndexSchemaVersion = 2;
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     private Generation? currentCache;
 
@@ -44,7 +45,7 @@ internal sealed class GeofabrikRegionalIndex(string directory)
         using var stream = File.OpenRead(extractPath);
         var extractHash = Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant();
         var generationId = $"{DateTimeOffset.UtcNow:yyyyMMddHHmmssfff}-{extractHash[..12]}";
-        var generation = new Generation(Region, generationId, Path.GetFullPath(extractPath), sourceVersion ?? string.Empty,
+        var generation = new Generation(IndexSchemaVersion, Region, generationId, Path.GetFullPath(extractPath), sourceVersion ?? string.Empty,
             extract.LastWriteTimeUtc, extract.Length, extractHash, "Ready", DateTimeOffset.UtcNow, null, 0,
             municipalities, []);
         Publish(generation); clock.Stop();
@@ -155,7 +156,8 @@ internal sealed class GeofabrikRegionalIndex(string directory)
     private bool MatchesExtract(Generation generation, string extractPath, string? sourceVersion)
     {
         var file = new FileInfo(extractPath);
-        return generation.SourceVersion == (sourceVersion ?? string.Empty) && generation.ExtractLength == file.Length
+        return generation.IndexSchemaVersion == IndexSchemaVersion
+            && generation.SourceVersion == (sourceVersion ?? string.Empty) && generation.ExtractLength == file.Length
             && generation.OsmTimestampUtc.UtcDateTime.Ticks == file.LastWriteTimeUtc.Ticks;
     }
     private Generation? ReadGeneration(string path)
@@ -185,7 +187,7 @@ internal sealed class GeofabrikRegionalIndex(string directory)
     internal sealed record DiffAudit(long Sequence, string Sha256, DateTimeOffset OsmTimestampUtc, int Changes,
         int Created, int Modified, int Deleted, DateTimeOffset AppliedAtUtc);
     private sealed record Pointer(string GenerationId);
-    private sealed record Generation(string RegionKey, string GenerationId, string SourcePbf, string SourceVersion,
+    private sealed record Generation(int IndexSchemaVersion, string RegionKey, string GenerationId, string SourcePbf, string SourceVersion,
         DateTimeOffset OsmTimestampUtc, long ExtractLength, string ExtractSha256, string Status,
         DateTimeOffset CreatedAtUtc, string? ParentGenerationId, long ReplicationSequence,
         List<Municipality> Municipalities, DiffAudit[] Audit);

@@ -36,7 +36,9 @@
     "e2e:place-catalog-phase5": "npm run runner:build && node .runner-build/runner/place-catalog-phase5-cli.js",
     "e2e:place-search-phase6": "npm run runner:build && node .runner-build/runner/place-search-phase6-cli.js",
     "e2e:place-coverage-correction-phase6": "npm run runner:build && node .runner-build/runner/place-coverage-correction-phase6-cli.js",
+    "e2e:place-map-regression-real-readonly": "npm run runner:build && node .runner-build/runner/place-map-regression-real-readonly-cli.js",
     "e2e:place-media-phase6": "npm run runner:build && node .runner-build/runner/place-media-phase6-cli.js",
+    "e2e:place-full-import-phase6": "npm run runner:build && node .runner-build/runner/place-full-import-phase6-cli.js",
     "e2e:places-phase-one": "npm run runner:build && node .runner-build/runner/places-phase-one-cli.js"
   },
   "devDependencies": {

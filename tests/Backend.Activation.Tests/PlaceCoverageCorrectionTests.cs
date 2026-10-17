@@ -24,9 +24,43 @@ public sealed class PlaceCoverageCorrectionTests
         var place = Place("bakery");
         var record = PlacePersistenceMapper.ToRecord(place);
 
-        Assert.Equal(PlaceType.Bar, place.Type);
+        Assert.Equal(PlaceType.FoodAndDrink, place.Type);
         Assert.Equal("bakery", record.CommercialCategory);
         Assert.Equal("Fleca", CommercialCategoryLabels.From(place.CommercialCategory, place.Type));
+    }
+
+    [Theory]
+    [InlineData("bakery", PlaceType.FoodAndDrink)]
+    [InlineData("cafe", PlaceType.FoodAndDrink)]
+    [InlineData("fast_food", PlaceType.FoodAndDrink)]
+    [InlineData("camping", PlaceType.Accommodation)]
+    [InlineData("pharmacy", PlaceType.Health)]
+    [InlineData("fuel", PlaceType.Mobility)]
+    [InlineData("shop", PlaceType.Retail)]
+    [InlineData("veterinary", PlaceType.PetCare)]
+    public void Commercial_categories_map_to_semantic_general_types(string category, PlaceType expected)
+    {
+        Assert.Equal(expected, PlaceCommercialClassification.GeneralType(category));
+    }
+
+    [Fact]
+    public void Every_import_category_has_an_explicit_semantic_general_type()
+    {
+        var expected = new Dictionary<PlaceType, string[]>
+        {
+            [PlaceType.FoodAndDrink] = ["restaurant", "cafe", "bar", "pub", "fast_food", "ice_cream", "bakery", "biergarten", "food_court"],
+            [PlaceType.Entertainment] = ["nightclub"],
+            [PlaceType.Health] = ["pharmacy"],
+            [PlaceType.Mobility] = ["fuel"],
+            [PlaceType.Accommodation] = ["hotel", "hostel", "motel", "apartment", "camping"],
+            [PlaceType.Outdoor] = ["park", "dog_park"],
+            [PlaceType.Retail] = ["shop", "pet_shop"],
+            [PlaceType.PetCare] = ["veterinary", "pet_service", "pet_grooming"]
+        };
+        var classified = expected.SelectMany(group => group.Value.Select(category => (category, group.Key))).ToArray();
+
+        Assert.Equal(PlaceCatalogCategories.All.Order(), classified.Select(item => item.category).Order());
+        Assert.All(classified, item => Assert.Equal(item.Key, PlaceCommercialClassification.GeneralType(item.category)));
     }
 
     [Fact]
@@ -44,7 +78,7 @@ public sealed class PlaceCoverageCorrectionTests
     }
 
     private static Place Place(string category) => new(
-        Guid.NewGuid(), "Local", PlaceType.Bar, "", "", "",
+        Guid.NewGuid(), "Local", PlaceCommercialClassification.GeneralType(category), "", "", "",
         new PostalAddress("Carrer 1", "Arenys de Mar", "Espanya", ""),
         new GeoLocation(41.58m, 2.55m),
         new PetPolicy(PetAccessStatus.Unknown, [], [], "Desconeguda", ""),

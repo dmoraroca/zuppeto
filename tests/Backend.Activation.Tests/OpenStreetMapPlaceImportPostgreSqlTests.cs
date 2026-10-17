@@ -19,7 +19,57 @@ public sealed class OpenStreetMapPlaceImportPostgreSqlTests
     private const string SimulationDatabase = "zuppeto_osm_phase4_tests";
     private const string RealPbfDatabase = "zuppeto_osm_phase5_pbf_tests";
     private const string GovernanceDatabase = "zuppeto_place_governance_phase5_tests";
+    private const string MatchingDatabase = "zuppeto_place_matching_phase6_tests";
     private const string PreviousMigration = "20261013170522_AddPetGovernanceAdminWorkflow";
+
+    [Fact]
+    public async Task Matcher_rejects_nearby_different_businesses_and_keeps_same_name_cross_category_for_review()
+    {
+        var baseConnection = Environment.GetEnvironmentVariable("ZUPPETO_TERRITORIAL_TEST_DB");
+        if (string.IsNullOrWhiteSpace(baseConnection)) return;
+        var admin = new NpgsqlConnectionStringBuilder(baseConnection) { Database = "postgres" }.ConnectionString;
+        var connection = new NpgsqlConnectionStringBuilder(baseConnection) { Database = MatchingDatabase }.ConnectionString;
+        await Recreate(admin, MatchingDatabase);
+        try
+        {
+            var options = new DbContextOptionsBuilder<ZuppetoDbContext>().UseNpgsql(connection).Options;
+            await using (var migration = new ZuppetoDbContext(options)) await migration.Database.MigrateAsync();
+            var ids = await Seed(options);
+            Guid clubId;
+            await using (var seed = new ZuppetoDbContext(options))
+            {
+                var now = DateTimeOffset.UtcNow;
+                seed.Places.AddRange(
+                    MatchPlace("Maresmauto", "shop", 41.575336m, 2.541963m, ids, now),
+                    MatchPlace("Condis", "shop", 41.578276m, 2.550236m, ids, now));
+                var clubPlace = MatchPlace("El Club del Cep", "restaurant", 41.578094m, 2.540144m, ids, now);
+                clubId = clubPlace.Id;
+                seed.Places.Add(clubPlace);
+                await seed.SaveChangesAsync();
+            }
+
+            await using var db = new ZuppetoDbContext(options);
+            var matcher = new ConservativePlaceMatcher(db);
+            AssertReviewWithoutCandidate(await matcher.MatchAsync(MatchCandidate("node/bp", "BP", "fuel", 41.575144m, 2.542049m, ids), CancellationToken.None));
+            AssertReviewWithoutCandidate(await matcher.MatchAsync(MatchCandidate("way/shell", "Shell", "fuel", 41.575439m, 2.541470m, ids), CancellationToken.None));
+            AssertReviewWithoutCandidate(await matcher.MatchAsync(MatchCandidate("node/pharmacy", "Farmàcia Ametlla Palli, Sílvia", "pharmacy", 41.578556m, 2.549836m, ids), CancellationToken.None));
+
+            var club = (await matcher.MatchAsync(MatchCandidate("node/club-shop", "El Club del Cep", "shop", 41.578060m, 2.539999m, ids), CancellationToken.None)).Value!;
+            Assert.Equal(PlaceMatchOutcome.ProbableMatch.ToString(), club.Band);
+            Assert.Equal(clubId, club.PlaceId);
+            Assert.True(club.RequiresHumanReview);
+        }
+        finally { await Drop(admin, MatchingDatabase); }
+
+        static void AssertReviewWithoutCandidate(Zuppeto.Application.Results.Result<PlaceMatchDecision> result)
+        {
+            Assert.True(result.IsSuccess);
+            Assert.Equal(PlaceMatchOutcome.NeedsReview.ToString(), result.Value!.Band);
+            Assert.Null(result.Value.PlaceId);
+            Assert.True(result.Value.RequiresHumanReview);
+            Assert.Contains("identity:evidence-required", result.Value.Signals);
+        }
+    }
 
     [Fact]
     public async Task Final_controlled_Arenys_publishes_real_PBF_twice_idempotently()
@@ -382,13 +432,39 @@ public sealed class OpenStreetMapPlaceImportPostgreSqlTests
         var document=new PlaceSourceDocument(OpenStreetMapSource.SourceKey,"node/123",null,now,new Uri("https://www.openstreetmap.org/node/123"),fields);
         var candidate=new NormalizedPlaceCandidate(OpenStreetMapSource.SourceKey,"node/123","Restaurant OSM","restaurant",ids.Country,ids.Unit,41.58m,2.55m,fields);
         var match=(await new ConservativePlaceMatcher(db).MatchAsync(candidate,CancellationToken.None)).Value!;
-        Assert.Equal(duplicate?PlaceMatchOutcome.NeedsReview.ToString():PlaceMatchOutcome.NotMatch.ToString(),match.Band);
+        Assert.Equal(PlaceMatchOutcome.NotMatch.ToString(), match.Band);
         await repository.StageAsync(run.Id,new(new("osm-relation","relation/347950","08006","Arenys de Mar",true,now),[document],false,null),[new(document,candidate,match,"hash-123")],[]);
         await queue.CompleteAsync(work.ImportId,"test");await service.ApproveAsync(run.Id,"Revisió de prova",ids.Actor);await service.SimulatePublicationAsync(run.Id,"Publicació simulada",ids.Actor);
         Assert.Equal("Published",(await repository.GetAsync(run.Id))!.Run.Status);
     }
 
     private static SourceFieldValue Field(string value,DateTimeOffset now)=>new(value,value,"ODbL-1.0","© OpenStreetMap contributors",true,now,null,now.AddYears(1));
+
+    private static PlaceRecord MatchPlace(string name, string category, decimal latitude, decimal longitude,
+        (Guid Actor, Guid Country, Guid Unit) ids, DateTimeOffset now) => new()
+    {
+        Id = Guid.NewGuid(), Name = name, Type = PlaceCommercialClassification.GeneralType(category).ToString(),
+        CommercialCategory = category, ShortDescription = "", Description = "", CoverImageUrl = "",
+        AddressLine1 = "Adreça de prova", City = "Arenys de Mar", Country = "Espanya",
+        TerritorialCountryId = ids.Country, TerritorialUnitId = ids.Unit, Latitude = latitude, Longitude = longitude,
+        PetPolicyStatus = "Unknown", PetSpeciesJson = "[]", PetConditionsJson = "[]", PetPolicyLabel = "",
+        PricingLabel = "", DataProvenance = "OpenStreetMap", CreatedAtUtc = now, UpdatedAtUtc = now
+    };
+
+    private static NormalizedPlaceCandidate MatchCandidate(string externalId, string name, string category,
+        decimal latitude, decimal longitude, (Guid Actor, Guid Country, Guid Unit) ids)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var fields = new Dictionary<string, SourceFieldValue>
+        {
+            ["name"] = Field(name, now), ["category"] = Field(category, now),
+            ["latitude"] = Field(latitude.ToString(System.Globalization.CultureInfo.InvariantCulture), now),
+            ["longitude"] = Field(longitude.ToString(System.Globalization.CultureInfo.InvariantCulture), now)
+        };
+        return new(OpenStreetMapSource.SourceKey, externalId, name, category, ids.Country, ids.Unit,
+            latitude, longitude, fields);
+    }
+
     private static async Task<(Guid Actor,Guid Country,Guid Unit)> Seed(DbContextOptions<ZuppetoDbContext> options)
     {
         await using var db=new ZuppetoDbContext(options);var now=DateTimeOffset.UtcNow;var actor=Guid.NewGuid();var country=Guid.NewGuid();var type=Guid.NewGuid();var unit=Guid.NewGuid();

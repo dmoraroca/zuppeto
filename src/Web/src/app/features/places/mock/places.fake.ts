@@ -6,7 +6,15 @@ export const PLACE_TYPE_LABELS: Record<PlaceType, string> = {
   hotel: 'Hotel',
   apartment: 'Apartament',
   park: 'Parc',
-  service: 'Servei'
+  service: 'Servei',
+  foodanddrink: 'Restauració',
+  accommodation: 'Allotjament',
+  retail: 'Comerç',
+  health: 'Salut',
+  mobility: 'Mobilitat',
+  outdoor: 'Espai exterior',
+  petcare: 'Cura d’animals',
+  entertainment: 'Oci'
 };
 
 export const PLACES_FAKE: Place[] = [

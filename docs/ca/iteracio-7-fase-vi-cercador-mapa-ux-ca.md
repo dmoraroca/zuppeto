@@ -169,3 +169,32 @@ El tipus general es conserva separat de `commercial_category`. La migració prep
 La consulta pública resol en viu la precedència de les afirmacions, revocacions, substitucions, caducitats i polítiques de cadena aplicables. Els filtres, targetes i punts del mapa consumeixen la mateixa resolució. Els establiments amb últim estat `Closed` queden fora del catàleg públic, mentre que `exclude_from_osm_map` s'aplica exclusivament als punts del mapa.
 
 Validació: backend 169/169 PASS; PostgreSQL temporal 5/5 PASS, inclosos `Up → Down → Up`, governança, 23/50 Places i escales de 500/5.000 punts amb pàgina de 20; Angular 130/130 PASS; builds backend, Angular i runner E2E PASS; Chrome focalitzat PASS per 23/20+3, 50/20, zoom, recentrat, filtres, clusters, POI, redimensionament i responsive. PostgreSQL real no s'ha modificat, la migració no s'hi ha aplicat i la Fase VI continua oberta fins a autorització posterior.
+
+## Importació completa OSM/Geofabrik — 17.10.2026
+
+S’ha reutilitzat el pipeline existent `descoberta → normalització → matching → revisió → publicació → observacions`, sense insercions manuals ni un segon sistema. La importació ha executat les 24 categories del catàleg sobre l’extracte oficial `cataluna-latest.osm.pbf`, amb dades OSM fins al 16.10.2026 20:21:21 UTC. El fitxer de 271.845.208 bytes ha passat l’MD5 de Geofabrik i té SHA-256 `923598110b7104706a6689f94da34e278d11c9371d0dc7595932be3ecd41e997`.
+
+El límit fix de 250 resultats s’ha retirat exclusivament del processament local Geofabrik. `MaximumItems <= 0` significa sense truncament municipal; Overpass i les fonts HTTP conserven els seus límits. L’índex regional persistent incorpora versió d’esquema per forçar una reconstrucció quan canvia el mapper de categories. El muntatge Docker manté el PBF fora del repositori i l’índex en un volum reutilitzable.
+
+Abans d’escriure s’ha creat `/DATA/backups/zuppeto/zuppeto-pre-full-import-20261017.dump` (26.546.564 bytes), SHA-256 `fe055e02688e0aa809e19b884dfec0621dcc783670e60ec26a47664dfed4a152`. La restauració temporal ha conservat 50 Places, 183 ítems d’importació, 0 assets, 23.969 unitats i 3 països. Sobre aquesta còpia s’han publicat 2 candidats i una segona execució n’ha publicat 0; la base temporal s’ha eliminat després de validar-la.
+
+| Mètrica | Resultat real |
+|---|---:|
+| Places inicials | 50 |
+| Geofabrik/OSM descoberts | 73 |
+| Geofabrik/OSM vàlids amb nom | 56 |
+| Locals nous importats | 2 |
+| Places existents actualitzats | 0; s’han refrescat procedència i observacions, no s’han sobreescrit agregats manuals |
+| Duplicats/coincidències detectats | 54 a la primera passada; 56 a la segona |
+| Places totals finals | 52 |
+| Locals amb imatge real verificada | 0 |
+| Imatges noves recuperades | 0 |
+| Locals sense imatge real | 52 |
+| Registres bloquejats per revisió | 4 |
+| Locals visibles al mapa | 52 punts únics amb llista paginada a 20 |
+
+Els dos nous Places són `Farmàcia Busquets Albert, Immaculada` (`node/7297099350`) i `Farmàcia Dorado Betés, Juan Jose` (`node/7297099352`). BP, Shell, Farmàcia Ametlla Palli i El Club del Cep han quedat bloquejats com a conflictes potencials; no s’han publicat automàticament. Disset objectes OSM sense nom han produït avisos de normalització i tampoc s’han publicat.
+
+El pas de media s’ha executat per als 52 Places. Cap no té un QID de Place amb estat `VerifiedExact`, de manera que s’han creat 0 assets. Mapillary continua sent només una font de candidats per revisió ADMIN: una imatge pròxima no demostra que retrati el local. Les fonts municipals, turístiques i webs oficials no s’han importat perquè l’auditoria disponible no acredita una llicència reutilitzable i una identitat automàtica prou fiable per registre. La Krusan no s’ha inserit manualment.
+
+Validació final: build backend PASS amb 0 errors i 0 avisos; backend 170/170 PASS; runner TypeScript PASS; dues execucions reals idempotents; API pública 52 resultats i 52 punts de mapa únics; 0 coordenades nul·les; 0 exclusions; 0 identitats OSM duplicades; catàleg territorial intacte. Google Places no s’ha activat, no s’ha modificat la lògica del mapa i no s’ha fet commit ni push. La cobertura continua limitada pel contingut i la llicència de les fonts disponibles, per tant la Fase VI continua oberta.

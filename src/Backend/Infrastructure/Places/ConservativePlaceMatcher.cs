@@ -32,7 +32,7 @@ internal sealed class ConservativePlaceMatcher(ZuppetoDbContext db) : IPlaceMatc
         }
 
         var places = await db.Places.AsNoTracking().Where(x => x.TerritorialUnitId == candidate.TerritorialUnitId)
-            .Select(x => new { x.Id, x.Name, x.Type, x.AddressLine1, x.Latitude, x.Longitude }).ToArrayAsync(ct);
+            .Select(x => new { x.Id, x.Name, x.Type, x.CommercialCategory, x.AddressLine1, x.Latitude, x.Longitude }).ToArrayAsync(ct);
         if (places.Length == 0) return Decision(null, PlaceMatchOutcome.NotMatch, [], [], 0);
         var placeIds = places.Select(x => x.Id).ToArray();
         var observations = await db.PlaceFieldObservations.AsNoTracking()
@@ -42,10 +42,15 @@ internal sealed class ConservativePlaceMatcher(ZuppetoDbContext db) : IPlaceMatc
             x => x.GroupBy(v => v.FieldName, StringComparer.OrdinalIgnoreCase).ToDictionary(g => g.Key,
                 g => g.Select(v => v.NormalizedValue).ToHashSet(StringComparer.OrdinalIgnoreCase), StringComparer.OrdinalIgnoreCase));
 
-        var ranked = places.Select(place => Score(candidate, place.Id, place.Name, place.Type, place.AddressLine1,
+        var ranked = places.Select(place => Score(candidate, place.Id, place.Name, place.Type, place.CommercialCategory, place.AddressLine1,
                 place.Latitude, place.Longitude, byPlace.GetValueOrDefault(place.Id)))
             .OrderByDescending(x => x.Score).ThenBy(x => x.PlaceId).ToArray();
         var best = ranked[0];
+        if (!best.HasIdentityEvidence)
+            return best.Signals.Contains("distance<=50m", StringComparer.Ordinal)
+                ? Decision(null, PlaceMatchOutcome.NeedsReview,
+                    [.. best.Signals, "identity:evidence-required"], best.Contradictions, best.Score)
+                : Decision(null, PlaceMatchOutcome.NotMatch, best.Signals, best.Contradictions, best.Score);
         if (best.Score < 40) return Decision(null, PlaceMatchOutcome.NotMatch, best.Signals, best.Contradictions, best.Score);
         var ambiguous = ranked.Length > 1 && best.Score - ranked[1].Score < 10;
         var outcome = ambiguous || best.Contradictions.Count > 0 ? PlaceMatchOutcome.NeedsReview
@@ -55,18 +60,32 @@ internal sealed class ConservativePlaceMatcher(ZuppetoDbContext db) : IPlaceMatc
     }
 
     private static ScoreResult Score(NormalizedPlaceCandidate candidate, Guid placeId, string name, string type,
+        string? commercialCategory,
         string address, decimal? latitude, decimal? longitude, IReadOnlyDictionary<string, HashSet<string>>? observations)
     {
         var score = 10m;
         var signals = new List<string> { "municipality" };
         var contradictions = new List<string>();
-        AddExact("wikidata.id", 90); AddExact("website", 45); AddExact("phone", 40);
+        var hasIdentityEvidence = false;
+        AddExact("wikidata.id", 90, value => value.Trim().ToUpperInvariant());
+        AddExact("website", 45, NormalizeWebsite);
+        AddExact("phone", 40, NormalizePhone);
         var candidateAddress = Join(Value(candidate, "address.street"), Value(candidate, "address.housenumber"));
-        if (candidateAddress.Length > 0 && Fold(candidateAddress) == Fold(address)) { score += 25; signals.Add("address"); }
+        if (candidateAddress.Length > 0 && Fold(candidateAddress) == Fold(address))
+        {
+            score += 25; signals.Add("address"); hasIdentityEvidence = true;
+        }
         var nameSimilarity = Similarity(Fold(candidate.Name), Fold(name));
-        if (nameSimilarity >= .95m) { score += 30; signals.Add("name:exact"); }
-        else if (nameSimilarity >= .75m) { score += 18; signals.Add("name:similar"); }
-        if (CompatibleType(candidate.Category, type)) { score += 10; signals.Add("category"); }
+        if (nameSimilarity >= .95m) { score += 30; signals.Add("name:exact"); hasIdentityEvidence = true; }
+        else if (nameSimilarity >= .75m) { score += 18; signals.Add("name:similar"); hasIdentityEvidence = true; }
+        if (PlaceCommercialClassification.CategoriesAreCompatible(candidate.Category, commercialCategory))
+        {
+            score += 15; signals.Add("commercial-category:exact");
+        }
+        else if (commercialCategory is null && CompatibleLegacyType(candidate.Category, type))
+        {
+            score += 5; signals.Add("legacy-type");
+        }
         if (candidate.Latitude is not null && candidate.Longitude is not null && latitude is not null && longitude is not null)
         {
             var distance = DistanceMetres(candidate.Latitude.Value, candidate.Longitude.Value, latitude.Value, longitude.Value);
@@ -74,13 +93,17 @@ internal sealed class ConservativePlaceMatcher(ZuppetoDbContext db) : IPlaceMatc
             else if (distance <= 150) { score += 12; signals.Add("distance<=150m"); }
             else if (distance > 1000) contradictions.Add("distance>1km");
         }
-        return new(placeId, Math.Min(score, 100), signals, contradictions);
+        return new(placeId, Math.Min(score, 100), signals, contradictions, hasIdentityEvidence);
 
-        void AddExact(string field, decimal weight)
+        void AddExact(string field, decimal weight, Func<string, string> normalize)
         {
             var value = Value(candidate, field);
             if (value is null || observations is null || !observations.TryGetValue(field, out var existing)) return;
-            if (existing.Contains(value)) { score += weight; signals.Add(field); }
+            var normalized = normalize(value);
+            if (normalized.Length > 0 && existing.Select(normalize).Contains(normalized, StringComparer.OrdinalIgnoreCase))
+            {
+                score += weight; signals.Add(field); hasIdentityEvidence = true;
+            }
             else contradictions.Add($"{field}:different");
         }
     }
@@ -115,13 +138,28 @@ internal sealed class ConservativePlaceMatcher(ZuppetoDbContext db) : IPlaceMatc
         }
         return previous[^1];
     }
-    private static bool CompatibleType(string category, string type) => category switch
+    private static string NormalizePhone(string value)
+    {
+        var digits = new string(value.Where(char.IsDigit).ToArray());
+        return digits.StartsWith("00", StringComparison.Ordinal) ? digits[2..] : digits;
+    }
+
+    private static string NormalizeWebsite(string value)
+    {
+        var candidate = value.Trim();
+        if (!candidate.Contains("://", StringComparison.Ordinal)) candidate = $"https://{candidate}";
+        if (!Uri.TryCreate(candidate, UriKind.Absolute, out var uri)) return Fold(value);
+        var host = uri.IdnHost.StartsWith("www.", StringComparison.OrdinalIgnoreCase) ? uri.IdnHost[4..] : uri.IdnHost;
+        return $"{host.ToLowerInvariant()}{uri.AbsolutePath.TrimEnd('/').ToLowerInvariant()}";
+    }
+
+    private static bool CompatibleLegacyType(string category, string type) => category switch
     {
         "restaurant" => type == "Restaurant",
         "cafe" or "bar" or "pub" or "fast_food" or "ice_cream" or "bakery" => type == "Bar",
         "hotel" or "hostel" => type is "Hotel" or "Apartment",
         "park" or "dog_park" => type == "Park",
-        _ => type == "Service"
+        _ => false
     };
     private static double DistanceMetres(decimal lat1, decimal lon1, decimal lat2, decimal lon2)
     {
@@ -130,5 +168,6 @@ internal sealed class ConservativePlaceMatcher(ZuppetoDbContext db) : IPlaceMatc
         var a = Math.Sin(dp / 2) * Math.Sin(dp / 2) + Math.Cos(p1) * Math.Cos(p2) * Math.Sin(dl / 2) * Math.Sin(dl / 2);
         return radius * 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
     }
-    private sealed record ScoreResult(Guid PlaceId, decimal Score, IReadOnlyCollection<string> Signals, IReadOnlyCollection<string> Contradictions);
+    private sealed record ScoreResult(Guid PlaceId, decimal Score, IReadOnlyCollection<string> Signals,
+        IReadOnlyCollection<string> Contradictions, bool HasIdentityEvidence);
 }
