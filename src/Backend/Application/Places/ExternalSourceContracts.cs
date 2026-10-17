@@ -15,6 +15,7 @@ public static class OpenStreetMapSource
     public const string SourceKey = "openstreetmap";
     public const string OverpassAccessMode = "OSM_OVERPASS";
     public const string GeofabrikExtractAccessMode = "OSM_GEOFABRIK_EXTRACT";
+    public const string DirectMapAccessMode = "OSM_DIRECT_MAP";
 }
 
 public static class WikidataSource
@@ -44,7 +45,8 @@ public static class PlaceWikidataFields
 public static class PlaceCatalogCategories
 {
     public static readonly string[] All = ["restaurant", "cafe", "bar", "pub", "fast_food", "ice_cream", "bakery",
-        "hotel", "hostel", "camping", "park", "dog_park", "shop", "pet_shop", "veterinary", "pet_service", "pet_grooming"];
+        "biergarten", "food_court", "nightclub", "pharmacy", "fuel", "hotel", "hostel", "motel", "apartment",
+        "camping", "park", "dog_park", "shop", "pet_shop", "veterinary", "pet_service", "pet_grooming"];
 }
 
 public sealed record PlaceSourceDescriptor(

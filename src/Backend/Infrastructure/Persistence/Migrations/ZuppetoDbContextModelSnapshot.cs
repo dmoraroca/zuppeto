@@ -1568,6 +1568,11 @@ namespace Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(120)")
                         .HasColumnName("city");
 
+                    b.Property<string>("CommercialCategory")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("commercial_category");
+
                     b.Property<string>("Country")
                         .IsRequired()
                         .HasMaxLength(120)
@@ -1725,6 +1730,9 @@ namespace Infrastructure.Persistence.Migrations
 
                     b.HasIndex("City")
                         .HasDatabaseName("ix_places_city");
+
+                    b.HasIndex("CommercialCategory")
+                        .HasDatabaseName("ix_places_commercial_category");
 
                     b.HasIndex("GooglePlaceId")
                         .IsUnique()

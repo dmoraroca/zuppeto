@@ -258,6 +258,7 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
             var fields = JsonSerializer.Deserialize<Dictionary<string,string>>(item.NormalizedFieldsJson, Json) ?? new();
             var place = BuildPlace(item, fields, run);
             var record = PlacePersistenceMapper.ToRecord(place);
+            PlacePersistenceMapper.SyncCollections(place, record);
             record.CreatedAtUtc = now;
             record.UpdatedAtUtc = now;
             db.Places.Add(record);
@@ -426,7 +427,8 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
             new Zuppeto.Domain.Places.ValueObjects.PetPolicy(status, species, [],
                 status == PetAccessStatus.Unknown ? "Informació pet-friendly desconeguda" : "Informació pet-friendly d’OpenStreetMap", string.Empty),
             new Pricing(string.Empty), new RatingSnapshot(0, 0), PlaceDataProvenance.OpenStreetMap,
-            territorialCountryId: run.CountryId, territorialUnitId: run.TerritorialUnitId);
+            territorialCountryId: run.CountryId, territorialUnitId: run.TerritorialUnitId,
+            commercialCategory: item.Category);
         if (fields.GetValueOrDefault("amenity.outdoor_seating") == "Available")
             place.ReplaceFeatures(["Terrassa"]);
         return place;

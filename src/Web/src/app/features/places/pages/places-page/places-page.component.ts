@@ -69,6 +69,7 @@ export class PlacesPageComponent {
   });
 
   protected readonly listingPlaces = signal<Place[]>([]);
+  private readonly mapPointPlaces = signal<Place[]>([]);
   protected readonly listingTotal = signal(0);
   protected readonly listingHasMore = signal(false);
   protected readonly listingLoading = signal(false);
@@ -128,7 +129,7 @@ export class PlacesPageComponent {
   );
   protected readonly types = this.placeService.getAvailableTypes();
   protected readonly places = computed(() => this.listingPlaces());
-  protected readonly mapPlaces = computed(() => placesVisibleOnOsmMap(this.places()));
+  protected readonly mapPlaces = computed(() => placesVisibleOnOsmMap(this.mapPointPlaces()));
   protected readonly pinCities = computed(() =>
     mergeCityLabelsDistinct(
       this.mapPlaces().map((place) => formatCityDisplayLabel(place.city, place.country))
@@ -152,7 +153,11 @@ export class PlacesPageComponent {
   protected readonly selectedPlace = computed(() => {
     const selectedPlaceId = this.selectedPlaceId();
 
-    return selectedPlaceId ? this.places().find((place) => place.id === selectedPlaceId) ?? null : null;
+    return selectedPlaceId
+      ? this.places().find((place) => place.id === selectedPlaceId)
+        ?? this.mapPlaces().find((place) => place.id === selectedPlaceId)
+        ?? null
+      : null;
   });
   /** Stable keys for control-flow @for (avoid NG0956 when labels share text across updates). */
   protected readonly activeFilterChips = computed(() => {
@@ -324,16 +329,10 @@ export class PlacesPageComponent {
   }
 
   protected openPlaceFromMap(placeId: string): void {
-    const visible = this.listingPlaces();
-    if (!visible.some((place) => place.id === placeId)) {
-      const extra = this.placeService.getPlaceById(placeId);
-      if (extra) {
-        this.listingPlaces.set([...visible, extra]);
-      }
-    }
-
     this.selectedPlaceIdState.set(placeId);
-    queueMicrotask(() => this.scrollToListedPlace(placeId));
+    if (this.listingPlaces().some((place) => place.id === placeId)) {
+      queueMicrotask(() => this.scrollToListedPlace(placeId));
+    }
   }
 
   protected searchInViewport(viewport: PlaceMapViewport): void {
@@ -376,13 +375,15 @@ export class PlacesPageComponent {
   private async reloadListing(filters: PlaceFilters): Promise<void> {
     const requestId = ++this.listingRequest;
     this.listingAbort?.abort();
-    this.listingAbort = new AbortController();
+    const abortController = new AbortController();
+    this.listingAbort = abortController;
     this.listingLoading.set(true);
     this.selectedPlaceIdState.set(null);
     this.mapContext.set(null);
+    this.mapPointPlaces.set([]);
 
     try {
-      const page = await this.placeService.searchPage(filters, 0, PLACE_LIST_PAGE_SIZE, this.listingAbort.signal);
+      const page = await this.placeService.searchPage(filters, 0, PLACE_LIST_PAGE_SIZE, abortController.signal);
       if (requestId !== this.listingRequest) {
         return;
       }
@@ -392,8 +393,9 @@ export class PlacesPageComponent {
       this.listingHasMore.set(page.hasMore);
       this.mapAreas.set(page.map?.areas ?? []);
       this.mapContext.set(page.map ?? null);
+      this.mapPointPlaces.set(page.map?.points ?? []);
     } catch (error) {
-      if (this.listingAbort.signal.aborted) return;
+      if (abortController.signal.aborted) return;
       throw error;
     } finally {
       if (requestId === this.listingRequest) {
@@ -405,10 +407,18 @@ export class PlacesPageComponent {
   private async appendListing(filters: PlaceFilters): Promise<void> {
     const requestId = ++this.listingRequest;
     const skip = this.listingPlaces().length;
+    this.listingAbort?.abort();
+    const abortController = new AbortController();
+    this.listingAbort = abortController;
     this.listingLoading.set(true);
 
     try {
-      const page = await this.placeService.searchPage(filters, skip, PLACE_LIST_PAGE_SIZE);
+      const page = await this.placeService.searchPage(
+        filters,
+        skip,
+        PLACE_LIST_PAGE_SIZE,
+        abortController.signal
+      );
       if (requestId !== this.listingRequest) {
         return;
       }
@@ -419,6 +429,9 @@ export class PlacesPageComponent {
       });
       this.listingTotal.set(page.total);
       this.listingHasMore.set(page.hasMore);
+    } catch (error) {
+      if (abortController.signal.aborted) return;
+      throw error;
     } finally {
       if (requestId === this.listingRequest) {
         this.listingLoading.set(false);

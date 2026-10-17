@@ -10,7 +10,9 @@ public sealed class PlaceImportApplicationService(IPlaceImportRepository reposit
 
     public async Task<PlaceImportRunDto> PrepareAsync(PreparePlaceImportRequest request, Guid actorId, CancellationToken ct = default)
     {
-        if (request.AccessMode is not (OpenStreetMapSource.OverpassAccessMode or OpenStreetMapSource.GeofabrikExtractAccessMode))
+        if (request.AccessMode is not (OpenStreetMapSource.OverpassAccessMode
+            or OpenStreetMapSource.GeofabrikExtractAccessMode
+            or OpenStreetMapSource.DirectMapAccessMode))
             throw new DomainRuleException("La font seleccionada no està disponible en aquest pilot.");
         var categories = request.Categories.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
         if (categories.Length == 0 || categories.Any(category => !AllowedCategories.Contains(category)))

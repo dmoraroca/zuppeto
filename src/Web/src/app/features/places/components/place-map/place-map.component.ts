@@ -1,7 +1,9 @@
 import {
   AfterViewInit,
   Component,
+  computed,
   ElementRef,
+  inject,
   OnChanges,
   OnDestroy,
   SimpleChanges,
@@ -11,6 +13,7 @@ import {
   ChangeDetectionStrategy
 } from '@angular/core';
 import { signal } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
 
 import { Place } from '../../models/place.model';
 import { PlaceSearchMapArea } from '../../services/place.service';
@@ -22,6 +25,7 @@ import {
   placeMapLayerMode
 } from './place-map-zoom';
 import { PlaceMapLayerMode } from './place-map-zoom';
+import { clampMapHeight, mapHeightLimits } from './place-map-layout';
 
 type LeafletModule = typeof import('leaflet');
 type LeafletMap = import('leaflet').Map;
@@ -42,6 +46,9 @@ export interface PlaceMapMunicipality {
 })
 export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   @ViewChild('mapContainer') private readonly mapContainer?: ElementRef<HTMLDivElement>;
+  @ViewChild('mapShell') private readonly mapShell?: ElementRef<HTMLElement>;
+
+  private readonly document = inject(DOCUMENT);
 
   readonly places = input.required<Place[]>();
   readonly areas = input<PlaceSearchMapArea[]>([]);
@@ -65,11 +72,44 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   private mapInitialization?: Promise<void>;
   private lastDataKey = '';
   private lastCameraContextKey = '';
+  private cameraInitialized = false;
+  private hadPlaces = false;
+  private resizeObserver?: ResizeObserver;
+  private resizeFrame?: number;
+  private resizingPointerId: number | null = null;
+  private resizeStartY = 0;
+  private resizeStartHeight = 0;
+  private layoutCamera?: { center: import('leaflet').LatLng; zoom: number };
+  private stableCamera?: { center: import('leaflet').LatLng; zoom: number };
+  private layoutCameraReleaseTimer?: number;
   protected readonly viewportChanged = signal(false);
   protected readonly visibleLayer = signal<PlaceMapLayerMode>('municipality');
   protected readonly currentZoom = signal(CITY_INITIAL_ZOOM);
   protected readonly currentCenter = signal<{ lat: number; lng: number } | null>(null);
+  protected readonly mapHeightPx = signal<number | null>(null);
+  protected readonly fullscreen = signal(false);
+  protected readonly fallbackFullscreen = signal(false);
+  protected readonly canvasHeight = computed(() => {
+    const resized = this.mapHeightPx();
+    return resized === null ? this.height() : `${resized}px`;
+  });
   private automaticCameraUntil = 0;
+
+  private readonly onFullscreenChange = (): void => {
+    if (this.stableCamera) this.layoutCamera = this.stableCamera;
+    this.fullscreen.set(this.document.fullscreenElement === this.mapShell?.nativeElement);
+    this.scheduleMapResize();
+    this.releaseLayoutCameraSoon();
+  };
+
+  private readonly onDocumentKeydown = (event: KeyboardEvent): void => {
+    if (event.key === 'Escape' && this.fallbackFullscreen()) {
+      this.captureLayoutCamera();
+      this.fallbackFullscreen.set(false);
+      this.fullscreen.set(false);
+      this.scheduleMapResize();
+    }
+  };
 
   /** Spain-first listing view (do not fitBounds when a pin is in Australia, etc.). */
   private static readonly defaultMapCenter: [number, number] = SPAIN_MAP_CENTER;
@@ -79,6 +119,13 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
 
   async ngAfterViewInit(): Promise<void> {
     await this.ensureMap();
+    const canvas = this.mapContainer?.nativeElement;
+    if (canvas && typeof ResizeObserver !== 'undefined') {
+      this.resizeObserver = new ResizeObserver(() => this.scheduleMapResize());
+      this.resizeObserver.observe(canvas);
+    }
+    this.document.addEventListener('fullscreenchange', this.onFullscreenChange);
+    this.document.addEventListener('keydown', this.onDocumentKeydown);
     this.renderMap();
   }
 
@@ -87,6 +134,11 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.resizeObserver?.disconnect();
+    this.document.removeEventListener('fullscreenchange', this.onFullscreenChange);
+    this.document.removeEventListener('keydown', this.onDocumentKeydown);
+    if (this.resizeFrame !== undefined) cancelAnimationFrame(this.resizeFrame);
+    if (this.layoutCameraReleaseTimer !== undefined) window.clearTimeout(this.layoutCameraReleaseTimer);
     this.map?.remove();
     this.map = undefined;
     this.markersLayer = undefined;
@@ -108,24 +160,105 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   }
 
   protected focusAllPlaces(): void {
+    if (!this.map || !this.leaflet) return;
     if (this.municipality()) {
-      this.setMunicipalityView();
+      const municipality = this.municipality()!;
+      this.markAutomaticCamera();
+      this.map.panTo([municipality.lat, municipality.lng]);
     } else if (this.hasPlaces) {
-      this.fitMapToPlaces();
+      const bounds = this.places().reduce((accumulator, place) => {
+        accumulator.extend([place.coordinates!.lat, place.coordinates!.lng]);
+        return accumulator;
+      }, this.leaflet.latLngBounds([]));
+      this.markAutomaticCamera();
+      this.map.panTo(bounds.getCenter());
     } else {
-      this.setEmptyMapView();
+      const focus = this.focusCenter();
+      this.markAutomaticCamera();
+      this.map.panTo(focus ? [focus.lat, focus.lng] : PlaceMapComponent.defaultMapCenter);
     }
   }
 
   protected clearSelection(): void {
     this.selectionCleared.emit();
-    if (this.municipality()) {
-      this.setMunicipalityView();
-    } else if (this.hasPlaces) {
-      this.fitMapToPlaces();
-    } else {
-      this.setEmptyMapView();
+    this.map?.closePopup();
+  }
+
+  protected beginResize(event: PointerEvent): void {
+    if (this.fullscreen()) return;
+    const canvas = this.mapContainer?.nativeElement;
+    const handle = event.currentTarget as HTMLElement | null;
+    if (!canvas || !handle) return;
+    this.resizingPointerId = event.pointerId;
+    this.captureLayoutCamera();
+    this.resizeStartY = event.clientY;
+    this.resizeStartHeight = canvas.getBoundingClientRect().height;
+    try {
+      handle.setPointerCapture?.(event.pointerId);
+    } catch {
+      // Synthetic accessibility tests do not create an active native pointer to capture.
     }
+    event.preventDefault();
+  }
+
+  protected resizeFromPointer(event: PointerEvent): void {
+    if (this.resizingPointerId !== event.pointerId) return;
+    this.setMapHeight(this.resizeStartHeight + event.clientY - this.resizeStartY);
+  }
+
+  protected finishResize(event: PointerEvent): void {
+    if (this.resizingPointerId !== event.pointerId) return;
+    const handle = event.currentTarget as HTMLElement | null;
+    if (handle?.hasPointerCapture?.(event.pointerId)) handle.releasePointerCapture(event.pointerId);
+    this.resizingPointerId = null;
+    this.scheduleMapResize();
+    this.releaseLayoutCameraSoon();
+  }
+
+  protected resizeFromKeyboard(event: KeyboardEvent): void {
+    const current = this.mapContainer?.nativeElement.getBoundingClientRect().height ?? 0;
+    const amount = event.shiftKey ? 64 : 24;
+    const requested = event.key === 'ArrowUp' ? current - amount
+      : event.key === 'ArrowDown' ? current + amount
+      : event.key === 'Home' ? this.minimumMapHeight()
+      : event.key === 'End' ? this.maximumMapHeight()
+      : null;
+    if (requested === null) return;
+    event.preventDefault();
+    this.captureLayoutCamera();
+    this.setMapHeight(requested);
+    this.releaseLayoutCameraSoon();
+  }
+
+  protected async toggleFullscreen(): Promise<void> {
+    const shell = this.mapShell?.nativeElement;
+    if (!shell) return;
+    this.captureLayoutCamera();
+
+    if (this.fullscreen()) {
+      if (this.document.fullscreenElement === shell) {
+        await this.document.exitFullscreen();
+      } else {
+        this.fallbackFullscreen.set(false);
+        this.fullscreen.set(false);
+        this.scheduleMapResize();
+        this.releaseLayoutCameraSoon();
+      }
+      return;
+    }
+
+    if (this.document.fullscreenEnabled && shell.requestFullscreen) {
+      try {
+        await shell.requestFullscreen();
+        return;
+      } catch {
+        // A fixed overlay preserves the same interaction when the browser denies Fullscreen API.
+      }
+    }
+    this.fallbackFullscreen.set(true);
+    this.fullscreen.set(true);
+    this.scheduleMapResize();
+    this.releaseLayoutCameraSoon();
   }
 
   protected searchCurrentViewport(): void {
@@ -152,7 +285,9 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     }
 
     this.mapInitialization = (async () => {
-      this.leaflet = await import('leaflet');
+      const loaded = await import('leaflet') as LeafletModule & { default?: LeafletModule };
+      this.leaflet = typeof loaded.map === 'function' ? loaded : loaded.default;
+      if (!this.leaflet) throw new Error('No s’ha pogut inicialitzar Leaflet.');
 
       // Leaflet can keep container metadata across fast re-renders or HMR in dev mode.
       if ('_leaflet_id' in container) {
@@ -180,7 +315,10 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
         this.redrawMarkers();
         this.markViewportChanged();
       });
-      this.map.on('moveend', () => this.markViewportChanged());
+      this.map.on('moveend', () => {
+        this.recordStableCamera();
+        this.markViewportChanged();
+      });
     })();
 
     await this.mapInitialization;
@@ -204,14 +342,19 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
         : '';
       const cameraContextChanged = cameraContextKey !== this.lastCameraContextKey;
 
-      if (cameraContextChanged) {
-        municipality ? this.setMunicipalityView() : this.setEmptyMapView();
-        this.lastCameraContextKey = cameraContextKey;
-      } else if (!municipality && dataChanged && this.hasPlaces) {
+      if (!this.cameraInitialized) {
+        if (municipality) this.setMunicipalityView();
+        else if (this.hasPlaces) this.fitMapToPlaces();
+        else this.setEmptyMapView();
+        this.cameraInitialized = true;
+      } else if (cameraContextChanged && municipality) {
+        this.markAutomaticCamera();
+        this.map.panTo([municipality.lat, municipality.lng]);
+      } else if (!municipality && !this.hadPlaces && this.hasPlaces) {
         this.fitMapToPlaces();
-      } else if (!this.hasPlaces && !municipality) {
-        this.setEmptyMapView();
       }
+      this.lastCameraContextKey = cameraContextKey;
+      this.hadPlaces = this.hasPlaces;
 
       if (dataChanged || cameraContextChanged) {
         this.redrawMarkers();
@@ -234,6 +377,53 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     });
   }
 
+  private setMapHeight(requestedHeight: number): void {
+    this.mapHeightPx.set(clampMapHeight(requestedHeight, window.innerWidth, window.innerHeight));
+  }
+
+  protected minimumMapHeight(): number {
+    return mapHeightLimits(window.innerWidth, window.innerHeight).min;
+  }
+
+  protected maximumMapHeight(): number {
+    return mapHeightLimits(window.innerWidth, window.innerHeight).max;
+  }
+
+  private scheduleMapResize(): void {
+    if (this.resizeFrame !== undefined) cancelAnimationFrame(this.resizeFrame);
+    this.resizeFrame = requestAnimationFrame(() => {
+      this.resizeFrame = undefined;
+      const preservedCenter = this.layoutCamera?.center ?? this.map?.getCenter();
+      const preservedZoom = this.layoutCamera?.zoom ?? this.map?.getZoom();
+      this.markAutomaticCamera();
+      this.map?.invalidateSize({ animate: false, pan: false });
+      if (preservedCenter && preservedZoom !== undefined) {
+        this.map?.setView(preservedCenter, preservedZoom, { animate: false });
+      }
+      const center = this.map?.getCenter();
+      this.currentCenter.set(center ? { lat: center.lat, lng: center.lng } : null);
+    });
+  }
+
+  private captureLayoutCamera(): void {
+    if (!this.map) return;
+    this.layoutCamera = this.stableCamera ?? { center: this.map.getCenter(), zoom: this.map.getZoom() };
+    if (this.layoutCameraReleaseTimer !== undefined) window.clearTimeout(this.layoutCameraReleaseTimer);
+  }
+
+  private releaseLayoutCameraSoon(): void {
+    if (this.layoutCameraReleaseTimer !== undefined) window.clearTimeout(this.layoutCameraReleaseTimer);
+    this.layoutCameraReleaseTimer = window.setTimeout(() => {
+      this.layoutCamera = undefined;
+      this.layoutCameraReleaseTimer = undefined;
+    }, 150);
+  }
+
+  private recordStableCamera(): void {
+    if (!this.map) return;
+    this.stableCamera = { center: this.map.getCenter(), zoom: this.map.getZoom() };
+  }
+
   private redrawMarkers(): void {
     if (!this.leaflet || !this.markersLayer) {
       return;
@@ -248,6 +438,7 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     this.visibleLayer.set(mode);
     const center = this.map?.getCenter();
     this.currentCenter.set(center ? { lat: center.lat, lng: center.lng } : null);
+    this.recordStableCamera();
     if (mode === 'municipality') {
       this.drawMunicipalities();
       return;
@@ -393,21 +584,23 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   }
 
   private drawClusters(_zoom: number): void {
-    for (const places of this.groupPlacesByPixels(72)) this.drawCluster(places, true);
+    for (const places of this.groupPlacesByPixels(72, false)) this.drawCluster(places, true);
   }
 
   private drawPlacesWithCollisionClusters(zoom: number): void {
     const collisionPixels = zoom >= 15 ? 24 : 36;
-    for (const places of this.groupPlacesByPixels(collisionPixels)) {
+    for (const places of this.groupPlacesByPixels(collisionPixels, true)) {
       if (places.length > 1) this.drawCluster(places, false);
       else this.drawPlaceMarker(places[0]);
     }
   }
 
-  private groupPlacesByPixels(cellSize: number): Place[][] {
+  private groupPlacesByPixels(cellSize: number, viewportOnly: boolean): Place[][] {
     if (!this.map) return [];
     const groups = new Map<string, Place[]>();
+    const renderBounds = this.map.getBounds().pad(0.15);
     for (const place of this.places()) {
+      if (viewportOnly && !renderBounds.contains([place.coordinates!.lat, place.coordinates!.lng])) continue;
       const point = this.map.latLngToLayerPoint([place.coordinates!.lat, place.coordinates!.lng]);
       const key = `${Math.floor(point.x / cellSize)}:${Math.floor(point.y / cellSize)}`;
       groups.set(key, [...(groups.get(key) ?? []), place]);

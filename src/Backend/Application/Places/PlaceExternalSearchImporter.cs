@@ -166,7 +166,8 @@ internal sealed class PlaceExternalSearchImporter(
             excludeFromOsmMap: false,
             manualFields,
             existing?.TerritorialCountryId,
-            existing?.TerritorialUnitId);
+            existing?.TerritorialUnitId,
+            existing?.CommercialCategory);
 
         if (existing is not null)
         {

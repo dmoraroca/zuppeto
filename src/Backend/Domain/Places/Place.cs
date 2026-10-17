@@ -27,7 +27,8 @@ public sealed class Place : AggregateRoot<Guid>
         bool excludeFromOsmMap = false,
         PlaceManualFields manualFields = PlaceManualFields.None,
         Guid? territorialCountryId = null,
-        Guid? territorialUnitId = null) : base(id)
+        Guid? territorialUnitId = null,
+        string? commercialCategory = null) : base(id)
     {
         Rename(name);
         UpdateDescriptions(shortDescription, description);
@@ -42,6 +43,7 @@ public sealed class Place : AggregateRoot<Guid>
         ExcludeFromOsmMap = excludeFromOsmMap;
         ManualFields = manualFields;
         SetTerritorialLocation(territorialCountryId, territorialUnitId);
+        SetCommercialCategory(commercialCategory);
     }
 
     public string Name { get; private set; } = string.Empty;
@@ -90,6 +92,14 @@ public sealed class Place : AggregateRoot<Guid>
     public PlaceManualFields ManualFields { get; private set; }
     public Guid? TerritorialCountryId { get; private set; }
     public Guid? TerritorialUnitId { get; private set; }
+    public string? CommercialCategory { get; private set; }
+
+    public void SetCommercialCategory(string? category)
+    {
+        CommercialCategory = string.IsNullOrWhiteSpace(category)
+            ? null
+            : category.Trim().ToLowerInvariant();
+    }
 
     public void SetTerritorialLocation(Guid? countryId, Guid? territorialUnitId)
     {

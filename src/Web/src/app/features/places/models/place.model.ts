@@ -60,6 +60,7 @@ export interface Place {
   coverSourceUri?: string;
   media?: PlaceMediaAsset[];
   categoryLabel?: string;
+  commercialCategory?: string | null;
   territorialUnitId?: string | null;
   countryId?: string | null;
   petAccessStatus?: string;

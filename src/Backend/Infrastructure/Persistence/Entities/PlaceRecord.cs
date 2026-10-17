@@ -8,6 +8,8 @@ public sealed class PlaceRecord
 
     public string Type { get; set; } = string.Empty;
 
+    public string? CommercialCategory { get; set; }
+
     public string ShortDescription { get; set; } = string.Empty;
 
     public string Description { get; set; } = string.Empty;

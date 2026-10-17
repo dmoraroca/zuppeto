@@ -18,6 +18,7 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
     private readonly TerritorialLocationService territorialLocations;
     private readonly IPlacePublicSearchQuery? publicSearchQuery;
     private readonly IPlaceMediaRepository? placeMediaRepository;
+    private readonly IPetGovernanceApplicationService? petGovernance;
 
     public PlaceApplicationService(
         IPlaceRepository placeRepository,
@@ -29,7 +30,8 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
         IOptions<PlaceExternalIntegrationOptions> externalIntegrationOptions,
         TerritorialLocationService territorialLocations,
         IPlaceMediaRepository? placeMediaRepository = null,
-        IPlacePublicSearchQuery? publicSearchQuery = null)
+        IPlacePublicSearchQuery? publicSearchQuery = null,
+        IPetGovernanceApplicationService? petGovernance = null)
     {
         this.placeRepository = placeRepository;
         this.placeSearchQueryRepository = placeSearchQueryRepository;
@@ -41,6 +43,7 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
         this.territorialLocations = territorialLocations;
         this.placeMediaRepository = placeMediaRepository;
         this.publicSearchQuery = publicSearchQuery;
+        this.petGovernance = petGovernance;
     }
 
     private int CoordinateCacheRetentionDays =>
@@ -55,7 +58,43 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
         }
 
         var media = placeMediaRepository is null ? [] : await placeMediaRepository.ListAsync(place.Id, cancellationToken);
-        return responseMapper.ToDetail(place, media);
+        if (petGovernance is null) return responseMapper.ToDetail(place, media);
+        var overview = await petGovernance.GetOverviewAsync(place.Id, cancellationToken);
+        if (overview.EffectivePolicies.Count == 0)
+        {
+            if (overview.Assertions.Count == 0)
+            {
+                return responseMapper.ToDetail(place, media);
+            }
+
+            place.UpdatePetPolicy(new PetPolicy(
+                PetAccessStatus.Unknown,
+                [],
+                [],
+                "Informació pet-friendly desconeguda",
+                place.PetPolicy.Notes));
+            var unknown = responseMapper.ToDetail(place, media);
+            return unknown with
+            {
+                IsPetPolicyVerified = false,
+                PetPolicyVerifiedAtUtc = null
+            };
+        }
+        var effective = overview.EffectivePolicies;
+        var resolved = ResolvedPetPolicy.ResolveEvidence(effective.Select(policy => new EffectivePetPolicyEvidence(
+            new PetSpecies(policy.Species), Enum.Parse<PetAccessStatus>(policy.Status, true),
+            policy.Conditions.Select(condition => new PetAccessCondition(condition.Code, condition.Value)).ToArray(),
+            policy.IsVerifiedManual || policy.IsInheritedFromChain,
+            overview.Assertions.FirstOrDefault(assertion => assertion.Id == policy.AssertionId)?.VerifiedAtUtc)));
+        place.UpdatePetPolicy(new PetPolicy(resolved.Status, resolved.Species, resolved.Conditions,
+            resolved.Status == PetAccessStatus.Unknown ? "Informació pet-friendly desconeguda" : "Informació pet-friendly disponible",
+            place.PetPolicy.Notes));
+        var dto = responseMapper.ToDetail(place, media);
+        return dto with
+        {
+            IsPetPolicyVerified = resolved.IsVerified,
+            PetPolicyVerifiedAtUtc = resolved.VerifiedAtUtc
+        };
     }
 
     public async Task<PlaceSearchPageDto> SearchAsync(
@@ -190,7 +229,7 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
             normalized.Skip,
             normalized.Take.Value,
             normalized.Skip + items.Length < result.Total,
-            new PlaceSearchMapDto(result.CenterLatitude, result.CenterLongitude, normalized.RadiusKm, result.Areas));
+            new PlaceSearchMapDto(result.CenterLatitude, result.CenterLongitude, normalized.RadiusKm, result.Areas, result.MapPoints));
     }
 
     public async Task<IReadOnlyCollection<PlaceSearchHistoryDto>> GetRecentSearchesAsync(
@@ -338,7 +377,8 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
             new RatingSnapshot(request.RatingAverage, request.ReviewCount),
             excludeFromOsmMap: existing?.ExcludeFromOsmMap ?? false,
             territorialCountryId: countryId,
-            territorialUnitId: unitId);
+            territorialUnitId: unitId,
+            commercialCategory: request.CommercialCategory ?? existing?.CommercialCategory);
 
         place.ReplaceTags(request.Tags);
         place.ReplaceFeatures(request.Features);

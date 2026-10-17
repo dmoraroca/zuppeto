@@ -1,4 +1,9 @@
-<section class="place-map">
+<section
+  class="place-map"
+  #mapShell
+  [class.place-map--fullscreen-fallback]="fallbackFullscreen()"
+  [attr.data-fullscreen]="fullscreen()"
+>
   <div class="place-map__toolbar">
     <div class="place-map__summary">
       <strong>{{ hasPlaces ? placesCountLabel : emptyTitle() }}</strong>
@@ -16,6 +21,14 @@
     @if (showToolbarActions()) {
       <div class="place-map__actions">
         <button type="button" (click)="focusAllPlaces()">Recentrar mapa</button>
+        <button
+          type="button"
+          class="place-map__fullscreen-button"
+          [attr.aria-pressed]="fullscreen()"
+          (click)="toggleFullscreen()"
+        >
+          {{ fullscreen() ? 'Sortir de pantalla completa' : 'Pantalla completa' }}
+        </button>
         @if (viewportChanged()) {
           <button type="button" class="place-map__viewport-button" (click)="searchCurrentViewport()">
             Cercar en aquesta zona
@@ -33,7 +46,7 @@
   <div
     class="place-map__canvas"
     #mapContainer
-    [style.height]="height()"
+    [style.height]="canvasHeight()"
     [attr.data-map-layer]="visibleLayer()"
     [attr.data-map-zoom]="currentZoom()"
     [attr.data-center-lat]="currentCenter()?.lat ?? null"
@@ -41,4 +54,22 @@
     role="region"
     aria-label="Mapa interactiu de llocs"
   ></div>
+
+  <div
+    class="place-map__resize-handle"
+    role="separator"
+    tabindex="0"
+    aria-label="Redimensiona verticalment el mapa"
+    aria-orientation="horizontal"
+    [attr.aria-valuemin]="minimumMapHeight()"
+    [attr.aria-valuemax]="maximumMapHeight()"
+    [attr.aria-valuenow]="mapHeightPx() ?? 400"
+    (pointerdown)="beginResize($event)"
+    (pointermove)="resizeFromPointer($event)"
+    (pointerup)="finishResize($event)"
+    (pointercancel)="finishResize($event)"
+    (keydown)="resizeFromKeyboard($event)"
+  >
+    <span aria-hidden="true"></span>
+  </div>
 </section>

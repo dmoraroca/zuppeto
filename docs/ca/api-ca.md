@@ -12,6 +12,8 @@ S'ha afegit `/api/admin/place-catalog-governance`, protegit per rol exacte `Admi
 
 El grup `/api/admin/place-imports` implementa context, preparació `202 Accepted`, llista, detall, aprovació, publicació controlada, simulació i cancel·lació. Exigeix rol exacte `Admin` i `action.places.manage`. `POST /api/admin/place-imports/{id}/publish` només admet el pilot Geofabrik d'Arenys amb la unitat territorial, font i categories autoritzades. El contracte exposa `OSM_GEOFABRIK_EXTRACT` i `OSM_OVERPASS` com a modes d'accés a la font canònica `openstreetmap`; cap esquema PBF o Overpass arriba a Angular. El worker executa la descoberta fora de la petició i la cerca pública no consulta fonts externes. [Contracte i resultats](iteracio-7-fase-iv-tancament-ca.md).
 
+El mode `OSM_DIRECT_MAP` afegit al gate de cobertura de Fase VI és exclusivament d’auditoria ADMIN i està desactivat per defecte. Fa una sola petició `GET /api/0.6/map?bbox=…`, processa XML en streaming i exigeix frontera municipal OSM amb codi INE equivalent abans de retornar candidats. El límit de publicació continua acceptant únicament Geofabrik; per tant, aquest mode no pot publicar automàticament. [Resultat d’Arenys](evidencies/osm-direct-coverage-arenys-20261016.md).
+
 
 ## Iteració 7 — Fase III, governança de Places
 

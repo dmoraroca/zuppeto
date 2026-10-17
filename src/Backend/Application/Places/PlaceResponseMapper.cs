@@ -44,7 +44,7 @@ internal sealed class PlaceResponseMapper(IPlaceCoverStorage coverStorage, Place
             visit.Hours,
             visit.Phone,
             visit.Website,
-            PlaceGoogleHighlights.CategoryLabel(place.Features, PlaceTypeLabels.From(place.Type)),
+            PlaceGoogleHighlights.CategoryLabel(place.Features, CommercialCategoryLabels.From(place.CommercialCategory, place.Type)),
             primaryMedia?.Attribution ?? attribution?.AuthorName,
             primaryMedia?.EvidenceUri?.ToString() ?? attribution?.SourceUri,
             place.TerritorialCountryId,
@@ -52,7 +52,8 @@ internal sealed class PlaceResponseMapper(IPlaceCoverStorage coverStorage, Place
             place.PetPolicy.Status.ToString(),
             place.PetPolicy.Species.Select(x => x.Code).ToArray(),
             place.PetPolicy.Conditions.Select(x => new PetConditionDto(x.Code, x.Value)).ToArray(),
-            Media: media?.Select(PlaceMediaApplicationService.ToDto).ToArray());
+            Media: media?.Select(PlaceMediaApplicationService.ToDto).ToArray(),
+            CommercialCategory: place.CommercialCategory);
     }
 
     internal PlaceSummaryDto ToSummary(PlacePublicSearchRow row) => ToSummary(row.Place) with
@@ -111,7 +112,8 @@ internal sealed class PlaceResponseMapper(IPlaceCoverStorage coverStorage, Place
             summary.PetPolicyVerifiedAtUtc,
             summary.UpdatedAtUtc,
             summary.BusinessStatus,
-            summary.Media);
+            summary.Media,
+            summary.CommercialCategory);
     }
 
     private static (bool CacheExpired, bool RequiresGoogleMap) ComputeGoogleCoordinateFlags(Place place)

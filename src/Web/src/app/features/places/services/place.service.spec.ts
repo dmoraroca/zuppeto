@@ -111,6 +111,51 @@ describe('PlaceService phase I characterization', () => {
     }));
   });
 
+  it('keeps the complete filtered map dataset independent from list pagination', async () => {
+    const promise = service.searchPage({
+      search: '', country: 'Espanya', city: 'Arenys de Mar', type: '', pet: 'all'
+    }, 0, 20);
+    const request = http.expectOne((candidate) => candidate.url.endsWith('/api/places'));
+    const points = Array.from({ length: 23 }, (_, index) => ({
+      id: `map-${index}`, name: `Local ${index}`, type: index === 0 ? 'Bar' : 'Restaurant',
+      commercialCategory: index === 0 ? 'bakery' : 'restaurant', city: 'Arenys de Mar', country: 'Espanya',
+      latitude: 41.58 + index / 10000, longitude: 2.55, petAccessStatus: 'Unknown',
+      petSpecies: [], petConditions: [], isPetPolicyVerified: false, distanceKm: null, businessStatus: 'Open'
+    }));
+    request.flush({
+      items: [placeDto()], total: 23, skip: 0, take: 20, hasMore: true,
+      map: { centerLatitude: 41.58, centerLongitude: 2.55, radiusKm: 0, areas: [], points }
+    });
+
+    const page = await promise;
+    expect(page.items).toHaveLength(1);
+    expect(page.map?.points).toHaveLength(23);
+    expect(page.map?.points?.[0]).toEqual(expect.objectContaining({ categoryLabel: 'Fleca' }));
+  });
+
+  it.each([50, 500, 5_000])('maps all %i lightweight points without expanding the list page', async (pointCount) => {
+    const promise = service.searchPage({
+      search: '', country: 'Espanya', city: 'Arenys de Mar', type: '', pet: 'all'
+    }, 0, 20);
+    const request = http.expectOne((candidate) => candidate.url.endsWith('/api/places'));
+    const points = Array.from({ length: pointCount }, (_, index) => ({
+      id: `scale-${index}`, name: `Local ${index}`, type: 'Restaurant', commercialCategory: 'restaurant',
+      city: 'Arenys de Mar', country: 'Espanya', latitude: 41.55 + (index % 100) / 10_000,
+      longitude: 2.53 + Math.floor(index / 100) / 10_000, petAccessStatus: 'Unknown',
+      petSpecies: [], petConditions: [], isPetPolicyVerified: false, distanceKm: null, businessStatus: 'Open'
+    }));
+    request.flush({
+      items: Array.from({ length: 20 }, (_, index) => ({ ...placeDto(), id: `list-${index}` })),
+      total: pointCount, skip: 0, take: 20, hasMore: pointCount > 20,
+      map: { centerLatitude: 41.58, centerLongitude: 2.55, radiusKm: 0, areas: [], points }
+    });
+
+    const page = await promise;
+    expect(page.items).toHaveLength(20);
+    expect(page.map?.points).toHaveLength(pointCount);
+    expect(new Set(page.map?.points?.map((point) => point.id)).size).toBe(pointCount);
+  });
+
   it('maps the Altres species chip to the explicit backend category', async () => {
     const promise = service.searchPage({
       search: '', country: 'Espanya', city: 'Arenys de Mar', type: '', pet: 'others'

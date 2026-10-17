@@ -1,7 +1,15 @@
 # PETILOC — Iteració 7 · Fase VI — Cercador, mapa, fitxes i UX
 
-**Data de validació:** 15.10.2026  
-**Estat:** tancada tècnicament; migració aplicada i validació final superada sobre PostgreSQL real. La Fase VII no s'ha iniciat.
+**Data de validació:** 16.10.2026
+**Estat:** reoberta per validar cobertura multifont; no es declara tancada en aquest gate. La Fase VII no s'ha iniciat.
+
+## Gate de cobertura multifont
+
+La comparació real entre els 50 Places publicats, l’índex Geofabrik i una única consulta OSM directa d’Arenys queda documentada a [l’evidència del 16.10.2026](evidencies/osm-direct-coverage-arenys-20261016.md). OSM directe ha retornat 73 candidats davant dels 68 de Geofabrik, però els cinc addicionals són farmàcies i benzineres incorporades per l’ampliació de categories: cap candidat té un timestamp posterior al tall del PBF.
+
+L’[auditoria completa de cobertura d’Arenys](evidencies/arenys-coverage-audit-20261016.md) ha ampliat el creuament a 467 fitxes municipals i 241 inscripcions turístiques. El resultat prudent és de 424 candidats nous únics, 269 observacions pendents de revisió i 17 objectes OSM rebutjats per manca de nom. Els inventaris CSV conserven tota la traçabilitat; no s’ha importat ni publicat cap registre.
+
+La prova confirma que OSM no cobreix alguns negocis i allotjaments coneguts, inclosos La Krusan, 365, Vila Arenys/MOT i diversos hostals. Geofabrik es manté com a bootstrap i índex escalable; `/api/0.6/map` queda limitat a auditoria ADMIN de bbox petits, i les webs oficials de negocis o cadenes són enriquiment amb revisió humana. No s’ha publicat cap candidat, no s’ha escrit a PostgreSQL i no s’ha iniciat la Fase VII.
 
 ## Poliment UX posterior al tancament
 
@@ -149,3 +157,15 @@ La prova real de cobertura dels 50 Places d'Arenys queda registrada a [l'evidèn
 La reinterpretació real ha quedat auditada al run de simulació `61b3a944-5763-43e9-888b-15b5cc8a614f`: 68 descoberts, 51 vàlids, 18 avisos i 51 duplicats per identitat OSM; no s'ha aprovat ni publicat. S'han creat 0 assets Wikimedia, no s'ha fet matching pel nom i no s'ha consultat Google Places Photos. PostgreSQL real conserva 50 Places, 662 observacions auditables, 23.969 unitats territorials, 0 Google Place IDs i `place_media_assets` buida. El backup previ és `/DATA/backups/zuppeto/zuppeto-before-qid-correction-20261015.dump`, SHA-256 `1b861fd6cf9692333d1482e9fd785fa4c1440804226cb191b377dc7ac2198705`.
 
 Validació final després de la correcció QID: backend 153/153, Angular 122/122, builds backend i Angular sense errors, Chrome sintètic de media PASS i Chrome real de cerca PASS amb una fotografia o il·lustració a cada targeta. S'han cobert foto/atribució governada, placeholders de categoria, QID corporatiu sense portada, Montcalvari ambigu sense media falsa, `Allowed` verificat, terrassa amb política desconeguda i `Unknown` neutre. No s'ha executat la regressió multibrowser. Amb aquests resultats, la Fase VI es pot declarar definitivament tancada; la Fase VII no s'ha iniciat i no s'ha fet commit ni push.
+
+## Reobertura tècnica P0/P1 — 16–17.10.2026
+
+L'auditoria de cobertura ha reobert la Fase VI. El mapa rep un conjunt lleuger complet i independent de la pàgina de la llista; el recompte municipal, clusters i POI comparteixen els mateixos filtres i UUID. La selecció d'un POI que encara no és a la pàgina no altera ni duplica la llista. Amb municipi, radi o viewport, PostgreSQL retorna tots els punts filtrats; sense cap àmbit geogràfic concret retorna agregats territorials i evita descarregar indiscriminadament tot el catàleg al navegador. Els POI propers només es materialitzen dins del viewport ampliat, mentre que el clustering intermedi continua sent lineal i complet.
+
+La càrrega progressiva de 20 elements només modifica `listingPlaces`; `mapPointPlaces` no es reconstrueix quan es prem «Mostrar els 20 següents». Les peticions de llista i mapa comparteixen un `AbortController` per cancel·lar respostes obsoletes quan canvien filtres o viewport. Recentrar usa `panTo` i conserva el zoom; filtres, redimensionament i pantalla completa preserven càmera i no tornen a consultar Places.
+
+El tipus general es conserva separat de `commercial_category`. La migració preparada `20261016140728_CorrectPlaceCoveragePhase6` recupera la categoria des dels imports publicats, crea l'índex corresponent i recupera de manera idempotent la característica `Terrassa` des de `amenity.outdoor_seating=Available`. La terrassa no modifica la política pet-friendly.
+
+La consulta pública resol en viu la precedència de les afirmacions, revocacions, substitucions, caducitats i polítiques de cadena aplicables. Els filtres, targetes i punts del mapa consumeixen la mateixa resolució. Els establiments amb últim estat `Closed` queden fora del catàleg públic, mentre que `exclude_from_osm_map` s'aplica exclusivament als punts del mapa.
+
+Validació: backend 169/169 PASS; PostgreSQL temporal 5/5 PASS, inclosos `Up → Down → Up`, governança, 23/50 Places i escales de 500/5.000 punts amb pàgina de 20; Angular 130/130 PASS; builds backend, Angular i runner E2E PASS; Chrome focalitzat PASS per 23/20+3, 50/20, zoom, recentrat, filtres, clusters, POI, redimensionament i responsive. PostgreSQL real no s'ha modificat, la migració no s'hi ha aplicat i la Fase VI continua oberta fins a autorització posterior.

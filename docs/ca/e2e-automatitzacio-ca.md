@@ -1203,6 +1203,14 @@ Resultat final: 10/10 PASS. El recorregut crea un Place amb admissió desconegud
 
 La prova elimina el Place temporal; en acabar també s'aturen API i Angular i s'elimina la base temporal completa. La consulta posterior confirma que no existeixen `zuppeto_pet_governance_e2e` ni `zuppeto_pet_governance_tests`. PostgreSQL real no s'ha modificat.
 
+## Iteració 7 — Fase VI, correcció de cobertura P0/P1
+
+S'ha afegit l'entrada focalitzada `npm run e2e:place-coverage-correction-phase6`. Executa només Chrome i intercepta el contracte de cerca amb els dos casos auditats: 23 punts filtrats amb llista 20+3 i 50 punts sense filtre comercial amb llista inicial de 20. No consulta ni modifica PostgreSQL. L'escenari comprova que el recompte municipal, els clusters i els POI reben el conjunt complet; que seleccionar el POI 22 no l'afegeix artificialment a la llista; que la segona pàgina completa 23 UUID sense duplicats; i que carregar la llista no altera els marcadors.
+
+La mateixa execució valida redimensionament manual, pantalla completa, recuperació de mida, zoom i centre preservats, canvi de filtres sense salt de càmera, recentrat sense restablir zoom i disposició mòbil. Les proves Angular cobreixen 50, 500 i 5.000 punts lleugers, i la integració PostgreSQL temporal acredita els recomptes 23/50 i les escales 500/5.000 amb una pàgina de 20.
+
+Resultat final: PASS. Les crides externes queden bloquejades i no s'ha executat la regressió multibrowser. Aquesta validació cobreix la correcció tècnica P0/P1, però no tanca la Fase VI ni autoritza la migració sobre PostgreSQL real.
+
 ## Iteració 7 — Fase IV, Chrome focalitzat OSM
 
 Per al tancament real s'ha afegit `npm run e2e:osm-published-phase4`. El runner inicia sessió ADMIN, consulta l'API pública i valida en Chrome els 15 Places publicats d'Arenys: municipi i unitat territorial exactes, categoria Restaurant, coordenades, procedència OpenStreetMap, estat pet-friendly desconegut, absència de `googlePlaceId` i atribució ODbL visible al detall. Les 10 peticions de tiles del mapa s'han interceptat i avortat; no s'ha completat cap crida externa. Resultat: PASS. Firefox, WebKit i la regressió completa no s'han executat.

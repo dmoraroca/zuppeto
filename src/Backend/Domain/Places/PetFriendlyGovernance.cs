@@ -146,4 +146,60 @@ public sealed class PetAssertionPrecedencePolicy
         { Origin: PetAssertionOrigin.Manual } => 200,
         _ => 100
     };
+
+    public ResolvedPetPolicy Resolve(IEnumerable<PetFriendlyAssertion> assertions, DateTimeOffset atUtc)
+    {
+        var selected = assertions
+            .GroupBy(assertion => assertion.Species.Code, StringComparer.OrdinalIgnoreCase)
+            .Select(group => SelectEffective(group, atUtc))
+            .OfType<PetFriendlyAssertion>()
+            .ToArray();
+        return ResolvedPetPolicy.From(selected);
+    }
 }
+
+public sealed record ResolvedPetPolicy(
+    PetAccessStatus Status,
+    IReadOnlyCollection<PetSpecies> Species,
+    IReadOnlyCollection<PetAccessCondition> Conditions,
+    bool IsVerified,
+    DateTimeOffset? VerifiedAtUtc)
+{
+    public static ResolvedPetPolicy Unknown { get; } = new(
+        PetAccessStatus.Unknown, [], [], false, null);
+
+    internal static ResolvedPetPolicy From(IReadOnlyCollection<PetFriendlyAssertion> selected) =>
+        ResolveEvidence(selected.Select(assertion => new EffectivePetPolicyEvidence(
+            assertion.Species, assertion.Status, assertion.Conditions,
+            assertion.VerifiedAtUtc is not null, assertion.VerifiedAtUtc)));
+
+    public static ResolvedPetPolicy ResolveEvidence(IEnumerable<EffectivePetPolicyEvidence> evidence)
+    {
+        var selected = evidence.ToArray();
+        if (selected.Length == 0) return Unknown;
+        var statuses = selected.Select(item => item.Status).ToArray();
+        var status = statuses.Contains(PetAccessStatus.PendingReview) ? PetAccessStatus.PendingReview
+            : statuses.Contains(PetAccessStatus.Allowed) ? PetAccessStatus.Allowed
+            : statuses.Contains(PetAccessStatus.TerraceOnly) ? PetAccessStatus.TerraceOnly
+            : statuses.All(value => value == PetAccessStatus.NotAllowed) ? PetAccessStatus.NotAllowed
+            : PetAccessStatus.Unknown;
+        var admittedSpecies = selected
+            .Where(item => item.Status is PetAccessStatus.Allowed or PetAccessStatus.TerraceOnly)
+            .Select(item => item.Species)
+            .Distinct()
+            .ToArray();
+        var verified = selected.Where(item => item.IsVerified).ToArray();
+        var verifiedDates = verified.Select(item => item.VerifiedAtUtc).OfType<DateTimeOffset>().ToArray();
+        return new(status, admittedSpecies,
+            selected.SelectMany(item => item.Conditions).Distinct().ToArray(),
+            verified.Length > 0,
+            verifiedDates.Length == 0 ? null : verifiedDates.Max());
+    }
+}
+
+public sealed record EffectivePetPolicyEvidence(
+    PetSpecies Species,
+    PetAccessStatus Status,
+    IReadOnlyCollection<PetAccessCondition> Conditions,
+    bool IsVerified,
+    DateTimeOffset? VerifiedAtUtc);

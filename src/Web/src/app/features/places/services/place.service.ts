@@ -90,12 +90,17 @@ export class PlaceService {
       { value: 'bar', label: 'Bars' },
       { value: 'pub', label: 'Pubs' },
       { value: 'fast_food', label: 'Fast food' },
+      { value: 'bakery', label: 'Fleques' },
+      { value: 'ice_cream', label: 'Gelateries' },
       { value: 'hotel', label: 'Hotels' },
       { value: 'hostel', label: 'Hostals' },
+      { value: 'apartment', label: 'Apartaments turístics' },
       { value: 'camping', label: 'Càmpings' },
       { value: 'park', label: 'Parcs' },
       { value: 'shop', label: 'Comerços' },
       { value: 'veterinary', label: 'Veterinaris' },
+      { value: 'pharmacy', label: 'Farmàcies' },
+      { value: 'fuel', label: 'Benzineres' },
       { value: 'dog_grooming', label: 'Perruqueries canines' },
       { value: 'pet_service', label: 'Serveis pet' },
       { value: 'service', label: 'Altres serveis' }
@@ -186,7 +191,10 @@ export class PlaceService {
       skip: page.skip,
       take: page.take,
       hasMore: page.hasMore,
-      map: page.map
+      map: page.map ? {
+        ...page.map,
+        points: (page.map.points ?? []).map((point) => this.toMapPlace(point))
+      } : null
     };
   }
 
@@ -378,6 +386,7 @@ export class PlaceService {
       coverSourceUri: place.coverSourceUri ?? '',
       media: (place.media ?? []).map((asset) => ({ ...asset, servedUrl: resolveMediaUrl(asset.servedUrl) })),
       categoryLabel: place.categoryLabel?.trim() ?? '',
+      commercialCategory: place.commercialCategory,
       countryId: place.countryId,
       territorialUnitId: place.territorialUnitId,
       petAccessStatus: place.petAccessStatus ?? 'Unknown',
@@ -392,6 +401,40 @@ export class PlaceService {
         lat: place.latitude,
         lng: place.longitude
       }
+    };
+  }
+
+  private toMapPlace(point: PlaceMapPointApiDto): Place {
+    return {
+      id: point.id,
+      name: point.name,
+      city: point.city,
+      country: point.country,
+      neighborhood: '',
+      type: point.type.toLowerCase() as PlaceType,
+      shortDescription: '',
+      description: '',
+      imageUrl: '',
+      acceptsDogs: point.petSpecies.includes('dog') && ['Allowed', 'TerraceOnly'].includes(point.petAccessStatus),
+      acceptsCats: point.petSpecies.includes('cat') && ['Allowed', 'TerraceOnly'].includes(point.petAccessStatus),
+      rating: 0,
+      reviewCount: 0,
+      priceLabel: '',
+      petPolicyLabel: '',
+      tags: [],
+      address: point.city,
+      petNotes: '',
+      features: [],
+      categoryLabel: commercialCategoryLabel(point.commercialCategory, point.type),
+      commercialCategory: point.commercialCategory,
+      petAccessStatus: point.petAccessStatus,
+      petSpecies: [...point.petSpecies],
+      petConditions: [...point.petConditions],
+      distanceKm: point.distanceKm,
+      isPetPolicyVerified: point.isPetPolicyVerified,
+      businessStatus: point.businessStatus,
+      excludeFromOsmMap: false,
+      coordinates: { lat: point.latitude, lng: point.longitude }
     };
   }
 
@@ -470,6 +513,7 @@ interface PlaceApiSummaryDto {
   coverAttribution?: string | null;
   coverSourceUri?: string | null;
   categoryLabel?: string | null;
+  commercialCategory?: string | null;
   countryId?: string | null;
   territorialUnitId?: string | null;
   petAccessStatus?: string | null;
@@ -503,7 +547,32 @@ interface PlaceSearchPageDto {
   skip: number;
   take: number;
   hasMore: boolean;
-  map?: PlaceSearchMap | null;
+  map?: PlaceSearchMapApiDto | null;
+}
+
+interface PlaceSearchMapApiDto {
+  centerLatitude: number | null;
+  centerLongitude: number | null;
+  radiusKm: number;
+  areas: PlaceSearchMapArea[];
+  points?: PlaceMapPointApiDto[];
+}
+
+interface PlaceMapPointApiDto {
+  id: string;
+  name: string;
+  type: string;
+  commercialCategory?: string | null;
+  city: string;
+  country: string;
+  latitude: number;
+  longitude: number;
+  petAccessStatus: string;
+  petSpecies: string[];
+  petConditions: { code: string; value?: string | null }[];
+  isPetPolicyVerified: boolean;
+  distanceKm?: number | null;
+  businessStatus: string;
 }
 
 export interface PlaceSearchMapArea {
@@ -519,6 +588,7 @@ export interface PlaceSearchMap {
   centerLongitude: number | null;
   radiusKm: number;
   areas: PlaceSearchMapArea[];
+  points?: Place[];
 }
 
 export interface PlaceSearchPage {
@@ -599,6 +669,17 @@ function formatPlaceAddress(line1: string, city: string): string {
   }
 
   return `${line}, ${cityLabel}`;
+}
+
+function commercialCategoryLabel(category: string | null | undefined, fallback: string): string {
+  const labels: Record<string, string> = {
+    restaurant: 'Restaurant', cafe: 'Cafeteria', bar: 'Bar', pub: 'Pub', fast_food: 'Menjar ràpid',
+    ice_cream: 'Gelateria', bakery: 'Fleca', hotel: 'Hotel', hostel: 'Hostal o pensió', motel: 'Motel',
+    apartment: 'Apartament turístic', camping: 'Càmping', park: 'Parc', dog_park: 'Parc caní',
+    shop: 'Comerç', pet_shop: 'Botiga per a mascotes', veterinary: 'Veterinari', pharmacy: 'Farmàcia',
+    fuel: 'Benzinera', pet_service: 'Servei per a mascotes', pet_grooming: 'Perruqueria canina'
+  };
+  return labels[category?.trim().toLowerCase() ?? ''] ?? labels[fallback.toLowerCase()] ?? fallback;
 }
 
 interface CitySuggestionApiDto {

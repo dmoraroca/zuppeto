@@ -34,7 +34,24 @@ public sealed record PlaceSearchMapDto(
     decimal? CenterLatitude,
     decimal? CenterLongitude,
     int RadiusKm,
-    IReadOnlyCollection<PlaceMapAreaDto> Areas);
+    IReadOnlyCollection<PlaceMapAreaDto> Areas,
+    IReadOnlyCollection<PlaceMapPointDto>? Points = null);
+
+public sealed record PlaceMapPointDto(
+    Guid Id,
+    string Name,
+    string Type,
+    string? CommercialCategory,
+    string City,
+    string Country,
+    decimal Latitude,
+    decimal Longitude,
+    string PetAccessStatus,
+    IReadOnlyCollection<string> PetSpecies,
+    IReadOnlyCollection<PetConditionDto> PetConditions,
+    bool IsPetPolicyVerified,
+    decimal? DistanceKm,
+    string BusinessStatus);
 
 public sealed record PlaceMapAreaDto(
     Guid TerritorialUnitId,
@@ -112,7 +129,8 @@ public sealed record PlaceUpsertRequest(
     Guid? TerritorialUnitId = null,
     string PetAccessStatus = "Unknown",
     IReadOnlyCollection<string>? PetSpecies = null,
-    IReadOnlyCollection<PetConditionDto>? PetConditions = null);
+    IReadOnlyCollection<PetConditionDto>? PetConditions = null,
+    string? CommercialCategory = null);
 
 public sealed record PetConditionDto(string Code, string? Value = null);
 
@@ -161,7 +179,8 @@ public sealed record PlaceSummaryDto(
     DateTimeOffset? PetPolicyVerifiedAtUtc = null,
     DateTimeOffset? UpdatedAtUtc = null,
     string BusinessStatus = "Open",
-    IReadOnlyCollection<PlaceMediaAssetDto>? Media = null);
+    IReadOnlyCollection<PlaceMediaAssetDto>? Media = null,
+    string? CommercialCategory = null);
 
 public sealed record PlaceDetailDto(
     Guid Id,
@@ -207,7 +226,8 @@ public sealed record PlaceDetailDto(
     DateTimeOffset? PetPolicyVerifiedAtUtc = null,
     DateTimeOffset? UpdatedAtUtc = null,
     string BusinessStatus = "Open",
-    IReadOnlyCollection<PlaceMediaAssetDto>? Media = null);
+    IReadOnlyCollection<PlaceMediaAssetDto>? Media = null,
+    string? CommercialCategory = null);
 
 public sealed record PlacePublicSearchRow(
     Domain.Places.Place Place,
@@ -222,7 +242,8 @@ public sealed record PlacePublicSearchResult(
     int Total,
     IReadOnlyCollection<PlaceMapAreaDto> Areas,
     decimal? CenterLatitude,
-    decimal? CenterLongitude);
+    decimal? CenterLongitude,
+    IReadOnlyCollection<PlaceMapPointDto>? MapPoints = null);
 
 public interface IPlacePublicSearchQuery
 {

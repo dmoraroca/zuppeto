@@ -26,6 +26,13 @@ public sealed class PlaceConfiguration : IEntityTypeConfiguration<PlaceRecord>
             .HasMaxLength(80)
             .IsRequired();
 
+        builder.Property(place => place.CommercialCategory)
+            .HasColumnName("commercial_category")
+            .HasMaxLength(80);
+
+        builder.HasIndex(place => place.CommercialCategory)
+            .HasDatabaseName("ix_places_commercial_category");
+
         builder.Property(place => place.ShortDescription)
             .HasColumnName("short_description")
             .IsRequired();

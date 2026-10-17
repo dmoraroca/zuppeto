@@ -2,6 +2,8 @@
 
 > Iteració 7, Fase VI (15.10.2026): el cercador públic ja treballa amb municipi territorial, radi, categories, política pet-friendly, qualitat i ordre; sincronitza llista/mapa, conserva filtres, ofereix GPS opcional sense persistir-lo i amplia la fitxa Place. [Informe funcional](iteracio-7-fase-vi-cercador-mapa-ux-ca.md).
 
+> Cobertura multifont (16.10.2026): la comparació de 50 Places, 68 candidats Geofabrik i 73 candidats OSM directes confirma cinc categories noves, però també absències conegudes que requereixen fonts oficials i revisió. No s’ha publicat ni modificat cap Place. [Evidència](evidencies/osm-direct-coverage-arenys-20261016.md).
+
 > Poliment de Fase VI (15.10.2026): el municipi visible i l'efectiu s'han unificat, els canvis territorials i el GPS actualitzen cerca/mapa/URL amb radi 0, els filtres comparteixen chips i switch accessibles, i els Places sense foto mostren un fallback discret sense simular imatges. [Informe](iteracio-7-fase-vi-cercador-mapa-ux-ca.md).
 
 > Ajust final de Fase VI (15.10.2026): el filtre d'espècies queda reduït a `Gossos` i `Gats` com a seleccions independents; cap selecció no restringeix la cerca. `Hotels`, `Bars` i `Restaurants` són categories reals inicials dins del municipi seleccionat, i el mapa disposa de focus inicial específic per a Arenys de Mar. [Informe](iteracio-7-fase-vi-cercador-mapa-ux-ca.md).

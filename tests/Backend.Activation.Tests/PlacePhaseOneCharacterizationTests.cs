@@ -150,6 +150,26 @@ public sealed class PlacePhaseOneCharacterizationTests
         Assert.True(result.IsValid);
     }
 
+    [Fact]
+    public async Task Detail_does_not_keep_a_stale_allowed_policy_after_its_only_assertion_is_revoked()
+    {
+        var place = PlaceFixture("Política revocada");
+        var governance = new RevokedGovernanceStub(place.Id);
+        var fixture = new SearchFixture(allowExternalCalls: false, governance)
+        {
+            CatalogPlaces = [place]
+        };
+
+        var detail = await fixture.Service.GetByIdAsync(place.Id);
+
+        Assert.NotNull(detail);
+        Assert.Equal(nameof(PetAccessStatus.Unknown), detail.PetAccessStatus);
+        Assert.False(detail.AcceptsDogs);
+        Assert.False(detail.AcceptsCats);
+        Assert.False(detail.IsPetPolicyVerified);
+        Assert.Null(detail.PetPolicyVerifiedAtUtc);
+    }
+
     private static PlaceSearchRequest Request(int skip = 0, int? take = null) =>
         new("cafè", null, "Barcelona", "Restaurant", "All", skip, take);
 
@@ -186,7 +206,7 @@ public sealed class PlacePhaseOneCharacterizationTests
             MaxBackgroundEnrichmentsPerPage = 3
         };
 
-        public SearchFixture(bool allowExternalCalls)
+        public SearchFixture(bool allowExternalCalls, IPetGovernanceApplicationService? governance = null)
         {
             callPolicy = new CallPolicy(allowExternalCalls);
             var optionsWrapper = Options.Create(options);
@@ -200,7 +220,7 @@ public sealed class PlacePhaseOneCharacterizationTests
                 this, this, this, this, optionsWrapper, callPolicy, filter);
             Service = new PlaceApplicationService(
                 this, this, this, importer, Assembler, mapper, optionsWrapper,
-                new TerritorialLocationService(this));
+                new TerritorialLocationService(this), petGovernance: governance);
         }
 
         public PlaceApplicationService Service { get; }
@@ -302,5 +322,30 @@ public sealed class PlacePhaseOneCharacterizationTests
         public bool HasRecentEnrichmentAttempt(Guid placeId, DateTimeOffset nowUtc, int retentionDays) => false;
         public void MarkEnrichmentAttempt(Guid placeId, PlaceCoverAttribution? attribution) { }
         public void Delete(Guid placeId) { }
+    }
+
+    private sealed class RevokedGovernanceStub(Guid placeId) : IPetGovernanceApplicationService
+    {
+        public Task<PetGovernanceOverviewDto> GetOverviewAsync(Guid requestedPlaceId, CancellationToken ct = default)
+        {
+            var assertion = new PetAssertionDto(
+                Guid.NewGuid(), placeId, PetSpecies.Dog.Code, nameof(PetAccessStatus.Allowed), [],
+                "manual", null, "Gossos admesos", DateTimeOffset.UtcNow.AddDays(-1),
+                DateTimeOffset.UtcNow.AddDays(-1), null, "Documental", "Verified", Guid.NewGuid(),
+                "https://example.invalid/evidence", "Manual", "Revoked", false, false, false);
+            return Task.FromResult(new PetGovernanceOverviewDto(
+                requestedPlaceId, [assertion], [], [], [], [], false, false, false, true));
+        }
+
+        public Task<IReadOnlyCollection<PetGovernanceDecisionDto>> ListHistoryAsync(Guid? placeId = null, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<PetAssertionDto> AddAssertionAsync(Guid placeId, CreatePetAssertionRequest request, Guid actorId, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task VerifyAssertionAsync(Guid placeId, Guid assertionId, VerifyPetAssertionRequest request, Guid actorId, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task DecideAssertionAsync(Guid placeId, Guid assertionId, DecidePetAssertionRequest request, Guid actorId, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task ResolveConflictAsync(Guid placeId, ResolvePetConflictRequest request, Guid actorId, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<IReadOnlyCollection<CommercialChainDto>> ListChainsAsync(CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<CommercialChainDto> CreateChainAsync(CreateCommercialChainRequest request, Guid actorId, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task LinkPlaceAsync(Guid placeId, LinkPlaceToChainRequest request, Guid actorId, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<ChainPetPolicyDto> AddChainPolicyAsync(Guid chainId, CreateChainPetPolicyRequest request, Guid actorId, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<PetAssertionDto> AddLocalExceptionAsync(Guid placeId, CreateLocalChainExceptionRequest request, Guid actorId, CancellationToken ct = default) => throw new NotSupportedException();
     }
 }

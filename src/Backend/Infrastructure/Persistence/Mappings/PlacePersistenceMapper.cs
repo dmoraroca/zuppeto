@@ -15,7 +15,7 @@ internal static class PlacePersistenceMapper
 
         // Plottable when lat/lng exist. Google provenance alone does not hide pins (map ≡ listing).
         // Redacted / withheld coordinates stay null in DB and are excluded from the map.
-        var excludeFromOsmMap = record.Latitude is null || record.Longitude is null;
+        var excludeFromOsmMap = record.ExcludeFromOsmMap || record.Latitude is null || record.Longitude is null;
         var location = record.Latitude is not null && record.Longitude is not null
             ? new GeoLocation(record.Latitude.Value, record.Longitude.Value)
             : null;
@@ -45,7 +45,8 @@ internal static class PlacePersistenceMapper
             excludeFromOsmMap,
             (PlaceManualFields)record.ManualFields,
             record.TerritorialCountryId,
-            record.TerritorialUnitId);
+            record.TerritorialUnitId,
+            record.CommercialCategory);
 
         place.ReplaceTags(
             record.PlaceTags
@@ -70,6 +71,7 @@ internal static class PlacePersistenceMapper
         record.Id = place.Id;
         record.Name = place.Name;
         record.Type = place.Type.ToString();
+        record.CommercialCategory = place.CommercialCategory;
         record.ShortDescription = place.ShortDescription;
         record.Description = place.Description;
         record.CoverImageUrl = place.CoverImageUrl;

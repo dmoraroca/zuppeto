@@ -74,7 +74,8 @@ internal sealed class PlaceExternalDataMergePolicy
             excludeFromOsmMap: place.ExcludeFromOsmMap,
             place.ManualFields,
             place.TerritorialCountryId,
-            place.TerritorialUnitId);
+            place.TerritorialUnitId,
+            place.CommercialCategory);
 
         merged.ReplaceTags(tags);
         merged.ReplaceFeatures(features);

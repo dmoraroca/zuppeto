@@ -42,6 +42,19 @@ public sealed class PetFriendlyGovernanceTests
     }
 
     [Fact]
+    public void Shared_resolution_never_turns_unknown_or_prohibited_species_into_allowed()
+    {
+        var resolved = ResolvedPetPolicy.ResolveEvidence([
+            new(PetSpecies.Dog, PetAccessStatus.NotAllowed, [], true, DateTimeOffset.UtcNow),
+            new(PetSpecies.Cat, PetAccessStatus.Unknown, [], false, null)
+        ]);
+
+        Assert.Equal(PetAccessStatus.Unknown, resolved.Status);
+        Assert.Empty(resolved.Species);
+        Assert.True(resolved.IsVerified);
+    }
+
+    [Fact]
     public void Local_verified_policy_precedes_chain_and_chain_requires_applicability_evidence()
     {
         var chainPolicy = new ChainPetPolicy(Guid.NewGuid(), Guid.NewGuid(),

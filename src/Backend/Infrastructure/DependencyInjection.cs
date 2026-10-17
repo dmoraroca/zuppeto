@@ -92,6 +92,7 @@ public static class DependencyInjection
             configuration.GetSection(GooglePlacesComplianceOptions.SectionName));
         services.Configure<OverpassOptions>(configuration.GetSection(OverpassOptions.SectionName));
         services.Configure<GeofabrikExtractOptions>(configuration.GetSection(GeofabrikExtractOptions.SectionName));
+        services.Configure<OsmDirectMapOptions>(configuration.GetSection(OsmDirectMapOptions.SectionName));
         services.Configure<WikidataOptions>(configuration.GetSection(WikidataOptions.SectionName));
         services.AddSingleton<IValidateOptions<MapillaryOptions>, MapillaryOptionsValidator>();
         services.AddOptions<MapillaryOptions>()
@@ -143,6 +144,15 @@ public static class DependencyInjection
         });
         services.AddScoped<IPlaceDiscoverySource, OverpassPolicyDiscoveryDecorator>();
         services.AddScoped<IPlaceDiscoverySource, GeofabrikPbfPlaceDiscoverySource>();
+        services.AddHttpClient<IPlaceDiscoverySource, OsmDirectMapPlaceDiscoverySource>((sp, client) =>
+        {
+            var options = sp.GetRequiredService<IOptions<OsmDirectMapOptions>>().Value;
+            client.BaseAddress = new Uri(options.BaseUrl);
+            client.Timeout = TimeSpan.FromSeconds(Math.Clamp(options.TimeoutSeconds, 5, 60));
+            client.DefaultRequestHeaders.TryAddWithoutValidation(
+                "User-Agent",
+                "PetiLoc-OSM-Direct-Pilot/1.0 (admin audit; https://github.com/dmoraroca/zuppeto)");
+        });
         services.AddHttpClient<IPlaceEnrichmentSource, WikidataEnrichmentSource>((sp, client) =>
         {
             var options = sp.GetRequiredService<IOptions<WikidataOptions>>().Value;
