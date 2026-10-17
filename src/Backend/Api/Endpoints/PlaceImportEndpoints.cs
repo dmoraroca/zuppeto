@@ -33,6 +33,7 @@ internal static class PlaceImportEndpoints
                 OpenStreetMapSource.GeofabrikExtractAccessMode => "OpenStreetMap / extracte Geofabrik",
                 OpenStreetMapSource.DirectMapAccessMode => "OpenStreetMap / API directa (auditoria)",
                 DibaMunicipalSource.RestApiAccessMode => "DIBA / cens municipal d’activitats",
+                OvertureMapsSource.LocalExtractAccessMode => "Overture Maps Places / extracte local",
                 _ => "OpenStreetMap / Overpass"
             },license=source.Descriptor.LicenseIdentifier,attribution=source.Descriptor.Attribution,
               coverage=source.Descriptor.Coverage}),
@@ -46,7 +47,8 @@ internal static class PlaceImportEndpoints
                 new{key="motel",label="Motels"},new{key="apartment",label="Apartaments turístics"},new{key="camping",label="Càmpings"},
                 new{key="park",label="Parcs"},new{key="dog_park",label="Parcs canins"},new{key="shop",label="Comerços"},
                 new{key="pet_shop",label="Botigues per mascotes"},new{key="veterinary",label="Veterinaris"},
-                new{key="pet_service",label="Serveis per mascotes"},new{key="pet_grooming",label="Perruqueries canines"}},simulationOnly=true
+                new{key="pet_service",label="Serveis per mascotes"},new{key="pet_grooming",label="Perruqueries canines"},
+                new{key="service",label="Altres serveis"}},simulationOnly=true
         }),ct);
     private static Task<IResult> List(ClaimsPrincipal p,IAdminApplicationService a,IPlaceImportApplicationService s,CancellationToken ct)=>Execute(p,a,_=>s.ListAsync(ct),ct);
     private static Task<IResult> Plan(PlanPlaceDiscoveryRequest request,ClaimsPrincipal p,IAdminApplicationService a,IPlaceImportApplicationService s,CancellationToken ct)=>Execute(p,a,_=>s.PlanAsync(request,ct),ct);

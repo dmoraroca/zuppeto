@@ -133,11 +133,14 @@ describe('PlaceService phase I characterization', () => {
   it('sends the canonical default commercial categories in the first explorer request', async () => {
     const promise = service.searchPage({
       search: '', country: 'Espanya', city: 'Arenys de Mar', type: '', pet: 'all',
-      territorialUnitId: 'arenys', types: ['hotel', 'bar', 'restaurant']
+      territorialUnitId: 'arenys', types: [
+        'restaurant', 'cafe', 'bar', 'pub', 'fast_food',
+        'bakery', 'ice_cream', 'hotel', 'hostel', 'camping'
+      ]
     }, 0, 20);
     const request = http.expectOne((candidate) => candidate.url.endsWith('/api/places'));
 
-    expect(request.request.params.get('types')).toBe('hotel,bar,restaurant');
+    expect(request.request.params.get('types')).toBe('restaurant,cafe,bar,pub,fast_food,bakery,ice_cream,hotel,hostel,camping');
     request.flush({ items: [], total: 0, skip: 0, take: 20, hasMore: false });
     await expect(promise).resolves.toEqual(expect.objectContaining({ total: 0 }));
   });

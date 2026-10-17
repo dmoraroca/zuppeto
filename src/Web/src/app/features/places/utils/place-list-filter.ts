@@ -3,7 +3,10 @@ import { stripPostalPrefixFromCity } from './city-typeahead.utils';
 import { normalizeSearchQuery, placeMatchesFreeTextSearch } from './place-text-search';
 import { isProhibitedPlaceName } from './prohibited-place-terms/prohibited-place-name.filter';
 
-export const DEFAULT_PLACE_TYPES = ['hotel', 'bar', 'restaurant'] as const;
+export const DEFAULT_PLACE_TYPES = [
+  'restaurant', 'cafe', 'bar', 'pub', 'fast_food',
+  'bakery', 'ice_cream', 'hotel', 'hostel', 'camping'
+] as const;
 
 export const DEFAULT_PLACE_FILTERS: PlaceFilters = {
   search: '',

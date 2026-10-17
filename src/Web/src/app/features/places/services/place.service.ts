@@ -681,7 +681,8 @@ function commercialCategoryLabel(category: string | null | undefined, fallback: 
     ice_cream: 'Gelateria', bakery: 'Fleca', hotel: 'Hotel', hostel: 'Hostal o pensió', motel: 'Motel',
     apartment: 'Apartament turístic', camping: 'Càmping', park: 'Parc', dog_park: 'Parc caní',
     shop: 'Comerç', pet_shop: 'Botiga per a mascotes', veterinary: 'Veterinari', pharmacy: 'Farmàcia',
-    fuel: 'Benzinera', pet_service: 'Servei per a mascotes', pet_grooming: 'Perruqueria canina'
+    fuel: 'Benzinera', pet_service: 'Servei per a mascotes', pet_grooming: 'Perruqueria canina',
+    service: 'Altres serveis'
   };
   return labels[category?.trim().toLowerCase() ?? ''] ?? labels[fallback.toLowerCase()] ?? fallback;
 }

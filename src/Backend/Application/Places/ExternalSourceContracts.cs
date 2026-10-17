@@ -38,6 +38,13 @@ public static class DibaMunicipalSource
     public const string RestApiAccessMode = "DIBA_MUNICIPAL_ESTABLISHMENTS_API";
 }
 
+public static class OvertureMapsSource
+{
+    public const string SourceKey = "overture-maps-places";
+    public const string LocalExtractAccessMode = "OVERTURE_MAPS_PLACES_EXTRACT";
+    public const string ReleaseVersion = "2026-09-23.1";
+}
+
 public static class PlaceWikidataFields
 {
     public const string PlaceId = "place.wikidata.id";
@@ -52,7 +59,7 @@ public static class PlaceCatalogCategories
 {
     public static readonly string[] All = ["restaurant", "cafe", "bar", "pub", "fast_food", "ice_cream", "bakery",
         "biergarten", "food_court", "nightclub", "pharmacy", "fuel", "hotel", "hostel", "motel", "apartment",
-        "camping", "park", "dog_park", "shop", "pet_shop", "veterinary", "pet_service", "pet_grooming"];
+        "camping", "park", "dog_park", "shop", "pet_shop", "veterinary", "pet_service", "pet_grooming", "service"];
 }
 
 public sealed record PlaceSourceDescriptor(

@@ -368,6 +368,25 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
             };
             db.PlaceDatasetSources.Add(source); await db.SaveChangesAsync(ct); return source;
         }
+        if (sourceKey == OvertureMapsSource.SourceKey)
+        {
+            source = new PlaceDatasetSourceRecord
+            {
+                Id = Guid.NewGuid(), SourceKey = OvertureMapsSource.SourceKey,
+                Organisation = "Overture Maps Foundation i proveïdors",
+                Dataset = "Overture Maps Places", DatasetVersion = OvertureMapsSource.ReleaseVersion,
+                Coverage = "Global; selecció territorial verificada per geometria",
+                Url = "https://overturemaps.org/download/", AttributionUrl = "https://docs.overturemaps.org/attribution/",
+                LicenseIdentifier = "CDLA-Permissive-2.0+Apache-2.0+CC0-1.0",
+                LicenseUrl = "https://docs.overturemaps.org/attribution/",
+                Attribution = "© Overture Maps Foundation i proveïdors de les dades",
+                ReuseConditions = "Conservar GERS ID, release, datasets d’origen, llicències i atribució de cada observació.",
+                PermanentStorageAllowed = true, CommercialUseAllowed = true, OdblDerived = false,
+                ApprovalStatus = "IntegrationApproved",
+                ReviewedAtUtc = new DateTimeOffset(2026,10,18,0,0,0,TimeSpan.Zero), CreatedAtUtc = DateTimeOffset.UtcNow
+            };
+            db.PlaceDatasetSources.Add(source); await db.SaveChangesAsync(ct); return source;
+        }
         if (sourceKey != OpenStreetMapSource.SourceKey)
             throw new InvalidOperationException($"La font d’importació '{sourceKey}' no està registrada.");
         source = new PlaceDatasetSourceRecord

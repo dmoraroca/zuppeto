@@ -37,12 +37,18 @@ describe('Places phase I presentation rules', () => {
   });
 
   it('provides the intended initial categories and Arenys map focus', () => {
-    expect(parsePlaceTypes(null)).toEqual(['hotel', 'bar', 'restaurant']);
+    expect(parsePlaceTypes(null)).toEqual([
+      'restaurant', 'cafe', 'bar', 'pub', 'fast_food',
+      'bakery', 'ice_cream', 'hotel', 'hostel', 'camping'
+    ]);
     expect(parsePlaceTypes(null, 'restaurant')).toEqual(['restaurant']);
     expect(parsePlaceTypes('all')).toEqual([]);
     expect(parsePlaceTypes('Restaurant, BAR,restaurant')).toEqual(['restaurant', 'bar']);
     expect(parsePlaceTypes('dog_grooming')).toEqual(['pet_grooming']);
-    expect(serializePlaceTypes(['restaurant', 'hotel', 'bar'])).toBeNull();
+    expect(serializePlaceTypes([
+      'restaurant', 'cafe', 'bar', 'pub', 'fast_food',
+      'bakery', 'ice_cream', 'hotel', 'hostel', 'camping'
+    ])).toBeNull();
     expect(serializePlaceTypes([])).toBe('all');
     expect(parsePetSpecies('dogs,cats')).toEqual(['dogs', 'cats']);
     expect(resolveCityMapFocus('Arenys de Mar')).toEqual({ lat: 41.5803, lng: 2.5508 });

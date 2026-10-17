@@ -20,6 +20,7 @@ using Zuppeto.Infrastructure.Email;
 using Zuppeto.Infrastructure.Places.OpenStreetMap;
 using Zuppeto.Infrastructure.Places.Mapillary;
 using Zuppeto.Infrastructure.Places.MunicipalOpenData;
+using Zuppeto.Infrastructure.Places.OvertureMaps;
 
 namespace Zuppeto.Infrastructure;
 
@@ -97,6 +98,7 @@ public static class DependencyInjection
         services.Configure<WikidataOptions>(configuration.GetSection(WikidataOptions.SectionName));
         services.Configure<DibaMunicipalEstablishmentsOptions>(
             configuration.GetSection(DibaMunicipalEstablishmentsOptions.SectionName));
+        services.Configure<OvertureMapsOptions>(configuration.GetSection(OvertureMapsOptions.SectionName));
         services.AddSingleton<IValidateOptions<MapillaryOptions>, MapillaryOptionsValidator>();
         services.AddOptions<MapillaryOptions>()
             .Bind(configuration.GetSection(MapillaryOptions.SectionName))
@@ -165,6 +167,7 @@ public static class DependencyInjection
                 "User-Agent",
                 "PetiLoc-DIBA-Municipal-Audit/1.0 (admin import; https://github.com/dmoraroca/zuppeto)");
         });
+        services.AddScoped<IPlaceDiscoverySource, OvertureMapsPlaceDiscoverySource>();
         services.AddHttpClient<IPlaceEnrichmentSource, WikidataEnrichmentSource>((sp, client) =>
         {
             var options = sp.GetRequiredService<IOptions<WikidataOptions>>().Value;
@@ -202,9 +205,11 @@ public static class DependencyInjection
         }).RedactLoggedHeaders(["Authorization"]);
         services.AddScoped<OsmPlaceSourceNormalizer>();
         services.AddScoped<DibaMunicipalPlaceSourceNormalizer>();
+        services.AddScoped<OverturePlaceSourceNormalizer>();
         services.AddScoped<IPlaceSourceNormalizer, CompositePlaceSourceNormalizer>();
         services.AddScoped<OsmStoragePermissionPolicy>();
         services.AddScoped<DibaMunicipalStoragePermissionPolicy>();
+        services.AddScoped<OvertureStoragePermissionPolicy>();
         services.AddScoped<IPlaceStoragePermissionPolicy, CompositePlaceStoragePermissionPolicy>();
         services.AddScoped<IPlaceMatcher, ConservativePlaceMatcher>();
         services.AddScoped<IPlaceImportRepository, PlaceImportRepository>();

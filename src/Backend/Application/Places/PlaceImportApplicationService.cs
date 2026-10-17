@@ -19,6 +19,7 @@ public sealed class PlaceImportApplicationService(
         var scope = await repository.ResolveScopeAsync(request.CountryId, request.TerritorialUnitId, ct);
         var plans = sources.Select(source => Plan(source.Descriptor, scope, categories))
             .OrderByDescending(source => source.Compatible && source.Enabled)
+            .ThenByDescending(source => source.SourceKey == OvertureMapsSource.SourceKey)
             .ThenBy(source => source.SourceKey, StringComparer.Ordinal)
             .ThenBy(source => source.AccessMode, StringComparer.Ordinal)
             .ToArray();
@@ -84,8 +85,10 @@ public sealed class PlaceImportApplicationService(
         if (coverage is null)
             return new(descriptor.SourceKey, descriptor.AccessMode, descriptor.LicenseIdentifier, false, false,
                 [], [], "El connector no declara la seva cobertura territorial i comercial.");
-        var territoryCompatible = coverage.CountryIso2.Contains(scope.CountryIso2, StringComparer.OrdinalIgnoreCase)
-            && coverage.OfficialCodeSchemes.Contains(scope.OfficialCodeScheme, StringComparer.OrdinalIgnoreCase)
+        var territoryCompatible = (coverage.CountryIso2.Contains("*")
+                || coverage.CountryIso2.Contains(scope.CountryIso2, StringComparer.OrdinalIgnoreCase))
+            && (coverage.OfficialCodeSchemes.Contains("*")
+                || coverage.OfficialCodeSchemes.Contains(scope.OfficialCodeScheme, StringComparer.OrdinalIgnoreCase))
             && (coverage.OfficialCodePrefixes is null || coverage.OfficialCodePrefixes.Count == 0
                 || coverage.OfficialCodePrefixes.Any(prefix => scope.OfficialCode.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)));
         var supported = requested.Where(category => coverage.Categories.Contains(category, StringComparer.OrdinalIgnoreCase)).ToArray();
@@ -105,6 +108,7 @@ public sealed class PlaceImportApplicationService(
             or OpenStreetMapSource.GeofabrikExtractAccessMode
             or OpenStreetMapSource.DirectMapAccessMode) return OpenStreetMapSource.SourceKey;
         if (request.AccessMode == DibaMunicipalSource.RestApiAccessMode) return DibaMunicipalSource.SourceKey;
+        if (request.AccessMode == OvertureMapsSource.LocalExtractAccessMode) return OvertureMapsSource.SourceKey;
         throw new DomainRuleException("La font seleccionada no està registrada al motor de descobriment.");
     }
 

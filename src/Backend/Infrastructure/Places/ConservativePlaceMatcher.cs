@@ -70,7 +70,8 @@ internal sealed class ConservativePlaceMatcher(ZuppetoDbContext db) : IPlaceMatc
         AddExact("wikidata.id", 90, value => value.Trim().ToUpperInvariant());
         AddExact("website", 45, NormalizeWebsite);
         AddExact("phone", 40, NormalizePhone);
-        var candidateAddress = Join(Value(candidate, "address.street"), Value(candidate, "address.housenumber"));
+        var candidateAddress = Value(candidate, "address.complete")
+            ?? Join(Value(candidate, "address.street"), Value(candidate, "address.housenumber"));
         if (candidateAddress.Length > 0 && Fold(candidateAddress) == Fold(address))
         {
             score += 25; signals.Add("address"); hasIdentityEvidence = true;

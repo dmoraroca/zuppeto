@@ -26,6 +26,7 @@ internal static class CommercialCategoryLabels
             "fuel" => "Benzinera",
             "pet_service" => "Servei per a mascotes",
             "pet_grooming" or "dog_grooming" => "Perruqueria canina",
+            "service" => "Altres serveis",
             _ => PlaceTypeLabels.From(fallback)
         };
 }

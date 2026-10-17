@@ -57,10 +57,10 @@ async function main(): Promise<void> {
     });
 
     await page.goto(
-      `/places?country=Espanya&city=Arenys%20de%20Mar&territorialUnitId=${territorialUnitId}&types=hotel%2Cbar%2Crestaurant`,
+      `/places?country=Espanya&city=Arenys%20de%20Mar&territorialUnitId=${territorialUnitId}&types=restaurant%2Ccafe%2Cbar%2Cpub%2Cfast_food%2Cbakery%2Cice_cream%2Chotel%2Chostel%2Ccamping`,
       { waitUntil: 'networkidle' }
     );
-    const filtered = latestSearch(apiResponses, 'hotel,bar,restaurant');
+    const filtered = latestSearch(apiResponses, 'restaurant,cafe,bar,pub,fast_food,bakery,ice_cream,hotel,hostel,camping');
     await page.getByText(`${filtered.body.total} ubicacions visibles`).waitFor({ timeout: 30_000 });
     assert.ok(filtered.body.total > 0, 'Les categories predeterminades han de retornar Places reals d’Arenys.');
     assert.equal(filtered.body.items.length, Math.min(filtered.body.total, 20));

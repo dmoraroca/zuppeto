@@ -42,7 +42,7 @@ async function main(): Promise<void> {
         const filteredPlaces = types.length === 0
           ? places
           : places.filter(item => types.includes(item.commercialCategory) || types.includes(item.type.toLowerCase()));
-        if (types.length === 2) await new Promise(resolve => setTimeout(resolve, 300));
+        if (types.length > 0 && types.length !== 10) await new Promise(resolve => setTimeout(resolve, 300));
         return json(route, {
           items: filteredPlaces.slice(skip, skip + take), total: filteredPlaces.length, skip, take,
           hasMore: skip + take < filteredPlaces.length,
@@ -72,9 +72,13 @@ async function main(): Promise<void> {
     await page.locator('.leaflet-overlay-pane').waitFor({ state: 'attached', timeout: 30_000 });
 
     const firstScopedRequest = placeSearchUrls.find(url => url.searchParams.get('territorialUnitId') === territorialUnitId);
-    assert.equal(firstScopedRequest?.searchParams.get('types'), 'hotel,bar,restaurant',
-      'La primera consulta municipal ha d’enviar explícitament les tres categories predeterminades.');
-    for (const label of ['Hotels', 'Bars', 'Restaurants']) {
+    assert.equal(firstScopedRequest?.searchParams.get('types'),
+      'restaurant,cafe,bar,pub,fast_food,bakery,ice_cream,hotel,hostel,camping',
+      'La primera consulta municipal ha d’enviar explícitament les deu categories predeterminades.');
+    for (const label of [
+      'Restaurants', 'Cafeteries', 'Bars', 'Pubs', 'Fast food',
+      'Fleques', 'Gelateries', 'Hotels', 'Hostals', 'Càmpings'
+    ]) {
       assert.equal(await page.getByLabel(label).isChecked(), true, `${label} ha d’aparèixer seleccionat d’entrada.`);
     }
     assert.equal(await page.locator('app-place-card').count(), 20, 'La llista conserva la seva primera pàgina de 20.');
@@ -154,7 +158,8 @@ async function main(): Promise<void> {
     await filteredResponse;
     await page.waitForURL(/types=/);
     await page.getByText('15 ubicacions visibles').waitFor();
-    assert.equal(new URL(page.url()).searchParams.get('types'), 'bar,restaurant');
+    const withoutHotels = 'restaurant,cafe,bar,pub,fast_food,bakery,ice_cream,hostel,camping';
+    assert.equal(new URL(page.url()).searchParams.get('types'), withoutHotels);
     assert.equal(await page.getByLabel('Hotels').isChecked(), false);
     assert.equal(await page.getByLabel('Bars').isChecked(), true);
     assert.equal(await page.getByLabel('Restaurants').isChecked(), true);
@@ -165,7 +170,7 @@ async function main(): Promise<void> {
     const requestsBeforeReload = placeSearchUrls.length;
     await page.reload({ waitUntil: 'networkidle' });
     await page.getByText('15 ubicacions visibles').waitFor();
-    assert.ok(placeSearchUrls.slice(requestsBeforeReload).some(url => url.searchParams.get('types') === 'bar,restaurant'),
+    assert.ok(placeSearchUrls.slice(requestsBeforeReload).some(url => url.searchParams.get('types') === withoutHotels),
       'La recàrrega ha de repetir la selecció enviada que consta a la URL.');
     assert.equal(await page.getByLabel('Hotels').isChecked(), false);
     assert.equal(await page.getByLabel('Bars').isChecked(), true);

@@ -55,7 +55,8 @@ public sealed class PlaceCoverageCorrectionTests
             [PlaceType.Accommodation] = ["hotel", "hostel", "motel", "apartment", "camping"],
             [PlaceType.Outdoor] = ["park", "dog_park"],
             [PlaceType.Retail] = ["shop", "pet_shop"],
-            [PlaceType.PetCare] = ["veterinary", "pet_service", "pet_grooming"]
+            [PlaceType.PetCare] = ["veterinary", "pet_service", "pet_grooming"],
+            [PlaceType.Service] = ["service"]
         };
         var classified = expected.SelectMany(group => group.Value.Select(category => (category, group.Key))).ToArray();
 
