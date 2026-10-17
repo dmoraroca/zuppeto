@@ -19,6 +19,7 @@ using Zuppeto.Infrastructure.RabbitMq;
 using Zuppeto.Infrastructure.Email;
 using Zuppeto.Infrastructure.Places.OpenStreetMap;
 using Zuppeto.Infrastructure.Places.Mapillary;
+using Zuppeto.Infrastructure.Places.MunicipalOpenData;
 
 namespace Zuppeto.Infrastructure;
 
@@ -94,6 +95,8 @@ public static class DependencyInjection
         services.Configure<GeofabrikExtractOptions>(configuration.GetSection(GeofabrikExtractOptions.SectionName));
         services.Configure<OsmDirectMapOptions>(configuration.GetSection(OsmDirectMapOptions.SectionName));
         services.Configure<WikidataOptions>(configuration.GetSection(WikidataOptions.SectionName));
+        services.Configure<DibaMunicipalEstablishmentsOptions>(
+            configuration.GetSection(DibaMunicipalEstablishmentsOptions.SectionName));
         services.AddSingleton<IValidateOptions<MapillaryOptions>, MapillaryOptionsValidator>();
         services.AddOptions<MapillaryOptions>()
             .Bind(configuration.GetSection(MapillaryOptions.SectionName))
@@ -153,6 +156,15 @@ public static class DependencyInjection
                 "User-Agent",
                 "PetiLoc-OSM-Direct-Pilot/1.0 (admin audit; https://github.com/dmoraroca/zuppeto)");
         });
+        services.AddHttpClient<IPlaceDiscoverySource, DibaMunicipalEstablishmentsSource>((sp, client) =>
+        {
+            var options = sp.GetRequiredService<IOptions<DibaMunicipalEstablishmentsOptions>>().Value;
+            client.BaseAddress = new Uri(options.BaseUrl);
+            client.Timeout = TimeSpan.FromSeconds(Math.Clamp(options.TimeoutSeconds, 5, 60));
+            client.DefaultRequestHeaders.TryAddWithoutValidation(
+                "User-Agent",
+                "PetiLoc-DIBA-Municipal-Audit/1.0 (admin import; https://github.com/dmoraroca/zuppeto)");
+        });
         services.AddHttpClient<IPlaceEnrichmentSource, WikidataEnrichmentSource>((sp, client) =>
         {
             var options = sp.GetRequiredService<IOptions<WikidataOptions>>().Value;
@@ -188,8 +200,12 @@ public static class DependencyInjection
                 "User-Agent",
                 "PetiLoc-Mapillary-Admin/1.0 (https://github.com/dmoraroca/zuppeto)");
         }).RedactLoggedHeaders(["Authorization"]);
-        services.AddScoped<IPlaceSourceNormalizer, OsmPlaceSourceNormalizer>();
-        services.AddScoped<IPlaceStoragePermissionPolicy, OsmStoragePermissionPolicy>();
+        services.AddScoped<OsmPlaceSourceNormalizer>();
+        services.AddScoped<DibaMunicipalPlaceSourceNormalizer>();
+        services.AddScoped<IPlaceSourceNormalizer, CompositePlaceSourceNormalizer>();
+        services.AddScoped<OsmStoragePermissionPolicy>();
+        services.AddScoped<DibaMunicipalStoragePermissionPolicy>();
+        services.AddScoped<IPlaceStoragePermissionPolicy, CompositePlaceStoragePermissionPolicy>();
         services.AddScoped<IPlaceMatcher, ConservativePlaceMatcher>();
         services.AddScoped<IPlaceImportRepository, PlaceImportRepository>();
         services.AddScoped<IPlaceCatalogGovernanceRepository, PlaceCatalogGovernanceRepository>();

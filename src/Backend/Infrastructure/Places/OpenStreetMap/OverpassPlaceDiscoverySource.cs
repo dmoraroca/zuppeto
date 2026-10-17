@@ -21,14 +21,14 @@ internal sealed class OverpassPlaceDiscoverySource(HttpClient http, IOptions<Ove
         License,
         Attribution,
         true,
-        new DateTimeOffset(2026, 10, 13, 0, 0, 0, TimeSpan.Zero));
+        new DateTimeOffset(2026, 10, 13, 0, 0, 0, TimeSpan.Zero),
+        new(["ES", "DE"], ["es:ine:municipality", "de:destatis:ags", "de:destatis:land"], PlaceCatalogCategories.All, true));
 
     public async Task<Result<PlaceDiscoveryBatch>> DiscoverAsync(PlaceSourceContext context, CancellationToken cancellationToken)
     {
-        if (!string.Equals(context.CountryIso2, "ES", StringComparison.OrdinalIgnoreCase))
-            return Result<PlaceDiscoveryBatch>.Fail(FailureKind.Invalid, "El connector OSM pilot només admet Espanya.");
-        if (!string.Equals(context.OfficialCodeScheme, "es:ine:municipality", StringComparison.OrdinalIgnoreCase))
-            return Result<PlaceDiscoveryBatch>.Fail(FailureKind.Invalid, "El municipi no té un codi INE verificat.");
+        if (!TryBoundaryTag(context, out _))
+            return Result<PlaceDiscoveryBatch>.Fail(FailureKind.Invalid,
+                "Overpass no té un mapping auditat per al país i l’esquema territorial seleccionats.");
 
         if (!string.IsNullOrWhiteSpace(settings.FixturePath))
         {
@@ -45,7 +45,7 @@ internal sealed class OverpassPlaceDiscoverySource(HttpClient http, IOptions<Ove
             return Result<PlaceDiscoveryBatch>.Fail(FailureKind.ExternalUnavailable, $"Overpass ha respost HTTP {(int)response.StatusCode}.");
 
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-        return await ParseStreamAsync(stream, context, cancellationToken);
+        return await ParseStreamAsync(stream, boundedContext, cancellationToken);
     }
 
     private static async Task<Result<PlaceDiscoveryBatch>> ParseStreamAsync(Stream stream, PlaceSourceContext context, CancellationToken cancellationToken)
@@ -65,15 +65,23 @@ internal sealed class OverpassPlaceDiscoverySource(HttpClient http, IOptions<Ove
 
     internal static string BuildQuery(PlaceSourceContext context)
     {
+        if (!TryBoundaryTag(context, out var boundaryTag))
+            throw new InvalidOperationException("Esquema territorial Overpass no admès.");
         var selectors = context.Categories.SelectMany(OsmPlaceCategoryMapper.Selectors).Distinct().ToArray();
         if (selectors.Length == 0) throw new InvalidOperationException("Categoria OSM no admesa.");
         var clauses = selectors.GroupBy(x => x.Key).Select(group =>
             $"nwr(area.searchArea)[\"{group.Key}\"~\"^({string.Join('|', group.Select(x => x.Value).Distinct())})$\"];");
         var safeCode = context.OfficialCode.Replace("\"", string.Empty, StringComparison.Ordinal);
-        var limit = Math.Clamp(context.Limit, 1, 250);
+        var codePattern = context.OfficialCodeScheme.ToLowerInvariant() switch
+        {
+            "es:ine:municipality" => $"{safeCode}(000000)?",
+            "de:destatis:land" => $"{safeCode}(000000)?",
+            _ => safeCode
+        };
+        var limit = Math.Clamp(context.Limit, 1, 250) + 1;
         return $"""
             [out:json][timeout:25];
-            rel["boundary"="administrative"]["admin_level"="8"]["ref:ine"~"^{safeCode}(000000)?$"]->.boundary;
+            rel["boundary"="administrative"]["{boundaryTag}"~"^{codePattern}$"]->.boundary;
             .boundary out tags;
             .boundary map_to_area->.searchArea;
             (
@@ -88,13 +96,18 @@ internal sealed class OverpassPlaceDiscoverySource(HttpClient http, IOptions<Ove
         if (!root.TryGetProperty("elements", out var elements) || elements.ValueKind != JsonValueKind.Array)
             return Result<PlaceDiscoveryBatch>.Fail(FailureKind.ExternalUnavailable, "Overpass no ha retornat elements.");
 
+        if (!TryBoundaryTag(context, out var boundaryTag))
+            return Result<PlaceDiscoveryBatch>.Fail(FailureKind.Invalid,
+                "Overpass no té un mapping auditat per al país i l’esquema territorial seleccionats.");
+
         var observedAt = DateTimeOffset.UtcNow;
-        var boundary = elements.EnumerateArray().Where(IsVerifiedBoundary).ToArray();
+        var boundary = elements.EnumerateArray().Where(element => IsVerifiedBoundary(element, boundaryTag)).ToArray();
         if (boundary.Length != 1)
             return Result<PlaceDiscoveryBatch>.Fail(FailureKind.Invalid, "No s’ha pogut verificar una única frontera administrativa OSM per al codi oficial.");
         var boundaryTags = Tags(boundary[0]);
-        if (!boundaryTags.TryGetValue("ref:ine", out var refIne) || !GeofabrikPbfReader.OfficialCodesEquivalent(refIne, context.OfficialCode))
-            return Result<PlaceDiscoveryBatch>.Fail(FailureKind.Invalid, "La frontera OSM no coincideix amb el codi INE del catàleg PetiLoc.");
+        if (!boundaryTags.TryGetValue(boundaryTag, out var boundaryCode) || !OfficialCodeMatches(context, boundaryCode))
+            return Result<PlaceDiscoveryBatch>.Fail(FailureKind.Invalid,
+                "La frontera OSM no coincideix amb el codi territorial oficial del catàleg PetiLoc.");
 
         var boundaryId = $"relation/{boundary[0].GetProperty("id").GetInt64()}";
         var documents = new List<PlaceSourceDocument>();
@@ -110,18 +123,49 @@ internal sealed class OverpassPlaceDiscoverySource(HttpClient http, IOptions<Ove
                 new Uri($"https://www.openstreetmap.org/{type}/{id}"), fields));
         }
 
+        var partial = documents.Count > context.Limit;
+        if (partial) documents = documents.Take(context.Limit).ToList();
         var scope = new PlaceSourceScopeEvidence("osm-relation", boundaryId, context.OfficialCode,
             boundaryTags.GetValueOrDefault("name", context.TerritorialName), true, observedAt);
-        return Result<PlaceDiscoveryBatch>.Success(new(scope, documents, false, null));
+        return Result<PlaceDiscoveryBatch>.Success(new(scope, documents, partial,
+            partial ? $"Overpass conté més de {context.Limit} candidats; cal un extracte o particionament per cobrir el territori complet." : null));
     }
 
-    private static bool IsVerifiedBoundary(JsonElement element)
+    private static bool IsVerifiedBoundary(JsonElement element, string boundaryTag)
     {
         if (element.GetProperty("type").GetString() != "relation") return false;
         var tags = Tags(element);
         return tags.GetValueOrDefault("boundary") == "administrative"
-            && tags.GetValueOrDefault("admin_level") == "8"
-            && tags.ContainsKey("ref:ine");
+            && tags.ContainsKey(boundaryTag);
+    }
+
+    private static bool TryBoundaryTag(PlaceSourceContext context, out string tag)
+    {
+        if (string.Equals(context.CountryIso2, "ES", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(context.OfficialCodeScheme, "es:ine:municipality", StringComparison.OrdinalIgnoreCase))
+        {
+            tag = "ref:ine";
+            return true;
+        }
+        if (string.Equals(context.CountryIso2, "DE", StringComparison.OrdinalIgnoreCase)
+            && context.OfficialCodeScheme is "de:destatis:ags" or "de:destatis:land")
+        {
+            tag = "de:amtlicher_gemeindeschluessel";
+            return true;
+        }
+        tag = string.Empty;
+        return false;
+    }
+
+    private static bool OfficialCodeMatches(PlaceSourceContext context, string observed)
+    {
+        if (string.Equals(context.OfficialCodeScheme, "es:ine:municipality", StringComparison.OrdinalIgnoreCase))
+            return GeofabrikPbfReader.OfficialCodesEquivalent(observed, context.OfficialCode);
+        var observedCode = observed.Trim().TrimStart('D', 'E');
+        var expectedCode = context.OfficialCode.Trim().TrimStart('D', 'E');
+        if (string.Equals(context.OfficialCodeScheme, "de:destatis:land", StringComparison.OrdinalIgnoreCase))
+            return observedCode == expectedCode || observedCode == expectedCode.PadRight(8, '0');
+        return string.Equals(observedCode, expectedCode, StringComparison.OrdinalIgnoreCase);
     }
 
     private static Dictionary<string, string> Tags(JsonElement element)
@@ -149,10 +193,15 @@ internal sealed class OverpassPlaceDiscoverySource(HttpClient http, IOptions<Ove
         Add(fields, "name", tags.GetValueOrDefault("name"), tags.GetValueOrDefault("name"), observedAt);
         var sourceCategory = First(tags, "amenity", "tourism", "leisure", "shop", "craft");
         Add(fields, "category", sourceCategory, normalizedCategory ?? sourceCategory, observedAt);
+        Add(fields, "category.family", sourceCategory,
+            PlaceCommercialClassification.GeneralType(normalizedCategory ?? sourceCategory ?? string.Empty).ToString(), observedAt);
+        Add(fields, "category.subcategory", sourceCategory, normalizedCategory ?? sourceCategory, observedAt);
+        Add(fields, "source.category", sourceCategory, sourceCategory, observedAt);
         Add(fields, "osm.amenity", tags.GetValueOrDefault("amenity"), tags.GetValueOrDefault("amenity"), observedAt);
         Add(fields, "osm.tourism", tags.GetValueOrDefault("tourism"), tags.GetValueOrDefault("tourism"), observedAt);
         Add(fields, "osm.leisure", tags.GetValueOrDefault("leisure"), tags.GetValueOrDefault("leisure"), observedAt);
         Add(fields, "osm.shop", tags.GetValueOrDefault("shop"), tags.GetValueOrDefault("shop"), observedAt);
+        Add(fields, "osm.craft", tags.GetValueOrDefault("craft"), tags.GetValueOrDefault("craft"), observedAt);
         Add(fields, "address.street", tags.GetValueOrDefault("addr:street"), tags.GetValueOrDefault("addr:street"), observedAt);
         Add(fields, "address.housenumber", tags.GetValueOrDefault("addr:housenumber"), tags.GetValueOrDefault("addr:housenumber"), observedAt);
         Add(fields, "address.postcode", tags.GetValueOrDefault("addr:postcode"), tags.GetValueOrDefault("addr:postcode"), observedAt);

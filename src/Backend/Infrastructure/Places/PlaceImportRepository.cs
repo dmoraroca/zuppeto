@@ -22,20 +22,34 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
                 x.CountryId,
                 CountryIso2 = x.Country.Iso2,
                 x.Id,
-                IsLocality = x.TerritorialUnitType.IsSelectableLocality || x.ManualSelectableLocality == true,
                 Name = x.Names.Where(n => n.IsPrimary).Select(n => n.Name).FirstOrDefault(),
-                Code = x.Codes.Where(c => c.Scheme == "es:ine:municipality" && c.IsPrimary)
-                    .Select(c => new { c.Scheme, c.Value }).FirstOrDefault()
+                Codes = x.Codes.Where(c => c.IsPrimary || c.Scheme == "es:ine:municipality"
+                        || c.Scheme == "de:destatis:ags" || c.Scheme == "de:destatis:land")
+                    .Select(c => new { c.Scheme, c.Value, c.IsPrimary }).ToArray()
             }).SingleOrDefaultAsync(ct);
-        if (scope is null || !scope.IsLocality || string.IsNullOrWhiteSpace(scope.CountryIso2)
-            || string.IsNullOrWhiteSpace(scope.Name) || scope.Code is null)
-            throw new InvalidOperationException("El municipi seleccionat no té identitat territorial oficial verificable.");
-        return new(scope.CountryId, scope.CountryIso2, scope.Id, scope.Name, scope.Code.Scheme, scope.Code.Value);
+        if (scope is null || string.IsNullOrWhiteSpace(scope.CountryIso2)
+            || string.IsNullOrWhiteSpace(scope.Name))
+            throw new InvalidOperationException("La unitat territorial seleccionada no té identitat oficial verificable.");
+        var code = scope.Codes
+            .OrderBy(item => PreferredCodeOrder(scope.CountryIso2, item.Scheme))
+            .ThenByDescending(item => item.IsPrimary)
+            .FirstOrDefault();
+        if (code is null)
+            throw new InvalidOperationException("El municipi seleccionat no té cap codi territorial oficial admès.");
+        return new(scope.CountryId, scope.CountryIso2, scope.Id, scope.Name, code.Scheme, code.Value);
     }
+
+    private static int PreferredCodeOrder(string countryIso2, string scheme) => (countryIso2.ToUpperInvariant(), scheme) switch
+    {
+        ("ES", "es:ine:municipality") => 0,
+        ("DE", "de:destatis:ags") => 0,
+        ("DE", "de:destatis:land") => 0,
+        _ => 1
+    };
 
     public async Task<PlaceImportRunDto> CreateAsync(PreparePlaceImportRequest request, PlaceImportScope scope, Guid actorId, CancellationToken ct = default)
     {
-        var source = await EnsureSourceAsync(OpenStreetMapSource.SourceKey, ct);
+        var source = await EnsureSourceAsync(request.SourceKey ?? OpenStreetMapSource.SourceKey, ct);
         var now = DateTimeOffset.UtcNow;
         var record = new PlaceImportRunRecord
         {
@@ -49,8 +63,8 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
         };
         db.PlaceImportRuns.Add(record);
         db.PlaceImportDecisions.Add(Decision(record.Id, actorId, "Prepared", request.SimulationOnly
-            ? "Importació OSM preparada en mode simulació."
-            : "Importació OSM real preparada per al pilot controlat d’Arenys de Mar.", now));
+            ? $"Importació {source.SourceKey} preparada en mode simulació."
+            : $"Importació {source.SourceKey} real preparada per al pilot controlat d’Arenys de Mar.", now));
         await db.SaveChangesAsync(ct);
         return ToDto(record, source.SourceKey);
     }
@@ -336,6 +350,24 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
             };
             db.PlaceDatasetSources.Add(source); await db.SaveChangesAsync(ct); return source;
         }
+        if (sourceKey == DibaMunicipalSource.SourceKey)
+        {
+            source = new PlaceDatasetSourceRecord
+            {
+                Id = Guid.NewGuid(), SourceKey = DibaMunicipalSource.SourceKey,
+                Organisation = "Diputació de Barcelona", Dataset = "Cens municipal d’activitats i establiments",
+                DatasetVersion = "live", Coverage = "Municipis participants de la demarcació de Barcelona",
+                Url = "https://dadesobertes.diba.cat/datasets/cens-dactivitats-i-establiments",
+                AttributionUrl = "https://creativecommons.org/licenses/by/4.0/",
+                LicenseIdentifier = "CC-BY-4.0", LicenseUrl = "https://creativecommons.org/licenses/by/4.0/",
+                Attribution = "Font: Diputació de Barcelona — Cens municipal d’activitats i establiments",
+                ReuseConditions = "Atribució i data d’actualització obligatòries; NIF i raó social exclosos per minimització.",
+                PermanentStorageAllowed = true, CommercialUseAllowed = true, OdblDerived = false,
+                ApprovalStatus = "PilotApproved",
+                ReviewedAtUtc = new DateTimeOffset(2026,10,17,0,0,0,TimeSpan.Zero), CreatedAtUtc = DateTimeOffset.UtcNow
+            };
+            db.PlaceDatasetSources.Add(source); await db.SaveChangesAsync(ct); return source;
+        }
         if (sourceKey != OpenStreetMapSource.SourceKey)
             throw new InvalidOperationException($"La font d’importació '{sourceKey}' no està registrada.");
         source = new PlaceDatasetSourceRecord
@@ -408,18 +440,19 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
         var street = fields.GetValueOrDefault("address.street")?.Trim();
         var houseNumber = fields.GetValueOrDefault("address.housenumber")?.Trim();
         var address = string.Join(" ", new[] { street, houseNumber }.Where(x => !string.IsNullOrWhiteSpace(x)));
-        if (string.IsNullOrWhiteSpace(address)) address = "Adreça no informada a OpenStreetMap";
+        if (string.IsNullOrWhiteSpace(address)) address = "Adreça no informada per la font";
         var (status, species) = PetPolicy(fields);
         var type = PlaceCommercialClassification.GeneralType(item.Category);
         var place = new Place(Guid.NewGuid(), item.Name,
             type,
-            $"{item.Category.Replace('_', ' ')} a Arenys de Mar.",
-            "Informació procedent d’OpenStreetMap. Confirma la política pet-friendly abans d’anar-hi.", string.Empty,
-            new PostalAddress(address, run.TerritorialName, "Espanya", string.Empty),
+            $"{item.Category.Replace('_', ' ')} a {run.TerritorialName}.",
+            $"Informació procedent de {run.Source.Dataset}. Confirma la política pet-friendly abans d’anar-hi.", string.Empty,
+            new PostalAddress(address, run.TerritorialName, run.CountryIso2, fields.GetValueOrDefault("address.postcode") ?? string.Empty),
             new GeoLocation(item.Latitude!.Value, item.Longitude!.Value),
             new Zuppeto.Domain.Places.ValueObjects.PetPolicy(status, species, [],
                 status == PetAccessStatus.Unknown ? "Informació pet-friendly desconeguda" : "Informació pet-friendly d’OpenStreetMap", string.Empty),
-            new Pricing(string.Empty), new RatingSnapshot(0, 0), PlaceDataProvenance.OpenStreetMap,
+            new Pricing(string.Empty), new RatingSnapshot(0, 0),
+            run.Source.SourceKey == OpenStreetMapSource.SourceKey ? PlaceDataProvenance.OpenStreetMap : PlaceDataProvenance.OpenData,
             territorialCountryId: run.CountryId, territorialUnitId: run.TerritorialUnitId,
             commercialCategory: item.Category);
         if (fields.GetValueOrDefault("amenity.outdoor_seating") == "Available")

@@ -46,6 +46,7 @@ public static class DependencyInjection
         services.AddSingleton<PlaceMediaLicensePolicy>();
         services.AddScoped<IPetGovernanceApplicationService, PetGovernanceApplicationService>();
         services.AddScoped<IPlaceImportApplicationService, PlaceImportApplicationService>();
+        services.AddSingleton<IPlaceCandidateGeolocationResolver, CrossSourcePlaceGeolocationResolver>();
         services.AddScoped<IPlaceCatalogGovernanceService, PlaceCatalogGovernanceService>();
         services.AddSingleton<PetAssertionPrecedencePolicy>();
         services.AddScoped<IFavoriteListApplicationService, FavoriteListApplicationService>();

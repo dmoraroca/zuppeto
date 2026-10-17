@@ -14,6 +14,8 @@ El grup `/api/admin/place-imports` implementa context, preparació `202 Accepted
 
 El mode `OSM_DIRECT_MAP` afegit al gate de cobertura de Fase VI és exclusivament d’auditoria ADMIN i està desactivat per defecte. Fa una sola petició `GET /api/0.6/map?bbox=…`, processa XML en streaming i exigeix frontera municipal OSM amb codi INE equivalent abans de retornar candidats. El límit de publicació continua acceptant únicament Geofabrik; per tant, aquest mode no pot publicar automàticament. [Resultat d’Arenys](evidencies/osm-direct-coverage-arenys-20261016.md).
 
+El connector `DIBA_MUNICIPAL_ESTABLISHMENTS_API` consulta el cens municipal obert amb `GET dataset/establiments/camp-rel_municipi/{codiINE}/format/json`. Queda registrat però desactivat amb `PlaceSources:DibaMunicipalEstablishments:Enabled=false`; el cas d’ús d’importació encara no accepta aquest mode. Exigeix CC BY 4.0, conserva atribució i data, i exclou NIF/raó social. [Gate legal i prova read-only d’Arenys](evidencies/arenys-municipal-reuse-connector-20261017.md).
+
 
 ## Iteració 7 — Fase III, governança de Places
 
@@ -227,3 +229,11 @@ L'autenticació real pertany a la Fase IV. El login propi i Google OAuth real es
 `POST /api/admin/territorial/imports` permet ometre `mappingTemplateId`, `datasetSourceId` i `datasetVersion` únicament quan el llibre és `PETILOC_TERRITORIAL 1.0`; el servidor torna a llegir el Manifest, resol fonts registrades i persisteix les metadades. La publicació retorna conflicte si una font contribuïdora no és activa i `Approved`.
 
 La governança de fonts incorpora `GET /api/admin/territorial/sources`, `GET /api/admin/territorial/sources/{id}` i `POST /api/admin/territorial/sources/{id}/decision`. Tots tres requereixen ADMIN. La decisió rep `decision`, `expectedStatus` i `reason`; retorna `409 territorial_source_conflict` si l'estat ha canviat concurrentment, rebutja aprovacions amb metadades incompletes i no publica cap catàleg.
+
+## Addenda Fase VI — planificació territorial de fonts de Places
+
+- `POST /api/admin/place-imports/plan`: operació ADMIN de només lectura. Rep `countryId`, `territorialUnitId` i `categories`; retorna l'àmbit oficial i, per connector, compatibilitat, estat, llicència, categories cobertes i motiu de bloqueig.
+- `POST /api/admin/place-imports/prepare-compatible`: prepara un lot de **simulació** per cada font habilitada compatible. No publica Places i manté els gates de publicació existents.
+- `GET /api/admin/place-imports/context`: exposa també `sourceKey` i la cobertura declarada dels connectors. Els països ja no estan fixats a `ES`.
+
+Totes tres operacions exigeixen rol ADMIN i `action.places.manage`. DIBA continua desactivada per configuració i la publicació real general no queda autoritzada.

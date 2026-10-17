@@ -12,6 +12,8 @@ internal static class PlaceImportEndpoints
     {
         var group=app.MapGroup("/api/admin/place-imports").RequireAuthorization().WithTags("Place imports");
         group.MapGet("/context",Context);
+        group.MapPost("/plan",Plan);
+        group.MapPost("/prepare-compatible",PrepareCompatible);
         group.MapGet("/",List);
         group.MapGet("/{id:guid}",Get);
         group.MapPost("/",Prepare);
@@ -26,13 +28,16 @@ internal static class PlaceImportEndpoints
     private static Task<IResult> Context(ClaimsPrincipal principal,IAdminApplicationService admin,IEnumerable<IPlaceDiscoverySource> sources,CancellationToken ct)=>
         Execute(principal,admin,_=>Task.FromResult<object>(new
         {
-            sources=sources.Select(source=>new{key=source.Descriptor.AccessMode,label=source.Descriptor.AccessMode switch
+            sources=sources.Select(source=>new{key=source.Descriptor.AccessMode,sourceKey=source.Descriptor.SourceKey,label=source.Descriptor.AccessMode switch
             {
                 OpenStreetMapSource.GeofabrikExtractAccessMode => "OpenStreetMap / extracte Geofabrik",
                 OpenStreetMapSource.DirectMapAccessMode => "OpenStreetMap / API directa (auditoria)",
+                DibaMunicipalSource.RestApiAccessMode => "DIBA / cens municipal d’activitats",
                 _ => "OpenStreetMap / Overpass"
-            },license=source.Descriptor.LicenseIdentifier,attribution=source.Descriptor.Attribution}),
-            countries=new[]{"ES"},categories=new[]{
+            },license=source.Descriptor.LicenseIdentifier,attribution=source.Descriptor.Attribution,
+              coverage=source.Descriptor.Coverage}),
+            countries=sources.SelectMany(source=>source.Descriptor.Coverage?.CountryIso2 ?? [])
+                .Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(country=>country),categories=new[]{
                 new{key="restaurant",label="Restaurants"},new{key="cafe",label="Cafeteries"},new{key="bar",label="Bars"},new{key="pub",label="Pubs"},
                 new{key="fast_food",label="Menjar ràpid"},new{key="biergarten",label="Cerveseries a l’aire lliure"},
                 new{key="food_court",label="Zones de restauració"},new{key="nightclub",label="Locals nocturns"},
@@ -44,6 +49,8 @@ internal static class PlaceImportEndpoints
                 new{key="pet_service",label="Serveis per mascotes"},new{key="pet_grooming",label="Perruqueries canines"}},simulationOnly=true
         }),ct);
     private static Task<IResult> List(ClaimsPrincipal p,IAdminApplicationService a,IPlaceImportApplicationService s,CancellationToken ct)=>Execute(p,a,_=>s.ListAsync(ct),ct);
+    private static Task<IResult> Plan(PlanPlaceDiscoveryRequest request,ClaimsPrincipal p,IAdminApplicationService a,IPlaceImportApplicationService s,CancellationToken ct)=>Execute(p,a,_=>s.PlanAsync(request,ct),ct);
+    private static Task<IResult> PrepareCompatible(PrepareCompatiblePlaceDiscoveryRequest request,ClaimsPrincipal p,IAdminApplicationService a,IPlaceImportApplicationService s,CancellationToken ct)=>Execute(p,a,actor=>s.PrepareCompatibleAsync(request,actor,ct),ct,true);
     private static async Task<IResult> Get(Guid id,ClaimsPrincipal p,IAdminApplicationService a,IPlaceImportApplicationService s,CancellationToken ct)
     {
         var result=await ExecuteValue(p,a,_=>s.GetAsync(id,ct),ct);return result;

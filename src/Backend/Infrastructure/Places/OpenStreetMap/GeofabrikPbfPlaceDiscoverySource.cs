@@ -25,7 +25,7 @@ internal sealed class GeofabrikPbfPlaceDiscoverySource(IOptions<GeofabrikExtract
         }
     }
 
-    public PlaceSourceDescriptor Descriptor { get; } = new(
+    public PlaceSourceDescriptor Descriptor => new(
         OpenStreetMapSource.SourceKey,
         OpenStreetMapSource.GeofabrikExtractAccessMode,
         PlaceSourceCapability.Discovery | PlaceSourceCapability.ProvenanceVerification | PlaceSourceCapability.StoragePermissionValidation,
@@ -33,7 +33,11 @@ internal sealed class GeofabrikPbfPlaceDiscoverySource(IOptions<GeofabrikExtract
         License,
         Attribution,
         true,
-        new DateTimeOffset(2026, 10, 14, 0, 0, 0, TimeSpan.Zero));
+        new DateTimeOffset(2026, 10, 14, 0, 0, 0, TimeSpan.Zero),
+        new(["ES"], ["es:ine:municipality"], PlaceCatalogCategories.All,
+            !string.IsNullOrWhiteSpace(settings.ExtractPath) && File.Exists(settings.ExtractPath),
+            !string.IsNullOrWhiteSpace(settings.ExtractPath) && File.Exists(settings.ExtractPath)
+                ? null : "No hi ha cap extracte Geofabrik local configurat i disponible."));
 
     public Task<Result<PlaceDiscoveryBatch>> DiscoverAsync(PlaceSourceContext context, CancellationToken cancellationToken)
     {

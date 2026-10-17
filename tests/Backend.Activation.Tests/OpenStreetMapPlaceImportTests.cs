@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using System.Diagnostics;
+using System.Text.Json;
 using Microsoft.Extensions.Options;
 using OsmSharp;
 using OsmSharp.Streams;
@@ -29,8 +30,35 @@ public sealed class OpenStreetMapPlaceImportTests(ITestOutputHelper output)
         Assert.Contains("nwr(area.searchArea)", query);
         Assert.DoesNotContain("around:", query);
         Assert.DoesNotContain("meta", query, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("out center 251", query);
         Assert.True(GeofabrikPbfReader.OfficialCodesEquivalent("08006000000", "08006"));
         Assert.False(GeofabrikPbfReader.OfficialCodesEquivalent("08006000001", "08006"));
+    }
+
+    [Fact]
+    public async Task Berlin_query_uses_AGS_and_accepts_the_city_state_boundary_level()
+    {
+        var berlin = Scope with
+        {
+            CountryIso2 = "DE", TerritorialName = "Berlin",
+            OfficialCodeScheme = "de:destatis:land", OfficialCode = "11"
+        };
+        var query = OverpassPlaceDiscoverySource.BuildQuery(berlin);
+        Assert.Contains("de:amtlicher_gemeindeschluessel\"~\"^11(000000)?$", query);
+        Assert.DoesNotContain("admin_level", query);
+
+        using var client = Client(HttpStatusCode.OK, """
+        {"elements":[
+          {"type":"relation","id":62422,"tags":{"boundary":"administrative","admin_level":"4","de:amtlicher_gemeindeschluessel":"11000000","name":"Berlin"}},
+          {"type":"node","id":10,"lat":52.52,"lon":13.405,"tags":{"name":"Cafè Berlín","amenity":"cafe"}}
+        ]}
+        """);
+        var result = await new OverpassPlaceDiscoverySource(client, Options.Create(new OverpassOptions()))
+            .DiscoverAsync(berlin, CancellationToken.None);
+
+        Assert.True(result.IsSuccess, result.Failure?.Message);
+        Assert.Equal("relation/62422", result.Value!.Scope.ExternalId);
+        Assert.Single(result.Value.Documents);
     }
 
     [Fact]
@@ -115,6 +143,31 @@ public sealed class OpenStreetMapPlaceImportTests(ITestOutputHelper output)
         Assert.Contains(result.Value.Documents, x => x.ExternalId == "way/2" && x.Fields["pet.dog"].NormalizedValue == "Allowed");
         Assert.Contains(result.Value.Documents, x => x.ExternalId == "relation/3" && x.Fields["pet.dog"].NormalizedValue == "NotAllowed");
         Assert.All(result.Value.Documents.SelectMany(x => x.Fields.Values), value => Assert.Equal("ODbL-1.0", value.LicenseIdentifier));
+    }
+
+    [Fact]
+    public async Task Connector_detects_the_limit_instead_of_claiming_complete_coverage()
+    {
+        var elements = new List<object>
+        {
+            new { type = "relation", id = 347950, tags = new Dictionary<string, string>
+                { ["boundary"] = "administrative", ["admin_level"] = "8", ["ref:ine"] = "08006", ["name"] = "Arenys de Mar" } }
+        };
+        elements.AddRange(Enumerable.Range(1, 251).Select(index => (object)new
+        {
+            type = "node", id = index, lat = 41.58, lon = 2.55,
+            tags = new Dictionary<string, string> { ["name"] = $"Local {index}", ["amenity"] = "restaurant" }
+        }));
+        var payload = JsonSerializer.Serialize(new { elements });
+        using var client = Client(HttpStatusCode.OK, payload);
+
+        var result = await new OverpassPlaceDiscoverySource(client, Options.Create(new OverpassOptions()))
+            .DiscoverAsync(Scope, CancellationToken.None);
+
+        Assert.True(result.IsSuccess, result.Failure?.Message);
+        Assert.True(result.Value!.IsPartial);
+        Assert.Equal(250, result.Value.Documents.Count);
+        Assert.Contains("particionament", result.Value.Warning);
     }
 
     [Fact]

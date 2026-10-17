@@ -5,7 +5,37 @@ public sealed record PreparePlaceImportRequest(
     Guid TerritorialUnitId,
     IReadOnlyCollection<string> Categories,
     string AccessMode,
-    bool SimulationOnly = true);
+    bool SimulationOnly = true,
+    string? SourceKey = null);
+
+public sealed record PlanPlaceDiscoveryRequest(
+    Guid CountryId,
+    Guid TerritorialUnitId,
+    IReadOnlyCollection<string> Categories);
+
+public sealed record PlaceDiscoverySourcePlanDto(
+    string SourceKey,
+    string AccessMode,
+    string LicenseIdentifier,
+    bool Compatible,
+    bool Enabled,
+    IReadOnlyCollection<string> SupportedCategories,
+    IReadOnlyCollection<string> RequestedCategories,
+    string? BlockingReason);
+
+public sealed record PlaceDiscoveryPlanDto(
+    PlaceImportScope Scope,
+    IReadOnlyCollection<string> Categories,
+    IReadOnlyCollection<PlaceDiscoverySourcePlanDto> Sources);
+
+public sealed record PrepareCompatiblePlaceDiscoveryRequest(
+    Guid CountryId,
+    Guid TerritorialUnitId,
+    IReadOnlyCollection<string> Categories);
+
+public sealed record PreparedPlaceDiscoveryDto(
+    PlaceDiscoveryPlanDto Plan,
+    IReadOnlyCollection<PlaceImportRunDto> Runs);
 
 public sealed record PlaceImportScope(
     Guid CountryId,
@@ -108,6 +138,9 @@ public interface IPlaceImportWorkQueue
 
 public interface IPlaceImportApplicationService
 {
+    Task<PlaceDiscoveryPlanDto> PlanAsync(PlanPlaceDiscoveryRequest request, CancellationToken cancellationToken = default);
+    Task<PreparedPlaceDiscoveryDto> PrepareCompatibleAsync(PrepareCompatiblePlaceDiscoveryRequest request, Guid actorId,
+        CancellationToken cancellationToken = default);
     Task<PlaceImportRunDto> PrepareAsync(PreparePlaceImportRequest request, Guid actorId, CancellationToken cancellationToken = default);
     Task<IReadOnlyCollection<PlaceImportRunDto>> ListAsync(CancellationToken cancellationToken = default);
     Task<PlaceImportDetailsDto?> GetAsync(Guid importId, CancellationToken cancellationToken = default);

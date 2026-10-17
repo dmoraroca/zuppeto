@@ -20,7 +20,7 @@ internal sealed class OsmDirectMapPlaceDiscoverySource(
 
     internal OsmDirectMapMetrics? LastMetrics { get; private set; }
 
-    public PlaceSourceDescriptor Descriptor { get; } = new(
+    public PlaceSourceDescriptor Descriptor => new(
         OpenStreetMapSource.SourceKey,
         OpenStreetMapSource.DirectMapAccessMode,
         PlaceSourceCapability.Discovery | PlaceSourceCapability.ProvenanceVerification | PlaceSourceCapability.StoragePermissionValidation,
@@ -28,7 +28,9 @@ internal sealed class OsmDirectMapPlaceDiscoverySource(
         License,
         Attribution,
         true,
-        new DateTimeOffset(2026, 10, 15, 0, 0, 0, TimeSpan.Zero));
+        new DateTimeOffset(2026, 10, 15, 0, 0, 0, TimeSpan.Zero),
+        new(["ES"], ["es:ine:municipality"], PlaceCatalogCategories.All, settings.Enabled,
+            settings.Enabled ? null : "La consulta OSM directa està desactivada per configuració."));
 
     public async Task<Result<PlaceDiscoveryBatch>> DiscoverAsync(PlaceSourceContext context, CancellationToken cancellationToken)
     {

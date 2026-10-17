@@ -3,6 +3,8 @@
 **Data de validació:** 16.10.2026
 **Estat:** reoberta per validar cobertura multifont; no es declara tancada en aquest gate. La Fase VII no s'ha iniciat.
 
+> **Gate territorial 17.10.2026:** el motor declara i selecciona cobertura per font. DIBA ha conservat 220 candidats d’Arenys: 198 `NotMatch`, 22 `NeedsReview` i 64 pendents de geolocalització, sense alterar els 52 Places. Overpass s’ha validat amb Arenys, Madrid i Berlín, però els 30.097/39.063 objectes de les dues capitals exigeixen extractes o particionament i no constitueixen cobertura operativa. [Informe i evidències](evidencies/place-discovery-coverage-engine-20261017.md).
+
 ## Gate de cobertura multifont
 
 La comparació real entre els 50 Places publicats, l’índex Geofabrik i una única consulta OSM directa d’Arenys queda documentada a [l’evidència del 16.10.2026](evidencies/osm-direct-coverage-arenys-20261016.md). OSM directe ha retornat 73 candidats davant dels 68 de Geofabrik, però els cinc addicionals són farmàcies i benzineres incorporades per l’ampliació de categories: cap candidat té un timestamp posterior al tall del PBF.

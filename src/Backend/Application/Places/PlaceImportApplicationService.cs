@@ -5,32 +5,107 @@ namespace Zuppeto.Application.Places;
 
 public sealed class PlaceImportApplicationService(
     IPlaceImportRepository repository,
-    IPlaceMediaApplicationService? media = null) : IPlaceImportApplicationService
+    IPlaceMediaApplicationService? media = null,
+    IEnumerable<IPlaceDiscoverySource>? discoverySources = null) : IPlaceImportApplicationService
 {
     private static readonly Guid ArenysDeMarTerritorialUnitId = Guid.Parse("8680aa5a-292f-4201-8d52-d6381f438af4");
     private static readonly HashSet<string> AllowedCategories = new(PlaceCatalogCategories.All, StringComparer.OrdinalIgnoreCase);
     private static readonly HashSet<string> PhaseFourPublicationCategories = new(StringComparer.OrdinalIgnoreCase) { "restaurant", "cafe" };
+    private readonly IPlaceDiscoverySource[] sources = discoverySources?.ToArray() ?? [];
+
+    public async Task<PlaceDiscoveryPlanDto> PlanAsync(PlanPlaceDiscoveryRequest request, CancellationToken ct = default)
+    {
+        var categories = ValidateCategories(request.Categories);
+        var scope = await repository.ResolveScopeAsync(request.CountryId, request.TerritorialUnitId, ct);
+        var plans = sources.Select(source => Plan(source.Descriptor, scope, categories))
+            .OrderByDescending(source => source.Compatible && source.Enabled)
+            .ThenBy(source => source.SourceKey, StringComparer.Ordinal)
+            .ThenBy(source => source.AccessMode, StringComparer.Ordinal)
+            .ToArray();
+        return new(scope, categories, plans);
+    }
+
+    public async Task<PreparedPlaceDiscoveryDto> PrepareCompatibleAsync(
+        PrepareCompatiblePlaceDiscoveryRequest request, Guid actorId, CancellationToken ct = default)
+    {
+        var plan = await PlanAsync(new(request.CountryId, request.TerritorialUnitId, request.Categories), ct);
+        var compatible = plan.Sources.Where(source => source.Compatible && source.Enabled).ToArray();
+        if (compatible.Length == 0)
+            throw new DomainRuleException("No hi ha cap font de descobriment habilitada i compatible amb el territori i les categories.");
+
+        var runs = new List<PlaceImportRunDto>(compatible.Length);
+        foreach (var source in compatible)
+        {
+            runs.Add(await PrepareAsync(new(request.CountryId, request.TerritorialUnitId,
+                source.RequestedCategories, source.AccessMode, true, source.SourceKey), actorId, ct));
+        }
+        return new(plan, runs);
+    }
 
     public async Task<PlaceImportRunDto> PrepareAsync(PreparePlaceImportRequest request, Guid actorId, CancellationToken ct = default)
     {
-        if (request.AccessMode is not (OpenStreetMapSource.OverpassAccessMode
-            or OpenStreetMapSource.GeofabrikExtractAccessMode
-            or OpenStreetMapSource.DirectMapAccessMode))
-            throw new DomainRuleException("La font seleccionada no està disponible en aquest pilot.");
-        var categories = request.Categories.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
-        if (categories.Length == 0 || categories.Any(category => !AllowedCategories.Contains(category)))
-            throw new DomainRuleException("Selecciona restaurants i/o cafeteries.");
-
+        var categories = ValidateCategories(request.Categories);
         var scope = await repository.ResolveScopeAsync(request.CountryId, request.TerritorialUnitId, ct);
-        if (!string.Equals(scope.CountryIso2, "ES", StringComparison.OrdinalIgnoreCase))
-            throw new DomainRuleException("El pilot de la Fase IV està limitat a Espanya.");
+        var descriptor = sources.Select(source => source.Descriptor)
+            .SingleOrDefault(source => string.Equals(source.AccessMode, request.AccessMode, StringComparison.Ordinal)
+                && (string.IsNullOrWhiteSpace(request.SourceKey)
+                    || string.Equals(source.SourceKey, request.SourceKey, StringComparison.OrdinalIgnoreCase)));
+        var sourceKey = descriptor?.SourceKey ?? LegacySourceKey(request);
+        if (descriptor is not null)
+        {
+            var plan = Plan(descriptor, scope, categories);
+            if (!plan.Compatible)
+                throw new DomainRuleException(plan.BlockingReason ?? "La font no cobreix aquest territori o aquestes categories.");
+            if (!plan.Enabled)
+                throw new DomainRuleException(plan.BlockingReason ?? "La font està desactivada.");
+        }
         if (!request.SimulationOnly && (scope.TerritorialUnitId != ArenysDeMarTerritorialUnitId
             || !string.Equals(scope.TerritorialName, "Arenys de Mar", StringComparison.OrdinalIgnoreCase)
             || !string.Equals(scope.OfficialCode, "08006", StringComparison.Ordinal)
+            || sourceKey != OpenStreetMapSource.SourceKey
             || request.AccessMode != OpenStreetMapSource.GeofabrikExtractAccessMode
             || !IsAuthorizedPilotCategorySet(categories)))
             throw new DomainRuleException("La publicació real està limitada al pilot Geofabrik d’Arenys de Mar i als conjunts de categories autoritzats de Fase IV o V.");
-        return await repository.CreateAsync(request with { Categories = categories }, scope, actorId, ct);
+        return await repository.CreateAsync(request with { Categories = categories, SourceKey = sourceKey }, scope, actorId, ct);
+    }
+
+    private static string[] ValidateCategories(IReadOnlyCollection<string> requested)
+    {
+        var categories = requested.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        if (categories.Length == 0 || categories.Any(category => !AllowedCategories.Contains(category)))
+            throw new DomainRuleException("Selecciona almenys una categoria comercial admesa per PetiLoc.");
+        return categories;
+    }
+
+    private static PlaceDiscoverySourcePlanDto Plan(PlaceSourceDescriptor descriptor, PlaceImportScope scope,
+        IReadOnlyCollection<string> requested)
+    {
+        var coverage = descriptor.Coverage;
+        if (coverage is null)
+            return new(descriptor.SourceKey, descriptor.AccessMode, descriptor.LicenseIdentifier, false, false,
+                [], [], "El connector no declara la seva cobertura territorial i comercial.");
+        var territoryCompatible = coverage.CountryIso2.Contains(scope.CountryIso2, StringComparer.OrdinalIgnoreCase)
+            && coverage.OfficialCodeSchemes.Contains(scope.OfficialCodeScheme, StringComparer.OrdinalIgnoreCase)
+            && (coverage.OfficialCodePrefixes is null || coverage.OfficialCodePrefixes.Count == 0
+                || coverage.OfficialCodePrefixes.Any(prefix => scope.OfficialCode.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)));
+        var supported = requested.Where(category => coverage.Categories.Contains(category, StringComparer.OrdinalIgnoreCase)).ToArray();
+        var compatible = territoryCompatible && supported.Length > 0;
+        var reason = !territoryCompatible ? "La font no cobreix el país o l’esquema territorial seleccionat."
+            : supported.Length == 0 ? "La font no cobreix cap categoria sol·licitada."
+            : !coverage.Enabled ? coverage.BlockingReason ?? "La font està desactivada."
+            : null;
+        return new(descriptor.SourceKey, descriptor.AccessMode, descriptor.LicenseIdentifier, compatible,
+            coverage.Enabled, coverage.Categories, supported, reason);
+    }
+
+    private static string LegacySourceKey(PreparePlaceImportRequest request)
+    {
+        if (!string.IsNullOrWhiteSpace(request.SourceKey)) return request.SourceKey;
+        if (request.AccessMode is OpenStreetMapSource.OverpassAccessMode
+            or OpenStreetMapSource.GeofabrikExtractAccessMode
+            or OpenStreetMapSource.DirectMapAccessMode) return OpenStreetMapSource.SourceKey;
+        if (request.AccessMode == DibaMunicipalSource.RestApiAccessMode) return DibaMunicipalSource.SourceKey;
+        throw new DomainRuleException("La font seleccionada no està registrada al motor de descobriment.");
     }
 
     private static bool IsAuthorizedPilotCategorySet(IReadOnlyCollection<string> categories) =>

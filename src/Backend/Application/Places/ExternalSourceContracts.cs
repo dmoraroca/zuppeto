@@ -32,6 +32,12 @@ public static class MapillarySource
     public const int DefaultCandidateLimit = 12;
 }
 
+public static class DibaMunicipalSource
+{
+    public const string SourceKey = "diba-municipal-establishments";
+    public const string RestApiAccessMode = "DIBA_MUNICIPAL_ESTABLISHMENTS_API";
+}
+
 public static class PlaceWikidataFields
 {
     public const string PlaceId = "place.wikidata.id";
@@ -52,7 +58,16 @@ public static class PlaceCatalogCategories
 public sealed record PlaceSourceDescriptor(
     string SourceKey, string AccessMode, PlaceSourceCapability Capabilities,
     IReadOnlyCollection<string> Limitations, string LicenseIdentifier,
-    string Attribution, bool PermanentStorageAllowed, DateTimeOffset ReviewedAtUtc);
+    string Attribution, bool PermanentStorageAllowed, DateTimeOffset ReviewedAtUtc,
+    PlaceSourceCoverage? Coverage = null);
+
+public sealed record PlaceSourceCoverage(
+    IReadOnlyCollection<string> CountryIso2,
+    IReadOnlyCollection<string> OfficialCodeSchemes,
+    IReadOnlyCollection<string> Categories,
+    bool Enabled,
+    string? BlockingReason = null,
+    IReadOnlyCollection<string>? OfficialCodePrefixes = null);
 
 public sealed record PlaceSourceContext(
     Guid CountryId,
@@ -77,7 +92,16 @@ public sealed record PlaceDiscoveryBatch(
     PlaceSourceScopeEvidence Scope,
     IReadOnlyCollection<PlaceSourceDocument> Documents,
     bool IsPartial,
-    string? Warning);
+    string? Warning,
+    PlaceDiscoveryMetrics? Metrics = null);
+
+public sealed record PlaceDiscoveryMetrics(
+    int SourceRecords,
+    int Documents,
+    int MissingName,
+    int MissingCoordinates,
+    int UnsupportedCategory,
+    int BlockedByLicense = 0);
 
 public sealed record PlaceSourceDocument(
     string SourceKey, string ExternalId, string? SourceVersion,
@@ -161,3 +185,23 @@ public sealed record NormalizedPlaceCandidate(string SourceKey, string ExternalI
     IReadOnlyDictionary<string, SourceFieldValue> Fields);
 public sealed record PlaceMatchDecision(Guid? PlaceId, string Band, IReadOnlyCollection<string> Signals,
     IReadOnlyCollection<string> Contradictions, bool RequiresHumanReview);
+
+public enum PlaceGeolocationResolutionStatus
+{
+    Original,
+    Corroborated,
+    Pending,
+    Conflict
+}
+
+public sealed record PlaceGeolocationResolution(
+    NormalizedPlaceCandidate Candidate,
+    PlaceGeolocationResolutionStatus Status,
+    string? EvidenceSourceKey,
+    IReadOnlyCollection<string> Signals);
+
+public interface IPlaceCandidateGeolocationResolver
+{
+    IReadOnlyCollection<PlaceGeolocationResolution> Resolve(
+        IReadOnlyCollection<NormalizedPlaceCandidate> candidates);
+}

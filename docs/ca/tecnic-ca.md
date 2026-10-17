@@ -2,6 +2,8 @@
 
 > Iteració 7, Fase VI (15.10.2026): s'ha separat el read model públic, amb filtres, radi, recompte, ordenació i paginació a PostgreSQL, peticions Angular cancel·lables i mapa Leaflet per nivells de zoom. PostGIS s'ha descartat en aquest gate amb plans de 0,147/0,294 ms. [Informe tècnic](iteracio-7-fase-vi-cercador-mapa-ux-ca.md).
 
+> Motor territorial (17.10.2026): els connectors declaren cobertura, categories, llicència i bloquejos; ADMIN pot planificar i preparar simulacions compatibles per territori. La prova viva ha conservat 220 candidats DIBA (198 nous tècnics, 22 revisables) i ha validat el planificador amb Arenys, Madrid i Berlín sense escriptures. [Informe](evidencies/place-discovery-coverage-engine-20261017.md).
+
 > Cobertura multifont (16.10.2026): Geofabrik continua sent la base escalable; s’ha afegit un adaptador OSM directe desactivat per defecte per auditar bbox petits en una sola petició, streaming XML i clipping municipal verificat. El pilot d’Arenys ha retornat 73 candidats sense persistència. [Evidència](evidencies/osm-direct-coverage-arenys-20261016.md).
 
 > Iteració 7, Fase V (14.10.2026): s'han implementat mapping OSM ampliat, connector Wikidata CC0, matching multiproveïdor reversible, conflictes, estats de vida, govern de fonts i prototip d'índex Geofabrik. Backend 139/139, Angular 96/96, build, EF i Chrome focalitzat han passat. La migració real i l'aplicador de diffs diaris continuen pendents. [Informe tècnic](iteracio-7-fase-v-cobertura-enriquiment-deduplicacio-ca.md).
