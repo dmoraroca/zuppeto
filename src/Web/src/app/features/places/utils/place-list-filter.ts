@@ -1,9 +1,9 @@
 import { PetFilter, PetSpeciesFilter, Place, PlaceFilters } from '../models/place.model';
-
-export const DEFAULT_PLACE_TYPES = ['hotel', 'bar', 'restaurant'] as const;
 import { stripPostalPrefixFromCity } from './city-typeahead.utils';
 import { normalizeSearchQuery, placeMatchesFreeTextSearch } from './place-text-search';
 import { isProhibitedPlaceName } from './prohibited-place-terms/prohibited-place-name.filter';
+
+export const DEFAULT_PLACE_TYPES = ['hotel', 'bar', 'restaurant'] as const;
 
 export const DEFAULT_PLACE_FILTERS: PlaceFilters = {
   search: '',
@@ -51,9 +51,31 @@ export function parsePetSpecies(
 }
 
 export function parsePlaceTypes(raw: string | null | undefined, legacyType?: string | null): string[] {
-  if (raw == null) return legacyType?.trim() ? [] : [...DEFAULT_PLACE_TYPES];
+  if (raw == null) {
+    const legacy = normalizePlaceTypes(legacyType ? [legacyType] : []);
+    return legacy.length > 0 ? legacy : [...DEFAULT_PLACE_TYPES];
+  }
   if (raw.trim().toLowerCase() === 'all') return [];
-  return raw.split(',').map((value) => value.trim()).filter(Boolean);
+  return normalizePlaceTypes(raw.split(','));
+}
+
+/** Keeps submitted category selections stable in the URL while omitting only the canonical defaults. */
+export function serializePlaceTypes(types: readonly string[] | undefined): string | null {
+  const normalized = normalizePlaceTypes(types ?? []);
+  if (normalized.length === 0) return 'all';
+
+  const defaults = [...DEFAULT_PLACE_TYPES].sort();
+  const sorted = [...normalized].sort();
+  return sorted.length === defaults.length && sorted.every((value, index) => value === defaults[index])
+    ? null
+    : normalized.join(',');
+}
+
+export function normalizePlaceTypes(types: readonly string[]): string[] {
+  return [...new Set(types
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean)
+    .map((value) => value === 'dog_grooming' ? 'pet_grooming' : value))];
 }
 
 /** Client-side filter over an already loaded catalog (no HTTP). */
@@ -63,6 +85,7 @@ export function filterPlaces(places: Place[], filters: Partial<PlaceFilters> = {
   const countryFilter = (safeFilters.country ?? '').trim();
   const cityFilter = (safeFilters.city ?? '').trim();
   const typeFilter = (safeFilters.type ?? '').trim().toLowerCase();
+  const typeFilters = normalizePlaceTypes(safeFilters.types ?? []);
 
   return places.filter((place) => {
     const matchesSearch = placeMatchesFreeTextSearch(place, normalizedSearch);
@@ -72,10 +95,14 @@ export function filterPlaces(places: Place[], filters: Partial<PlaceFilters> = {
     const placeCity = (place.city ?? '').trim();
     const matchesCity = !cityFilter || cityNamesMatch(placeCity, cityFilter);
     const matchesType = !typeFilter || place.type.toString().toLowerCase() === typeFilter;
+    const commercialCategory = place.commercialCategory?.trim().toLowerCase();
+    const matchesTypes = typeFilters.length === 0 || typeFilters.includes(
+      commercialCategory || place.type.toString().toLowerCase()
+    );
     const matchesPet = placeMatchesPetSpecies(place, safeFilters.petSpecies ?? legacyPetSpecies(safeFilters.pet));
     const onTopic = !isProhibitedPlaceName(place.name);
 
-    return matchesSearch && matchesCountry && matchesCity && matchesType && matchesPet && onTopic;
+    return matchesSearch && matchesCountry && matchesCity && matchesType && matchesTypes && matchesPet && onTopic;
   });
 }
 

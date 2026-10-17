@@ -15,7 +15,7 @@ import { TerritorialLocationService } from '../../../../shared/services/territor
 import { PLACE_LIST_PAGE_SIZE, PlaceSearchMap, PlaceSearchMapArea, PlaceService } from '../../services/place.service';
 import { resolveCityMapFocus } from '../../utils/city-map-focus';
 import { formatCityDisplayLabel, mergeCityLabelsDistinct } from '../../utils/city-typeahead.utils';
-import { DEFAULT_PLACE_TYPES, parsePetFilter, parsePetSpecies, parsePlaceTypes } from '../../utils/place-list-filter';
+import { parsePetFilter, parsePetSpecies, parsePlaceTypes, serializePlaceTypes } from '../../utils/place-list-filter';
 import { placesVisibleOnOsmMap } from '../../utils/places-osm-map';
 
 @Component({
@@ -57,7 +57,8 @@ export class PlacesPageComponent {
       city: (map.get('city') ?? '').trim(),
       countryId: (map.get('countryId') ?? '').trim(),
       territorialUnitId: (map.get('territorialUnitId') ?? '').trim(),
-      type: (map.get('type') ?? '').trim(),
+      // `type` is accepted as a legacy URL input, but the explorer has one canonical multiselect state.
+      type: '',
       types: parsePlaceTypes(map.get('types'), map.get('type')),
       pet: parseSinglePet(map.get('pets'), map.get('pet')),
       petSpecies: parsePetSpecies(map.get('pets'), map.get('pet')),
@@ -85,7 +86,7 @@ export class PlacesPageComponent {
     city: (this.route.snapshot.queryParamMap.get('city') ?? '').trim(),
     countryId: (this.route.snapshot.queryParamMap.get('countryId') ?? '').trim(),
     territorialUnitId: (this.route.snapshot.queryParamMap.get('territorialUnitId') ?? '').trim(),
-    type: (this.route.snapshot.queryParamMap.get('type') ?? '').trim(),
+    type: '',
     types: parsePlaceTypes(
       this.route.snapshot.queryParamMap.get('types'),
       this.route.snapshot.queryParamMap.get('type')
@@ -541,15 +542,6 @@ export class PlacesPageComponent {
   private getPetContext(pet: PlaceFilters['pet']): string {
     return pet === 'dogs' ? 'per a gossos' : pet === 'cats' ? 'per a gats' : 'per a altres espècies';
   }
-}
-
-function serializePlaceTypes(types: string[] | undefined): string | null {
-  if (!types?.length) return 'all';
-  const normalized = [...types].sort();
-  const defaults = [...DEFAULT_PLACE_TYPES].sort();
-  return normalized.length === defaults.length && normalized.every((value, index) => value === defaults[index])
-    ? null
-    : types.join(',');
 }
 
 function parseSinglePet(pets: string | null, legacyPet: string | null): PlaceFilters['pet'] {

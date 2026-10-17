@@ -10,6 +10,7 @@ async function main(): Promise<void> {
   const browser = await new PilotChromeLauncher().launch(false);
   try {
     let placeSearchRequests = 0;
+    const placeSearchUrls: URL[] = [];
     const context = await browser.newContext({ baseURL: webBaseUrl });
     const session = {
       accessToken: 'coverage-e2e-token', expiresAtUtc: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
@@ -34,6 +35,7 @@ async function main(): Promise<void> {
       }]);
       if (path === '/api/places') {
         placeSearchRequests++;
+        placeSearchUrls.push(url);
         const skip = Number(url.searchParams.get('skip') ?? 0);
         const take = Number(url.searchParams.get('take') ?? 20);
         const types = (url.searchParams.get('types') ?? '').split(',').filter(Boolean);
@@ -69,6 +71,12 @@ async function main(): Promise<void> {
     }
     await page.locator('.leaflet-overlay-pane').waitFor({ state: 'attached', timeout: 30_000 });
 
+    const firstScopedRequest = placeSearchUrls.find(url => url.searchParams.get('territorialUnitId') === territorialUnitId);
+    assert.equal(firstScopedRequest?.searchParams.get('types'), 'hotel,bar,restaurant',
+      'La primera consulta municipal ha d’enviar explícitament les tres categories predeterminades.');
+    for (const label of ['Hotels', 'Bars', 'Restaurants']) {
+      assert.equal(await page.getByLabel(label).isChecked(), true, `${label} ha d’aparèixer seleccionat d’entrada.`);
+    }
     assert.equal(await page.locator('app-place-card').count(), 20, 'La llista conserva la seva primera pàgina de 20.');
     assert.match(await page.locator('.places-page__summary').innerText(), /20 de 23 llocs/);
     assert.match(await page.locator('.place-map__summary').innerText(), /23 ubicacions visibles/,
@@ -146,9 +154,24 @@ async function main(): Promise<void> {
     await filteredResponse;
     await page.waitForURL(/types=/);
     await page.getByText('15 ubicacions visibles').waitFor();
+    assert.equal(new URL(page.url()).searchParams.get('types'), 'bar,restaurant');
+    assert.equal(await page.getByLabel('Hotels').isChecked(), false);
+    assert.equal(await page.getByLabel('Bars').isChecked(), true);
+    assert.equal(await page.getByLabel('Restaurants').isChecked(), true);
     assert.equal(await mapCanvas.getAttribute('data-map-zoom'), '12',
       'Canviar filtres no ha de restablir el zoom del mapa.');
     assert.ok(await visibleMapSymbols(page) > 0, 'Canviar filtres no ha d’esborrar els marcadors del mapa.');
+
+    const requestsBeforeReload = placeSearchUrls.length;
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.getByText('15 ubicacions visibles').waitFor();
+    assert.ok(placeSearchUrls.slice(requestsBeforeReload).some(url => url.searchParams.get('types') === 'bar,restaurant'),
+      'La recàrrega ha de repetir la selecció enviada que consta a la URL.');
+    assert.equal(await page.getByLabel('Hotels').isChecked(), false);
+    assert.equal(await page.getByLabel('Bars').isChecked(), true);
+    assert.equal(await page.getByLabel('Restaurants').isChecked(), true);
+
+    await setMapZoom(page, mapCanvas, 12);
     await page.getByLabel('Hotels').check();
     const restoredResponse = page.waitForResponse(response => new URL(response.url()).pathname.replace(/\/$/, '') === '/api/places');
     await page.getByRole('button', { name: 'Cercar', exact: true }).click();

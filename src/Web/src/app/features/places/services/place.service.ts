@@ -8,7 +8,7 @@ import { AuthService } from '../../auth/services/auth.service';
 import { FavoritesService } from '../../favorites/services/favorites.service';
 import { Place, PlaceFilters, PlaceType } from '../models/place.model';
 import { PLACE_TYPE_LABELS } from '../mock/places.fake';
-import { DEFAULT_PLACE_FILTERS, filterPlaces } from '../utils/place-list-filter';
+import { DEFAULT_PLACE_FILTERS, filterPlaces, normalizePlaceTypes } from '../utils/place-list-filter';
 
 export const PLACE_LIST_PAGE_SIZE = 20;
 const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '');
@@ -303,8 +303,9 @@ export class PlaceService {
       params = params.set('type', type);
     }
 
-    if (filters.types?.length) {
-      params = params.set('types', filters.types.join(','));
+    const types = normalizePlaceTypes(filters.types ?? []);
+    if (types.length) {
+      params = params.set('types', types.join(','));
     }
 
     if (filters.petAccessStatuses?.length) {

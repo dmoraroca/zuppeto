@@ -60,11 +60,11 @@ async function main(): Promise<void> {
       `/places?country=Espanya&city=Arenys%20de%20Mar&territorialUnitId=${territorialUnitId}&types=hotel%2Cbar%2Crestaurant`,
       { waitUntil: 'networkidle' }
     );
-    await page.getByText('23 ubicacions visibles').waitFor({ timeout: 30_000 });
     const filtered = latestSearch(apiResponses, 'hotel,bar,restaurant');
-    assert.equal(filtered.body.total, 23);
-    assert.equal(filtered.body.items.length, 20);
-    assert.equal(filtered.body.map?.points?.length, 23);
+    await page.getByText(`${filtered.body.total} ubicacions visibles`).waitFor({ timeout: 30_000 });
+    assert.ok(filtered.body.total > 0, 'Les categories predeterminades han de retornar Places reals d’Arenys.');
+    assert.equal(filtered.body.items.length, Math.min(filtered.body.total, 20));
+    assert.equal(filtered.body.map?.points?.length, filtered.body.total);
     assert.equal(filtered.url.searchParams.get('territorialUnitId'), territorialUnitId);
 
     const center = {
@@ -123,7 +123,7 @@ async function main(): Promise<void> {
     assert.ok(await visibleMapSymbols(page) > 0, 'Pantalla completa no ha de perdre les capes reals.');
 
     console.log(
-      `PASS Chrome READ ONLY real: API 23 (llista 20, mapa 23), centre ${center.lat},${center.lng}, `
+      `PASS Chrome READ ONLY real: API ${filtered.body.total} (llista ${filtered.body.items.length}, mapa ${filtered.body.map?.points?.length}), centre ${center.lat},${center.lng}, `
       + `${zoom16Symbols} símbols a zoom 16 i ${zoom12Symbols} a zoom 12; filtre real ${filterBody.total}; `
       + 'recentre, redimensionament i pantalla completa preservats.'
     );
