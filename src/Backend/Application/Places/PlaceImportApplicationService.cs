@@ -11,6 +11,10 @@ public sealed class PlaceImportApplicationService(
     private static readonly Guid ArenysDeMarTerritorialUnitId = Guid.Parse("8680aa5a-292f-4201-8d52-d6381f438af4");
     private static readonly HashSet<string> AllowedCategories = new(PlaceCatalogCategories.All, StringComparer.OrdinalIgnoreCase);
     private static readonly HashSet<string> PhaseFourPublicationCategories = new(StringComparer.OrdinalIgnoreCase) { "restaurant", "cafe" };
+    private static readonly HashSet<string> OvertureBasicPublicationCategories = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "restaurant", "cafe", "bar", "pub", "fast_food", "bakery", "ice_cream", "hotel", "hostel", "camping"
+    };
     private readonly IPlaceDiscoverySource[] sources = discoverySources?.ToArray() ?? [];
 
     public async Task<PlaceDiscoveryPlanDto> PlanAsync(PlanPlaceDiscoveryRequest request, CancellationToken ct = default)
@@ -60,13 +64,9 @@ public sealed class PlaceImportApplicationService(
             if (!plan.Enabled)
                 throw new DomainRuleException(plan.BlockingReason ?? "La font està desactivada.");
         }
-        if (!request.SimulationOnly && (scope.TerritorialUnitId != ArenysDeMarTerritorialUnitId
-            || !string.Equals(scope.TerritorialName, "Arenys de Mar", StringComparison.OrdinalIgnoreCase)
-            || !string.Equals(scope.OfficialCode, "08006", StringComparison.Ordinal)
-            || sourceKey != OpenStreetMapSource.SourceKey
-            || request.AccessMode != OpenStreetMapSource.GeofabrikExtractAccessMode
-            || !IsAuthorizedPilotCategorySet(categories)))
-            throw new DomainRuleException("La publicació real està limitada al pilot Geofabrik d’Arenys de Mar i als conjunts de categories autoritzats de Fase IV o V.");
+        if (!request.SimulationOnly && (!IsArenysPilot(scope)
+            || !IsAuthorizedPublication(sourceKey, request.AccessMode, categories)))
+            throw new DomainRuleException("La publicació real està limitada als pilots autoritzats d’Arenys de Mar i als seus conjunts exactes de categories.");
         return await repository.CreateAsync(request with { Categories = categories, SourceKey = sourceKey }, scope, actorId, ct);
     }
 
@@ -115,6 +115,21 @@ public sealed class PlaceImportApplicationService(
     private static bool IsAuthorizedPilotCategorySet(IReadOnlyCollection<string> categories) =>
         (categories.Count == PhaseFourPublicationCategories.Count && categories.All(PhaseFourPublicationCategories.Contains))
         || (categories.Count == AllowedCategories.Count && categories.All(AllowedCategories.Contains));
+
+    private static bool IsArenysPilot(PlaceImportScope scope) =>
+        scope.TerritorialUnitId == ArenysDeMarTerritorialUnitId
+        && string.Equals(scope.TerritorialName, "Arenys de Mar", StringComparison.OrdinalIgnoreCase)
+        && string.Equals(scope.OfficialCode, "08006", StringComparison.Ordinal);
+
+    private static bool IsAuthorizedPublication(string sourceKey, string accessMode,
+        IReadOnlyCollection<string> categories) =>
+        (sourceKey == OpenStreetMapSource.SourceKey
+            && accessMode == OpenStreetMapSource.GeofabrikExtractAccessMode
+            && IsAuthorizedPilotCategorySet(categories))
+        || (sourceKey == OvertureMapsSource.SourceKey
+            && accessMode == OvertureMapsSource.LocalExtractAccessMode
+            && categories.Count == OvertureBasicPublicationCategories.Count
+            && categories.All(OvertureBasicPublicationCategories.Contains));
 
     public Task<IReadOnlyCollection<PlaceImportRunDto>> ListAsync(CancellationToken ct = default) => repository.ListAsync(ct);
     public Task<PlaceImportDetailsDto?> GetAsync(Guid importId, CancellationToken ct = default) => repository.GetAsync(importId, ct);

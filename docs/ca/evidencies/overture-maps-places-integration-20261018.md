@@ -2,7 +2,7 @@
 
 ## Abast i seguretat
 
-S’ha integrat Overture Maps Places `2026-09-23.1` com a font prioritària del motor multifont existent. El connector queda desactivat mentre no es configuren un extracte local i, per a una preparació publicable, una geometria territorial verificada. No s’ha modificat PostgreSQL real, no s’ha publicat cap Place, no s’ha aplicat cap migració i no s’ha fet cap crida a una API de pagament.
+S’ha integrat Overture Maps Places `2026-09-23.1` com a font prioritària del motor multifont existent. El connector queda desactivat mentre no es configuren un extracte local i, per a una preparació publicable, una geometria territorial verificada. Després de l’auditoria inicial de només lectura, s’ha autoritzat i executat una publicació controlada dels camps bàsics sobre PostgreSQL real. No s’ha aplicat cap migració ni s’ha fet cap crida a una API de pagament.
 
 Configuració operativa:
 
@@ -10,12 +10,14 @@ Configuració operativa:
 - `ExtractPath` admet `{countryIso2}` i `{officialCode}` per resoldre extractes per territori sense excepcions de municipi.
 - `BoundaryGeoJsonPath` admet els mateixos placeholders i accepta `Polygon` o `MultiPolygon`, inclosos els forats.
 - `RequireVerifiedBoundary=true` impedeix processar per a publicació un territori sense geometria fiable.
+- `BasicFieldsOnly=true` limita la publicació a identitat, classificació, adreça, coordenades i versió Overture.
+- `BasicPublicationMinimumConfidence=0.7` exclou de la publicació bàsica els candidats de baixa confiança, sense alterar el mode d’auditoria complet.
 - la versió acceptada queda fixada a `2026-09-23.1`; una altra versió exigeix una nova revisió.
 - GeoJSON Sequence es processa línia a línia; la FeatureCollection es conserva per al pilot petit de 640 registres.
 
 ## Arquitectura
 
-La font implementa `IPlaceDiscoverySource` i reutilitza el worker, els documents de font, les observacions per camp, la normalització, la política de persistència, el matcher conservador i el staging existents. El GERS ID és la identitat externa estable i el release es desa com a versió. La publicació real continua bloquejada pel cas d’ús existent, limitat al pilot OSM/Geofabrik autoritzat.
+La font implementa `IPlaceDiscoverySource` i reutilitza el worker, els documents de font, les observacions per camp, la normalització, la política de persistència, el matcher conservador i el staging existents. El GERS ID és la identitat externa estable i el release es desa com a versió. La publicació real queda limitada per dos gates independents: el pilot OSM/Geofabrik existent i el pilot Overture d’Arenys, aquest últim només amb geometria `overture-boundary:es:08006` i el conjunt exacte de deu categories bàsiques.
 
 S’han conservat:
 
@@ -88,4 +90,30 @@ Els filtres inicials són exactament `restaurant,cafe,bar,pub,fast_food,bakery,i
 - Chrome focalitzat sintètic: PASS amb els deu filtres inicials, URL, mapa complet, llista paginada, zoom, recentrat, redimensionament i pantalla completa.
 - Chrome real de només lectura: PASS amb 27 Places filtrats, 20 a la primera pàgina, 27 al mapa, 19 símbols a zoom 16 i 4 clusters a zoom 12.
 
-Bloquejos abans de preparar publicació: aportar la geometria oficial del territori al connector, revisar els 133 casos amb identitat dubtosa i validar individualment els candidats `service/PendingReview`. La Fase VI continua oberta.
+## Publicació controlada de camps bàsics
+
+S’ha generat la geometria oficial d’Arenys de Mar (`ref:ine=08006`) des de `cataluna-latest.osm.pbf`; l’índex ha identificat 955 municipis. Abans de modificar la base real s’ha creat i restaurat el backup `/tmp/petiloc-overture-preimport-20261018.dump`, amb SHA-256 `4492bfc10b917c56fa17cec44a8a4eaf73e9c963e120180314a63fe2b2b55af4`.
+
+La simulació sobre la còpia restaurada ha detectat i corregit tres incidències abans de publicar: un estat de font incompatible amb el constraint PostgreSQL, la reavaluació no idempotent d’un GERS pendent de revisió i una duplicació interna del lot amb noms reordenats. El matcher preserva ara les decisions prèvies de revisió i el worker aplica un guard conservador de duplicats dins del lot, prioritzant el candidat Overture de més confiança.
+
+Resultat de les dues passades, primer en temporal i després en PostgreSQL real:
+
+| Mètrica | Resultat |
+|---|---:|
+| Places inicials | 52 |
+| Candidats dins la geometria, categories autoritzades i confiança ≥ 0,7 | 101 |
+| Coincidències confirmades amb Place existent | 1 |
+| Places nous publicats | 65 |
+| Candidats bloquejats per revisió/conflicte | 35 |
+| Places finals | 117 |
+| Places nous a la segona passada | 0 |
+| GERS ID persistits / únics | 101 / 101 |
+| Coordenades nul·les | 0 |
+| Media creat | 0 |
+| Afirmacions pet-friendly creades | 0 |
+
+Els 65 Places nous es distribueixen en 4 fleques, 25 bars, 6 cafeteries, 1 càmping, 1 establiment de menjar ràpid, 5 hotels, 1 gelateria, 3 pubs i 20 restaurants. `Granja Bar la Krusan` ha quedat publicada amb el GERS ID `a8c74325-0d80-4ba8-8250-6310a137b7c9`, i `Panet artesans des de 1962` amb `14a3e5f2-d11c-4c8b-9ed3-1d7daf6e5f3f`. `365` continua absent del release analitzat i no s’ha inventat ni introduït manualment.
+
+PostgreSQL conserva 3 països i 23.969 unitats territorials. L’API pública retorna 117 resultats d’Arenys. Amb les deu categories inicials seleccionades retorna i renderitza 92 Places tant a la llista com al mapa, sense tallar la llista a 20; La Krusan hi apareix una vegada. Només s’han persistit 16 camps autoritzats de la publicació bàsica. No s’han publicat webs, telèfons, correus, xarxes, imatges ni informació pet-friendly.
+
+Proves finals: backend 228/228 PASS, build API PASS sense avisos, doble publicació temporal PASS, doble publicació real PASS, endpoint de salut PASS, consulta pública focalitzada PASS i Chrome real de només lectura PASS amb 92/92 Places filtrats. La Fase VI continua oberta: resten els 35 candidats bloquejats i la cobertura absent de `365`.

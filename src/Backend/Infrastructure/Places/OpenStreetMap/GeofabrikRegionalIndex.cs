@@ -54,6 +54,33 @@ internal sealed class GeofabrikRegionalIndex(string directory)
             municipalities.Count, extractHash, 0);
     }
 
+    internal void ExportBoundaryGeoJson(string officialCode, string outputPath)
+    {
+        var generation = ReadCurrent() ?? throw new InvalidOperationException("No hi ha cap generació regional vàlida.");
+        var municipality = generation.Municipalities.SingleOrDefault(item =>
+            GeofabrikPbfReader.OfficialCodesEquivalent(item.OfficialCode, officialCode))
+            ?? throw new InvalidOperationException($"L’índex no conté el municipi {officialCode}.");
+        var polygons = municipality.Outer.Select(outer =>
+        {
+            var rings = new List<double[][]> { Coordinates(outer) };
+            rings.AddRange(municipality.Inner.Where(inner => outer.Contains(
+                inner.Points[0].Latitude, inner.Points[0].Longitude)).Select(Coordinates));
+            return rings.ToArray();
+        }).ToArray();
+        var feature = new
+        {
+            type = "Feature",
+            properties = new { municipality.OfficialCode, municipality.Name, municipality.BoundaryExternalId },
+            geometry = new { type = "MultiPolygon", coordinates = polygons }
+        };
+        var directoryPath = Path.GetDirectoryName(Path.GetFullPath(outputPath));
+        if (!string.IsNullOrWhiteSpace(directoryPath)) Directory.CreateDirectory(directoryPath);
+        File.WriteAllText(outputPath, JsonSerializer.Serialize(feature, Json));
+    }
+
+    private static double[][] Coordinates(Polygon polygon) => polygon.Points
+        .Select(point => new[] { point.Longitude, point.Latitude }).ToArray();
+
     internal DiffApplicationResult ApplyDiff(string diffPath, long sequence, DateTimeOffset osmTimestamp,
         string? expectedSha256, CancellationToken cancellationToken)
     {

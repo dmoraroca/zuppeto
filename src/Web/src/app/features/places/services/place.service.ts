@@ -11,6 +11,7 @@ import { PLACE_TYPE_LABELS } from '../mock/places.fake';
 import { DEFAULT_PLACE_FILTERS, filterPlaces, normalizePlaceTypes } from '../utils/place-list-filter';
 
 export const PLACE_LIST_PAGE_SIZE = 20;
+export const PLACE_LIST_BATCH_SIZE = 100;
 const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '');
 const EUROPEAN_COUNTRY_CODES = [
   'AD', 'AL', 'AT', 'AX', 'BA', 'BE', 'BG', 'BY', 'CH', 'CY', 'CZ', 'DE', 'DK', 'EE', 'ES',
@@ -198,6 +199,51 @@ export class PlaceService {
     };
   }
 
+  /**
+   * Loads the complete filtered listing through bounded API pages.
+   * Paging remains an infrastructure detail and never truncates the public list.
+   */
+  async searchAll(
+    filters: PlaceFilters,
+    abortSignal?: AbortSignal
+  ): Promise<PlaceSearchPage> {
+    const items: Place[] = [];
+    const ids = new Set<string>();
+    let skip = 0;
+    let total = 0;
+    let map: PlaceSearchMap | null | undefined;
+    let hasMore = true;
+
+    while (hasMore) {
+      const page = await this.searchPage(filters, skip, PLACE_LIST_BATCH_SIZE, abortSignal);
+      map ??= page.map;
+      total = page.total;
+
+      for (const place of page.items) {
+        if (!ids.has(place.id)) {
+          ids.add(place.id);
+          items.push(place);
+        }
+      }
+
+      hasMore = page.hasMore;
+      if (page.items.length === 0) {
+        break;
+      }
+
+      skip += page.items.length;
+    }
+
+    return {
+      items,
+      total,
+      skip: 0,
+      take: items.length,
+      hasMore: false,
+      map
+    };
+  }
+
   /** Public login explorer: places from API without requiring a session. */
   async fetchPublicPlaces(filters: Partial<PlaceFilters> = {}): Promise<Place[]> {
     const safeFilters = { ...DEFAULT_PLACE_FILTERS, ...filters };
@@ -279,6 +325,7 @@ export class PlaceService {
     const country = (filters.country ?? '').trim();
     const city = (filters.city ?? '').trim();
     const type = (filters.type ?? '').trim();
+    const hasTerritorialUnit = !!filters.territorialUnitId?.trim();
 
     if (filters.countryId) {
       params = params.set('countryId', filters.countryId);
@@ -291,11 +338,11 @@ export class PlaceService {
       params = params.set('searchText', search);
     }
 
-    if (country.length > 0) {
+    if (country.length > 0 && !hasTerritorialUnit) {
       params = params.set('country', country);
     }
 
-    if (city.length > 0) {
+    if (city.length > 0 && !hasTerritorialUnit) {
       params = params.set('city', city);
     }
 

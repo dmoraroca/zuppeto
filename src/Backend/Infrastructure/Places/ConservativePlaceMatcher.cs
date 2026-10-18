@@ -16,11 +16,21 @@ internal sealed class ConservativePlaceMatcher(ZuppetoDbContext db) : IPlaceMatc
     {
         var exact = await db.PlaceSourceRecords.AsNoTracking()
             .Where(x => x.Source.SourceKey == candidate.SourceKey && x.ExternalId == candidate.ExternalId)
-            .Select(x => new { x.CanonicalPlaceId }).SingleOrDefaultAsync(ct);
+            .Select(x => new { x.Id, x.CanonicalPlaceId }).SingleOrDefaultAsync(ct);
         if (exact?.CanonicalPlaceId is Guid exactPlaceId)
             return Decision(exactPlaceId, PlaceMatchOutcome.ConfirmedMatch, ["source+externalId"], [], 100);
-        // Un registre extern ja vist però encara no vinculat no és una decisió de matching.
-        // Cal tornar a avaluar els senyals per obtenir un candidat reversible i revisable.
+        if (exact is not null)
+        {
+            var previousReview = await db.PlaceMatchDecisions.AsNoTracking()
+                .Where(x => x.SourceRecordId == exact.Id && x.IsCurrent
+                    && (x.Outcome == nameof(PlaceMatchOutcome.ProbableMatch)
+                        || x.Outcome == nameof(PlaceMatchOutcome.NeedsReview)))
+                .Select(x => new { x.CandidatePlaceId, x.Outcome, x.Score }).SingleOrDefaultAsync(ct);
+            if (previousReview is not null)
+                return Decision(previousReview.CandidatePlaceId,
+                    Enum.Parse<PlaceMatchOutcome>(previousReview.Outcome),
+                    ["source+externalId", "prior-review-preserved"], [], previousReview.Score);
+        }
 
         if (Value(candidate, "wikidata.id") is { } wikidataId)
         {

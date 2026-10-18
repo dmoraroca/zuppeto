@@ -155,18 +155,6 @@
       }
     </div>
 
-    @if (listingHasMore()) {
-      <div class="places-page__more">
-        <button
-          type="button"
-          class="places-page__more-button"
-          [disabled]="listingLoading()"
-          (click)="showNextPlaces()"
-        >
-          Mostrar els 20 següents
-        </button>
-      </div>
-    }
   </section>
 </main>
 

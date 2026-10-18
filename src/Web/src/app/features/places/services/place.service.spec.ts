@@ -55,7 +55,7 @@ describe('PlaceService phase I characterization', () => {
     ]);
   });
 
-  it('sends catalog, text, type, pet and paging filters with the backend contract', async () => {
+  it('uses the territorial UUID instead of redundant geographic name matching', async () => {
     const filters: PlaceFilters = {
       search: '  cafè  ',
       country: 'Espanya',
@@ -70,8 +70,8 @@ describe('PlaceService phase I characterization', () => {
     const request = http.expectOne((candidate) => candidate.url.endsWith('/api/places'));
 
     expect(request.request.params.get('searchText')).toBe('cafè');
-    expect(request.request.params.get('country')).toBe('Espanya');
-    expect(request.request.params.get('city')).toBe('Abadín');
+    expect(request.request.params.has('country')).toBe(false);
+    expect(request.request.params.has('city')).toBe(false);
     expect(request.request.params.get('countryId')).toBe('country-es');
     expect(request.request.params.get('territorialUnitId')).toBe('unit-27001');
     expect(request.request.params.get('type')).toBe('restaurant');
@@ -81,6 +81,18 @@ describe('PlaceService phase I characterization', () => {
 
     request.flush({ items: [placeDto()], total: 21, skip: 20, take: 10, hasMore: false });
     await expect(promise).resolves.toEqual(expect.objectContaining({ total: 21, skip: 20, take: 10 }));
+  });
+
+  it('keeps geographic name filters when no territorial UUID is available', async () => {
+    const promise = service.searchPage({
+      search: '', country: 'Espanya', city: 'Abadín', type: '', pet: 'all'
+    }, 0, 20);
+    const request = http.expectOne((candidate) => candidate.url.endsWith('/api/places'));
+
+    expect(request.request.params.get('country')).toBe('Espanya');
+    expect(request.request.params.get('city')).toBe('Abadín');
+    request.flush({ items: [], total: 0, skip: 0, take: 20, hasMore: false });
+    await expect(promise).resolves.toEqual(expect.objectContaining({ total: 0 }));
   });
 
   it('keeps the municipality identifier when no country identifier is available', async () => {
@@ -165,6 +177,40 @@ describe('PlaceService phase I characterization', () => {
     expect(page.items).toHaveLength(1);
     expect(page.map?.points).toHaveLength(23);
     expect(page.map?.points?.[0]).toEqual(expect.objectContaining({ categoryLabel: 'Fleca' }));
+  });
+
+  it('loads every filtered place through transparent bounded batches without duplicates', async () => {
+    const promise = service.searchAll({
+      search: '', country: 'Espanya', city: 'Arenys de Mar', type: '', pet: 'all',
+      territorialUnitId: 'arenys', types: ['restaurant']
+    });
+    const first = http.expectOne((candidate) => candidate.url.endsWith('/api/places'));
+    expect(first.request.params.get('skip')).toBe('0');
+    expect(first.request.params.get('take')).toBe('100');
+    first.flush({
+      items: Array.from({ length: 100 }, (_, index) => ({ ...placeDto(), id: `place-${index}` })),
+      total: 102, skip: 0, take: 100, hasMore: true,
+      map: { centerLatitude: 41.58, centerLongitude: 2.55, radiusKm: 0, areas: [], points: [] }
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const second = http.expectOne((candidate) => candidate.url.endsWith('/api/places'));
+    expect(second.request.params.get('skip')).toBe('100');
+    expect(second.request.params.get('take')).toBe('100');
+    second.flush({
+      items: [
+        { ...placeDto(), id: 'place-100' },
+        { ...placeDto(), id: 'place-101' }
+      ],
+      total: 102, skip: 100, take: 100, hasMore: false
+    });
+
+    const result = await promise;
+    expect(result.items).toHaveLength(102);
+    expect(new Set(result.items.map((place) => place.id)).size).toBe(102);
+    expect(result.total).toBe(102);
+    expect(result.hasMore).toBe(false);
+    expect(result.map).toEqual(expect.objectContaining({ centerLatitude: 41.58 }));
   });
 
   it.each([50, 500, 5_000])('maps all %i lightweight points without expanding the list page', async (pointCount) => {

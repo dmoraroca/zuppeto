@@ -9,6 +9,8 @@ public sealed class OvertureMapsOptions
     public string ExtractPath { get; set; } = string.Empty;
     public string BoundaryGeoJsonPath { get; set; } = string.Empty;
     public bool RequireVerifiedBoundary { get; set; } = true;
+    public bool BasicFieldsOnly { get; set; }
+    public decimal BasicPublicationMinimumConfidence { get; set; }
 
     internal string ResolveExtractPath(string countryIso2, string officialCode) =>
         ResolveTemplate(ExtractPath, countryIso2, officialCode);

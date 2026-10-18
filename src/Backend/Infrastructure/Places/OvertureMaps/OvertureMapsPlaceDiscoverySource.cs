@@ -60,8 +60,23 @@ internal sealed class OvertureMapsPlaceDiscoverySource(IOptions<OvertureMapsOpti
             }
 
             await using var stream = File.OpenRead(extractPath);
-            return await ParseAsync(stream, Path.GetExtension(extractPath), context, settings.ReleaseVersion,
+            var result = await ParseAsync(stream, Path.GetExtension(extractPath), context, settings.ReleaseVersion,
                 boundary, cancellationToken);
+            if (!result.IsSuccess || !settings.BasicFieldsOnly) return result;
+            var documents = result.Value!.Documents
+                .Where(MeetsBasicPublicationConfidence)
+                .OrderByDescending(Confidence)
+                .ThenBy(document => document.ExternalId, StringComparer.Ordinal)
+                .Select(document => document with
+            {
+                Fields = document.Fields.Where(field => BasicPublicationFields.Contains(field.Key))
+                    .ToDictionary(field => field.Key, field => field.Value, StringComparer.OrdinalIgnoreCase)
+            }).ToArray();
+            var excluded = result.Value.Documents.Count - documents.Length;
+            var warning = result.Value.Warning + (excluded > 0
+                ? $" S’han exclòs {excluded} candidats per sota del llindar de confiança {settings.BasicPublicationMinimumConfidence.ToString(CultureInfo.InvariantCulture)} de la publicació bàsica."
+                : string.Empty);
+            return Result<PlaceDiscoveryBatch>.Success(result.Value with { Documents = documents, Warning = warning });
         }
         catch (IOException)
         {
@@ -123,7 +138,7 @@ internal sealed class OvertureMapsPlaceDiscoverySource(IOptions<OvertureMapsOpti
                 ? "Totes les coordenades conservades són dins la geometria territorial configurada."
                 : "La selecció s’ha fet per localitat normalitzada; els candidats queden pendents de validació geomètrica i no són publicables.");
         var scope = new PlaceSourceScopeEvidence(context.OfficialCodeScheme,
-            $"overture:{context.CountryIso2.ToLowerInvariant()}:{context.OfficialCode}", context.OfficialCode,
+            $"overture-{(geometryVerified ? "boundary" : "locality")}:{context.CountryIso2.ToLowerInvariant()}:{context.OfficialCode}", context.OfficialCode,
             context.TerritorialName, geometryVerified, observedAt);
         return Result<PlaceDiscoveryBatch>.Success(new(scope, documents, false, warning,
             new(metrics.SourceRecords, documents.Count, metrics.MissingName, metrics.MissingCoordinates,
@@ -293,6 +308,22 @@ internal sealed class OvertureMapsPlaceDiscoverySource(IOptions<OvertureMapsOpti
         .OfType<DateTimeOffset>().DefaultIfEmpty().Max();
 
     private static bool AllowedLicense(string license) => license is "CDLA-Permissive-2.0" or "Apache-2.0" or "CC0-1.0";
+
+    private static readonly HashSet<string> BasicPublicationFields = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "name", "category", "category.family", "category.subcategory", "source.category", "source.subcategory",
+        "classification.status", "latitude", "longitude", "address.complete", "address.locality",
+        "address.postcode", "address.region", "address.country", "overture.version", "overture.release"
+    };
+
+    private bool MeetsBasicPublicationConfidence(PlaceSourceDocument document) =>
+        settings.BasicPublicationMinimumConfidence <= 0
+        || Confidence(document) >= settings.BasicPublicationMinimumConfidence;
+
+    private static decimal Confidence(PlaceSourceDocument document) =>
+        document.Fields.TryGetValue("overture.confidence", out var confidence)
+        && decimal.TryParse(confidence.NormalizedValue, NumberStyles.Number, CultureInfo.InvariantCulture, out var value)
+            ? value : 0;
 
     private static bool SameText(string? left, string right) => Fold(left).Equals(Fold(right), StringComparison.Ordinal);
     private static string Fold(string? value) => new string((value ?? string.Empty).Normalize(NormalizationForm.FormD)

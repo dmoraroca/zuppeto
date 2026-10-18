@@ -4,6 +4,8 @@
 
 La cerca, el radi, la paginació PostgreSQL, el GPS privat, el mapa sincronitzat i la fitxa ampliada estan implementats, i la migració d'índexs ja s'ha aplicat a PostgreSQL real. Resten com a millores no bloquejants: validar un municipi amb més de 50 Places quan existeixi, mesurar offsets profunds, revisar visualment el pin provisional i reobrir clustering server-side/PostGIS només amb mètriques representatives. [Informe](iteracio-7-fase-vi-cercador-mapa-ux-ca.md).
 
+La publicació bàsica Overture del 18/10/2026 ha ampliat Arenys de 52 a 117 Places i ha validat per API que el mapa rep els 117 punts al marge de la pàgina de 20. Abans de tancar la fase resten la validació Chrome del volum real, la revisió manual dels 35 candidats Overture bloquejats i una font complementària legal per cobrir establiments absents com `365`.
+
 Backlog de millores detectades mentre es treballa o es fan proves manuals.
 No substitueix `docs/project-phases.md` ni el joc de proves Excel: aquí només anotem idees per comentar i prioritzar després.
 

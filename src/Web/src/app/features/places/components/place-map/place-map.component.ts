@@ -374,7 +374,9 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
         const selectedPlace = this.places().find((place) => place.id === selectedPlaceId);
         if (selectedPlace) {
           this.markAutomaticCamera();
-          this.map.setView([selectedPlace.coordinates!.lat, selectedPlace.coordinates!.lng], 14);
+          // Selecting a Place may move the centre to reveal it, but must never
+          // replace the zoom chosen manually by the user.
+          this.map.panTo([selectedPlace.coordinates!.lat, selectedPlace.coordinates!.lng]);
           this.markers.get(selectedPlace.id)?.openPopup();
           return;
         }

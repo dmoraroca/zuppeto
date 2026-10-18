@@ -12,7 +12,7 @@ import { PlaceMapComponent, PlaceMapMunicipality } from '../../components/place-
 import { PlaceMapViewport } from '../../components/place-map/place-map.component';
 import { Place, PlaceFilters } from '../../models/place.model';
 import { TerritorialLocationService } from '../../../../shared/services/territorial-location.service';
-import { PLACE_LIST_PAGE_SIZE, PlaceSearchMap, PlaceSearchMapArea, PlaceService } from '../../services/place.service';
+import { PlaceSearchMap, PlaceSearchMapArea, PlaceService } from '../../services/place.service';
 import { resolveCityMapFocus } from '../../utils/city-map-focus';
 import { formatCityDisplayLabel, mergeCityLabelsDistinct } from '../../utils/city-typeahead.utils';
 import { parsePetFilter, parsePetSpecies, parsePlaceTypes, serializePlaceTypes } from '../../utils/place-list-filter';
@@ -72,7 +72,6 @@ export class PlacesPageComponent {
   protected readonly listingPlaces = signal<Place[]>([]);
   private readonly mapPointPlaces = signal<Place[]>([]);
   protected readonly listingTotal = signal(0);
-  protected readonly listingHasMore = signal(false);
   protected readonly listingLoading = signal(false);
   protected readonly mapAreas = signal<PlaceSearchMapArea[]>([]);
   private readonly mapContext = signal<PlaceSearchMap | null>(null);
@@ -354,14 +353,6 @@ export class PlacesPageComponent {
     this.applyFilters(next);
   }
 
-  protected async showNextPlaces(): Promise<void> {
-    if (!this.listingHasMore() || this.listingLoading()) {
-      return;
-    }
-
-    await this.appendListing(this.filters());
-  }
-
   private async loadCatalogCities(): Promise<void> {
     const suggestions = await this.placeService.fetchPublicCitySuggestions();
     this.availableCountries.set(
@@ -388,52 +379,16 @@ export class PlacesPageComponent {
     this.selectedPlaceIdState.set(null);
 
     try {
-      const page = await this.placeService.searchPage(filters, 0, PLACE_LIST_PAGE_SIZE, abortController.signal);
+      const page = await this.placeService.searchAll(filters, abortController.signal);
       if (requestId !== this.listingRequest) {
         return;
       }
 
       this.listingPlaces.set(page.items);
       this.listingTotal.set(page.total);
-      this.listingHasMore.set(page.hasMore);
       this.mapAreas.set(page.map?.areas ?? []);
       this.mapContext.set(page.map ?? null);
       this.mapPointPlaces.set(page.map?.points ?? []);
-    } catch (error) {
-      if (abortController.signal.aborted) return;
-      throw error;
-    } finally {
-      if (requestId === this.listingRequest) {
-        this.listingLoading.set(false);
-      }
-    }
-  }
-
-  private async appendListing(filters: PlaceFilters): Promise<void> {
-    const requestId = ++this.listingRequest;
-    const skip = this.listingPlaces().length;
-    this.listingAbort?.abort();
-    const abortController = new AbortController();
-    this.listingAbort = abortController;
-    this.listingLoading.set(true);
-
-    try {
-      const page = await this.placeService.searchPage(
-        filters,
-        skip,
-        PLACE_LIST_PAGE_SIZE,
-        abortController.signal
-      );
-      if (requestId !== this.listingRequest) {
-        return;
-      }
-
-      this.listingPlaces.update((current) => {
-        const seen = new Set(current.map((place) => place.id));
-        return [...current, ...page.items.filter((place) => !seen.has(place.id))];
-      });
-      this.listingTotal.set(page.total);
-      this.listingHasMore.set(page.hasMore);
     } catch (error) {
       if (abortController.signal.aborted) return;
       throw error;

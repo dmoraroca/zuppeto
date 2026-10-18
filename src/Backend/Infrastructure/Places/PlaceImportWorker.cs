@@ -39,6 +39,7 @@ internal sealed class PlaceImportWorker(IServiceScopeFactory scopes, ILogger<Pla
             var normalizer=s.ServiceProvider.GetRequiredService<IPlaceSourceNormalizer>();var matcher=s.ServiceProvider.GetRequiredService<IPlaceMatcher>();
             var storagePolicy=s.ServiceProvider.GetRequiredService<IPlaceStoragePermissionPolicy>();
             var enrichers=s.ServiceProvider.GetServices<IPlaceEnrichmentSource>().ToArray();
+            var batchDuplicateGuard=new ConservativePlaceBatchDuplicateGuard();
             var staged=new List<PlaceImportStagedItem>();var issues=new List<PlaceImportIssueDto>();
             foreach(var document in discovery.Value!.Documents)
             {
@@ -71,8 +72,9 @@ internal sealed class PlaceImportWorker(IServiceScopeFactory scopes, ILogger<Pla
                     }
                 }
                 var match=await matcher.MatchAsync(candidate,ct); if(!match.IsSuccess){issues.Add(new(Guid.NewGuid(),"MATCH", "Warning",match.Failure!.Message,document.ExternalId));continue;}
+                var guardedMatch=batchDuplicateGuard.Evaluate(candidate,match.Value!);
                 var hash=Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(string.Join('|',candidate.Fields.OrderBy(x=>x.Key).Select(x=>$"{x.Key}={x.Value.NormalizedValue}"))))).ToLowerInvariant();
-                staged.Add(new(document,candidate,match.Value!,hash,enrichments));
+                staged.Add(new(document,candidate,guardedMatch,hash,enrichments));
             }
             await repository.StageAsync(work.ImportId,discovery.Value!,staged,issues,ct);
             await s.ServiceProvider.GetRequiredService<IPlaceImportWorkQueue>().CompleteAsync(work.ImportId,owner,ct);

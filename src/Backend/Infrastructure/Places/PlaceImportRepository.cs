@@ -240,8 +240,14 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
         if (current != PlaceImportStatus.Approved) throw new InvalidOperationException("La importació ha d’estar en estat Approved.");
         PlaceImportGovernance.EnsureTransition(current, PlaceImportStatus.Published);
         if (run.SimulationOnly) throw new InvalidOperationException("Una simulació no es pot publicar al catàleg real.");
-        if (run.Source.SourceKey != OpenStreetMapSource.SourceKey
-            || run.AccessMode != OpenStreetMapSource.GeofabrikExtractAccessMode
+        var categories = JsonSerializer.Deserialize<string[]>(run.CategoriesJson, Json) ?? [];
+        var osmPilot = run.Source.SourceKey == OpenStreetMapSource.SourceKey
+            && run.AccessMode == OpenStreetMapSource.GeofabrikExtractAccessMode;
+        var overturePilot = run.Source.SourceKey == OvertureMapsSource.SourceKey
+            && run.AccessMode == OvertureMapsSource.LocalExtractAccessMode
+            && run.BoundaryExternalId?.StartsWith("overture-boundary:", StringComparison.Ordinal) == true
+            && IsExactOvertureBasicCategorySet(categories);
+        if ((!osmPilot && !overturePilot)
             || run.TerritorialUnitId != Guid.Parse("8680aa5a-292f-4201-8d52-d6381f438af4")
             || run.CountryIso2 != "ES" || run.OfficialCode != "08006")
             throw new InvalidOperationException("La publicació real no correspon al pilot autoritzat d’Arenys de Mar.");
@@ -253,8 +259,11 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
         var now = DateTimeOffset.UtcNow;
         foreach (var item in items)
         {
-            if (item.SourceRecord.CanonicalPlaceId is Guid existingPlaceId)
+            var matchedPlaceId = item.SourceRecord.CanonicalPlaceId
+                ?? (item.Status != "PendingReview" ? item.PlaceId : null);
+            if (matchedPlaceId is Guid existingPlaceId)
             {
+                item.SourceRecord.CanonicalPlaceId = existingPlaceId;
                 item.PlaceId = existingPlaceId;
                 item.Status = "Existing";
                 await LinkObservations(importId, item.SourceRecordId, existingPlaceId, ct);
@@ -382,7 +391,7 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
                 Attribution = "© Overture Maps Foundation i proveïdors de les dades",
                 ReuseConditions = "Conservar GERS ID, release, datasets d’origen, llicències i atribució de cada observació.",
                 PermanentStorageAllowed = true, CommercialUseAllowed = true, OdblDerived = false,
-                ApprovalStatus = "IntegrationApproved",
+                ApprovalStatus = "PilotApproved",
                 ReviewedAtUtc = new DateTimeOffset(2026,10,18,0,0,0,TimeSpan.Zero), CreatedAtUtc = DateTimeOffset.UtcNow
             };
             db.PlaceDatasetSources.Add(source); await db.SaveChangesAsync(ct); return source;
@@ -456,10 +465,11 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
 
     private static Place BuildPlace(PlaceImportItemRecord item, IReadOnlyDictionary<string,string> fields, PlaceImportRunRecord run)
     {
+        var completeAddress = fields.GetValueOrDefault("address.complete")?.Trim();
         var street = fields.GetValueOrDefault("address.street")?.Trim();
         var houseNumber = fields.GetValueOrDefault("address.housenumber")?.Trim();
         var address = string.Join(" ", new[] { street, houseNumber }.Where(x => !string.IsNullOrWhiteSpace(x)));
-        if (string.IsNullOrWhiteSpace(address)) address = "Adreça no informada per la font";
+        if (string.IsNullOrWhiteSpace(address)) address = completeAddress ?? "Adreça no informada per la font";
         var (status, species) = PetPolicy(fields);
         var type = PlaceCommercialClassification.GeneralType(item.Category);
         var place = new Place(Guid.NewGuid(), item.Name,
@@ -490,6 +500,13 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
             : values.Count > 0 && values.All(x => x == "NotAllowed") ? PetAccessStatus.NotAllowed
             : PetAccessStatus.Unknown;
         return (status, species);
+    }
+
+    private static bool IsExactOvertureBasicCategorySet(IReadOnlyCollection<string> categories)
+    {
+        string[] expected = ["restaurant", "cafe", "bar", "pub", "fast_food", "bakery", "ice_cream", "hotel", "hostel", "camping"];
+        return categories.Count == expected.Length
+            && categories.All(category => expected.Contains(category, StringComparer.OrdinalIgnoreCase));
     }
 
     private static PlaceImportRunDto ToDto(PlaceImportRunRecord x, string sourceKey) => new(x.Id, sourceKey, x.AccessMode,

@@ -81,8 +81,8 @@ async function main(): Promise<void> {
     ]) {
       assert.equal(await page.getByLabel(label).isChecked(), true, `${label} ha d’aparèixer seleccionat d’entrada.`);
     }
-    assert.equal(await page.locator('app-place-card').count(), 20, 'La llista conserva la seva primera pàgina de 20.');
-    assert.match(await page.locator('.places-page__summary').innerText(), /20 de 23 llocs/);
+    assert.equal(await page.locator('app-place-card').count(), 23, 'La llista ha de mostrar tot el conjunt filtrat.');
+    assert.match(await page.locator('.places-page__summary').innerText(), /23 de 23 llocs/);
     assert.match(await page.locator('.place-map__summary').innerText(), /23 ubicacions visibles/,
       'El mapa rep tot el conjunt filtrat, independentment de la pàgina.');
     const municipalityLabel = page.locator('.place-map__municipality-label');
@@ -192,23 +192,25 @@ async function main(): Promise<void> {
       if (await cluster.count() === 0) break;
       await cluster.press('Enter');
     }
-    const unloadedMarker = page.getByRole('button', { name: /Seleccionar Local 22 al mapa/ });
-    await unloadedMarker.press('Enter');
-    assert.equal(await page.locator('app-place-card').count(), 20,
-      'Seleccionar un marcador fora de la pàgina no ha d’alterar la llista paginada.');
+    const lastMarker = page.getByRole('button', { name: /Seleccionar Local 22 al mapa/ });
+    const zoomBeforePlaceSelection = await mapCanvas.getAttribute('data-map-zoom');
+    await lastMarker.press('Enter');
+    assert.equal(await page.locator('app-place-card').count(), 23,
+      'Seleccionar un marcador no ha d’alterar la llista completa.');
     await page.getByText('Seleccionat al mapa').waitFor();
+    assert.equal(await mapCanvas.getAttribute('data-map-zoom'), zoomBeforePlaceSelection,
+      'Seleccionar un Place ha de conservar el zoom manual actual.');
 
-    await page.getByRole('button', { name: 'Mostrar els 20 següents' }).click();
-    await page.waitForFunction(() => document.querySelectorAll('app-place-card').length === 23);
-    assert.equal(await page.locator('app-place-card').count(), 23);
     assert.equal(await page.locator('app-place-card[data-place-id="coverage-place-22"]').count(), 1,
-      'La paginació no ha de duplicar UUID.');
+      'La càrrega completa no ha de duplicar UUID.');
+    assert.equal(await page.getByRole('button', { name: 'Mostrar els 20 següents' }).count(), 0,
+      'La paginació no s’ha d’exposar a l’usuari.');
     assert.match(await page.locator('.place-map__summary').innerText(), /23 ubicacions visibles/);
 
     await page.goto(`/places?country=Espanya&city=Arenys%20de%20Mar&territorialUnitId=${territorialUnitId}&types=all`, { waitUntil: 'networkidle' });
-    await page.waitForFunction(() => document.querySelectorAll('app-place-card').length === 20);
-    assert.match(await page.locator('.places-page__summary').innerText(), /20 de 50 llocs/,
-      'Sense filtre comercial la llista ha de continuar paginada.');
+    await page.waitForFunction(() => document.querySelectorAll('app-place-card').length === 50);
+    assert.match(await page.locator('.places-page__summary').innerText(), /50 de 50 llocs/,
+      'Sense filtre comercial la llista ha de mostrar tots els Places.');
     assert.match(await page.locator('.place-map__summary').innerText(), /50 ubicacions visibles/,
       'Sense filtre comercial el mapa ha de representar els 50 Places d’Arenys.');
 
@@ -230,7 +232,7 @@ async function main(): Promise<void> {
     assert.ok(Math.abs((await mapCanvas.boundingBox())!.height - mobileHeightAfter) <= 2,
       'La sortida de pantalla completa mòbil ha de recuperar la mida anterior.');
 
-    console.log(`PASS Chrome focalitzat: mapa redimensionable i fullscreen en escriptori/mòbil; 23 punts amb llista 20+3, 50 punts amb llista 20; ${zoom16Symbols} símbols visibles a zoom 16 i ${zoom12Symbols} a zoom 12; zoom/centre/filtres preservats i cap UUID duplicat.`);
+    console.log(`PASS Chrome focalitzat: mapa redimensionable i fullscreen en escriptori/mòbil; llistes completes de 23 i 50 Places; ${zoom16Symbols} símbols visibles a zoom 16 i ${zoom12Symbols} a zoom 12; selecció, recentrat, filtres i layout preserven el zoom, sense UUID duplicats.`);
   } finally {
     await browser.close();
   }

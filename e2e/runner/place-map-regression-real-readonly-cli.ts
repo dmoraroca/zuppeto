@@ -61,11 +61,25 @@ async function main(): Promise<void> {
       { waitUntil: 'networkidle' }
     );
     const filtered = latestSearch(apiResponses, 'restaurant,cafe,bar,pub,fast_food,bakery,ice_cream,hotel,hostel,camping');
+    console.log(`Consulta real capturada: ${filtered.url.toString()} total=${filtered.body.total} items=${filtered.body.items.length}`);
     await page.getByText(`${filtered.body.total} ubicacions visibles`).waitFor({ timeout: 30_000 });
     assert.ok(filtered.body.total > 0, 'Les categories predeterminades han de retornar Places reals d’Arenys.');
-    assert.equal(filtered.body.items.length, Math.min(filtered.body.total, 20));
+    assert.equal(filtered.body.items.length, Math.min(filtered.body.total, 100));
     assert.equal(filtered.body.map?.points?.length, filtered.body.total);
     assert.equal(filtered.url.searchParams.get('territorialUnitId'), territorialUnitId);
+    await page.waitForFunction(
+      (expected) => document.querySelectorAll('app-place-card').length === expected,
+      filtered.body.total
+    );
+    assert.equal(await page.locator('app-place-card').count(), filtered.body.total,
+      'La llista real ha de mostrar tot el conjunt filtrat sense tallar-lo a 20.');
+    const krusanCard = page.locator('app-place-card[data-place-id="95661464-6622-4b00-97c4-46ab6a0ed79f"]');
+    const renderedIds = await page.locator('app-place-card').evaluateAll((cards) =>
+      cards.map((card) => card.getAttribute('data-place-id'))
+    );
+    assert.equal(await krusanCard.count(), 1,
+      `La Krusan ha d’aparèixer una sola vegada a la llista filtrada real. UUID renderitzats=${renderedIds.join(',')}`);
+    assert.match(await krusanCard.innerText(), /Granja Bar la Krusan/i);
 
     const center = {
       lat: requiredCoordinate(filtered.body.map?.centerLatitude, 'latitude'),
@@ -84,6 +98,10 @@ async function main(): Promise<void> {
     assertCenter(center, await mapCenter(map), 'El recentrat real a zoom 16 ha de conservar la càmera.');
     const zoom16Symbols = await visibleMapSymbols(page);
     assert.ok(zoom16Symbols > 0, `Calen POI visibles a zoom 16. Errors=${pageErrors.join(' | ')}`);
+    await page.getByRole('button', { name: /Seleccionar .* al mapa/ }).first().press('Enter');
+    await page.getByText('Seleccionat al mapa').waitFor();
+    assert.equal(await map.getAttribute('data-map-zoom'), '16',
+      'Seleccionar un Place real ha de conservar el zoom manual 16.');
 
     await setMapZoom(page, map, 12);
     await panMap(page, map);
@@ -125,7 +143,7 @@ async function main(): Promise<void> {
     console.log(
       `PASS Chrome READ ONLY real: API ${filtered.body.total} (llista ${filtered.body.items.length}, mapa ${filtered.body.map?.points?.length}), centre ${center.lat},${center.lng}, `
       + `${zoom16Symbols} símbols a zoom 16 i ${zoom12Symbols} a zoom 12; filtre real ${filterBody.total}; `
-      + 'recentre, redimensionament i pantalla completa preservats.'
+      + 'selecció, recentre, redimensionament i pantalla completa preserven el zoom.'
     );
   } finally {
     await browser.close();
