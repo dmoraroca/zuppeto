@@ -114,7 +114,9 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
                     Id = Guid.NewGuid(), SourceId = run.SourceId, ExternalId = staged.Source.ExternalId,
                     SourceVersion = staged.Source.SourceVersion, NormalizedPayloadJson = payload, ContentHash = staged.ContentHash,
                     EvidenceUri = staged.Source.EvidenceUri?.ToString() ?? string.Empty, ObservedAtUtc = staged.Source.ObservedAtUtc,
-                    RetrievedAtUtc = now, FirstSeenAtUtc = now, LastSeenAtUtc = now, State = "Active"
+                    RetrievedAtUtc = now, FirstSeenAtUtc = now, LastSeenAtUtc = now, State = "Active",
+                    MatchStatus = staged.Match.RequiresHumanReview ? "PendingReview" : staged.Match.Band,
+                    VerificationStatus = "Pending"
                 };
                 db.PlaceSourceRecords.Add(sourceRecord);
             }
@@ -123,6 +125,7 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
                 sourceRecord.SourceVersion = staged.Source.SourceVersion; sourceRecord.NormalizedPayloadJson = payload;
                 sourceRecord.ContentHash = staged.ContentHash; sourceRecord.ObservedAtUtc = staged.Source.ObservedAtUtc;
                 sourceRecord.RetrievedAtUtc = now; sourceRecord.LastSeenAtUtc = now;
+                sourceRecord.MatchStatus = staged.Match.RequiresHumanReview ? "PendingReview" : staged.Match.Band;
             }
             await db.SaveChangesAsync(ct);
             db.PlaceImportItems.Add(new PlaceImportItemRecord
@@ -148,7 +151,8 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
                         Id = Guid.NewGuid(), SourceRecordId = sourceRecord.Id, ImportRunId = run.Id, PlaceId = staged.Match.PlaceId,
                         FieldName = field.Key, OriginalValue = field.Value.OriginalFormat, NormalizedValue = field.Value.NormalizedValue,
                         LicenseIdentifier = field.Value.LicenseIdentifier, Attribution = field.Value.Attribution,
-                        Authority = "AUTO", State = "Current", ObservedAtUtc = field.Value.ObservedAtUtc, ValidUntilUtc = field.Value.ExpiresAtUtc
+                        Authority = "AUTO", State = "Current", ObservedAtUtc = field.Value.ObservedAtUtc,
+                        ValidUntilUtc = field.Value.ExpiresAtUtc, VerificationStatus = "Pending"
                     });
                 }
             }
@@ -173,6 +177,8 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
                         SourceVersion = enrichment.SourceVersion, NormalizedPayloadJson = enrichmentPayload, ContentHash = enrichmentHash,
                         EvidenceUri = enrichment.EvidenceUri?.ToString() ?? string.Empty, ObservedAtUtc = enrichment.ObservedAtUtc,
                         RetrievedAtUtc = now, FirstSeenAtUtc = now, LastSeenAtUtc = now, State = "Active", CanonicalPlaceId = staged.Match.PlaceId };
+                    enrichmentRecord.MatchStatus = staged.Match.PlaceId is null ? "PendingReview" : "Matched";
+                    enrichmentRecord.VerificationStatus = "Pending";
                     db.PlaceSourceRecords.Add(enrichmentRecord);
                 }
                 else
@@ -190,7 +196,8 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
                         ImportRunId = run.Id, PlaceId = staged.Match.PlaceId, FieldName = field.Key, OriginalValue = field.Value.OriginalFormat,
                         NormalizedValue = field.Value.NormalizedValue, LicenseIdentifier = field.Value.LicenseIdentifier,
                         Attribution = field.Value.Attribution, Authority = "AUTO", State = "Current",
-                        ObservedAtUtc = field.Value.ObservedAtUtc, ValidUntilUtc = field.Value.ExpiresAtUtc });
+                        ObservedAtUtc = field.Value.ObservedAtUtc, ValidUntilUtc = field.Value.ExpiresAtUtc,
+                        VerificationStatus = "Pending" });
             }
         }
         foreach (var issue in issues) db.PlaceImportIssues.Add(new PlaceImportIssueRecord
@@ -264,6 +271,9 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
             if (matchedPlaceId is Guid existingPlaceId)
             {
                 item.SourceRecord.CanonicalPlaceId = existingPlaceId;
+                item.SourceRecord.MatchStatus = "Matched";
+                item.SourceRecord.VerificationStatus = "Verified";
+                item.SourceRecord.VerifiedAtUtc ??= now;
                 item.PlaceId = existingPlaceId;
                 item.Status = "Existing";
                 await LinkObservations(importId, item.SourceRecordId, existingPlaceId, ct);
@@ -273,6 +283,7 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
             if (item.Status == "PendingReview")
             {
                 item.Status = "RejectedConflict";
+                item.SourceRecord.MatchStatus = "PendingReview";
                 continue;
             }
             if (item.Latitude is null || item.Longitude is null)
@@ -286,6 +297,9 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
             record.UpdatedAtUtc = now;
             db.Places.Add(record);
             item.SourceRecord.CanonicalPlaceId = place.Id;
+            item.SourceRecord.MatchStatus = "Matched";
+            item.SourceRecord.VerificationStatus = "Verified";
+            item.SourceRecord.VerifiedAtUtc ??= now;
             item.PlaceId = place.Id;
             item.Status = "Published";
             await LinkObservations(importId, item.SourceRecordId, place.Id, ct);
@@ -357,7 +371,7 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
                 PermanentStorageAllowed = true, CommercialUseAllowed = true, OdblDerived = false, ApprovalStatus = "PilotApproved",
                 ReviewedAtUtc = new DateTimeOffset(2026,10,14,0,0,0,TimeSpan.Zero), CreatedAtUtc = DateTimeOffset.UtcNow
             };
-            db.PlaceDatasetSources.Add(source); await db.SaveChangesAsync(ct); return source;
+            await SaveGovernedSourceAsync(source, "wikimedia-foundation", "CC0-1.0", ct); return source;
         }
         if (sourceKey == DibaMunicipalSource.SourceKey)
         {
@@ -375,7 +389,7 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
                 ApprovalStatus = "PilotApproved",
                 ReviewedAtUtc = new DateTimeOffset(2026,10,17,0,0,0,TimeSpan.Zero), CreatedAtUtc = DateTimeOffset.UtcNow
             };
-            db.PlaceDatasetSources.Add(source); await db.SaveChangesAsync(ct); return source;
+            await SaveGovernedSourceAsync(source, "diputacio-barcelona", "CC-BY-4.0", ct); return source;
         }
         if (sourceKey == OvertureMapsSource.SourceKey)
         {
@@ -394,7 +408,45 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
                 ApprovalStatus = "PilotApproved",
                 ReviewedAtUtc = new DateTimeOffset(2026,10,18,0,0,0,TimeSpan.Zero), CreatedAtUtc = DateTimeOffset.UtcNow
             };
-            db.PlaceDatasetSources.Add(source); await db.SaveChangesAsync(ct); return source;
+            await SaveGovernedSourceAsync(source, "overture-maps-foundation", "CDLA-Permissive-2.0", ct); return source;
+        }
+        if (sourceKey == CataloniaTourismSource.SourceKey)
+        {
+            source = new PlaceDatasetSourceRecord
+            {
+                Id = Guid.NewGuid(), SourceKey = CataloniaTourismSource.SourceKey,
+                Organisation = "Generalitat de Catalunya · Departament d’Empresa i Treball",
+                Dataset = "Registre de Turisme de Catalunya", DatasetVersion = "live",
+                Coverage = "Catalunya; allotjaments turístics inscrits",
+                Url = "https://analisi.transparenciacatalunya.cat/d/t2h3-cgys",
+                AttributionUrl = "https://web.gencat.cat/ca/generalitat/dades-indicadors/dades-obertes/llicencies",
+                LicenseIdentifier = "CATALONIA-OPEN-DATA",
+                LicenseUrl = "https://web.gencat.cat/ca/generalitat/dades-indicadors/dades-obertes/llicencies",
+                Attribution = "Generalitat de Catalunya · Departament d’Empresa i Treball",
+                ReuseConditions = "Atribució i data de consulta obligatòries; s’exclouen CIF i identitat del titular.",
+                PermanentStorageAllowed = true, CommercialUseAllowed = true, OdblDerived = false,
+                ApprovalStatus = "PilotApproved",
+                ReviewedAtUtc = new DateTimeOffset(2026,10,18,0,0,0,TimeSpan.Zero), CreatedAtUtc = DateTimeOffset.UtcNow
+            };
+            await SaveGovernedSourceAsync(source, "generalitat-catalunya", "CATALONIA-OPEN-DATA", ct); return source;
+        }
+        if (sourceKey == AragonCommercialSource.SourceKey)
+        {
+            source = new PlaceDatasetSourceRecord
+            {
+                Id = Guid.NewGuid(), SourceKey = AragonCommercialSource.SourceKey,
+                Organisation = "Gobierno de Aragón", Dataset = "Registro de Actividades Comerciales",
+                DatasetVersion = "live", Coverage = "Aragó; establiments del registre comercial",
+                Url = "https://opendata.aragon.es/datos/catalogo/dataset/registro-de-actividades-comerciales",
+                AttributionUrl = "https://creativecommons.org/licenses/by/4.0/",
+                LicenseIdentifier = "CC-BY-4.0", LicenseUrl = "https://creativecommons.org/licenses/by/4.0/",
+                Attribution = "Gobierno de Aragón · Registro de Actividades Comerciales",
+                ReuseConditions = "Atribució i data de consulta obligatòries; candidats sense coordenades pendents de corroboració.",
+                PermanentStorageAllowed = true, CommercialUseAllowed = true, OdblDerived = false,
+                ApprovalStatus = "PilotApproved",
+                ReviewedAtUtc = new DateTimeOffset(2026,10,18,0,0,0,TimeSpan.Zero), CreatedAtUtc = DateTimeOffset.UtcNow
+            };
+            await SaveGovernedSourceAsync(source, "gobierno-aragon", "CC-BY-4.0", ct); return source;
         }
         if (sourceKey != OpenStreetMapSource.SourceKey)
             throw new InvalidOperationException($"La font d’importació '{sourceKey}' no està registrada.");
@@ -408,7 +460,27 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
             PermanentStorageAllowed = true, CommercialUseAllowed = true, OdblDerived = true, ApprovalStatus = "PilotApproved",
             ReviewedAtUtc = new DateTimeOffset(2026,10,13,0,0,0,TimeSpan.Zero), CreatedAtUtc = DateTimeOffset.UtcNow
         };
-        db.PlaceDatasetSources.Add(source); await db.SaveChangesAsync(ct); return source;
+        await SaveGovernedSourceAsync(source, "openstreetmap-foundation", "ODbL-1.0", ct); return source;
+    }
+
+    private async Task SaveGovernedSourceAsync(
+        PlaceDatasetSourceRecord source,
+        string organisationKey,
+        string licenseCode,
+        CancellationToken ct)
+    {
+        var organisation = await db.PlaceDataOrganisations
+            .SingleOrDefaultAsync(item => item.OrganisationKey == organisationKey, ct);
+        var license = await db.PlaceDataLicenses
+            .SingleOrDefaultAsync(item => item.Code == licenseCode, ct);
+        source.OrganisationId = organisation?.Id;
+        source.LicenseId = license?.Id;
+        source.ConsultedAtUtc = DateTimeOffset.UtcNow;
+        source.ReuseStatus = organisation is not null && license?.CommercialUseStatus == "Allowed"
+            ? "Allowed"
+            : "Unknown";
+        db.PlaceDatasetSources.Add(source);
+        await db.SaveChangesAsync(ct);
     }
 
     private async Task LinkEnrichments(Guid importId, Guid parentSourceRecordId, Guid placeId, CancellationToken ct)
@@ -418,6 +490,9 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
         foreach (var link in links)
         {
             link.PlaceId = placeId; link.EnrichmentSourceRecord.CanonicalPlaceId = placeId;
+            link.EnrichmentSourceRecord.MatchStatus = "Matched";
+            link.EnrichmentSourceRecord.VerificationStatus = "Verified";
+            link.EnrichmentSourceRecord.VerifiedAtUtc ??= DateTimeOffset.UtcNow;
             await LinkObservations(importId, link.EnrichmentSourceRecordId, placeId, ct);
         }
         var decisions = await db.PlaceMatchDecisions.Where(x => x.SourceRecordId == parentSourceRecordId && x.IsCurrent).ToArrayAsync(ct);
@@ -460,7 +535,12 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
     {
         var observations = await db.PlaceFieldObservations
             .Where(x => x.ImportRunId == importId && x.SourceRecordId == sourceRecordId).ToArrayAsync(ct);
-        foreach (var observation in observations) observation.PlaceId = placeId;
+        foreach (var observation in observations)
+        {
+            observation.PlaceId = placeId;
+            observation.VerificationStatus = "Verified";
+            observation.VerifiedAtUtc ??= DateTimeOffset.UtcNow;
+        }
     }
 
     private static Place BuildPlace(PlaceImportItemRecord item, IReadOnlyDictionary<string,string> fields, PlaceImportRunRecord run)

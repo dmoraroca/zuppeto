@@ -5,7 +5,9 @@ public enum PlaceMediaSource
     PetiLoc,
     Owner,
     User,
-    WikimediaCommons
+    WikimediaCommons,
+    Mapillary,
+    OfficialWebsite
 }
 
 public enum PlaceMediaVerificationStatus
@@ -19,6 +21,8 @@ public sealed record PlaceMediaAsset(
     Guid Id,
     Guid PlaceId,
     PlaceMediaSource Source,
+    string SourceOrganisation,
+    string ExternalId,
     Uri OriginalUri,
     Uri ServedUri,
     string Author,
@@ -33,10 +37,20 @@ public sealed record PlaceMediaAsset(
     PlaceMediaVerificationStatus VerificationStatus,
     bool CanBePrimary,
     bool IsPrimary,
+    bool IdentityVerified,
+    string ReuseConditions,
     string? WikidataQid,
     string? WikimediaFileName,
     Uri? EvidenceUri,
-    string? RejectionReason);
+    string? RejectionReason,
+    DateTimeOffset? CapturedAtUtc = null,
+    decimal? Latitude = null,
+    decimal? Longitude = null,
+    decimal? HeadingDegrees = null,
+    int? DistanceMeters = null,
+    DateTimeOffset? LastCheckedAtUtc = null,
+    DateTimeOffset? ModeratedAtUtc = null,
+    Guid? ModeratorActorId = null);
 
 public sealed class PlaceMediaSelectionPolicy
 {
@@ -60,6 +74,8 @@ public sealed class PlaceMediaSelectionPolicy
         PlaceMediaSource.Owner => 1,
         PlaceMediaSource.User => 2,
         PlaceMediaSource.WikimediaCommons => 3,
+        PlaceMediaSource.Mapillary => 4,
+        PlaceMediaSource.OfficialWebsite => 5,
         _ => int.MaxValue
     };
 }
@@ -87,7 +103,8 @@ public sealed class PlaceMediaLicensePolicy
             return new(true, true, true, Version(normalized, licenseUri), "Llicència lliure compatible.");
         }
 
-        if (normalized.StartsWith("CC-BY-", StringComparison.Ordinal) ||
+        if (normalized is "CC-BY" or "CC-BY-SA" ||
+            normalized.StartsWith("CC-BY-", StringComparison.Ordinal) ||
             normalized.StartsWith("CC BY ", StringComparison.Ordinal) ||
             normalized.StartsWith("CC-BY-SA-", StringComparison.Ordinal) ||
             normalized.StartsWith("CC BY-SA ", StringComparison.Ordinal))

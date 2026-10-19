@@ -16,6 +16,7 @@ import { PlaceSearchMap, PlaceSearchMapArea, PlaceService } from '../../services
 import { resolveCityMapFocus } from '../../utils/city-map-focus';
 import { formatCityDisplayLabel, mergeCityLabelsDistinct } from '../../utils/city-typeahead.utils';
 import { parsePetFilter, parsePetSpecies, parsePlaceTypes, serializePlaceTypes } from '../../utils/place-list-filter';
+import { hasExplicitGeographicScope } from '../../utils/place-initial-location';
 import { placesVisibleOnOsmMap } from '../../utils/places-osm-map';
 
 @Component({
@@ -115,6 +116,9 @@ export class PlacesPageComponent {
       void this.reloadListing(filters);
     });
     void this.loadCatalogCities();
+    if (!hasExplicitGeographicScope(this.route.snapshot.queryParamMap)) {
+      queueMicrotask(() => this.useMyLocation());
+    }
   }
 
   protected readonly cities = computed(() => this.catalogCities());

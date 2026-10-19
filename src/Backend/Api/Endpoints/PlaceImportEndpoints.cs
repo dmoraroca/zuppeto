@@ -33,6 +33,8 @@ internal static class PlaceImportEndpoints
                 OpenStreetMapSource.GeofabrikExtractAccessMode => "OpenStreetMap / extracte Geofabrik",
                 OpenStreetMapSource.DirectMapAccessMode => "OpenStreetMap / API directa (auditoria)",
                 DibaMunicipalSource.RestApiAccessMode => "DIBA / cens municipal d’activitats",
+                CataloniaTourismSource.RestApiAccessMode => "Generalitat / Registre de Turisme de Catalunya",
+                AragonCommercialSource.CsvAccessMode => "Govern d’Aragó / registre comercial",
                 OvertureMapsSource.LocalExtractAccessMode => "Overture Maps Places / extracte local",
                 _ => "OpenStreetMap / Overpass"
             },license=source.Descriptor.LicenseIdentifier,attribution=source.Descriptor.Attribution,

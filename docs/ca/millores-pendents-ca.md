@@ -4,7 +4,7 @@
 
 La cerca, el radi, la paginació PostgreSQL, el GPS privat, el mapa sincronitzat i la fitxa ampliada estan implementats, i la migració d'índexs ja s'ha aplicat a PostgreSQL real. Resten com a millores no bloquejants: validar un municipi amb més de 50 Places quan existeixi, mesurar offsets profunds, revisar visualment el pin provisional i reobrir clustering server-side/PostGIS només amb mètriques representatives. [Informe](iteracio-7-fase-vi-cercador-mapa-ux-ca.md).
 
-La publicació bàsica Overture del 18/10/2026 ha ampliat Arenys de 52 a 117 Places i ha validat per API que el mapa rep els 117 punts al marge de la pàgina de 20. Abans de tancar la fase resten la validació Chrome del volum real, la revisió manual dels 35 candidats Overture bloquejats i una font complementària legal per cobrir establiments absents com `365`.
+La publicació bàsica Overture del 18/10/2026 ha ampliat Arenys de 52 a 117 Places i ha validat per API que el mapa rep els 117 punts al marge de la pàgina de 20. DIBA, el Registre de Turisme de Catalunya i el registre comercial d'Aragó ja han quedat integrats com a fonts complementàries de simulació. Abans de tancar la fase resten la validació Chrome del volum real, la revisió manual dels 35 candidats Overture bloquejats i dels 49 possibles matches DIBA, la corroboració geogràfica i l'autorització explícita de qualsevol publicació administrativa.
 
 Backlog de millores detectades mentre es treballa o es fan proves manuals.
 No substitueix `docs/project-phases.md` ni el joc de proves Excel: aquí només anotem idees per comentar i prioritzar després.
@@ -523,3 +523,20 @@ No deixar la targeta buida. No implementar ara (cal font: Places Details, web de
 **Pendents prioritaris auditats:** desplegar el contenidor API amb el tall vigent de Google Places; preservar `countryId + territorialUnitId` en aplicar filtres; representar coordenades absents sense fallback persistible; definir política pet-friendly no binària, procedència per camp, identitats multiproveïdor i deduplicació; portar paginació a SQL; distingir error de xarxa de resultat buit; escapar el contingut dels popups Leaflet; i separar ADMIN Places del component monolític.
 
 **Estat:** documentats i prioritzats a `iteracio-7-fase-i-auditoria-places-ca.md`. No implementats perquè la Fase I és d'auditoria; Fase II no iniciada.
+## 2026-10-18 — Traçabilitat de fonts de Places
+
+**Àmbit:** governança internacional de datasets i llicències.
+
+**Aplicat:** catàlegs d’organismes/llicències, evidència jurídica, reconstrucció conservadora, consulta ADMIN i atribució pública.
+
+**Pendent:** revisió jurídica definitiva de la discrepància DIBA CC BY 4.0/CC0 i de la qualificació de bases combinades ODbL. Les dades afectades continuen identificades, no s’ha ocultat la discrepància i no s’han inventat drets.
+
+**Estat:** Fase VI oberta.
+
+## 2026-10-18 — Fotografies reals de Places
+
+**Aplicat:** pipeline governat Wikimedia/Mapillary, memòria cau per Place/font, revisió ADMIN, traçabilitat legal i conservació local dels JPEG aprovats. Els candidats de proximitat romanen `Pending` i no arriben a l’API pública.
+
+**Pendent:** ampliar identitats exactes de Wikidata, revisar manualment els candidats útils d’Arenys i definir un object storage durador abans d’un desplegament distribuït. Les aportacions de propietari/usuari i les webs oficials no s’han d’activar sense prova de drets i moderació.
+
+**Estat:** Fase VI oberta; no s’ha fet aprovació massiva.

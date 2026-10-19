@@ -7,11 +7,15 @@ internal sealed class PlaceResponseMapper(IPlaceCoverStorage coverStorage, Place
     private readonly PlaceMediaSelectionPolicy mediaSelectionPolicy = configuredMediaSelectionPolicy ?? new PlaceMediaSelectionPolicy();
     internal PlaceSummaryDto ToSummary(Place place, IReadOnlyCollection<PlaceMediaAsset>? media = null)
     {
+        var publicMedia = (media ?? [])
+            .Where(asset => asset.VerificationStatus == PlaceMediaVerificationStatus.Verified)
+            .Where(asset => asset.IdentityVerified && asset.CanBePrimary)
+            .ToArray();
         var (cacheExpired, requiresGoogleMap) = ComputeGoogleCoordinateFlags(place);
         var excludeFromOsmMap = place.ExcludeFromOsmMap && !requiresGoogleMap;
         var visit = PlaceVisitNotes.Split(place.PetPolicy.Notes);
         var attribution = coverStorage.ReadAttribution(place.Id);
-        var primaryMedia = mediaSelectionPolicy.SelectPrimary(media ?? []);
+        var primaryMedia = mediaSelectionPolicy.SelectPrimary(publicMedia);
         return new PlaceSummaryDto(
             place.Id,
             place.Name,
@@ -52,7 +56,7 @@ internal sealed class PlaceResponseMapper(IPlaceCoverStorage coverStorage, Place
             place.PetPolicy.Status.ToString(),
             place.PetPolicy.Species.Select(x => x.Code).ToArray(),
             place.PetPolicy.Conditions.Select(x => new PetConditionDto(x.Code, x.Value)).ToArray(),
-            Media: media?.Select(PlaceMediaApplicationService.ToDto).ToArray(),
+            Media: publicMedia.Select(PlaceMediaApplicationService.ToDto).ToArray(),
             CommercialCategory: place.CommercialCategory);
     }
 

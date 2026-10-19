@@ -38,6 +38,18 @@ public static class DibaMunicipalSource
     public const string RestApiAccessMode = "DIBA_MUNICIPAL_ESTABLISHMENTS_API";
 }
 
+public static class CataloniaTourismSource
+{
+    public const string SourceKey = "catalonia-tourism-registry";
+    public const string RestApiAccessMode = "CATALONIA_TOURISM_REGISTRY_API";
+}
+
+public static class AragonCommercialSource
+{
+    public const string SourceKey = "aragon-commercial-registry";
+    public const string CsvAccessMode = "ARAGON_COMMERCIAL_REGISTRY_CSV";
+}
+
 public static class OvertureMapsSource
 {
     public const string SourceKey = "overture-maps-places";
@@ -138,6 +150,8 @@ public interface IPlaceProximityMediaSource : IPlaceSourceConnector
     Task<Result<IReadOnlyCollection<PlaceProximityMediaCandidate>>> SearchAsync(
         PlaceProximityMediaSearch search,
         CancellationToken cancellationToken);
+
+    Task<Result<PlaceMediaContent>> DownloadAsync(string externalId, CancellationToken cancellationToken);
 }
 public interface IPlaceProvenanceVerifier
 {
@@ -185,6 +199,8 @@ public sealed record PlaceProximityMediaCandidate(
     decimal Longitude,
     int DistanceMeters,
     string Attribution);
+
+public sealed record PlaceMediaContent(byte[] Bytes, string ContentType, string ContentHash);
 public sealed record ProvenanceVerification(bool IsVerified, string Method, DateTimeOffset CheckedAtUtc, string? Reason);
 public sealed record StoragePermissionDecision(bool Allowed, string Reason, DateTimeOffset ReviewedAtUtc);
 public sealed record NormalizedPlaceCandidate(string SourceKey, string ExternalId, string Name, string Category,

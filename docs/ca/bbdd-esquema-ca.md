@@ -274,3 +274,12 @@ erDiagram
 - `places` conserva temporalment metadades heretades de Google (`data_provenance`, `google_place_id`, cache i darrera sincronització). La Iteració 7 n'ha d'auditar i retirar la dependència després de validar fonts obertes; no són el model objectiu.
 - `permissions.scope_payload` es tracta com a JSON lògic de domini, encara que físicament sigui `text`.
 - `place_search_queries` i `place_search_query_results` s'utilitzen com a cache persistent i traçabilitat de cerques de `places` (patró lazy).
+# Ampliació Fase VI — traçabilitat de Places
+
+S’han afegit `place_data_organisations`, `place_data_licenses` i `place_dataset_license_evidence`. `place_dataset_sources` referencia organisme i llicència; `place_source_records` conserva matching/verificació i `place_field_observations` conserva confiança/verificació. Totes les relacions noves disposen de claus foranes i índexs per Place, font, estat i camp.
+
+# Ampliació Fase VI — governança de fotografies
+
+`place_media_assets` conserva metadades i governança, no el binari: font i organisme, identificador extern, URL original i servida, autoria, llicència, atribució, drets, SHA-256, evidència d’identitat, estat, moderador, captura i dades espacials. `place_media_discoveries` manté per Place i font la darrera consulta, el pròxim reintent, el recompte i l’error; la seva unicitat és `(place_id, source)`.
+
+La migració `20261018204649_AddGovernedPlaceMediaDiscoveryPhase6` ha ampliat el model existent i ha creat el registre de descobriment. Els JPEG Mapillary aprovats viuen fora de PostgreSQL a `storage/place-media` i només la ruta servida queda referenciada a la taula.

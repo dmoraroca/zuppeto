@@ -23,6 +23,15 @@
         @if (selectedPlace.coverAttribution?.trim()) {
           <p class="place-detail-page__photo-credit">
             Foto: {{ selectedPlace.coverAttribution }}
+            @if (primaryMedia(); as media) {
+              · {{ mediaSourceLabel(media.source) }}
+              ·
+              @if (media.licenseUrl) {
+                <a [href]="media.licenseUrl" target="_blank" rel="noopener noreferrer">{{ media.licenseIdentifier }}</a>
+              } @else {
+                {{ media.licenseIdentifier }}
+              }
+            }
             @if (selectedPlace.coverSourceUri?.trim()) {
               ·
               <a [href]="selectedPlace.coverSourceUri" target="_blank" rel="noopener noreferrer">
@@ -170,6 +179,17 @@
       <article class="place-detail-page__card">
         <h2>Procedència i estat</h2>
         <p><strong>Procedència:</strong> {{ selectedPlace.dataProvenance }}</p>
+        @if (selectedPlace.dataAttributions?.length) {
+          <ul aria-label="Fonts de les dades del lloc">
+            @for (source of selectedPlace.dataAttributions; track source.organisation + source.dataset + source.licenseCode) {
+              <li>
+                {{ source.attribution || (source.organisation + ' · ' + source.dataset) }} ·
+                <a [href]="source.licenseUrl" target="_blank" rel="noopener noreferrer">{{ source.licenseCode }}</a>
+                · <a [href]="source.datasetUrl" target="_blank" rel="noopener noreferrer">font</a>
+              </li>
+            }
+          </ul>
+        }
         <p><strong>Estat del negoci:</strong> {{ selectedPlace.businessStatus || 'Obert' }}</p>
         @if (selectedPlace.updatedAtUtc) {
           <p><strong>Darrera actualització:</strong> {{ selectedPlace.updatedAtUtc | date:'dd/MM/yyyy' }}</p>

@@ -1248,3 +1248,7 @@ El runner `place-full-import-phase6-cli.ts` executa el cas d’ús ADMIN existen
 La publicació Overture ha disposat d’un harness backend opt-in separat del runner general. Ha executat dues passades sobre una restauració temporal i dues sobre PostgreSQL real, sempre amb geometria oficial `08006`, deu categories exactes, confiança mínima 0,7 i sense media ni dades pet-friendly. Les dues validacions han passat amb 101 GERS ID únics, 65 Places nous a la primera passada i 0 a la segona.
 
 La verificació funcional posterior de l’API pública ha retornat 117 Places totals, 20 elements a la primera pàgina i 117 punts per al mapa, amb una única `Granja Bar la Krusan`. No s’ha executat encara un nou escenari Chrome contra aquest volum real; queda registrat com a validació pendent abans de tancar la Fase VI.
+
+## Validació focalitzada de media real — 18.10.2026
+
+El runner `place-media-real-phase6-cli.ts` valida amb Chrome el detall públic de l’únic candidat d’Arenys aprovat manualment. Comprova que l’API només exposa l’asset verificat, que la portada apunta al JPEG local de PetiLoc, que el navegador el carrega amb dimensions reals, que mostra atribució Mapillary/autoria i que no activa el placeholder. No executa Firefox ni WebKit.

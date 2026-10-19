@@ -4,6 +4,8 @@
 **Abast:** auditoria legal, connector de descoberta i contrast read-only amb els 52 Places d’Arenys.  
 **Estat:** connector implementat però desactivat; 0 importacions, 0 publicacions i 0 escriptures a PostgreSQL.
 
+> **Actualització 18.10.2026:** el connector s'ha activat exclusivament per a preparació i simulació després de validar de nou la CC BY 4.0 declarada pel payload. Amb els 117 Places actuals, l'auditoria read-only ha mantingut 117/117 i ha classificat els mateixos 220 candidats en 49 `NeedsReview` i 171 `NotMatch`. La publicació real continua bloquejada. Vegeu [l'informe de fonts públiques complementàries](public-administration-place-sources-20261018.md).
+
 ## 1. Gate legal
 
 El [directori d’empreses i comerços de l’Ajuntament d’Arenys de Mar](https://arenysdemar.cat/directoridempreses) és públic i conté 467 fitxes, però publicitat no equival a autorització de reutilització comercial. L’[avís legal municipal](https://arenysdemar.cat/avislegal.php) permet reproducció i difusió amb reconeixement de l’autoria, però exclou l’ús comercial. Per tant, PetiLoc no pot persistir ni redistribuir noms, adreces, telèfons o categories extrets directament d’aquest directori per al seu catàleg comercial sense una autorització addicional de l’Ajuntament.

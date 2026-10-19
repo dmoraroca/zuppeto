@@ -14,7 +14,9 @@ El grup `/api/admin/place-imports` implementa context, preparació `202 Accepted
 
 El mode `OSM_DIRECT_MAP` afegit al gate de cobertura de Fase VI és exclusivament d’auditoria ADMIN i està desactivat per defecte. Fa una sola petició `GET /api/0.6/map?bbox=…`, processa XML en streaming i exigeix frontera municipal OSM amb codi INE equivalent abans de retornar candidats. El límit de publicació continua acceptant únicament Geofabrik; per tant, aquest mode no pot publicar automàticament. [Resultat d’Arenys](evidencies/osm-direct-coverage-arenys-20261016.md).
 
-El connector `DIBA_MUNICIPAL_ESTABLISHMENTS_API` consulta el cens municipal obert amb `GET dataset/establiments/camp-rel_municipi/{codiINE}/format/json`. Queda registrat però desactivat amb `PlaceSources:DibaMunicipalEstablishments:Enabled=false`; el cas d’ús d’importació encara no accepta aquest mode. Exigeix CC BY 4.0, conserva atribució i data, i exclou NIF/raó social. [Gate legal i prova read-only d’Arenys](evidencies/arenys-municipal-reuse-connector-20261017.md).
+El connector `DIBA_MUNICIPAL_ESTABLISHMENTS_API` consulta el cens municipal obert amb `GET dataset/establiments/camp-rel_municipi/{codiINE}/format/json`. Ha quedat habilitat per a simulacions ADMIN després de validar la CC BY 4.0 declarada pel payload; conserva atribució i data i exclou NIF/raó social. La publicació real continua bloquejada. [Gate legal i prova read-only d’Arenys](evidencies/arenys-municipal-reuse-connector-20261017.md).
+
+Els modes `CATALONIA_TOURISM_REGISTRY_API` i `ARAGON_COMMERCIAL_REGISTRY_CSV` han quedat integrats al mateix planificador multifont. El primer cobreix allotjaments de les quatre províncies catalanes i el segon activitats comercials d'Osca, Terol i Saragossa. Overture continua sent la primera font compatible quan l'extracte està configurat; totes les fonts administratives es preparen exclusivament en simulació i passen pel normalitzador, la política de llicència i el matcher conservador comuns. [Fonts, llicències i resultats reals](evidencies/public-administration-place-sources-20261018.md).
 
 
 ## Iteració 7 — Fase III, governança de Places
@@ -236,4 +238,24 @@ La governança de fonts incorpora `GET /api/admin/territorial/sources`, `GET /ap
 - `POST /api/admin/place-imports/prepare-compatible`: prepara un lot de **simulació** per cada font habilitada compatible. No publica Places i manté els gates de publicació existents.
 - `GET /api/admin/place-imports/context`: exposa també `sourceKey` i la cobertura declarada dels connectors. Els països ja no estan fixats a `ES`.
 
-Totes tres operacions exigeixen rol ADMIN i `action.places.manage`. DIBA continua desactivada per configuració i la publicació real general no queda autoritzada.
+Totes tres operacions exigeixen rol ADMIN i `action.places.manage`. DIBA, el Registre de Turisme de Catalunya i el registre comercial d'Aragó estan habilitats per preparar simulacions; la publicació real general no queda autoritzada.
+
+## Addenda Fase VI — traçabilitat de dades de Places
+
+- `GET /api/admin/place-catalog-governance/`: inclou organismes, llicències, datasets, evidències jurídiques i resum de completitud. Requereix ADMIN i `action.places.manage`.
+- `GET /api/admin/place-catalog-governance/places/{placeId}/traceability`: retorna totes les fonts del Place, identificadors externs, dataset, llicència, estat de reutilització, dates i evidències per camp. Requereix ADMIN i `action.places.manage`.
+- `GET /api/places/{id}`: `dataAttributions` exposa únicament les atribucions de registres font verificats perquè la fitxa pública compleixi les obligacions de llicència.
+
+Les dades pendents o amb drets desconeguts es mostren a l’ADMIN, però no adquireixen automàticament estat verificat ni autorització de publicació.
+
+## Addenda Fase VI — fotografies governades
+
+- `GET /api/admin/places/{placeId}/media/`: inventari complet de media i estat de moderació.
+- `POST /api/admin/places/{placeId}/media/wikimedia/import`: importa només P18 d’un QID de Place `VerifiedExact`; una coincidència per nom no és suficient.
+- `GET /api/admin/places/{placeId}/media/mapillary/candidates`: registra candidats pròxims com a `Pending`, amb autoria, captura, orientació, distància i evidència; mai no en confirma la identitat.
+- `POST /api/admin/places/{placeId}/media/upload`: rep `multipart/form-data` amb un JPEG de fins a 10 MB, procedència, autoria, llicència, atribució, declaració de drets i evidència. Només crea un asset `Pending`; no el publica.
+- `POST /api/admin/places/{placeId}/media/{assetId}/accept`: exigeix ADMIN, `action.places.manage` i una justificació d’identitat. Per Mapillary descarrega i conserva el JPEG al servidor abans d’aprovar-lo.
+- `POST /api/admin/places/{placeId}/media/{assetId}/primary`: només admet assets verificats i aptes.
+- `POST /api/admin/places/{placeId}/media/{assetId}/reject`: conserva el motiu i exclou l’asset de la resposta pública.
+
+La consulta pública només exposa assets `Verified` amb identitat verificada i aptes per a portada. El token Mapillary és exclusivament backend, no forma part dels DTO i no s’envia al CDN de la imatge.

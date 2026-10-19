@@ -73,6 +73,32 @@ public sealed class MapillaryMediaSourceTests
         Assert.Null(handler.RequestUri);
     }
 
+    [Fact]
+    public async Task Download_resolves_fresh_url_with_auth_but_never_forwards_token_to_cdn()
+    {
+        const string token = "test-mapillary-token";
+        var jpeg = new byte[] { 0xff, 0xd8, 0xff, 0xe0, 1, 2, 3, 4 };
+        var handler = new DownloadHandler(jpeg);
+        using var client = new HttpClient(handler) { BaseAddress = new Uri("https://graph.mapillary.test/") };
+        var source = new MapillaryMediaSource(client, Options.Create(new MapillaryOptions
+        {
+            Enabled = true,
+            AccessToken = token,
+            BaseUrl = client.BaseAddress.ToString()
+        }));
+
+        var result = await source.DownloadAsync("123", default);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(jpeg, result.Value!.Bytes);
+        Assert.Equal("image/jpeg", result.Value.ContentType);
+        Assert.Equal(2, handler.Requests.Count);
+        Assert.Equal("/123", handler.Requests[0].Uri.AbsolutePath);
+        Assert.Equal(token, handler.Requests[0].Authorization);
+        Assert.Null(handler.Requests[1].Authorization);
+        Assert.Equal("cdn.example", handler.Requests[1].Uri.Host);
+    }
+
     private sealed class RecordingHandler(string payload) : HttpMessageHandler
     {
         public Uri? RequestUri { get; private set; }
@@ -87,6 +113,29 @@ public sealed class MapillaryMediaSourceTests
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent(payload, Encoding.UTF8, "application/json")
+            });
+        }
+    }
+
+    private sealed class DownloadHandler(byte[] jpeg) : HttpMessageHandler
+    {
+        public List<(Uri Uri, string? Authorization)> Requests { get; } = [];
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            Requests.Add((request.RequestUri!, request.Headers.Authorization?.Parameter));
+            if (Requests.Count == 1)
+            {
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent("{\"id\":\"123\",\"thumb_2048_url\":\"https://cdn.example/123.jpg\"}",
+                        Encoding.UTF8, "application/json")
+                });
+            }
+
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new ByteArrayContent(jpeg)
             });
         }
     }

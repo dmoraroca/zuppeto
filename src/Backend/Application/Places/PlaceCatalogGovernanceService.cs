@@ -6,6 +6,8 @@ namespace Zuppeto.Application.Places;
 public sealed class PlaceCatalogGovernanceService(IPlaceCatalogGovernanceRepository repository) : IPlaceCatalogGovernanceService
 {
     public Task<PlaceCatalogGovernanceDto> GetAsync(CancellationToken ct = default) => repository.GetAsync(ct);
+    public Task<PlaceTraceabilityDto> GetTraceabilityAsync(Guid placeId, CancellationToken ct = default) =>
+        repository.GetTraceabilityAsync(placeId, ct);
     public Task ResolveMatchAsync(Guid id, ResolvePlaceMatchRequest request, Guid actorId, CancellationToken ct = default)
     {
         if (!Enum.TryParse<PlaceMatchOutcome>(request.Outcome, true, out var outcome)) throw new DomainRuleException("El resultat de matching no és vàlid.");

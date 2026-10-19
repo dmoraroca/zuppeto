@@ -108,6 +108,8 @@ public sealed class PlaceImportApplicationService(
             or OpenStreetMapSource.GeofabrikExtractAccessMode
             or OpenStreetMapSource.DirectMapAccessMode) return OpenStreetMapSource.SourceKey;
         if (request.AccessMode == DibaMunicipalSource.RestApiAccessMode) return DibaMunicipalSource.SourceKey;
+        if (request.AccessMode == CataloniaTourismSource.RestApiAccessMode) return CataloniaTourismSource.SourceKey;
+        if (request.AccessMode == AragonCommercialSource.CsvAccessMode) return AragonCommercialSource.SourceKey;
         if (request.AccessMode == OvertureMapsSource.LocalExtractAccessMode) return OvertureMapsSource.SourceKey;
         throw new DomainRuleException("La font seleccionada no està registrada al motor de descobriment.");
     }

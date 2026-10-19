@@ -288,3 +288,12 @@ I prepara el següent:
 La continuitat tecnica d'aquest punt es documenta a:
 
 - `ef-persistence-ca.md`
+# Traçabilitat de dades de Places (Fase VI)
+
+El model reutilitza `place_dataset_sources → place_source_records → place_field_observations` i hi afegeix:
+
+- `place_data_organisations`: organisme internacional, tipus, país, web i verificació;
+- `place_data_licenses`: drets trivalents d’ús comercial, modificació i redistribució, atribució i share-alike;
+- `place_dataset_license_evidence`: evidència legal datada, estat, notes, discrepàncies i vigència.
+
+`place_dataset_sources` referencia opcionalment organisme i llicència, i conserva publicació, consulta i estat de reutilització. `place_source_records` conserva matching i verificació. `place_field_observations` conserva confiança i verificació sense substituir l’historial ni la precedència d’autoritat.

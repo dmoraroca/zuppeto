@@ -19,6 +19,7 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
     private readonly IPlacePublicSearchQuery? publicSearchQuery;
     private readonly IPlaceMediaRepository? placeMediaRepository;
     private readonly IPetGovernanceApplicationService? petGovernance;
+    private readonly IPlaceDataAttributionQuery? dataAttributions;
 
     public PlaceApplicationService(
         IPlaceRepository placeRepository,
@@ -31,7 +32,8 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
         TerritorialLocationService territorialLocations,
         IPlaceMediaRepository? placeMediaRepository = null,
         IPlacePublicSearchQuery? publicSearchQuery = null,
-        IPetGovernanceApplicationService? petGovernance = null)
+        IPetGovernanceApplicationService? petGovernance = null,
+        IPlaceDataAttributionQuery? dataAttributions = null)
     {
         this.placeRepository = placeRepository;
         this.placeSearchQueryRepository = placeSearchQueryRepository;
@@ -44,6 +46,7 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
         this.placeMediaRepository = placeMediaRepository;
         this.publicSearchQuery = publicSearchQuery;
         this.petGovernance = petGovernance;
+        this.dataAttributions = dataAttributions;
     }
 
     private int CoordinateCacheRetentionDays =>
@@ -58,13 +61,14 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
         }
 
         var media = placeMediaRepository is null ? [] : await placeMediaRepository.ListAsync(place.Id, cancellationToken);
-        if (petGovernance is null) return responseMapper.ToDetail(place, media);
+        var attributions = dataAttributions is null ? [] : await dataAttributions.ListAsync(place.Id, cancellationToken);
+        if (petGovernance is null) return responseMapper.ToDetail(place, media) with { DataAttributions = attributions };
         var overview = await petGovernance.GetOverviewAsync(place.Id, cancellationToken);
         if (overview.EffectivePolicies.Count == 0)
         {
             if (overview.Assertions.Count == 0)
             {
-                return responseMapper.ToDetail(place, media);
+                return responseMapper.ToDetail(place, media) with { DataAttributions = attributions };
             }
 
             place.UpdatePetPolicy(new PetPolicy(
@@ -77,7 +81,8 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
             return unknown with
             {
                 IsPetPolicyVerified = false,
-                PetPolicyVerifiedAtUtc = null
+                PetPolicyVerifiedAtUtc = null,
+                DataAttributions = attributions
             };
         }
         var effective = overview.EffectivePolicies;
@@ -93,7 +98,8 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
         return dto with
         {
             IsPetPolicyVerified = resolved.IsVerified,
-            PetPolicyVerifiedAtUtc = resolved.VerifiedAtUtc
+            PetPolicyVerifiedAtUtc = resolved.VerifiedAtUtc,
+            DataAttributions = attributions
         };
     }
 

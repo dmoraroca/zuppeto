@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Net.Http.Headers;
+using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
 using Zuppeto.Application.Places;
@@ -72,6 +73,66 @@ internal sealed class MapillaryMediaSource(HttpClient http, IOptions<MapillaryOp
         }
     }
 
+    public async Task<Result<PlaceMediaContent>> DownloadAsync(string externalId, CancellationToken cancellationToken)
+    {
+        if (!settings.Enabled || string.IsNullOrWhiteSpace(settings.AccessToken))
+            return Result<PlaceMediaContent>.Fail(FailureKind.ExternalUnavailable, "Mapillary no està configurat.");
+        if (string.IsNullOrWhiteSpace(externalId) || externalId.Any(character => !char.IsAsciiDigit(character)))
+            return Result<PlaceMediaContent>.Fail(FailureKind.Invalid, "L’identificador de Mapillary no és vàlid.");
+
+        try
+        {
+            using var metadataRequest = new HttpRequestMessage(HttpMethod.Get,
+                $"{Uri.EscapeDataString(externalId)}?fields=id,thumb_2048_url");
+            metadataRequest.Headers.Authorization = new AuthenticationHeaderValue("OAuth", settings.AccessToken.Trim());
+            using var metadataResponse = await http.SendAsync(
+                metadataRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            if (!metadataResponse.IsSuccessStatusCode)
+                return Result<PlaceMediaContent>.Fail(FailureKind.ExternalUnavailable,
+                    $"Mapillary ha retornat HTTP {(int)metadataResponse.StatusCode} en recuperar la fotografia.");
+
+            await using var metadataStream = await metadataResponse.Content.ReadAsStreamAsync(cancellationToken);
+            using var metadata = await JsonDocument.ParseAsync(metadataStream, cancellationToken: cancellationToken);
+            var url = metadata.RootElement.TryGetProperty("thumb_2048_url", out var urlValue)
+                ? urlValue.GetString()
+                : null;
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var contentUri) || contentUri.Scheme != Uri.UriSchemeHttps)
+                return Result<PlaceMediaContent>.Fail(FailureKind.ExternalUnavailable,
+                    "Mapillary no ha retornat una URL HTTPS de fotografia vàlida.");
+
+            // The CDN request deliberately carries no Mapillary authorization header.
+            using var contentRequest = new HttpRequestMessage(HttpMethod.Get, contentUri);
+            using var contentResponse = await http.SendAsync(
+                contentRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            if (!contentResponse.IsSuccessStatusCode)
+                return Result<PlaceMediaContent>.Fail(FailureKind.ExternalUnavailable,
+                    $"El CDN de Mapillary ha retornat HTTP {(int)contentResponse.StatusCode}.");
+            if (contentResponse.Content.Headers.ContentLength is > 10_000_000)
+                return Result<PlaceMediaContent>.Fail(FailureKind.Invalid, "La fotografia supera el límit de 10 MB.");
+
+            var bytes = await contentResponse.Content.ReadAsByteArrayAsync(cancellationToken);
+            if (bytes.Length < 4 || bytes.Length > 10_000_000 || bytes[0] != 0xff || bytes[1] != 0xd8)
+                return Result<PlaceMediaContent>.Fail(FailureKind.Invalid, "Mapillary no ha retornat un JPEG vàlid.");
+            var hash = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+            return Result<PlaceMediaContent>.Success(new PlaceMediaContent(bytes, "image/jpeg", hash));
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return Result<PlaceMediaContent>.Fail(FailureKind.ExternalUnavailable,
+                "La descàrrega de Mapillary ha superat el temps d’espera.");
+        }
+        catch (HttpRequestException)
+        {
+            return Result<PlaceMediaContent>.Fail(FailureKind.ExternalUnavailable,
+                "No s’ha pogut descarregar la fotografia de Mapillary.");
+        }
+        catch (JsonException)
+        {
+            return Result<PlaceMediaContent>.Fail(FailureKind.ExternalUnavailable,
+                "Mapillary ha retornat metadades de fotografia no vàlides.");
+        }
+    }
+
     internal static string BuildRequestUri(decimal latitude, decimal longitude, int radiusMeters, int limit)
     {
         var latitudeRadians = (double)latitude * Math.PI / 180d;
@@ -130,7 +191,7 @@ internal sealed class MapillaryMediaSource(HttpClient http, IOptions<MapillaryOp
         {
             author = creator.TryGetProperty("username", out var username) ? username.GetString() ?? string.Empty : string.Empty;
         }
-        if (string.IsNullOrWhiteSpace(author)) author = "Contribuïdor de Mapillary";
+        if (string.IsNullOrWhiteSpace(author)) return false;
 
         DateTimeOffset? capturedAt = null;
         if (item.TryGetProperty("captured_at", out var captured) && captured.TryGetInt64(out var milliseconds))

@@ -44,6 +44,6 @@ class FakeApi {
   async get(){throw new Error('unused');}
   async prepare(request:unknown){this.prepared=request;return {id:'run'};}
   async approve(){} async simulatePublication(){} async publish(){} async cancel(){}
-  async governance(){return {matches:[],conflicts:[],lifecycles:[],sources:[],checkpoints:[]};}
+  async governance(){return {matches:[],conflicts:[],lifecycles:[],sources:[],checkpoints:[],organisations:[],licenses:[],licenseEvidence:[],traceability:{totalPlaces:0,placesWithSources:0,placesWithFieldEvidence:0,placesWithIncompleteProvenance:0,pendingDatasets:0,prohibitedDatasets:0,unknownLicenseDatasets:0}};}
   async resolveMatch(){} async resolveConflict(){} async changeLifecycle(){} async registerSource(){return {id:'source'};} async reviewSource(){}
 }

@@ -74,6 +74,7 @@ export interface Place {
   petPolicyVerifiedAtUtc?: string | null;
   updatedAtUtc?: string | null;
   businessStatus?: string;
+  dataAttributions?: Array<{ organisation: string; dataset: string; licenseCode: string; licenseUrl: string; attribution: string; datasetUrl: string }>;
   coordinates: PlaceCoordinates | null;
 }
 

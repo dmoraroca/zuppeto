@@ -161,6 +161,10 @@ export class PlaceDetailPageComponent {
       asset.verificationStatus === 'Verified' && asset.servedUrl.trim().length > 0
     )
   );
+  protected readonly primaryMedia = computed(() => {
+    const media = this.galleryMedia();
+    return media.find(asset => asset.isPrimary) ?? media[0] ?? null;
+  });
 
   protected mediaSourceLabel(source: string): string {
     switch (source) {
@@ -168,6 +172,8 @@ export class PlaceDetailPageComponent {
       case 'Owner': return 'Propietari';
       case 'User': return 'Usuari';
       case 'WikimediaCommons': return 'Wikimedia Commons';
+      case 'Mapillary': return 'Mapillary';
+      case 'OfficialWebsite': return 'Web oficial';
       default: return source;
     }
   }

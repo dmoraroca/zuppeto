@@ -21,6 +21,7 @@ using Zuppeto.Infrastructure.Places.OpenStreetMap;
 using Zuppeto.Infrastructure.Places.Mapillary;
 using Zuppeto.Infrastructure.Places.MunicipalOpenData;
 using Zuppeto.Infrastructure.Places.OvertureMaps;
+using Zuppeto.Infrastructure.Places.PublicAdministration;
 
 namespace Zuppeto.Infrastructure;
 
@@ -99,6 +100,10 @@ public static class DependencyInjection
         services.Configure<DibaMunicipalEstablishmentsOptions>(
             configuration.GetSection(DibaMunicipalEstablishmentsOptions.SectionName));
         services.Configure<OvertureMapsOptions>(configuration.GetSection(OvertureMapsOptions.SectionName));
+        services.Configure<CataloniaTourismRegistryOptions>(
+            configuration.GetSection(CataloniaTourismRegistryOptions.SectionName));
+        services.Configure<AragonCommercialRegistryOptions>(
+            configuration.GetSection(AragonCommercialRegistryOptions.SectionName));
         services.AddSingleton<IValidateOptions<MapillaryOptions>, MapillaryOptionsValidator>();
         services.AddOptions<MapillaryOptions>()
             .Bind(configuration.GetSection(MapillaryOptions.SectionName))
@@ -167,6 +172,23 @@ public static class DependencyInjection
                 "User-Agent",
                 "PetiLoc-DIBA-Municipal-Audit/1.0 (admin import; https://github.com/dmoraroca/zuppeto)");
         });
+        services.AddHttpClient<IPlaceDiscoverySource, CataloniaTourismRegistrySource>((sp, client) =>
+        {
+            var options = sp.GetRequiredService<IOptions<CataloniaTourismRegistryOptions>>().Value;
+            client.BaseAddress = new Uri(options.BaseUrl);
+            client.Timeout = TimeSpan.FromSeconds(Math.Clamp(options.TimeoutSeconds, 5, 60));
+            client.DefaultRequestHeaders.TryAddWithoutValidation(
+                "User-Agent",
+                "PetiLoc-Catalonia-Tourism-Audit/1.0 (admin import; https://github.com/dmoraroca/zuppeto)");
+        });
+        services.AddHttpClient<IPlaceDiscoverySource, AragonCommercialRegistrySource>((sp, client) =>
+        {
+            var options = sp.GetRequiredService<IOptions<AragonCommercialRegistryOptions>>().Value;
+            client.Timeout = TimeSpan.FromSeconds(Math.Clamp(options.TimeoutSeconds, 30, 180));
+            client.DefaultRequestHeaders.TryAddWithoutValidation(
+                "User-Agent",
+                "PetiLoc-Aragon-Commerce-Audit/1.0 (admin import; https://github.com/dmoraroca/zuppeto)");
+        });
         services.AddScoped<IPlaceDiscoverySource, OvertureMapsPlaceDiscoverySource>();
         services.AddHttpClient<IPlaceEnrichmentSource, WikidataEnrichmentSource>((sp, client) =>
         {
@@ -205,10 +227,12 @@ public static class DependencyInjection
         }).RedactLoggedHeaders(["Authorization"]);
         services.AddScoped<OsmPlaceSourceNormalizer>();
         services.AddScoped<DibaMunicipalPlaceSourceNormalizer>();
+        services.AddScoped<PublicAdministrationPlaceSourceNormalizer>();
         services.AddScoped<OverturePlaceSourceNormalizer>();
         services.AddScoped<IPlaceSourceNormalizer, CompositePlaceSourceNormalizer>();
         services.AddScoped<OsmStoragePermissionPolicy>();
         services.AddScoped<DibaMunicipalStoragePermissionPolicy>();
+        services.AddScoped<PublicAdministrationStoragePermissionPolicy>();
         services.AddScoped<OvertureStoragePermissionPolicy>();
         services.AddScoped<IPlaceStoragePermissionPolicy, CompositePlaceStoragePermissionPolicy>();
         services.AddScoped<IPlaceMatcher, ConservativePlaceMatcher>();
@@ -217,6 +241,7 @@ public static class DependencyInjection
         services.AddScoped<IPlaceImportWorkQueue, PlaceImportWorkQueue>();
         services.AddHostedService<PlaceImportWorker>();
         services.AddSingleton<IPlaceCoverStorage, FilePlaceCoverStorage>();
+        services.AddSingleton<IPlaceMediaBinaryStorage, FilePlaceMediaBinaryStorage>();
         services.AddScoped<IPasswordHasher, Pbkdf2PasswordHasher>();
         services.AddScoped<IAccessTokenIssuer, JwtAccessTokenIssuer>();
         services.AddScoped<IAccessTokenRevocationStore, AccessTokenRevocationStore>();
@@ -230,6 +255,7 @@ public static class DependencyInjection
         services.AddScoped<IPlaceRepository, PlaceRepository>();
         services.AddScoped<IPlaceMediaRepository, PlaceMediaRepository>();
         services.AddScoped<IPlacePublicSearchQuery, PlacePublicSearchQuery>();
+        services.AddScoped<IPlaceDataAttributionQuery, PlaceDataAttributionQuery>();
         services.AddScoped<IPetGovernanceRepository, PetGovernanceRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IExternalIdentityRepository, ExternalIdentityRepository>();

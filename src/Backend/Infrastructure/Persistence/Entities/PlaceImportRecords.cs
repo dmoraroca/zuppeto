@@ -1,5 +1,38 @@
 namespace Zuppeto.Infrastructure.Persistence.Entities;
 
+public sealed class PlaceDataOrganisationRecord
+{
+    public Guid Id { get; set; }
+    public string OrganisationKey { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string OrganisationType { get; set; } = string.Empty;
+    public string? CountryIso2 { get; set; }
+    public string OfficialWebsiteUrl { get; set; } = string.Empty;
+    public string Status { get; set; } = "Active";
+    public DateTimeOffset? VerifiedAtUtc { get; set; }
+    public DateTimeOffset CreatedAtUtc { get; set; }
+    public DateTimeOffset UpdatedAtUtc { get; set; }
+}
+
+public sealed class PlaceDataLicenseRecord
+{
+    public Guid Id { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string Version { get; set; } = string.Empty;
+    public string OfficialUrl { get; set; } = string.Empty;
+    public string CommercialUseStatus { get; set; } = "Unknown";
+    public string ModificationStatus { get; set; } = "Unknown";
+    public string RedistributionStatus { get; set; } = "Unknown";
+    public bool? AttributionRequired { get; set; }
+    public bool? ShareAlikeRequired { get; set; }
+    public string AdditionalRestrictions { get; set; } = string.Empty;
+    public string Status { get; set; } = "PendingReview";
+    public DateTimeOffset? VerifiedAtUtc { get; set; }
+    public DateTimeOffset CreatedAtUtc { get; set; }
+    public DateTimeOffset UpdatedAtUtc { get; set; }
+}
+
 public sealed class PlaceDatasetSourceRecord
 {
     public Guid Id { get; set; }
@@ -19,6 +52,29 @@ public sealed class PlaceDatasetSourceRecord
     public bool OdblDerived { get; set; }
     public string ApprovalStatus { get; set; } = string.Empty;
     public DateTimeOffset ReviewedAtUtc { get; set; }
+    public DateTimeOffset CreatedAtUtc { get; set; }
+    public Guid? OrganisationId { get; set; }
+    public PlaceDataOrganisationRecord? OrganisationRecord { get; set; }
+    public Guid? LicenseId { get; set; }
+    public PlaceDataLicenseRecord? LicenseRecord { get; set; }
+    public DateTimeOffset? PublishedAtUtc { get; set; }
+    public DateTimeOffset? ConsultedAtUtc { get; set; }
+    public string ReuseStatus { get; set; } = "Unknown";
+}
+
+public sealed class PlaceDatasetLicenseEvidenceRecord
+{
+    public Guid Id { get; set; }
+    public Guid SourceId { get; set; }
+    public PlaceDatasetSourceRecord Source { get; set; } = null!;
+    public Guid LicenseId { get; set; }
+    public PlaceDataLicenseRecord License { get; set; } = null!;
+    public string TermsUrl { get; set; } = string.Empty;
+    public DateTimeOffset CheckedAtUtc { get; set; }
+    public string Evidence { get; set; } = string.Empty;
+    public string VerificationStatus { get; set; } = "Pending";
+    public string Notes { get; set; } = string.Empty;
+    public bool IsCurrent { get; set; }
     public DateTimeOffset CreatedAtUtc { get; set; }
 }
 
@@ -161,6 +217,9 @@ public sealed class PlaceSourceRecord
     public string State { get; set; } = string.Empty;
     public Guid? CanonicalPlaceId { get; set; }
     public PlaceRecord? CanonicalPlace { get; set; }
+    public string MatchStatus { get; set; } = "PendingReview";
+    public string VerificationStatus { get; set; } = "Pending";
+    public DateTimeOffset? VerifiedAtUtc { get; set; }
 }
 
 public sealed class PlaceFieldObservationRecord
@@ -181,6 +240,9 @@ public sealed class PlaceFieldObservationRecord
     public string State { get; set; } = "Current";
     public DateTimeOffset ObservedAtUtc { get; set; }
     public DateTimeOffset? ValidUntilUtc { get; set; }
+    public decimal? Confidence { get; set; }
+    public string VerificationStatus { get; set; } = "Pending";
+    public DateTimeOffset? VerifiedAtUtc { get; set; }
 }
 
 public sealed class PlaceImportItemRecord

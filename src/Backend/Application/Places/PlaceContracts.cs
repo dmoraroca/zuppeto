@@ -227,7 +227,23 @@ public sealed record PlaceDetailDto(
     DateTimeOffset? UpdatedAtUtc = null,
     string BusinessStatus = "Open",
     IReadOnlyCollection<PlaceMediaAssetDto>? Media = null,
-    string? CommercialCategory = null);
+    string? CommercialCategory = null,
+    IReadOnlyCollection<PlaceDataAttributionDto>? DataAttributions = null);
+
+public sealed record PlaceDataAttributionDto(
+    string Organisation,
+    string Dataset,
+    string LicenseCode,
+    string LicenseUrl,
+    string Attribution,
+    string DatasetUrl);
+
+public interface IPlaceDataAttributionQuery
+{
+    Task<IReadOnlyCollection<PlaceDataAttributionDto>> ListAsync(
+        Guid placeId,
+        CancellationToken cancellationToken = default);
+}
 
 public sealed record PlacePublicSearchRow(
     Domain.Places.Place Place,

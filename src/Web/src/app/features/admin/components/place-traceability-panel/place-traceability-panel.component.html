@@ -1,0 +1,38 @@
+<section class="traceability" aria-labelledby="place-traceability-title">
+  <header>
+    <div><p class="kicker">Governança de dades</p><h4 id="place-traceability-title">Fonts i evidències del Place</h4></div>
+    <button type="button" (click)="load()" [disabled]="loading()">{{ loading() ? 'Carregant…' : 'Actualitzar' }}</button>
+  </header>
+  @if (error()) { <p class="message error" role="alert">{{ error() }}</p> }
+  @if (traceability(); as item) {
+    <p class="status" [class.incomplete]="!item.complete">
+      {{ item.complete ? 'Traçabilitat completa i reutilització acreditada.' : 'Traçabilitat incompleta: hi ha dades pendents, desconegudes o sense evidència suficient.' }}
+    </p>
+    @if (!item.sources.length) { <p>No consta cap font vinculada.</p> }
+    @for (source of item.sources; track source.id) {
+      <details open>
+        <summary>{{ source.organisation }} · {{ source.dataset }}</summary>
+        <dl>
+          <dt>Proveïdor</dt><dd>{{ source.sourceKey }}</dd>
+          <dt>Identificador extern</dt><dd>{{ source.externalId }}</dd>
+          <dt>Matching</dt><dd>{{ source.matchStatus }}</dd>
+          <dt>Verificació</dt><dd>{{ source.verificationStatus }}</dd>
+          <dt>Llicència</dt><dd><a [href]="source.licenseUrl" target="_blank" rel="noopener noreferrer">{{ source.licenseCode }}</a> · {{ reuseLabel(source.commercialUseStatus) }}</dd>
+          <dt>Consulta</dt><dd>{{ source.retrievedAtUtc | date:'dd/MM/yyyy HH:mm' }}</dd>
+          <dt>Verificació</dt><dd>{{ source.verifiedAtUtc ? (source.verifiedAtUtc | date:'dd/MM/yyyy HH:mm') : 'Pendent' }}</dd>
+          <dt>Atribució</dt><dd>{{ source.attribution || 'No indicada' }}</dd>
+          <dt>Enllaços</dt><dd><a [href]="source.datasetUrl" target="_blank" rel="noopener noreferrer">Dataset</a>@if(source.recordUrl){ · <a [href]="source.recordUrl" target="_blank" rel="noopener noreferrer">Registre original</a>}</dd>
+        </dl>
+        <div class="fields" aria-label="Evidències per camp">
+          @for (field of source.fields; track field.id) {
+            <article [class.pending]="field.verificationStatus !== 'Verified'">
+              <strong>{{ field.fieldName }}</strong>
+              <span>{{ field.normalizedValue || field.originalValue }}</span>
+              <small>{{ field.authority }} · {{ field.state }} · {{ field.verificationStatus }}@if(field.confidence !== null){ · confiança {{ field.confidence }}}</small>
+            </article>
+          }
+        </div>
+      </details>
+    }
+  }
+</section>

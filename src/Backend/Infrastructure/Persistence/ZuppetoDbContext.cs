@@ -44,12 +44,16 @@ public sealed class ZuppetoDbContext(DbContextOptions<ZuppetoDbContext> options)
 
     public DbSet<PlaceRecord> Places => Set<PlaceRecord>();
     public DbSet<PlaceMediaAssetRecord> PlaceMediaAssets => Set<PlaceMediaAssetRecord>();
+    public DbSet<PlaceMediaDiscoveryRecord> PlaceMediaDiscoveries => Set<PlaceMediaDiscoveryRecord>();
     public DbSet<PetFriendlyAssertionRecord> PetFriendlyAssertions => Set<PetFriendlyAssertionRecord>();
     public DbSet<CommercialChainRecord> CommercialChains => Set<CommercialChainRecord>();
     public DbSet<ChainPlaceRecord> ChainPlaces => Set<ChainPlaceRecord>();
     public DbSet<ChainPetPolicyRecord> ChainPetPolicies => Set<ChainPetPolicyRecord>();
     public DbSet<PetGovernanceDecisionRecord> PetGovernanceDecisions => Set<PetGovernanceDecisionRecord>();
     public DbSet<PlaceDatasetSourceRecord> PlaceDatasetSources => Set<PlaceDatasetSourceRecord>();
+    public DbSet<PlaceDataOrganisationRecord> PlaceDataOrganisations => Set<PlaceDataOrganisationRecord>();
+    public DbSet<PlaceDataLicenseRecord> PlaceDataLicenses => Set<PlaceDataLicenseRecord>();
+    public DbSet<PlaceDatasetLicenseEvidenceRecord> PlaceDatasetLicenseEvidence => Set<PlaceDatasetLicenseEvidenceRecord>();
     public DbSet<PlaceImportRunRecord> PlaceImportRuns => Set<PlaceImportRunRecord>();
     public DbSet<PlaceSourceRecord> PlaceSourceRecords => Set<PlaceSourceRecord>();
     public DbSet<PlaceFieldObservationRecord> PlaceFieldObservations => Set<PlaceFieldObservationRecord>();

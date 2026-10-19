@@ -46,6 +46,7 @@ import { fileToAvatarDataUrl } from '../../../../shared/utils/avatar-image.util'
 import { TerritorialLocationSelectorComponent, TerritorialLocationSelection } from '../../../../shared/components/territorial-location-selector/territorial-location-selector.component';
 import { PetGovernancePanelComponent } from '../../components/pet-governance-panel/pet-governance-panel.component';
 import { PlaceImportPanelComponent } from '../../components/place-import-panel/place-import-panel.component';
+import { PlaceTraceabilityPanelComponent } from '../../components/place-traceability-panel/place-traceability-panel.component';
 import { PLACE_TYPE_LABELS } from '../../../places/mock/places.fake';
 import {
   AdminMenuCatalog,
@@ -88,7 +89,8 @@ type AvatarSuccessOperation = 'crear' | 'modificar' | 'esborrar';
     SectionHeadingComponent,
     PasswordFieldComponent,
     PetGovernancePanelComponent,
-    PlaceImportPanelComponent
+    PlaceImportPanelComponent,
+    PlaceTraceabilityPanelComponent
   ],
   templateUrl: './admin-console-page.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -2112,15 +2114,49 @@ export class AdminConsolePageComponent {
     this.mapillaryBusy.set(true);
     try {
       this.mapillaryCandidates.set(await this.adminService.searchPlaceMediaOnMapillary(placeId));
+      await this.loadPlaceMedia(placeId);
       this.notifications.notify(
         'Candidats de Mapillary',
-        'La cerca per proximitat ha acabat. Cap imatge s’ha desat ni publicat automàticament.',
+        'La cerca per proximitat ha acabat. Els candidats han quedat pendents i cap imatge s’ha publicat automàticament.',
         'success'
       );
     } catch (error: unknown) {
       this.notifyHttpError(error, 'No s’han pogut consultar les imatges de Mapillary.');
     } finally {
       this.mapillaryBusy.set(false);
+    }
+  }
+
+  protected async uploadPlaceMedia(
+    file: File | undefined,
+    source: string,
+    author: string,
+    licenseIdentifier: string,
+    licenseUrl: string,
+    attribution: string,
+    rightsDeclaration: string,
+    evidenceUrl: string
+  ): Promise<void> {
+    const placeId = this.editablePlace().id;
+    if (!placeId || !file || this.placeMediaBusy()) return;
+    const form = new FormData();
+    form.set('file', file);
+    form.set('source', source);
+    form.set('author', author);
+    form.set('licenseIdentifier', licenseIdentifier);
+    form.set('licenseUrl', licenseUrl);
+    form.set('attribution', attribution);
+    form.set('rightsDeclaration', rightsDeclaration);
+    form.set('evidenceUrl', evidenceUrl);
+    this.placeMediaBusy.set(true);
+    try {
+      await this.adminService.uploadPlaceMedia(placeId, form);
+      await this.loadPlaceMedia(placeId);
+      this.notifications.notify('Fotografia registrada', 'Ha quedat pendent de verificació d’identitat i moderació.', 'success');
+    } catch (error) {
+      this.notifyHttpError(error, 'No s’ha pogut registrar la fotografia.');
+    } finally {
+      this.placeMediaBusy.set(false);
     }
   }
 
@@ -2133,6 +2169,23 @@ export class AdminConsolePageComponent {
       this.notifications.notify('Imatge principal', 'S’ha actualitzat la imatge principal del lloc.', 'success');
     } catch (error: unknown) {
       this.notifyHttpError(error, 'No s’ha pogut marcar la imatge com a principal.');
+    }
+  }
+
+  protected async acceptMedia(asset: AdminPlaceMediaAssetDto): Promise<void> {
+    const placeId = this.editablePlace().id;
+    if (!placeId || this.placeMediaBusy()) return;
+    const reason = window.prompt('Indica com has comprovat que la fotografia correspon exactament a aquest establiment:');
+    if (!reason?.trim()) return;
+    this.placeMediaBusy.set(true);
+    try {
+      await this.adminService.acceptPlaceMedia(placeId, asset.id, reason.trim());
+      await this.loadPlaceMedia(placeId);
+      this.notifications.notify('Imatge acceptada', 'La identitat i els drets han quedat registrats per a revisió auditable.', 'success');
+    } catch (error) {
+      this.notifyHttpError(error, 'No s’ha pogut acceptar la imatge.');
+    } finally {
+      this.placeMediaBusy.set(false);
     }
   }
 

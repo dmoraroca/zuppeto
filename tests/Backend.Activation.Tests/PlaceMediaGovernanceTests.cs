@@ -25,6 +25,7 @@ public sealed class PlaceMediaGovernanceTests
     [InlineData("CC0-1.0", true)]
     [InlineData("CC-BY-4.0", true)]
     [InlineData("CC-BY-SA-3.0", true)]
+    [InlineData("CC-BY-SA", true)]
     [InlineData("CC-BY-NC-4.0", false)]
     [InlineData("CC-BY-ND-4.0", false)]
     [InlineData("unknown", false)]
@@ -79,11 +80,11 @@ public sealed class PlaceMediaGovernanceTests
     }
 
     private static PlaceMediaAsset Asset(PlaceMediaSource source) => new(
-        Guid.NewGuid(), Guid.NewGuid(), source, new Uri("https://example.test/original.jpg"),
+        Guid.NewGuid(), Guid.NewGuid(), source, "Organització", "external-1", new Uri("https://example.test/original.jpg"),
         new Uri("https://example.test/served.jpg"), "Autoria", "CC-BY-4.0", "4.0",
         new Uri("https://creativecommons.org/licenses/by/4.0/"), "Autoria · CC BY 4.0",
         DateTimeOffset.UtcNow, true, true, Guid.NewGuid().ToString("N"),
-        PlaceMediaVerificationStatus.Verified, true, false, null, null, null, null);
+        PlaceMediaVerificationStatus.Verified, true, false, true, "Atribució obligatòria", null, null, null, null);
 
     private static MemoryStream Json(string value) => new(Encoding.UTF8.GetBytes(value));
 }

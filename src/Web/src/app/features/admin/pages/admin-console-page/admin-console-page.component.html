@@ -1744,6 +1744,7 @@
 
             @if (!placeIsNew() && editablePlace().id; as placeId) {
               <app-pet-governance-panel [placeId]="placeId" />
+              <app-place-traceability-panel [placeId]="placeId" />
 
               <section class="admin-console-form admin-console-form--readonly" style="grid-column: 1 / -1" aria-labelledby="place-media-title">
                 <div style="display:flex;justify-content:space-between;gap:1rem;align-items:center;flex-wrap:wrap">
@@ -1760,9 +1761,24 @@
                     </button>
                   </div>
                 </div>
+                <details>
+                  <summary>Aportar una fotografia amb drets acreditats</summary>
+                  <form #mediaUploadForm="ngForm" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(13rem,1fr));gap:.7rem;margin-top:.75rem"
+                    (ngSubmit)="uploadPlaceMedia($any(mediaFile.files)?.[0], mediaSource.value, mediaAuthor.value, mediaLicense.value, mediaLicenseUrl.value, mediaAttribution.value, mediaRights.value, mediaEvidence.value)">
+                    <label><span>Fitxer JPEG</span><input #mediaFile type="file" accept="image/jpeg" required /></label>
+                    <label><span>Procedència</span><select #mediaSource required><option value="Owner">Propietari</option><option value="User">Usuari</option><option value="PetiLoc">PetiLoc</option><option value="OfficialWebsite">Web oficial autoritzada</option></select></label>
+                    <label><span>Autoria</span><input #mediaAuthor required /></label>
+                    <label><span>Llicència</span><input #mediaLicense placeholder="CC-BY-4.0" required /></label>
+                    <label><span>URL oficial de llicència</span><input #mediaLicenseUrl type="url" /></label>
+                    <label><span>Atribució pública</span><input #mediaAttribution required /></label>
+                    <label style="grid-column:1/-1"><span>Declaració o autorització de drets</span><textarea #mediaRights rows="2" required></textarea></label>
+                    <label style="grid-column:1/-1"><span>URL d’evidència (obligatòria per web oficial)</span><input #mediaEvidence type="url" /></label>
+                    <button type="submit" [disabled]="placeMediaBusy()">Registrar com a pendent</button>
+                  </form>
+                </details>
                 @if (mapillaryCandidates().length > 0) {
                   <div style="display:grid;gap:.75rem">
-                    <p style="margin:0">Candidats per proximitat. Cal confirmar manualment que mostren aquest establiment; encara no s’han desat ni publicat.</p>
+                    <p style="margin:0">Candidats registrats per proximitat. Cal confirmar manualment que mostren aquest establiment; continuen pendents i no es publiquen.</p>
                     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr));gap:1rem">
                       @for (candidate of mapillaryCandidates(); track candidate.externalId; let candidateIndex = $index) {
                         <article style="border:1px solid rgba(148,163,184,.35);border-radius:12px;padding:.8rem;display:grid;gap:.6rem">
@@ -1786,10 +1802,14 @@
                       <article style="border:1px solid rgba(148,163,184,.35);border-radius:12px;padding:.8rem;display:grid;gap:.6rem">
                         <img [src]="asset.servedUrl" [alt]="'Imatge candidata de ' + editablePlace().name" loading="lazy" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px" />
                         <p style="margin:0"><strong>{{ asset.source }}</strong> · {{ asset.verificationStatus }}</p>
+                        <p style="margin:0;font-size:.8rem">{{ asset.sourceOrganisation }} · ID {{ asset.externalId }}</p>
                         <p style="margin:0;font-size:.85rem">{{ asset.author || 'Autoria no indicada' }} · {{ asset.licenseIdentifier }} {{ asset.licenseVersion || '' }}</p>
                         <p style="margin:0;font-size:.8rem">{{ asset.attribution }}</p>
                         @if (asset.rejectionReason) { <p style="margin:0;color:#991b1b">{{ asset.rejectionReason }}</p> }
                         <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+                          @if (asset.verificationStatus === 'Pending') {
+                            <button type="button" (click)="acceptMedia(asset)" [disabled]="placeMediaBusy()">Acceptar identitat i drets</button>
+                          }
                           <button type="button" (click)="setPrimaryMedia(asset.id)" [disabled]="!asset.canBePrimary || asset.verificationStatus !== 'Verified' || asset.isPrimary">
                             {{ asset.isPrimary ? 'Principal' : 'Fer principal' }}
                           </button>

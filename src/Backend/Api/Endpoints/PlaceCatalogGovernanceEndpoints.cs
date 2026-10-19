@@ -12,6 +12,8 @@ internal static class PlaceCatalogGovernanceEndpoints
     {
         var group = app.MapGroup("/api/admin/place-catalog-governance").RequireAuthorization().WithTags("Place catalog governance");
         group.MapGet("/", (ClaimsPrincipal p, IAdminApplicationService a, IPlaceCatalogGovernanceService s, CancellationToken ct) => Execute(p, a, _ => s.GetAsync(ct), ct));
+        group.MapGet("/places/{id:guid}/traceability", (Guid id, ClaimsPrincipal p, IAdminApplicationService a, IPlaceCatalogGovernanceService s, CancellationToken ct) =>
+            Execute(p, a, _ => s.GetTraceabilityAsync(id, ct), ct));
         group.MapPost("/matches/{id:guid}/resolve", (Guid id, ResolvePlaceMatchRequest r, ClaimsPrincipal p, IAdminApplicationService a, IPlaceCatalogGovernanceService s, CancellationToken ct) => Execute(p, a, async actor => { await s.ResolveMatchAsync(id, r, actor, ct); return true; }, ct));
         group.MapPost("/conflicts/{id:guid}/resolve", (Guid id, ResolvePlaceConflictRequest r, ClaimsPrincipal p, IAdminApplicationService a, IPlaceCatalogGovernanceService s, CancellationToken ct) => Execute(p, a, async actor => { await s.ResolveConflictAsync(id, r, actor, ct); return true; }, ct));
         group.MapPost("/places/{id:guid}/lifecycle", (Guid id, ChangePlaceLifecycleRequest r, ClaimsPrincipal p, IAdminApplicationService a, IPlaceCatalogGovernanceService s, CancellationToken ct) => Execute(p, a, async actor => { await s.ChangeLifecycleAsync(id, r, actor, ct); return true; }, ct));

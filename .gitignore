@@ -53,6 +53,7 @@ src/Backend/Api/logs/*.txt
 # Place cover JPEGs downloaded from Google Places (keep the folder).
 src/Backend/Api/storage/place-covers/*.jpg
 src/Backend/Api/storage/place-covers/*.json
+src/Backend/Api/storage/place-media/*.jpg
 
 # Core dumps (crash dumps) — only dump files, not folders named "core" (e.g. Angular app/core)
 /core

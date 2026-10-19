@@ -280,6 +280,8 @@ export interface AdminPlaceMediaAssetDto {
   id: string;
   placeId: string;
   source: string;
+  sourceOrganisation: string;
+  externalId: string;
   originalUrl: string;
   servedUrl: string;
   author: string;
@@ -294,10 +296,20 @@ export interface AdminPlaceMediaAssetDto {
   verificationStatus: 'Pending' | 'Verified' | 'Rejected';
   canBePrimary: boolean;
   isPrimary: boolean;
+  identityVerified: boolean;
+  reuseConditions: string;
   wikidataQid?: string | null;
   wikimediaFileName?: string | null;
   evidenceUrl?: string | null;
   rejectionReason?: string | null;
+  capturedAtUtc?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  headingDegrees?: number | null;
+  distanceMeters?: number | null;
+  lastCheckedAtUtc?: string | null;
+  moderatedAtUtc?: string | null;
+  moderatorActorId?: string | null;
 }
 
 export interface AdminPlaceProximityMediaCandidateDto {
@@ -602,8 +614,16 @@ export class AdminService {
     return await firstValueFrom(this.http.get<AdminPlaceProximityMediaCandidateDto[]>(`${API_BASE_URL}/admin/places/${placeId}/media/mapillary/candidates`));
   }
 
+  async uploadPlaceMedia(placeId: string, form: FormData): Promise<AdminPlaceMediaAssetDto> {
+    return await firstValueFrom(this.http.post<AdminPlaceMediaAssetDto>(`${API_BASE_URL}/admin/places/${placeId}/media/upload`, form));
+  }
+
   async setPrimaryPlaceMedia(placeId: string, assetId: string): Promise<void> {
     await firstValueFrom(this.http.post(`${API_BASE_URL}/admin/places/${placeId}/media/${assetId}/primary`, {}));
+  }
+
+  async acceptPlaceMedia(placeId: string, assetId: string, reason: string): Promise<void> {
+    await firstValueFrom(this.http.post(`${API_BASE_URL}/admin/places/${placeId}/media/${assetId}/accept`, { reason }));
   }
 
   async rejectPlaceMedia(placeId: string, assetId: string, reason: string): Promise<void> {

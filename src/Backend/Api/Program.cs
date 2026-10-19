@@ -290,6 +290,7 @@ app.UseRateLimiter();
 
 var mediaRoot = Path.Combine(app.Environment.ContentRootPath, "storage");
 Directory.CreateDirectory(Path.Combine(mediaRoot, "place-covers"));
+Directory.CreateDirectory(Path.Combine(mediaRoot, "place-media"));
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(mediaRoot),

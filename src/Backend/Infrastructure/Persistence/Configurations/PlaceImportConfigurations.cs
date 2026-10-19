@@ -4,11 +4,63 @@ using Zuppeto.Infrastructure.Persistence.Entities;
 
 namespace Zuppeto.Infrastructure.Persistence.Configurations;
 
+public sealed class PlaceDataOrganisationConfiguration : IEntityTypeConfiguration<PlaceDataOrganisationRecord>
+{
+    public void Configure(EntityTypeBuilder<PlaceDataOrganisationRecord> b)
+    {
+        b.ToTable("place_data_organisations", t =>
+            t.HasCheckConstraint("ck_place_data_organisation_status", "status IN ('Active','PendingReview','Suspended','Rejected')"));
+        b.HasKey(x => x.Id); PlaceImportRunConfiguration.Id(b, x => x.Id);
+        PlaceImportRunConfiguration.Text(b, x => x.OrganisationKey, "organisation_key", 120); b.HasIndex(x => x.OrganisationKey).IsUnique();
+        PlaceImportRunConfiguration.Text(b, x => x.Name, "name", 240);
+        PlaceImportRunConfiguration.Text(b, x => x.OrganisationType, "organisation_type", 60);
+        PlaceImportRunConfiguration.Optional(b, x => x.CountryIso2, "country_iso2", 2);
+        PlaceImportRunConfiguration.Text(b, x => x.OfficialWebsiteUrl, "official_website_url", 2048);
+        PlaceImportRunConfiguration.Text(b, x => x.Status, "status", 20);
+        b.Property(x => x.VerifiedAtUtc).HasColumnName("verified_at_utc");
+        b.Property(x => x.CreatedAtUtc).HasColumnName("created_at_utc");
+        b.Property(x => x.UpdatedAtUtc).HasColumnName("updated_at_utc");
+    }
+}
+
+public sealed class PlaceDataLicenseConfiguration : IEntityTypeConfiguration<PlaceDataLicenseRecord>
+{
+    public void Configure(EntityTypeBuilder<PlaceDataLicenseRecord> b)
+    {
+        b.ToTable("place_data_licenses", t =>
+        {
+            t.HasCheckConstraint("ck_place_data_license_commercial", "commercial_use_status IN ('Allowed','NotAllowed','Unknown')");
+            t.HasCheckConstraint("ck_place_data_license_modification", "modification_status IN ('Allowed','NotAllowed','Unknown')");
+            t.HasCheckConstraint("ck_place_data_license_redistribution", "redistribution_status IN ('Allowed','NotAllowed','Unknown')");
+            t.HasCheckConstraint("ck_place_data_license_status", "status IN ('Verified','PendingReview','Suspended','Rejected')");
+        });
+        b.HasKey(x => x.Id); PlaceImportRunConfiguration.Id(b, x => x.Id);
+        PlaceImportRunConfiguration.Text(b, x => x.Code, "code", 120); b.HasIndex(x => x.Code).IsUnique();
+        PlaceImportRunConfiguration.Text(b, x => x.Name, "name", 240);
+        PlaceImportRunConfiguration.Text(b, x => x.Version, "version", 80);
+        PlaceImportRunConfiguration.Text(b, x => x.OfficialUrl, "official_url", 2048);
+        PlaceImportRunConfiguration.Text(b, x => x.CommercialUseStatus, "commercial_use_status", 16);
+        PlaceImportRunConfiguration.Text(b, x => x.ModificationStatus, "modification_status", 16);
+        PlaceImportRunConfiguration.Text(b, x => x.RedistributionStatus, "redistribution_status", 16);
+        b.Property(x => x.AttributionRequired).HasColumnName("attribution_required");
+        b.Property(x => x.ShareAlikeRequired).HasColumnName("share_alike_required");
+        b.Property(x => x.AdditionalRestrictions).HasColumnName("additional_restrictions").IsRequired();
+        PlaceImportRunConfiguration.Text(b, x => x.Status, "status", 20);
+        b.Property(x => x.VerifiedAtUtc).HasColumnName("verified_at_utc");
+        b.Property(x => x.CreatedAtUtc).HasColumnName("created_at_utc");
+        b.Property(x => x.UpdatedAtUtc).HasColumnName("updated_at_utc");
+    }
+}
+
 public sealed class PlaceDatasetSourceConfiguration : IEntityTypeConfiguration<PlaceDatasetSourceRecord>
 {
     public void Configure(EntityTypeBuilder<PlaceDatasetSourceRecord> b)
     {
-        b.ToTable("place_dataset_sources", t => t.HasCheckConstraint("ck_place_dataset_source_approval", "approval_status IN ('PendingReview','PilotApproved','Approved','Rejected','Suspended')"));
+        b.ToTable("place_dataset_sources", t =>
+        {
+            t.HasCheckConstraint("ck_place_dataset_source_approval", "approval_status IN ('PendingReview','PilotApproved','Approved','Rejected','Suspended')");
+            t.HasCheckConstraint("ck_place_dataset_source_reuse", "reuse_status IN ('Allowed','NotAllowed','Unknown')");
+        });
         b.HasKey(x => x.Id); Id(b, x => x.Id);
         Text(b, x => x.SourceKey, "source_key", 120); b.HasIndex(x => x.SourceKey).IsUnique();
         Text(b, x => x.Organisation, "organisation", 240); Text(b, x => x.Dataset, "dataset", 240);
@@ -18,9 +70,40 @@ public sealed class PlaceDatasetSourceConfiguration : IEntityTypeConfiguration<P
         Text(b, x => x.Attribution, "attribution", 500); b.Property(x => x.ReuseConditions).HasColumnName("reuse_conditions").IsRequired();
         b.Property(x => x.PermanentStorageAllowed).HasColumnName("permanent_storage_allowed"); b.Property(x => x.CommercialUseAllowed).HasColumnName("commercial_use_allowed"); b.Property(x => x.OdblDerived).HasColumnName("odbl_derived");
         Text(b, x => x.ApprovalStatus, "approval_status", 20); b.Property(x => x.ReviewedAtUtc).HasColumnName("reviewed_at_utc"); b.Property(x => x.CreatedAtUtc).HasColumnName("created_at_utc");
+        b.Property(x => x.OrganisationId).HasColumnName("organisation_id");
+        b.HasOne(x => x.OrganisationRecord).WithMany().HasForeignKey(x => x.OrganisationId).OnDelete(DeleteBehavior.Restrict);
+        b.Property(x => x.LicenseId).HasColumnName("license_id");
+        b.HasOne(x => x.LicenseRecord).WithMany().HasForeignKey(x => x.LicenseId).OnDelete(DeleteBehavior.Restrict);
+        b.Property(x => x.PublishedAtUtc).HasColumnName("published_at_utc");
+        b.Property(x => x.ConsultedAtUtc).HasColumnName("consulted_at_utc");
+        Text(b, x => x.ReuseStatus, "reuse_status", 16);
+        b.HasIndex(x => x.OrganisationId); b.HasIndex(x => x.LicenseId);
     }
     private static void Id<T>(EntityTypeBuilder<T> b, System.Linq.Expressions.Expression<Func<T,Guid>> p) where T:class => b.Property(p).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()");
     private static void Text<T>(EntityTypeBuilder<T> b, System.Linq.Expressions.Expression<Func<T,string>> p, string n, int l) where T:class => b.Property(p).HasColumnName(n).HasMaxLength(l).IsRequired();
+}
+
+public sealed class PlaceDatasetLicenseEvidenceConfiguration : IEntityTypeConfiguration<PlaceDatasetLicenseEvidenceRecord>
+{
+    public void Configure(EntityTypeBuilder<PlaceDatasetLicenseEvidenceRecord> b)
+    {
+        b.ToTable("place_dataset_license_evidence", t =>
+            t.HasCheckConstraint("ck_place_dataset_license_verification", "verification_status IN ('Verified','Pending','Conflicting','Rejected')"));
+        b.HasKey(x => x.Id); PlaceImportRunConfiguration.Id(b, x => x.Id);
+        b.Property(x => x.SourceId).HasColumnName("source_id");
+        b.HasOne(x => x.Source).WithMany().HasForeignKey(x => x.SourceId).OnDelete(DeleteBehavior.Cascade);
+        b.Property(x => x.LicenseId).HasColumnName("license_id");
+        b.HasOne(x => x.License).WithMany().HasForeignKey(x => x.LicenseId).OnDelete(DeleteBehavior.Restrict);
+        PlaceImportRunConfiguration.Text(b, x => x.TermsUrl, "terms_url", 2048);
+        b.Property(x => x.CheckedAtUtc).HasColumnName("checked_at_utc");
+        b.Property(x => x.Evidence).HasColumnName("evidence").IsRequired();
+        PlaceImportRunConfiguration.Text(b, x => x.VerificationStatus, "verification_status", 16);
+        b.Property(x => x.Notes).HasColumnName("notes").IsRequired();
+        b.Property(x => x.IsCurrent).HasColumnName("is_current");
+        b.Property(x => x.CreatedAtUtc).HasColumnName("created_at_utc");
+        b.HasIndex(x => new { x.SourceId, x.IsCurrent });
+        b.HasIndex(x => new { x.SourceId, x.LicenseId, x.CheckedAtUtc }).IsUnique();
+    }
 }
 
 public sealed class PlaceImportRunConfiguration : IEntityTypeConfiguration<PlaceImportRunRecord>
@@ -58,13 +141,21 @@ public sealed class PlaceSourceRecordConfiguration : IEntityTypeConfiguration<Pl
 {
     public void Configure(EntityTypeBuilder<PlaceSourceRecord> b)
     {
-        b.ToTable("place_source_records"); b.HasKey(x=>x.Id); PlaceImportRunConfiguration.Id(b,x=>x.Id);
+        b.ToTable("place_source_records", t =>
+        {
+            t.HasCheckConstraint("ck_place_source_match_status", "match_status IN ('PendingReview','Matched','ConfirmedMatch','ProbableMatch','NotMatch','New','ExactExternalIdentity','NeedsReview')");
+            t.HasCheckConstraint("ck_place_source_verification_status", "verification_status IN ('Pending','Verified','Rejected','Unknown')");
+        }); b.HasKey(x=>x.Id); PlaceImportRunConfiguration.Id(b,x=>x.Id);
         b.Property(x=>x.SourceId).HasColumnName("source_id"); b.HasOne(x=>x.Source).WithMany().HasForeignKey(x=>x.SourceId).OnDelete(DeleteBehavior.Restrict);
         PlaceImportRunConfiguration.Text(b,x=>x.ExternalId,"external_id",300); PlaceImportRunConfiguration.Optional(b,x=>x.SourceVersion,"source_version",120);
         b.Property(x=>x.NormalizedPayloadJson).HasColumnName("normalized_payload").HasColumnType("jsonb"); PlaceImportRunConfiguration.Text(b,x=>x.ContentHash,"content_hash",64);
         PlaceImportRunConfiguration.Text(b,x=>x.EvidenceUri,"evidence_uri",2048); b.Property(x=>x.ObservedAtUtc).HasColumnName("observed_at_utc"); b.Property(x=>x.RetrievedAtUtc).HasColumnName("retrieved_at_utc"); b.Property(x=>x.FirstSeenAtUtc).HasColumnName("first_seen_at_utc"); b.Property(x=>x.LastSeenAtUtc).HasColumnName("last_seen_at_utc");
         PlaceImportRunConfiguration.Text(b,x=>x.State,"state",24); b.Property(x=>x.CanonicalPlaceId).HasColumnName("canonical_place_id"); b.HasOne(x=>x.CanonicalPlace).WithMany().HasForeignKey(x=>x.CanonicalPlaceId).OnDelete(DeleteBehavior.SetNull);
+        PlaceImportRunConfiguration.Text(b,x=>x.MatchStatus,"match_status",24);
+        PlaceImportRunConfiguration.Text(b,x=>x.VerificationStatus,"verification_status",16);
+        b.Property(x=>x.VerifiedAtUtc).HasColumnName("verified_at_utc");
         b.HasIndex(x=>new{x.SourceId,x.ExternalId}).IsUnique();
+        b.HasIndex(x=>new{x.CanonicalPlaceId,x.VerificationStatus});
     }
 }
 
@@ -72,13 +163,22 @@ public sealed class PlaceFieldObservationConfiguration : IEntityTypeConfiguratio
 {
     public void Configure(EntityTypeBuilder<PlaceFieldObservationRecord> b)
     {
-        b.ToTable("place_field_observations", t=>t.HasCheckConstraint("ck_place_field_authority","authority IN ('AUTO','MANUAL','MANUAL_VERIFIED')")); b.HasKey(x=>x.Id); PlaceImportRunConfiguration.Id(b,x=>x.Id);
+        b.ToTable("place_field_observations", t=>
+        {
+            t.HasCheckConstraint("ck_place_field_authority","authority IN ('AUTO','MANUAL','MANUAL_VERIFIED')");
+            t.HasCheckConstraint("ck_place_field_verification_status", "verification_status IN ('Pending','Verified','Rejected','Unknown')");
+            t.HasCheckConstraint("ck_place_field_confidence", "confidence IS NULL OR (confidence >= 0 AND confidence <= 1)");
+        }); b.HasKey(x=>x.Id); PlaceImportRunConfiguration.Id(b,x=>x.Id);
         b.Property(x=>x.SourceRecordId).HasColumnName("source_record_id"); b.HasOne(x=>x.SourceRecord).WithMany().HasForeignKey(x=>x.SourceRecordId).OnDelete(DeleteBehavior.Cascade);
         b.Property(x=>x.ImportRunId).HasColumnName("import_run_id"); b.HasOne(x=>x.ImportRun).WithMany().HasForeignKey(x=>x.ImportRunId).OnDelete(DeleteBehavior.Cascade);
         b.Property(x=>x.PlaceId).HasColumnName("place_id"); b.HasOne(x=>x.Place).WithMany().HasForeignKey(x=>x.PlaceId).OnDelete(DeleteBehavior.SetNull);
         PlaceImportRunConfiguration.Text(b,x=>x.FieldName,"field_name",120); b.Property(x=>x.OriginalValue).HasColumnName("original_value").IsRequired(); b.Property(x=>x.NormalizedValue).HasColumnName("normalized_value").IsRequired();
         PlaceImportRunConfiguration.Text(b,x=>x.LicenseIdentifier,"license_identifier",80); PlaceImportRunConfiguration.Text(b,x=>x.Attribution,"attribution",500); PlaceImportRunConfiguration.Text(b,x=>x.Authority,"authority",24); PlaceImportRunConfiguration.Text(b,x=>x.State,"state",24);
         b.Property(x=>x.ObservedAtUtc).HasColumnName("observed_at_utc"); b.Property(x=>x.ValidUntilUtc).HasColumnName("valid_until_utc"); b.HasIndex(x=>new{x.SourceRecordId,x.FieldName,x.ObservedAtUtc});
+        b.Property(x=>x.Confidence).HasColumnName("confidence").HasPrecision(5,4);
+        PlaceImportRunConfiguration.Text(b,x=>x.VerificationStatus,"verification_status",16);
+        b.Property(x=>x.VerifiedAtUtc).HasColumnName("verified_at_utc");
+        b.HasIndex(x=>new{x.PlaceId,x.FieldName,x.VerificationStatus});
     }
 }
 

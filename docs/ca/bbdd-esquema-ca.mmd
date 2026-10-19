@@ -21,6 +21,42 @@ erDiagram
     menus ||--o{ menus : "parent_key -> menus.key"
 
     countries ||--o{ cities : "country_id"
+    place_data_organisations ||--o{ place_dataset_sources : "organisation_id"
+    place_data_licenses ||--o{ place_dataset_sources : "license_id"
+    place_dataset_sources ||--o{ place_dataset_license_evidence : "source_id"
+    place_data_licenses ||--o{ place_dataset_license_evidence : "license_id"
+    place_dataset_sources ||--o{ place_source_records : "source_id"
+    places ||--o{ place_source_records : "canonical_place_id"
+    place_source_records ||--o{ place_field_observations : "source_record_id"
+    places ||--o{ place_field_observations : "place_id"
+
+    place_data_organisations {
+        uuid id PK
+        varchar organisation_key UK
+        varchar name
+        varchar organisation_type
+        varchar country_iso2
+        varchar status
+    }
+
+    place_data_licenses {
+        uuid id PK
+        varchar code UK
+        varchar commercial_use_status
+        varchar modification_status
+        varchar redistribution_status
+        bool attribution_required
+        bool share_alike_required
+    }
+
+    place_dataset_license_evidence {
+        uuid id PK
+        uuid source_id FK
+        uuid license_id FK
+        varchar verification_status
+        bool is_current
+        timestamptz checked_at_utc
+    }
 
     roles {
         uuid id PK
