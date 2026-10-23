@@ -6,6 +6,13 @@
 <main class="petiloc-detail">
   @if (place(); as selectedPlace) {
     @if (shareFeedback()) { <p class="petiloc-detail__feedback" role="status">{{ shareFeedback() }}</p> }
+    @if (shareMenuOpen()) {
+      <app-place-share-menu
+        [target]="selectedPlace"
+        (closed)="closeShareMenu()"
+        (feedback)="setShareFeedback($event)"
+      />
+    }
 
     <article class="petiloc-detail__sheet" aria-labelledby="petiloc-place-title">
       <section class="petiloc-detail__hero-stage">

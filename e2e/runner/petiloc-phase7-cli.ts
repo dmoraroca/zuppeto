@@ -160,10 +160,30 @@ async function main(): Promise<void> {
         }
       });
     });
-    await page.getByRole('button', { name: 'Compartir' }).click();
+    const expectedShareUrl = `${environment.webBaseUrl}/places/${place.id}`;
+    const shareButton = page.getByRole('button', { name: 'Compartir' });
+    await shareButton.click();
+    const shareDialog = page.getByRole('dialog', { name: place.name });
+    await expect(shareDialog).toBeVisible();
+    await expect(shareDialog.getByRole('button', { name: 'Tancar el menú de compartir' })).toBeFocused();
+
+    const whatsappHref = await shareDialog.getByRole('link', { name: 'WhatsApp' }).getAttribute('href');
+    assert.equal(new URL(whatsappHref!).searchParams.get('text'),
+      `${place.name} — Descobreix aquest establiment a PetiLoc: ${expectedShareUrl}`);
+    const telegramHref = await shareDialog.getByRole('link', { name: 'Telegram' }).getAttribute('href');
+    assert.equal(new URL(telegramHref!).searchParams.get('url'), expectedShareUrl);
+    assert.equal(new URL(telegramHref!).searchParams.get('text'),
+      `${place.name} — Descobreix aquest establiment a PetiLoc`);
+    const mailtoHref = await shareDialog.getByRole('link', { name: 'Correu electrònic' }).getAttribute('href');
+    const mailto = new URL(mailtoHref!);
+    assert.equal(mailto.searchParams.get('subject'), `${place.name} — PetiLoc`);
+    assert.equal(mailto.searchParams.get('body'),
+      `${place.name} — Descobreix aquest establiment a PetiLoc: ${expectedShareUrl}`);
+
+    await shareDialog.getByRole('button', { name: 'Més opcions' }).click();
     assert.equal(
       await page.evaluate(() => (window as unknown as { __sharedPlace?: ShareData }).__sharedPlace?.url),
-      `${environment.webBaseUrl}/places/${place.id}`,
+      expectedShareUrl,
       'Web Share ha de rebre l’URL pública neta del Place.'
     );
     await expect(page.getByText('Establiment compartit.', { exact: true })).toBeVisible();
@@ -175,9 +195,13 @@ async function main(): Promise<void> {
         value: () => Promise.reject(new DOMException('Cancelled', 'AbortError'))
       });
     });
-    await page.getByRole('button', { name: 'Compartir' }).click();
+    await shareButton.click();
+    await page.getByRole('dialog', { name: place.name }).getByRole('button', { name: 'Més opcions' }).click();
     await page.waitForTimeout(100);
-    await expect(page.locator('.petiloc-detail__feedback')).toHaveCount(0);
+    await expect(page.getByRole('dialog', { name: place.name })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog', { name: place.name })).toHaveCount(0);
+    await expect(shareButton).toBeFocused();
 
     await page.evaluate(() => {
       const state = window as unknown as { __shareCalls: number; __finishShare?: () => void };
@@ -190,7 +214,8 @@ async function main(): Promise<void> {
         }
       });
     });
-    await page.getByRole('button', { name: 'Compartir' }).evaluate((button: HTMLButtonElement) => {
+    await shareButton.click();
+    await page.getByRole('dialog', { name: place.name }).getByRole('button', { name: 'Més opcions' }).evaluate((button: HTMLButtonElement) => {
       button.click();
       button.click();
     });
@@ -206,7 +231,8 @@ async function main(): Promise<void> {
         value: () => Promise.reject(new DOMException('Denied', 'NotAllowedError'))
       });
     });
-    await page.getByRole('button', { name: 'Compartir' }).click();
+    await shareButton.click();
+    await page.getByRole('dialog', { name: place.name }).getByRole('button', { name: 'Més opcions' }).click();
     await expect(page.getByText('No s’ha pogut compartir l’establiment. Torna-ho a provar.', { exact: true })).toBeVisible();
 
     await page.waitForTimeout(2_500);
@@ -222,13 +248,19 @@ async function main(): Promise<void> {
         }
       });
     });
-    await page.getByRole('button', { name: 'Compartir' }).click();
+    await shareButton.click();
+    const noNativeShareDialog = page.getByRole('dialog', { name: place.name });
+    await expect(noNativeShareDialog.getByRole('button', { name: 'Més opcions' })).toHaveCount(0);
+    await expect(noNativeShareDialog.getByRole('link', { name: 'WhatsApp' })).toBeVisible();
+    await expect(noNativeShareDialog.getByRole('link', { name: 'Telegram' })).toBeVisible();
+    await expect(noNativeShareDialog.getByRole('link', { name: 'Correu electrònic' })).toBeVisible();
+    await noNativeShareDialog.getByRole('button', { name: 'Copiar l’enllaç' }).click();
     assert.equal(
       await page.evaluate(() => (window as unknown as { __copiedPlace?: string }).__copiedPlace),
       `${environment.webBaseUrl}/places/${place.id}`,
       'El fallback ha de copiar l’URL pública neta del Place.'
     );
-    await expect(page.getByText('Enllaç copiat.', { exact: true })).toBeVisible();
+    await expect(page.getByText('Enllaç copiat', { exact: true })).toBeVisible();
 
     await page.waitForTimeout(2_500);
     await page.evaluate(() => {
@@ -241,7 +273,8 @@ async function main(): Promise<void> {
         return null;
       };
     });
-    await page.getByRole('button', { name: 'Compartir' }).click();
+    await shareButton.click();
+    await page.getByRole('dialog', { name: place.name }).getByRole('button', { name: 'Copiar l’enllaç' }).click();
     assert.deepEqual(
       await page.evaluate(() => (window as unknown as { __manualCopy?: [string, string] }).__manualCopy),
       ['Copia aquest enllaç:', `${environment.webBaseUrl}/places/${place.id}`],
@@ -310,6 +343,12 @@ async function main(): Promise<void> {
     });
     await mobilePage.goto(`/places/${place.id}`, { waitUntil: 'domcontentloaded' });
     await expect(mobilePage.getByRole('heading', { level: 1, name: place.name })).toBeVisible({ timeout: 30_000 });
+    await mobilePage.getByRole('button', { name: 'Compartir' }).click();
+    const mobileShareDialog = mobilePage.getByRole('dialog', { name: place.name });
+    await expect(mobileShareDialog).toBeVisible();
+    await expect(mobileShareDialog.getByRole('link', { name: 'WhatsApp' })).toBeVisible();
+    assert.equal(await mobilePage.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true);
+    await mobileShareDialog.getByRole('button', { name: 'Tancar el menú de compartir' }).click();
     await validateWestieAtRouteStart(mobilePage, resolve(root, 'e2e/artifacts/petiloc-westie-start-mobile.png'), false);
     await mobilePage.evaluate(() => scrollTo(0, 0));
     assert.equal(await mobilePage.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true);
@@ -319,7 +358,7 @@ async function main(): Promise<void> {
     await mobile.close();
     await context.close();
 
-    console.log('PASS Chrome Fase VII: capçalera sense Guardar, compartir Web Share/còpia, Google Maps, àudio real, preferències i responsive.');
+    console.log('PASS Chrome Fase VII: menú Compartir web/Web Share, Google Maps, àudio real, preferències i responsive.');
   } finally {
     await browser.close();
   }

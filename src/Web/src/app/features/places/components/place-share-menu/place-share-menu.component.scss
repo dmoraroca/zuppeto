@@ -1,0 +1,18 @@
+:host { font: inherit; }
+.place-share-menu__backdrop { position: fixed; inset: 0; z-index: 10040; display: grid; place-items: center; padding: 1rem; background: rgba(2,12,20,.66); backdrop-filter: blur(.3rem); }
+.place-share-menu { width: min(30rem,100%); padding: 1.25rem; border: 1px solid #cde5df; border-radius: 1.4rem; background: #f7fffd; box-shadow: 0 1rem 4rem rgba(2,6,23,.28); color: #123f3b; }
+.place-share-menu__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
+.place-share-menu__header p { margin: 0 0 .2rem; color: #0f766e; font-size: .7rem; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+.place-share-menu__header h2 { margin: 0; font-size: 1.25rem; line-height: 1.25; }
+.place-share-menu__close { flex: 0 0 auto; width: 2.75rem; height: 2.75rem; padding: 0; border: 1px solid #dbe7e4; border-radius: 50%; background: #fff; color: #334155; font: inherit; font-size: 1.55rem; font-weight: 800; cursor: pointer; }
+.place-share-menu__options { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .65rem; }
+.place-share-menu__options a, .place-share-menu__options button { display: flex; align-items: center; gap: .7rem; min-height: 3.4rem; padding: .7rem .8rem; border: 1px solid #cde5df; border-radius: .9rem; background: #fff; color: #0f5f58; font: inherit; font-size: .86rem; text-align: left; text-decoration: none; cursor: pointer; }
+.place-share-menu__options span { display: grid; flex: 0 0 auto; place-items: center; width: 1.7rem; height: 1.7rem; border-radius: 50%; background: #e5f7f3; color: #0f766e; font-weight: 900; }
+.place-share-menu__options a:hover, .place-share-menu__options button:hover:not(:disabled) { border-color: #0f766e; background: #effaf7; }
+.place-share-menu__options a:focus-visible, .place-share-menu__options button:focus-visible, .place-share-menu__close:focus-visible { outline: 3px solid rgba(15,118,110,.28); outline-offset: 2px; }
+.place-share-menu__options button:disabled { cursor: wait; opacity: .65; }
+@media (max-width: 420px) {
+  .place-share-menu__backdrop { align-items: end; padding: 0; }
+  .place-share-menu { width: 100%; padding: 1rem 1rem max(1rem,env(safe-area-inset-bottom)); border-radius: 1.4rem 1.4rem 0 0; }
+  .place-share-menu__options { grid-template-columns: 1fr; }
+}

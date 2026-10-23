@@ -54,6 +54,38 @@ describe('PlaceShareService', () => {
     expect(service.buildUrl('place-1')).toBe('https://petiloc.example/places/place-1');
   });
 
+  it('builds the web sharing links with the Place name and exact public URL', () => {
+    const target = { id: 'place/1', name: 'Cafè Gos', city: 'Vic' };
+    const url = localPlaceUrl('place/1');
+
+    const whatsapp = new URL(service.buildWhatsAppUrl(target));
+    expect(whatsapp.origin + whatsapp.pathname).toBe('https://api.whatsapp.com/send');
+    expect(whatsapp.searchParams.get('text')).toBe(
+      `Cafè Gos — Descobreix aquest establiment a PetiLoc: ${url}`
+    );
+
+    const telegram = new URL(service.buildTelegramUrl(target));
+    expect(telegram.origin + telegram.pathname).toBe('https://t.me/share/url');
+    expect(telegram.searchParams.get('url')).toBe(url);
+    expect(telegram.searchParams.get('text')).toBe('Cafè Gos — Descobreix aquest establiment a PetiLoc');
+
+    const mailto = new URL(service.buildMailtoUrl(target));
+    expect(mailto.searchParams.get('subject')).toBe('Cafè Gos — PetiLoc');
+    expect(mailto.searchParams.get('body')).toBe(
+      `Cafè Gos — Descobreix aquest establiment a PetiLoc: ${url}`
+    );
+  });
+
+  it('copies explicitly without requiring Web Share API', async () => {
+    defineNavigatorProperty('share', vi.fn());
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    defineNavigatorProperty('clipboard', { writeText });
+
+    await expect(service.copy({ id: 'place-1', name: 'Local', city: 'Vic' }))
+      .resolves.toEqual({ status: 'copied', url: localPlaceUrl('place-1') });
+    expect(writeText).toHaveBeenCalledWith(localPlaceUrl('place-1'));
+  });
+
   it('treats voluntary native-share cancellation as a neutral result', async () => {
     defineNavigatorProperty('share', vi.fn().mockRejectedValue(new DOMException('Cancelled', 'AbortError')));
 

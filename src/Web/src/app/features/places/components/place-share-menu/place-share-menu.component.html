@@ -1,0 +1,31 @@
+<div class="place-share-menu__backdrop" (mousedown)="handleBackdrop($event)">
+  <section #dialog class="place-share-menu" role="dialog" aria-modal="true" aria-labelledby="place-share-title">
+    <header class="place-share-menu__header">
+      <div>
+        <p>Compartir</p>
+        <h2 id="place-share-title">{{ target().name }}</h2>
+      </div>
+      <button type="button" class="place-share-menu__close" aria-label="Tancar el menú de compartir" autofocus (click)="close()">×</button>
+    </header>
+
+    <div class="place-share-menu__options">
+      <a [href]="whatsappUrl()" target="_blank" rel="noopener noreferrer" (click)="close()">
+        <span aria-hidden="true">◉</span><strong>WhatsApp</strong>
+      </a>
+      <a [href]="telegramUrl()" target="_blank" rel="noopener noreferrer" (click)="close()">
+        <span aria-hidden="true">➤</span><strong>Telegram</strong>
+      </a>
+      <a [href]="mailtoUrl()" (click)="close()">
+        <span aria-hidden="true">✉</span><strong>Correu electrònic</strong>
+      </a>
+      <button type="button" [disabled]="busy" (click)="copyLink()">
+        <span aria-hidden="true">⧉</span><strong>Copiar l’enllaç</strong>
+      </button>
+      @if (canShareNatively()) {
+        <button type="button" [disabled]="busy" (click)="moreOptions()">
+          <span aria-hidden="true">•••</span><strong>Més opcions</strong>
+        </button>
+      }
+    </div>
+  </section>
+</div>

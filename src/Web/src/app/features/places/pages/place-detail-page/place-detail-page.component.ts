@@ -3,8 +3,8 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 
 import { PlaceMapComponent } from '../../components/place-map/place-map.component';
+import { PlaceShareMenuComponent } from '../../components/place-share-menu/place-share-menu.component';
 import { PlaceService } from '../../services/place.service';
-import { PlaceShareService } from '../../services/place-share.service';
 import { PlaceMediaAsset } from '../../models/place.model';
 import { PlaceDetailLifeLineAnimation } from './place-detail-life-line-animation';
 import { SiteHeaderComponent } from '../../../../core/layout/components/site-header/site-header.component';
@@ -27,7 +27,8 @@ import {
   imports: [
     RouterLink,
     SiteHeaderComponent,
-    PlaceMapComponent
+    PlaceMapComponent,
+    PlaceShareMenuComponent
   ],
   templateUrl: './place-detail-page.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -47,7 +48,6 @@ export class PlaceDetailPageComponent {
   );
   private readonly route = inject(ActivatedRoute);
   private readonly placeService = inject(PlaceService);
-  private readonly placeShareService = inject(PlaceShareService);
   private readonly params = toSignal(this.route.paramMap, {
     initialValue: this.route.snapshot.paramMap
   });
@@ -64,7 +64,7 @@ export class PlaceDetailPageComponent {
   private uploadTrigger: HTMLElement | null = null;
   private carouselTouchStartX: number | null = null;
   private shareFeedbackTimer: ReturnType<typeof setTimeout> | null = null;
-  private shareInProgress = false;
+  protected readonly shareMenuOpen = signal(false);
 
   @ViewChild('animatedWestie')
   private set animatedWestie(element: ElementRef<HTMLImageElement> | undefined) {
@@ -453,19 +453,14 @@ export class PlaceDetailPageComponent {
     if (this.lightboxIndex() == null) this.activePhotoIndex.set(next); else this.lightboxIndex.set(next);
   }
 
-  protected async sharePlace(): Promise<void> {
-    const place = this.place();
-    if (!place || this.shareInProgress) return;
-    this.shareInProgress = true;
-    try {
-      const result = await this.placeShareService.share(place);
-      if (result.status === 'shared') this.setShareFeedback('Establiment compartit.');
-      if (result.status === 'copied') this.setShareFeedback('Enllaç copiat.');
-      if (result.status === 'manual' || result.status === 'failed') this.setShareFeedback(result.message);
-      // La cancel·lació voluntària del menú natiu no és cap error i no mostra cap avís.
-    } finally {
-      this.shareInProgress = false;
-    }
+  protected sharePlace(): void {
+    if (!this.place() || this.shareMenuOpen()) return;
+    this.shareMenuOpen.set(true);
+  }
+
+  protected closeShareMenu(): void {
+    this.shareMenuOpen.set(false);
+    setTimeout(() => document.querySelector<HTMLElement>('.site-header__context-action')?.focus(), 0);
   }
 
   @HostListener('document:pointerdown')
@@ -473,7 +468,7 @@ export class PlaceDetailPageComponent {
     this.unlockWestieBarkFromUserAction();
   }
 
-  private setShareFeedback(message: string): void {
+  protected setShareFeedback(message: string): void {
     this.shareFeedback.set(message);
     if (this.shareFeedbackTimer) clearTimeout(this.shareFeedbackTimer);
     this.shareFeedbackTimer = setTimeout(() => this.shareFeedback.set(''), 2400);
