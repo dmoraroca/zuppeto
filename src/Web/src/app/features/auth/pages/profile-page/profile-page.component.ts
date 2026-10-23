@@ -30,6 +30,7 @@ import { AuthService } from '../../services/auth.service';
 import { DB_FIELD_MAX } from '../../../../shared/policies/db-field-max-length';
 import { TerritorialLocationSelectorComponent, TerritorialLocationSelection } from '../../../../shared/components/territorial-location-selector/territorial-location-selector.component';
 import { WestiePreferencesService } from '../../../../shared/services/westie-preferences.service';
+import { WestieBarkService } from '../../../../shared/services/westie-bark.service';
 
 @Component({
   selector: 'app-profile-page',
@@ -57,6 +58,7 @@ export class ProfilePageComponent implements AfterViewInit {
   private readonly strengthPolicy = inject<PasswordStrengthPolicy>(PASSWORD_STRENGTH_POLICY);
   private readonly currentUser = this.authService.currentUser();
   private readonly westiePreferences = inject(WestiePreferencesService);
+  private readonly westieBark = inject(WestieBarkService);
 
   protected readonly dbMax = DB_FIELD_MAX;
   protected readonly user = computed(() => this.authService.currentUser());
@@ -96,6 +98,7 @@ export class ProfilePageComponent implements AfterViewInit {
   protected readonly activeTab = signal<'profile' | 'settings'>('profile');
   protected readonly showWestie = this.westiePreferences.visible;
   protected readonly westieSoundEnabled = this.westiePreferences.soundEnabled;
+  protected readonly westieSoundFeedback = signal('');
 
   protected selectTab(tab: 'profile' | 'settings'): void {
     this.activeTab.set(tab);
@@ -110,11 +113,24 @@ export class ProfilePageComponent implements AfterViewInit {
   }
 
   protected setWestieVisible(event: Event): void {
-    this.westiePreferences.setVisible((event.target as HTMLInputElement).checked);
+    const visible = (event.target as HTMLInputElement).checked;
+    this.westiePreferences.setVisible(visible);
+    if (!visible) this.westieBark.stop();
   }
 
-  protected setWestieSound(event: Event): void {
-    this.westiePreferences.setSoundEnabled((event.target as HTMLInputElement).checked);
+  protected async setWestieSound(event: Event): Promise<void> {
+    const enabled = (event.target as HTMLInputElement).checked;
+    this.westiePreferences.setSoundEnabled(enabled);
+    if (!enabled) {
+      this.westieBark.stop();
+      this.westieSoundFeedback.set('Guau Guau desactivat.');
+      return;
+    }
+
+    const played = await this.westieBark.previewFromUserAction();
+    this.westieSoundFeedback.set(played
+      ? 'Guau Guau activat.'
+      : 'El navegador ha impedit reproduir el lladruc. Torna-ho a provar després d’interactuar amb la pàgina.');
   }
 
   constructor() {

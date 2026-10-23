@@ -2,13 +2,13 @@ import { Component, computed, DestroyRef, effect, ElementRef, HostListener, inje
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 
-import { FavoritesService } from '../../../favorites/services/favorites.service';
 import { PlaceMapComponent } from '../../components/place-map/place-map.component';
 import { PlaceService } from '../../services/place.service';
 import { PlaceMediaAsset } from '../../models/place.model';
 import { PlaceDetailLifeLineAnimation } from './place-detail-life-line-animation';
 import { SiteHeaderComponent } from '../../../../core/layout/components/site-header/site-header.component';
 import { WestiePreferencesService } from '../../../../shared/services/westie-preferences.service';
+import { WestieBarkService } from '../../../../shared/services/westie-bark.service';
 import {
   contextTagsExcludingCity,
   hasPublicPetPolicy,
@@ -39,13 +39,13 @@ export class PlaceDetailPageComponent {
   private readonly host = inject(ElementRef<HTMLElement>);
   private readonly destroyRef = inject(DestroyRef);
   private readonly westiePreferences = inject(WestiePreferencesService);
+  private readonly westieBark = inject(WestieBarkService);
   private readonly lifeLineAnimation = new PlaceDetailLifeLineAnimation(
     this.host.nativeElement,
     () => this.playWestieBark()
   );
   private readonly route = inject(ActivatedRoute);
   private readonly placeService = inject(PlaceService);
-  private readonly favoritesService = inject(FavoritesService);
   private readonly params = toSignal(this.route.paramMap, {
     initialValue: this.route.snapshot.paramMap
   });
@@ -61,9 +61,7 @@ export class PlaceDetailPageComponent {
   protected readonly showWestie = this.westiePreferences.visible;
   private uploadTrigger: HTMLElement | null = null;
   private carouselTouchStartX: number | null = null;
-  private favoriteFeedbackTimer: ReturnType<typeof setTimeout> | null = null;
-  private readonly westieBarkUrl: string | null = null;
-  private westieBark: HTMLAudioElement | null = null;
+  private shareFeedbackTimer: ReturnType<typeof setTimeout> | null = null;
 
   @ViewChild('animatedWestie')
   private set animatedWestie(element: ElementRef<HTMLImageElement> | undefined) {
@@ -76,17 +74,16 @@ export class PlaceDetailPageComponent {
       !this.showWestie()
       || !this.westiePreferences.soundEnabled()
       || document.hidden
-      || !this.westieBarkUrl
     ) return;
-
-    this.westieBark ??= new Audio(this.westieBarkUrl);
-    this.westieBark.volume = 0.45;
-    this.westieBark.currentTime = 0;
-    void this.westieBark.play().catch(() => undefined);
+    void this.westieBark.playAtEndOfRoute();
   }
 
   constructor() {
-    this.destroyRef.onDestroy(() => this.lifeLineAnimation.disconnect());
+    this.destroyRef.onDestroy(() => {
+      this.lifeLineAnimation.disconnect();
+      this.westieBark.stop();
+      if (this.shareFeedbackTimer) clearTimeout(this.shareFeedbackTimer);
+    });
     effect(() => {
       const id = this.params().get('id') ?? '';
       const sequence = ++this.loadSequence;
@@ -106,7 +103,6 @@ export class PlaceDetailPageComponent {
   }
 
   protected readonly place = this.loadedPlace.asReadonly();
-  protected readonly canWriteFavorites = this.favoritesService.canWrite;
   protected readonly hasLoaded = computed(() => this.detailState() !== 'loading');
   protected readonly relatedPlaces = computed(() => {
     const currentPlace = this.place();
@@ -267,47 +263,22 @@ export class PlaceDetailPageComponent {
   protected readonly uploadBusy = signal(false);
   protected readonly uploadMessage = signal('');
   protected readonly uploadError = signal('');
-  protected readonly favoriteFeedback = signal('');
+  protected readonly shareFeedback = signal('');
   protected readonly directionsUrl = computed(() => {
     const place = this.place();
-    if (!place) return '';
-    const destination = place.coordinates
-      ? `${place.coordinates.lat},${place.coordinates.lng}`
-      : `${place.address}, ${place.city}`;
-    return this.buildDirectionsUrl(destination);
+    const lat = place?.coordinates?.lat;
+    const lng = place?.coordinates?.lng;
+    if (
+      !Number.isFinite(lat)
+      || !Number.isFinite(lng)
+      || Math.abs(lat!) > 90
+      || Math.abs(lng!) > 180
+    ) return '';
+    return this.buildDirectionsUrl(lat!, lng!);
   });
 
-  protected openDirections(event: MouseEvent): void {
-    const fallbackUrl = this.directionsUrl();
-    if (!fallbackUrl) return;
-
-    const navigationWindow = window.open(fallbackUrl, '_blank');
-    if (!navigationWindow) return;
-
-    event.preventDefault();
-    navigationWindow.opener = null;
-    if (!navigator.geolocation) return;
-
-    navigator.geolocation.getCurrentPosition(
-      ({ coords }) => {
-        const place = this.place();
-        if (!place) return;
-        const destination = place.coordinates
-          ? `${place.coordinates.lat},${place.coordinates.lng}`
-          : `${place.address}, ${place.city}`;
-        navigationWindow.location.href = this.buildDirectionsUrl(
-          destination,
-          `${coords.latitude},${coords.longitude}`
-        );
-      },
-      () => undefined,
-      { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 }
-    );
-  }
-
-  private buildDirectionsUrl(destination: string, origin?: string): string {
-    const query = new URLSearchParams({ api: '1', destination });
-    if (origin) query.set('origin', origin);
+  private buildDirectionsUrl(latitude: number, longitude: number): string {
+    const query = new URLSearchParams({ api: '1', destination: `${latitude},${longitude}` });
     return `https://www.google.com/maps/dir/?${query.toString()}`;
   }
 
@@ -321,20 +292,6 @@ export class PlaceDetailPageComponent {
       case 'OfficialWebsite': return 'Web oficial';
       default: return source;
     }
-  }
-
-  protected toggleFavorite(placeId: string): void {
-    const wasFavorite = this.favoritesService.isFavorite(placeId);
-    this.favoritesService.toggle(placeId);
-    this.favoriteFeedback.set(wasFavorite
-      ? 'Eliminat dels teus favorits.'
-      : 'Desat als teus favorits.');
-    if (this.favoriteFeedbackTimer) clearTimeout(this.favoriteFeedbackTimer);
-    this.favoriteFeedbackTimer = setTimeout(() => this.favoriteFeedback.set(''), 2400);
-  }
-
-  protected isFavorite(placeId: string): boolean {
-    return this.favoritesService.isFavorite(placeId);
   }
 
   protected getTypeLabel(type: string): string {
@@ -490,9 +447,24 @@ export class PlaceDetailPageComponent {
   protected async sharePlace(): Promise<void> {
     const place = this.place();
     if (!place) return;
-    const data = { title: place.name, text: `${place.name} · ${place.city}`, url: location.href };
-    if (navigator.share) await navigator.share(data).catch(() => undefined);
-    else await navigator.clipboard?.writeText(location.href);
+    const url = new URL(`/places/${encodeURIComponent(place.id)}`, location.origin).href;
+    const data = { title: place.name, text: `${place.name} · ${place.city}`, url };
+    if (navigator.share) {
+      await navigator.share(data).catch(() => undefined);
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      this.setShareFeedback('Enllaç copiat.');
+    } catch {
+      this.setShareFeedback('No s’ha pogut copiar l’enllaç.');
+    }
+  }
+
+  private setShareFeedback(message: string): void {
+    this.shareFeedback.set(message);
+    if (this.shareFeedbackTimer) clearTimeout(this.shareFeedbackTimer);
+    this.shareFeedbackTimer = setTimeout(() => this.shareFeedback.set(''), 2400);
   }
 
   protected async reportPhoto(assetId: string): Promise<void> {

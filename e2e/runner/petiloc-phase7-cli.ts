@@ -13,6 +13,7 @@ interface Session {
 interface PlaceListItem {
   readonly id: string;
   readonly name: string;
+  readonly coordinates?: { readonly lat: number; readonly lng: number };
 }
 
 async function main(): Promise<void> {
@@ -67,14 +68,17 @@ async function main(): Promise<void> {
 
     await page.getByRole('tab', { name: 'Configuració' }).click();
     const visibleSwitch = page.getByRole('checkbox', { name: /Mostrar el Westie/ });
-    const soundSwitch = page.getByRole('checkbox', { name: /So del Westie/ });
+    const soundSwitch = page.getByRole('checkbox', { name: /Guau Guau/ });
     await expect(visibleSwitch).toBeChecked();
     await expect(soundSwitch).toBeChecked();
     await page.screenshot({ path: resolve(root, 'e2e/artifacts/petiloc-phase7-configuracio.png'), fullPage: true });
     await visibleSwitch.uncheck();
     await soundSwitch.uncheck();
     await visibleSwitch.check();
+    const barkResponse = page.waitForResponse(response => response.url().endsWith('/audio/westie-bark.mp3'));
     await soundSwitch.check();
+    assert.ok([200, 206].includes((await barkResponse).status()), 'El lladruc local ha de carregar-se realment.');
+    await expect(page.getByText('Guau Guau activat.', { exact: true })).toBeVisible();
 
     const assertCombination = async (visible: boolean, sound: boolean): Promise<void> => {
       if ((await visibleSwitch.isChecked()) !== visible) await visibleSwitch.setChecked(visible);
@@ -97,9 +101,56 @@ async function main(): Promise<void> {
     await soundSwitch.setChecked(true);
     await page.goto(`/places/${place.id}`, { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('button', { name: 'Compartir' })).toHaveCount(1);
-    await expect(page.getByRole('button', { name: /Afegir a favorits|Treure de favorits/ })).toHaveCount(1);
+    await expect(page.getByRole('button', { name: /Afegir a favorits|Treure de favorits/ })).toHaveCount(0);
+    await expect(page.getByText('Guardar', { exact: true })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Notificacions' })).toBeVisible();
     await expect(page.locator('.site-header__account-trigger')).toBeVisible();
+
+    await page.evaluate(() => {
+      Object.defineProperty(navigator, 'share', {
+        configurable: true,
+        value: (data: ShareData) => {
+          (window as unknown as { __sharedPlace?: ShareData }).__sharedPlace = data;
+          return Promise.resolve();
+        }
+      });
+    });
+    await page.getByRole('button', { name: 'Compartir' }).click();
+    assert.equal(
+      await page.evaluate(() => (window as unknown as { __sharedPlace?: ShareData }).__sharedPlace?.url),
+      `${environment.webBaseUrl}/places/${place.id}`,
+      'Web Share ha de rebre l’URL pública neta del Place.'
+    );
+
+    await page.evaluate(() => {
+      Object.defineProperty(navigator, 'share', { configurable: true, value: undefined });
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: {
+          writeText: (url: string) => {
+            (window as unknown as { __copiedPlace?: string }).__copiedPlace = url;
+            return Promise.resolve();
+          }
+        }
+      });
+    });
+    await page.getByRole('button', { name: 'Compartir' }).click();
+    assert.equal(
+      await page.evaluate(() => (window as unknown as { __copiedPlace?: string }).__copiedPlace),
+      `${environment.webBaseUrl}/places/${place.id}`,
+      'El fallback ha de copiar l’URL pública neta del Place.'
+    );
+    await expect(page.getByText('Enllaç copiat.', { exact: true })).toBeVisible();
+
+    const directions = page.getByRole('link', { name: /Com arribar-hi/ });
+    if (place.coordinates) {
+      const expectedDirections = `https://www.google.com/maps/dir/?api=1&destination=${place.coordinates.lat}%2C${place.coordinates.lng}`;
+      await expect(directions).toHaveAttribute('href', expectedDirections);
+      const [mapsPage] = await Promise.all([page.waitForEvent('popup'), directions.click()]);
+      await mapsPage.waitForURL(/google\.com\/maps\/dir/);
+      assert.equal(mapsPage.url().startsWith(expectedDirections), true, 'Google Maps ha d’obrir la destinació exacta.');
+      await mapsPage.close();
+    }
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true);
     await page.screenshot({ path: resolve(root, 'e2e/artifacts/petiloc-phase7-capcalera-detall.png'), fullPage: false });
 
@@ -114,7 +165,7 @@ async function main(): Promise<void> {
     await mobile.close();
     await context.close();
 
-    console.log('PASS Chrome Fase VII: capçalera global, perfil, configuració, persistència, quatre combinacions i responsive.');
+    console.log('PASS Chrome Fase VII: capçalera sense Guardar, compartir Web Share/còpia, Google Maps, àudio real, preferències i responsive.');
   } finally {
     await browser.close();
   }

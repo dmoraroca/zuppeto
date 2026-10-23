@@ -1,14 +1,11 @@
 <app-site-header
   [showPlaceActions]="!!place()"
-  [canSavePlace]="canWriteFavorites()"
-  [placeSaved]="place() ? isFavorite(place()!.id) : false"
   (sharePlace)="sharePlace()"
-  (savePlace)="place() && toggleFavorite(place()!.id)"
 />
 
 <main class="petiloc-detail">
   @if (place(); as selectedPlace) {
-    @if (favoriteFeedback()) { <p class="petiloc-detail__feedback" role="status">{{ favoriteFeedback() }}</p> }
+    @if (shareFeedback()) { <p class="petiloc-detail__feedback" role="status">{{ shareFeedback() }}</p> }
 
     <article class="petiloc-detail__sheet" aria-labelledby="petiloc-place-title">
       <section class="petiloc-detail__hero-stage">
@@ -122,7 +119,7 @@
       <section id="petiloc-map" class="petiloc-detail__map-card" aria-labelledby="petiloc-map-title">
         <header><div><h2 id="petiloc-map-title">Com hi arribo?</h2><p>{{ formattedAddress() }}</p></div><span aria-hidden="true">›</span></header>
         <div class="petiloc-detail__map-frame"><app-place-map [places]="placeAsArray" [selectedPlaceId]="selectedPlace.id" [compactPresentation]="true" height="20.5rem" emptyTitle="No hi ha ubicació disponible" emptyCopy="Aquest lloc no té coordenades per mostrar al mapa." /></div>
-        @if (directionsUrl()) { <a class="petiloc-detail__directions" [href]="directionsUrl()" target="_blank" rel="noopener noreferrer" (click)="openDirections($event)">Com arribar-hi <span aria-hidden="true">↗</span></a> }
+        @if (directionsUrl()) { <a class="petiloc-detail__directions" [href]="directionsUrl()" target="_blank" rel="noopener noreferrer">Com arribar-hi <span aria-hidden="true">↗</span></a> }
       </section>
       </section>
 
@@ -152,7 +149,7 @@
 
     <nav class="petiloc-detail__mobile-dock" aria-label="Accions del lloc">
       <button type="button" (click)="openUploadModal($event)"><span aria-hidden="true">▣</span>Foto</button>
-      @if (directionsUrl()) { <a [href]="directionsUrl()" target="_blank" rel="noopener noreferrer" (click)="openDirections($event)"><span aria-hidden="true">⌖</span>Anar-hi</a> }
+      @if (directionsUrl()) { <a [href]="directionsUrl()" target="_blank" rel="noopener noreferrer"><span aria-hidden="true">⌖</span>Anar-hi</a> }
     </nav>
 
     @if (galleryOpen()) {

@@ -248,14 +248,17 @@
 
         <label class="profile-settings__option">
           <span class="profile-settings__copy">
-            <strong>So del Westie</strong>
-            <span>Reprodueix un lladruc quan el Westie arriba al final de la línia de vida.</span>
+            <strong>Guau Guau</strong>
+            <span>Reprodueix un lladruc en activar-lo i quan el Westie arriba al final de la línia de vida.</span>
           </span>
           <span class="profile-switch">
             <input type="checkbox" [checked]="westieSoundEnabled()" (change)="setWestieSound($event)" />
             <span aria-hidden="true"></span>
           </span>
         </label>
+        @if (westieSoundFeedback()) {
+          <p class="profile-settings__sound-feedback" role="status">{{ westieSoundFeedback() }}</p>
+        }
       </div>
 
       <p class="profile-settings__storage-note">
