@@ -96,7 +96,7 @@ export class ProfilePageComponent implements AfterViewInit {
   protected readonly currentPasswordMatches = signal(false);
   private currentEditedByUser = false;
   protected readonly activeTab = signal<'profile' | 'settings'>('profile');
-  protected readonly showWestie = this.westiePreferences.visible;
+  protected readonly showLifeLine = this.westiePreferences.lifeLineVisible;
   protected readonly westieSoundEnabled = this.westiePreferences.soundEnabled;
   protected readonly westieSoundFeedback = signal('');
 
@@ -112,13 +112,14 @@ export class ProfilePageComponent implements AfterViewInit {
     document.getElementById(id)?.focus();
   }
 
-  protected setWestieVisible(event: Event): void {
+  protected setLifeLineVisible(event: Event): void {
     const visible = (event.target as HTMLInputElement).checked;
-    this.westiePreferences.setVisible(visible);
+    this.westiePreferences.setLifeLineVisible(visible);
     if (!visible) this.westieBark.stop();
   }
 
   protected async setWestieSound(event: Event): Promise<void> {
+    if (!this.showLifeLine()) return;
     const enabled = (event.target as HTMLInputElement).checked;
     this.westiePreferences.setSoundEnabled(enabled);
     if (!enabled) {

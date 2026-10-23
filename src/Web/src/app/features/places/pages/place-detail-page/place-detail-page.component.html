@@ -34,14 +34,12 @@
             </div>
             <div class="petiloc-detail__hero-photo-actions">
               <button type="button" class="petiloc-detail__photo-count" (click)="openGallery()"><span aria-hidden="true">▦</span> {{ galleryTotal() || galleryMedia().length }} fotografies</button>
-              <button type="button" (click)="openUploadModal($event)">Afegir fotografia</button>
               <button type="button" (click)="openGallery()">Veure totes les fotos</button>
             </div>
           </div>
         } @else {
           <div class="petiloc-detail__fallback">
             <img src="/images/place-detail/editorial-fallback.webp" alt="Arquitectura orgànica i vegetació" />
-            <button type="button" class="petiloc-detail__first-photo" (click)="openUploadModal($event)">Afegir la primera fotografia</button>
           </div>
         }
       </div>
@@ -55,7 +53,9 @@
           <path id="petiloc-hero-contour" pathLength="100" d="M710 0 C790 3 835 36 845 74 C853 106 838 125 865 151 C887 172 925 184 928 211 C932 242 905 263 927 286 C940 300 958 313 970 324 H0 V0 Z" />
         </defs>
         <use class="petiloc-detail__hero-surface" href="#petiloc-hero-contour" />
-        <use class="petiloc-detail__hero-route" href="#petiloc-hero-contour" data-route-fraction="0.19060951" />
+        @if (showLifeLine()) {
+          <use class="petiloc-detail__hero-route" href="#petiloc-hero-contour" data-route-fraction="0.19060951" />
+        }
       </svg>
 
       <section class="petiloc-detail__identity">
@@ -92,7 +92,7 @@
       <div class="petiloc-detail__chapters">
         <section id="petiloc-place" class="petiloc-detail__chapter">
           <span class="petiloc-detail__chapter-icon" aria-hidden="true">⌂</span>
-          <div class="petiloc-detail__chapter-copy"><h2>El lloc</h2><p>{{ selectedPlace.shortDescription || formattedAddress() }}</p></div>
+          <div class="petiloc-detail__chapter-copy"><h2>El lloc</h2><p>{{ placeDescription() }}</p></div>
           <div class="petiloc-detail__chapter-visual">
             @if (galleryMedia().length) { <button type="button" (click)="openLightbox(0)"><img [src]="galleryMedia()[0].servedUrl" [alt]="'Fotografia de ' + selectedPlace.name" /></button> }
             @else { <img src="/images/place-detail/editorial-fallback.webp" alt="" /> }
@@ -117,7 +117,6 @@
         <section class="petiloc-detail__chapter petiloc-detail__chapter--photos">
           <span class="petiloc-detail__chapter-icon" aria-hidden="true">▧</span>
           <div class="petiloc-detail__chapter-copy"><h2>Fotos</h2><p>{{ galleryMedia().length ? (galleryTotal() || galleryMedia().length) + ' fotografies verificades' : 'Encara no hi ha fotografies verificades' }}</p></div>
-          <button type="button" class="petiloc-detail__add-photo" (click)="openUploadModal($event)"><span aria-hidden="true">▣</span> Afegir fotografia</button>
         </section>
       </div>
 
@@ -128,14 +127,14 @@
       </section>
       </section>
 
-      <svg class="petiloc-detail__life-line petiloc-detail__life-line--desktop" viewBox="0 0 1180 776" preserveAspectRatio="none" aria-hidden="true"><path d="M662 329 C 637 367 629 415 711 457 C 778 491 750 549 684 579 C 619 608 621 681 718 760 L738 776" /></svg>
-      <svg class="petiloc-detail__life-line petiloc-detail__life-line--mobile" viewBox="0 329 1180 431" preserveAspectRatio="none" aria-hidden="true"><path d="M662 329 C 637 367 629 415 711 457 C 778 491 750 549 684 579 C 619 608 621 681 718 760" /></svg>
-      <span class="petiloc-detail__route-node petiloc-detail__route-node--hero" aria-hidden="true"><i class="petiloc-detail__paw"></i></span>
-      <span class="petiloc-detail__route-node petiloc-detail__route-node--first" aria-hidden="true"><i class="petiloc-detail__paw"></i></span>
-      <span class="petiloc-detail__route-node petiloc-detail__route-node--second" aria-hidden="true"><i class="petiloc-detail__paw"></i></span>
-      <span class="petiloc-detail__route-node petiloc-detail__route-node--third" aria-hidden="true"><i class="petiloc-detail__paw"></i></span>
-      <span class="petiloc-detail__route-node petiloc-detail__route-node--fourth" aria-hidden="true"><i class="petiloc-detail__paw"></i></span>
-      @if (showWestie()) {
+      @if (showLifeLine()) {
+        <svg class="petiloc-detail__life-line petiloc-detail__life-line--desktop" viewBox="0 0 1180 776" preserveAspectRatio="none" aria-hidden="true"><path d="M662 329 C 637 367 629 415 711 457 C 778 491 750 549 684 579 C 619 608 621 681 718 760 L738 776" /></svg>
+        <svg class="petiloc-detail__life-line petiloc-detail__life-line--mobile" viewBox="0 329 1180 431" preserveAspectRatio="none" aria-hidden="true"><path d="M662 329 C 637 367 629 415 711 457 C 778 491 750 549 684 579 C 619 608 621 681 718 760" /></svg>
+        <span class="petiloc-detail__route-node petiloc-detail__route-node--hero" aria-hidden="true"><i class="petiloc-detail__paw"></i></span>
+        <span class="petiloc-detail__route-node petiloc-detail__route-node--first" aria-hidden="true"><i class="petiloc-detail__paw"></i></span>
+        <span class="petiloc-detail__route-node petiloc-detail__route-node--second" aria-hidden="true"><i class="petiloc-detail__paw"></i></span>
+        <span class="petiloc-detail__route-node petiloc-detail__route-node--third" aria-hidden="true"><i class="petiloc-detail__paw"></i></span>
+        <span class="petiloc-detail__route-node petiloc-detail__route-node--fourth" aria-hidden="true"><i class="petiloc-detail__paw"></i></span>
         <img #animatedWestie class="petiloc-detail__westie" src="/images/place-detail/westie-face.png" alt="" aria-hidden="true" />
       }
     </article>
@@ -152,7 +151,6 @@
     </details>
 
     <nav class="petiloc-detail__mobile-dock" aria-label="Accions del lloc">
-      <button type="button" (click)="openUploadModal($event)"><span aria-hidden="true">▣</span>Foto</button>
       @if (directionsUrl()) { <a [href]="directionsUrl()" target="_blank" rel="noopener noreferrer"><span aria-hidden="true">⌖</span>Anar-hi</a> }
     </nav>
 

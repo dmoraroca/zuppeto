@@ -656,7 +656,7 @@
   .petiloc-detail__route-node--fourth { top: calc(84.116% + 2.935rem); left: calc(90.2305% - 1.125rem); }
   .petiloc-detail__westie { right: 4.25rem; bottom: 4.25rem; width: 5.25rem; }
   .petiloc-detail__sources { margin-bottom: 1rem; }
-  .petiloc-detail__mobile-dock { position: fixed; right: .55rem; bottom: max(.55rem, env(safe-area-inset-bottom)); left: .55rem; z-index: 900; display: grid; grid-template-columns: repeat(4, 1fr); gap: .12rem; padding: .32rem; border-radius: 1rem; background: rgba(7, 54, 49, .97); box-shadow: 0 .75rem 2rem rgba(2, 27, 24, .28); }
+  .petiloc-detail__mobile-dock { position: fixed; right: .55rem; bottom: max(.55rem, env(safe-area-inset-bottom)); left: .55rem; z-index: 900; display: grid; grid-template-columns: 1fr; gap: .12rem; padding: .32rem; border-radius: 1rem; background: rgba(7, 54, 49, .97); box-shadow: 0 .75rem 2rem rgba(2, 27, 24, .28); }
   .petiloc-detail__mobile-dock a, .petiloc-detail__mobile-dock button { display: grid; place-items: center; gap: .14rem; min-width: 0; min-height: 3.1rem; padding: .2rem; border: 0; background: transparent; color: #fff; font: inherit; font-size: .59rem; font-weight: 850; text-decoration: none; }
 }
 

@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { computed, Injectable, signal } from '@angular/core';
 
 const WESTIE_VISIBLE_KEY = 'petiloc.westie.visible';
 const WESTIE_SOUND_KEY = 'petiloc.westie.sound';
@@ -8,10 +8,11 @@ export class WestiePreferencesService {
   private readonly visibleState = signal(this.read(WESTIE_VISIBLE_KEY));
   private readonly soundState = signal(this.read(WESTIE_SOUND_KEY));
 
-  public readonly visible = this.visibleState.asReadonly();
+  public readonly lifeLineVisible = this.visibleState.asReadonly();
   public readonly soundEnabled = this.soundState.asReadonly();
+  public readonly soundActive = computed(() => this.lifeLineVisible() && this.soundEnabled());
 
-  public setVisible(visible: boolean): void {
+  public setLifeLineVisible(visible: boolean): void {
     this.visibleState.set(visible);
     this.write(WESTIE_VISIBLE_KEY, visible);
   }

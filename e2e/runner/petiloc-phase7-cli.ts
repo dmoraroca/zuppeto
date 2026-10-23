@@ -15,6 +15,7 @@ interface PlaceListItem {
   readonly name: string;
   readonly latitude?: number | null;
   readonly longitude?: number | null;
+  readonly description?: string | null;
 }
 
 async function main(): Promise<void> {
@@ -98,14 +99,26 @@ async function main(): Promise<void> {
     await page.screenshot({ path: resolve(root, 'e2e/artifacts/petiloc-phase7-perfil.png'), fullPage: true });
 
     await page.getByRole('tab', { name: 'Configuració' }).click();
-    const visibleSwitch = page.getByRole('checkbox', { name: /Mostrar el Westie/ });
+    const visibleSwitch = page.getByRole('checkbox', { name: /Mostrar la línia de vida i el Westie/ });
     const soundSwitch = page.getByRole('checkbox', { name: /Guau Guau/ });
     await expect(visibleSwitch).toBeChecked();
     await expect(soundSwitch).toBeChecked();
     await page.screenshot({ path: resolve(root, 'e2e/artifacts/petiloc-phase7-configuracio.png'), fullPage: true });
+    const previousSoundPreference = await page.evaluate(() => localStorage.getItem('petiloc.westie.sound'));
     await visibleSwitch.uncheck();
-    await soundSwitch.uncheck();
+    await expect(soundSwitch).toBeDisabled();
+    await expect(soundSwitch).toBeChecked();
+    assert.equal(await page.evaluate(() => localStorage.getItem('petiloc.westie.sound')), previousSoundPreference,
+      'Ocultar la línia no pot esborrar la preferència de lladrucs.');
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.getByRole('tab', { name: 'Configuració' }).click();
+    await expect(visibleSwitch).not.toBeChecked();
+    await expect(soundSwitch).toBeDisabled();
+    await expect(soundSwitch).toBeChecked();
     await visibleSwitch.check();
+    await expect(soundSwitch).toBeEnabled();
+    await expect(soundSwitch).toBeChecked();
+    await soundSwitch.uncheck();
     const barkResponse = page.waitForResponse(response => response.url().endsWith('/audio/westie-bark.mp3'));
     for (let activation = 1; activation <= 5; activation += 1) {
       await soundSwitch.check();
@@ -126,15 +139,21 @@ async function main(): Promise<void> {
     );
 
     const assertCombination = async (visible: boolean, sound: boolean): Promise<void> => {
-      if ((await visibleSwitch.isChecked()) !== visible) await visibleSwitch.setChecked(visible);
+      if (!await visibleSwitch.isChecked()) await visibleSwitch.setChecked(true);
       if ((await soundSwitch.isChecked()) !== sound) await soundSwitch.setChecked(sound);
+      if ((await visibleSwitch.isChecked()) !== visible) await visibleSwitch.setChecked(visible);
       assert.equal(await page.evaluate(() => localStorage.getItem('petiloc.westie.visible')), String(visible));
       assert.equal(await page.evaluate(() => localStorage.getItem('petiloc.westie.sound')), String(sound));
       await page.goto(`/places/${place.id}`, { waitUntil: 'domcontentloaded' });
       await expect(page.getByRole('heading', { level: 1, name: place.name })).toBeVisible();
       await expect(page.locator('.petiloc-detail__westie')).toHaveCount(visible ? 1 : 0);
+      await expect(page.locator('.petiloc-detail__life-line')).toHaveCount(visible ? 2 : 0);
+      await expect(page.locator('.petiloc-detail__route-node')).toHaveCount(visible ? 5 : 0);
+      await expect(page.locator('.petiloc-detail__hero-route')).toHaveCount(visible ? 1 : 0);
       await page.goto('/perfil', { waitUntil: 'networkidle' });
       await page.getByRole('tab', { name: 'Configuració' }).click();
+      if (visible) await expect(soundSwitch).toBeEnabled();
+      else await expect(soundSwitch).toBeDisabled();
     };
 
     await assertCombination(true, true);
@@ -145,6 +164,11 @@ async function main(): Promise<void> {
     await visibleSwitch.setChecked(true);
     await soundSwitch.setChecked(true);
     await page.goto(`/places/${place.id}`, { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('button', { name: /Afegir (la primera )?fotografia/ })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Foto', exact: true })).toHaveCount(0);
+    const expectedDescription = place.description?.trim()
+      || "Encara no disposem d'una descripció d'aquest establiment.";
+    await expect(page.locator('#petiloc-place p')).toHaveText(expectedDescription);
     await expect(page.getByRole('button', { name: 'Compartir' })).toHaveCount(1);
     await expect(page.getByRole('button', { name: /Afegir a favorits|Treure de favorits/ })).toHaveCount(0);
     await expect(page.getByText('Guardar', { exact: true })).toHaveCount(0);

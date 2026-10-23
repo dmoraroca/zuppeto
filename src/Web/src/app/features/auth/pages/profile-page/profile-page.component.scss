@@ -179,6 +179,14 @@
   outline-offset: 2px;
 }
 
+.profile-switch input:disabled {
+  cursor: not-allowed;
+}
+
+.profile-switch input:disabled + span {
+  opacity: 0.45;
+}
+
 .profile-settings__storage-note {
   margin-top: 1rem;
   font-size: 0.86rem;

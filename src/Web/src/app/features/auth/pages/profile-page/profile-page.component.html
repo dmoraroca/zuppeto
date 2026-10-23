@@ -237,11 +237,11 @@
       <div class="profile-settings__options">
         <label class="profile-settings__option">
           <span class="profile-settings__copy">
-            <strong>Mostrar el Westie</strong>
-            <span>Mostra el Westie animat que recorre la línia de vida.</span>
+            <strong>Mostrar la línia de vida i el Westie</strong>
+            <span>Mostra la línia de vida, les petjades decoratives i el Westie animat.</span>
           </span>
           <span class="profile-switch">
-            <input type="checkbox" [checked]="showWestie()" (change)="setWestieVisible($event)" />
+            <input type="checkbox" [checked]="showLifeLine()" (change)="setLifeLineVisible($event)" />
             <span aria-hidden="true"></span>
           </span>
         </label>
@@ -252,7 +252,7 @@
             <span>Reprodueix dos lladrucs quan el Westie arriba al principi de la línia de vida.</span>
           </span>
           <span class="profile-switch">
-            <input type="checkbox" [checked]="westieSoundEnabled()" (change)="setWestieSound($event)" />
+            <input type="checkbox" [checked]="westieSoundEnabled()" [disabled]="!showLifeLine()" (change)="setWestieSound($event)" />
             <span aria-hidden="true"></span>
           </span>
         </label>

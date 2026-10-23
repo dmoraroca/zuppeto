@@ -12,6 +12,12 @@ export function hasPublicPetPolicy(place: Pick<Place, 'petPolicyLabel'>): boolea
   return Boolean(place.petPolicyLabel?.trim());
 }
 
+export const PLACE_DESCRIPTION_FALLBACK = "Encara no disposem d'una descripció d'aquest establiment.";
+
+export function publicPlaceDescription(place: Pick<Place, 'description'>): string {
+  return place.description.trim() || PLACE_DESCRIPTION_FALLBACK;
+}
+
 const CONFIRMED_PET_POLICY_CHIPS = new Set(['gossos permesos', 'no es permeten gossos']);
 
 function foldConfirmText(value: string): string {

@@ -28,7 +28,7 @@ async function main(): Promise<void> {
     for (const width of [320, 375, 390, 430, 768, 1024, 1920]) {
       await validateResponsive(browser, { width, height: width <= 430 ? 844 : 1000 }, width <= 430);
     }
-    console.log('PASS Chrome detall aprovat Fase VI: animació completa del Westie, composició, 0/1/2/5/>5 fotos, lightbox, modal privat, teclat i amplades 320–1920 px.');
+    console.log('PASS Chrome detall aprovat Fase VI: animació completa del Westie, composició, 0/1/2/5/>5 fotos, galeria pública sense pujada, lightbox, teclat i amplades 320–1920 px.');
   } finally { await browser.close(); }
 }
 
@@ -49,10 +49,11 @@ async function validateNavigation(browser: Awaited<ReturnType<PilotChromeLaunche
   ]);
   const page = await context.newPage();
   await page.goto(`/places/${ids.empty}`, { waitUntil: 'networkidle' });
-  const detailBar = page.locator('.petiloc-detail__bar');
-  await detailBar.getByRole('link', { name: /PetiLoc/ }).waitFor();
+  const detailBar = page.locator('.site-header');
+  await detailBar.getByRole('link', { name: 'Inici de PetiLoc' }).waitFor();
   await detailBar.getByRole('button', { name: 'Compartir' }).waitFor();
-  await detailBar.getByRole('button', { name: 'Afegir a favorits' }).waitFor();
+  assert.equal(await detailBar.getByRole('button', { name: /Afegir a favorits|Treure de favorits/ }).count(), 0,
+    'La capçalera global vigent no ha de recuperar l’acció retirada de favorits.');
   assert.equal(await detailBar.getByText('Crear', { exact: true }).count(), 0,
     'La barra compacta del detall no ha de mostrar funcionalitats de creació no validades.');
   await context.close();
@@ -64,7 +65,8 @@ async function validateDesktop(browser: Awaited<ReturnType<PilotChromeLauncher['
   const page = await context.newPage();
   await page.goto(`/places/${ids.six}`, { waitUntil: 'networkidle' });
   await page.getByRole('heading', { level: 1, name: 'Local amb sis fotografies' }).waitFor();
-  await page.locator('.petiloc-detail__bar').waitFor();
+  await page.locator('#petiloc-place p').getByText('Prova focalitzada.', { exact: true }).waitFor();
+  await page.locator('.site-header').waitFor();
   await validateWestieAnimationCycle(page);
   await validateDirections(page);
   await validateApprovedHeader(page, 1440, 'artifacts/phase6-approved-header-desktop.png');
@@ -72,7 +74,8 @@ async function validateDesktop(browser: Awaited<ReturnType<PilotChromeLauncher['
   await heroPhoto.waitFor();
   assert.equal(await page.locator('.petiloc-detail__hero-thumbnails button').count(), 5,
     'El hero ha de limitar la tira inicial a cinc miniatures optimitzades.');
-  await page.getByRole('button', { name: 'Afegir fotografia', exact: true }).first().waitFor();
+  assert.equal(await page.getByRole('button', { name: /Afegir (la primera )?fotografia/ }).count(), 0,
+    'La fitxa pública no ha d’oferir controls per afegir fotografies.');
   await page.getByRole('button', { name: 'Veure totes les fotos' }).waitFor();
   await page.locator('.petiloc-detail__hero-thumbnails button').nth(1).click();
   const directLightbox = page.getByRole('dialog', { name: 'Galeria ampliada' });
@@ -99,9 +102,6 @@ async function validateDesktop(browser: Awaited<ReturnType<PilotChromeLauncher['
   await page.getByText(/^2\/6/).waitFor();
   await page.keyboard.press('Escape');
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  assert.equal(await page.getByRole('button', { name: 'Afegir a favorits' }).evaluate(element => getComputedStyle(element).transitionDuration), '0s');
-  await page.getByRole('button', { name: 'Afegir a favorits' }).click();
-  await page.getByText('Desat als teus favorits.').waitFor();
   assert.equal(await page.locator('.petiloc-detail__chapter').count(), 4,
     'La composició aprovada ha de conservar els quatre mòduls funcionals.');
   assert.equal(await page.getByRole('heading', { name: 'Què hi trobaràs' }).count(), 0,
@@ -117,7 +117,8 @@ async function validateDesktop(browser: Awaited<ReturnType<PilotChromeLauncher['
   await footer.getByRole('link', { name: 'Inici' }).waitFor();
   await page.screenshot({ path: 'artifacts/petiloc-correccions-footer-desktop.png' });
   assert.equal(await heroPhoto.count(), 1);
-  assert.equal(await page.getByRole('dialog', { name: 'Afegir fotografies' }).count(), 0, 'El formulari ha de començar ocult.');
+  assert.equal(await page.getByRole('dialog', { name: 'Afegir fotografies' }).count(), 0,
+    'La fitxa pública no ha d’exposar el formulari de pujada.');
   await page.getByRole('button', { name: '6 fotografies' }).click();
   const gallery = page.getByRole('dialog', { name: /Galeria de Local amb sis fotografies/ });
   await gallery.waitFor();
@@ -128,52 +129,17 @@ async function validateDesktop(browser: Awaited<ReturnType<PilotChromeLauncher['
   await page.getByText(/^2\/6/).waitFor();
   await page.getByRole('button', { name: 'Tancar', exact: true }).click();
 
-  await page.getByRole('button', { name: 'Afegir fotografia', exact: true }).first().click();
-  await page.getByText('Protegeix la teva privacitat').waitFor();
-  const modalButtonStyles = await page.locator('.place-detail-page__upload-footer button').evaluateAll(buttons =>
-    buttons.map(button => {
-      const style = getComputedStyle(button);
-      return { height: button.getBoundingClientRect().height, radius: style.borderRadius, font: style.fontFamily };
-    })
-  );
-  assert.equal(modalButtonStyles.length, 2);
-  assert.equal(modalButtonStyles[0]?.height, modalButtonStyles[1]?.height,
-    'Cancel·lar i Confirmar la pujada han de tenir la mateixa alçada.');
-  assert.equal(modalButtonStyles[0]?.radius, modalButtonStyles[1]?.radius,
-    'Cancel·lar i Confirmar la pujada han de compartir arrodoniment.');
-  assert.equal(modalButtonStyles[0]?.font, modalButtonStyles[1]?.font,
-    'Els botons del modal han de compartir tipografia.');
-  await page.keyboard.press('Escape');
-  await page.getByRole('dialog', { name: 'Afegir fotografies' }).waitFor({ state: 'detached' });
-  await page.getByRole('button', { name: 'Afegir fotografia', exact: true }).first().click();
-  const chooser = page.locator('input[type=file][multiple]');
-  await chooser.setInputFiles([
-    upload('primera.png'), upload('segona.png')
-  ]);
-  assert.equal(await page.locator('.place-detail-page__previews figure').count(), 2);
-  await page.getByRole('button', { name: 'Retirar primera.png' }).click();
-  await page.locator('.place-detail-page__previews figure').nth(1).waitFor({ state: 'detached' });
-  assert.equal(await page.locator('.place-detail-page__previews figure').count(), 1);
-  await page.getByText(/Declaro que soc titular/).click();
-  await page.getByRole('button', { name: 'Confirmar la pujada' }).click();
-  await page.getByText(/pendents de moderació/).waitFor();
-  await page.getByRole('button', { name: 'Tancar el formulari' }).click();
-  await page.getByRole('dialog', { name: 'Afegir fotografies' }).waitFor({ state: 'detached' });
-
   await page.goto(`/places/${ids.empty}`);
   await page.getByRole('heading', { level: 1, name: 'Local sense fotografia' }).waitFor();
+  await page.getByText("Encara no disposem d'una descripció d'aquest establiment.", { exact: true }).waitFor();
   await page.getByText('Pet-friendly: Desconegut', { exact: true }).waitFor();
   await validateApprovedHeader(page, 1440, 'artifacts/phase6-approved-header-empty-desktop.png');
   await page.locator('.petiloc-detail__fallback img').waitFor();
   assert.equal(await page.getByText('Il·lustració PetiLoc', { exact: true }).count(), 0,
     'L’etiqueta superposada «Il·lustració PetiLoc» s’ha de mantenir eliminada.');
   assert.equal(await page.locator('.petiloc-detail__hero-photo').count(), 0);
-  await page.getByRole('button', { name: 'Afegir la primera fotografia' }).waitFor();
-  assert.equal(await page.getByRole('dialog', { name: 'Afegir fotografies' }).count(), 0,
-    'El CTA del hero ha de reutilitzar el formulari existent, que comença tancat.');
-  await page.getByRole('button', { name: 'Afegir la primera fotografia' }).click();
-  await page.getByRole('dialog', { name: 'Afegir fotografies' }).waitFor();
-  await page.keyboard.press('Escape');
+  assert.equal(await page.getByRole('button', { name: /Afegir (la primera )?fotografia/ }).count(), 0,
+    'El placeholder sense fotografia tampoc no ha d’oferir pujada pública.');
   const emptyVisual = await page.locator('.petiloc-detail__hero-media').boundingBox();
   const emptyCopy = await page.locator('.petiloc-detail__identity').boundingBox();
   assert.ok(emptyVisual && emptyCopy && emptyCopy.x >= emptyVisual.x
@@ -474,7 +440,7 @@ async function validateDirections(page: Page): Promise<void> {
 }
 
 async function validateApprovedHeader(page: Page, viewportWidth: number, screenshotPath: string): Promise<void> {
-  const bar = await page.locator('.petiloc-detail__bar').boundingBox();
+  const bar = await page.locator('.site-header').boundingBox();
   const hero = await page.locator('.petiloc-detail__hero-media').boundingBox();
   const identity = await page.locator('.petiloc-detail__identity').boundingBox();
   const clientWidth = await page.evaluate(() => document.documentElement.clientWidth);
@@ -532,7 +498,8 @@ async function json(route: Route, body: unknown): Promise<void> {
 function place(id: string, name: string, count: number) {
   const media = mediaFor(id, count);
   return {
-    id, name, type: 'Restaurant', shortDescription: 'Fixture focalitzada de media.', description: 'Prova focalitzada.',
+    id, name, type: 'Restaurant', shortDescription: 'Fixture focalitzada de media.',
+    description: id === ids.empty ? '' : 'Prova focalitzada.',
     coverImageUrl: media[0]?.servedUrl ?? '', addressLine1: 'Riera 1', city: 'Arenys de Mar', country: 'Espanya', neighborhood: '',
     latitude: 41.58, longitude: 2.55, dataProvenance: 'OpenStreetMap', acceptsDogs: true, acceptsCats: false,
     petPolicyLabel: 'Mascotes admeses', petPolicyNotes: '', pricingLabel: '', ratingAverage: 0, reviewCount: 0,
@@ -556,10 +523,6 @@ function mediaFor(placeId: string, count: number, status = 'Verified') {
 
 function countFor(id: string): number {
   return id === ids.empty ? 0 : id === ids.one ? 1 : id === ids.two ? 2 : id === ids.five ? 5 : 6;
-}
-
-function upload(name: string) {
-  return { name, mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64') };
 }
 
 function session(role = 'User', permissionKeys = ['action.favorites.write']) {

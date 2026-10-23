@@ -17,6 +17,7 @@ import {
   hasPublicRating,
   isLocationStubCopy,
   publicCategoryLabel,
+  publicPlaceDescription,
   publicFeatureChips,
   publicQuickContext,
   shouldConfirmPetsByPhone
@@ -60,7 +61,7 @@ export class PlaceDetailPageComponent {
   protected readonly galleryAssets = signal<PlaceMediaAsset[]>([]);
   protected readonly galleryTotal = signal(0);
   protected readonly galleryBusy = signal(false);
-  protected readonly showWestie = this.westiePreferences.visible;
+  protected readonly showLifeLine = this.westiePreferences.lifeLineVisible;
   private uploadTrigger: HTMLElement | null = null;
   private carouselTouchStartX: number | null = null;
   private shareFeedbackTimer: ReturnType<typeof setTimeout> | null = null;
@@ -74,15 +75,14 @@ export class PlaceDetailPageComponent {
 
   private playWestieBark(): void {
     if (
-      !this.showWestie()
-      || !this.westiePreferences.soundEnabled()
+      !this.westiePreferences.soundActive()
       || document.hidden
     ) return;
     void this.westieBark.playAtStartOfRoute();
   }
 
   private unlockWestieBarkFromUserAction(): void {
-    if (!this.showWestie() || !this.westiePreferences.soundEnabled()) return;
+    if (!this.westiePreferences.soundActive()) return;
     void this.westieBark.unlockFromUserAction();
   }
 
@@ -181,6 +181,10 @@ export class PlaceDetailPageComponent {
     }
 
     return publicQuickContext(currentPlace.description.trim(), currentPlace.name);
+  });
+  protected readonly placeDescription = computed(() => {
+    const currentPlace = this.place();
+    return currentPlace ? publicPlaceDescription(currentPlace) : '';
   });
   protected readonly contextTags = computed(() => {
     const currentPlace = this.place();
