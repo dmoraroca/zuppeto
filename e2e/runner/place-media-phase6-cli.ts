@@ -67,6 +67,7 @@ async function validateDesktop(browser: Awaited<ReturnType<PilotChromeLauncher['
   await page.getByRole('heading', { level: 1, name: 'Local amb sis fotografies' }).waitFor();
   await page.locator('#petiloc-place p').getByText('Prova focalitzada.', { exact: true }).waitFor();
   await page.locator('.site-header').waitFor();
+  await page.locator('.petiloc-detail__identity').click({ position: { x: 12, y: 12 } });
   await validateWestieAnimationCycle(page);
   await validateDirections(page);
   await validateApprovedHeader(page, 1440, 'artifacts/phase6-approved-header-desktop.png');
@@ -186,6 +187,7 @@ async function validateResponsive(
   const page = await context.newPage();
   await page.goto(`/places/${ids.six}`, { waitUntil: 'networkidle' });
   await page.getByRole('heading', { level: 1, name: 'Local amb sis fotografies' }).waitFor();
+  await page.locator('.petiloc-detail__identity').click({ position: { x: 12, y: 12 } });
   if (viewport.width === 390) {
     await validateApprovedHeader(page, viewport.width, 'artifacts/phase6-approved-header-mobile-390.png');
   }
@@ -337,6 +339,8 @@ async function validateWestieAndDisclosure(page: Page, viewportWidth: number): P
       insideViewport: westieBox.left >= 0 && westieBox.right <= innerWidth,
       overlapsMap: overlaps(westieBox, mapBox),
       overlapsControls: dockBox ? overlaps(westieBox, dockBox) : false,
+      westieBox: { left: westieBox.left, right: westieBox.right, top: westieBox.top, bottom: westieBox.bottom },
+      mapBox: { left: mapBox.left, right: mapBox.right, top: mapBox.top, bottom: mapBox.bottom },
       routeDistance
     };
   });
@@ -345,7 +349,8 @@ async function validateWestieAndDisclosure(page: Page, viewportWidth: number): P
   assert.equal(await page.locator('.petiloc-detail__plant').count(), 0,
     'Les fulles decoratives inferiors s’han d’eliminar completament.');
   assert.equal(result.insideViewport, true, `El Westie ha de quedar dins el viewport a ${viewportWidth}px.`);
-  assert.equal(result.overlapsMap, false, `El Westie no pot tapar el mapa a ${viewportWidth}px.`);
+  assert.equal(result.overlapsMap, false,
+    `El Westie no pot tapar el mapa a ${viewportWidth}px (${JSON.stringify({ westie: result.westieBox, map: result.mapBox })}).`);
   assert.equal(result.overlapsControls, false, `El Westie no pot tapar controls a ${viewportWidth}px.`);
   if (result.animationState !== 'reduced') {
     assert.ok(result.routeDistance <= 4,
@@ -399,12 +404,17 @@ async function validateWestieAnimationCycle(page: Page): Promise<void> {
     `El Westie ha d'arribar al principi real del recorregut (${end?.startDistance}px).`);
   assert.ok(end && end.opacity >= .99, 'El Westie ha de romandre completament visible en arribar al principi.');
   await page.screenshot({ path: 'artifacts/petiloc-westie-animation-03-pausa-final.png', fullPage: true });
+  const mapBeforeRestart = await mapVisualState(page);
   await page.waitForFunction(() =>
-    document.querySelector<HTMLElement>('.petiloc-detail__westie')?.dataset['animationState'] === 'moving',
+    document.querySelector<HTMLElement>('.petiloc-detail__westie')?.dataset['animationDirection'] === 'up',
   null, { timeout: 4_000 });
   const secondCycle = await routeEnds();
   assert.ok(secondCycle && secondCycle.endDistance <= 60,
-    `El segon cicle ha de reprendre's al final inferior real (${secondCycle?.endDistance}px).`);
+    `El cicle següent ha de reiniciar-se al final inferior real (${secondCycle?.endDistance}px).`);
+  assert.ok(secondCycle && secondCycle.opacity >= .99,
+    'El Westie ha de continuar visible quan reinicia el recorregut des de baix.');
+  assert.deepEqual(await mapVisualState(page), mapBeforeRestart,
+    'El retorn del Westie no pot reconstruir ni desplaçar el mapa.');
   await page.screenshot({ path: 'artifacts/petiloc-westie-animation-04-segon-cicle.png', fullPage: true });
   await page.setViewportSize({ width: 1024, height: 900 });
   await page.waitForTimeout(250);
@@ -429,6 +439,15 @@ async function validateWestieAnimationCycle(page: Page): Promise<void> {
   await page.waitForFunction(() =>
     document.querySelector<HTMLElement>('.petiloc-detail__westie')?.dataset['animationState'] === 'moving'
   );
+}
+
+async function mapVisualState(page: Page): Promise<{ mapPaneTransform: string; tileSources: string[] }> {
+  return page.evaluate(() => ({
+    mapPaneTransform: document.querySelector<HTMLElement>('.leaflet-map-pane')?.style.transform ?? '',
+    tileSources: Array.from(document.querySelectorAll<HTMLImageElement>('.leaflet-tile'))
+      .map(tile => tile.currentSrc || tile.src)
+      .sort()
+  }));
 }
 
 async function validateDirections(page: Page): Promise<void> {

@@ -69,7 +69,7 @@ async function main(): Promise<void> {
       state.__westieBarkOverlaps = 0;
       const originalPlay = HTMLMediaElement.prototype.play;
       HTMLMediaElement.prototype.play = function(): Promise<void> {
-        if ((this.currentSrc || this.src).endsWith('/audio/westie-bark.mp3')) {
+        if ((this.currentSrc || this.src).endsWith('/audio/westie-bark.mp3') && this.volume > 0) {
           state.__westieBarkPlays += 1;
           if (!this.paused && !this.ended) state.__westieBarkOverlaps += 1;
         }
@@ -78,6 +78,7 @@ async function main(): Promise<void> {
     });
     const page = await context.newPage();
     const desktopErrors: string[] = [];
+    let barkAssetStatus: number | null = null;
     page.on('pageerror', error => desktopErrors.push(`pageerror: ${error.message}`));
     page.on('console', message => {
       if (message.type() !== 'error') return;
@@ -85,6 +86,7 @@ async function main(): Promise<void> {
       desktopErrors.push(`console: ${message.text()}${source ? ` @ ${source}` : ''}`);
     });
     page.on('response', response => {
+      if (response.url().endsWith('/audio/westie-bark.mp3')) barkAssetStatus = response.status();
       if (response.status() >= 500) desktopErrors.push(`http ${response.status()}: ${response.url()}`);
     });
 
@@ -92,6 +94,7 @@ async function main(): Promise<void> {
     await page.evaluate(() => {
       localStorage.removeItem('petiloc.westie.visible');
       localStorage.removeItem('petiloc.westie.sound');
+      localStorage.removeItem('petiloc.life-line.visible');
     });
     await page.reload({ waitUntil: 'networkidle' });
     await expect(page.getByRole('tab', { name: 'Perfil d’usuari' })).toHaveAttribute('aria-selected', 'true');
@@ -99,17 +102,19 @@ async function main(): Promise<void> {
     await page.screenshot({ path: resolve(root, 'e2e/artifacts/petiloc-phase7-perfil.png'), fullPage: true });
 
     await page.getByRole('tab', { name: 'Configuració' }).click();
-    const visibleSwitch = page.getByRole('checkbox', { name: /Mostrar la línia de vida i el Westie/ });
+    const visibleSwitch = page.getByRole('checkbox', { name: /Foto animada/ });
     const soundSwitch = page.getByRole('checkbox', { name: /Guau Guau/ });
+    const lifeLineSwitch = page.getByRole('checkbox', { name: /Mostrar la línia de vida/ });
     await expect(visibleSwitch).toBeChecked();
     await expect(soundSwitch).toBeChecked();
+    await expect(lifeLineSwitch).toBeChecked();
     await page.screenshot({ path: resolve(root, 'e2e/artifacts/petiloc-phase7-configuracio.png'), fullPage: true });
     const previousSoundPreference = await page.evaluate(() => localStorage.getItem('petiloc.westie.sound'));
     await visibleSwitch.uncheck();
     await expect(soundSwitch).toBeDisabled();
     await expect(soundSwitch).toBeChecked();
     assert.equal(await page.evaluate(() => localStorage.getItem('petiloc.westie.sound')), previousSoundPreference,
-      'Ocultar la línia no pot esborrar la preferència de lladrucs.');
+      'Ocultar el Westie no pot esborrar la preferència de lladrucs.');
     await page.reload({ waitUntil: 'networkidle' });
     await page.getByRole('tab', { name: 'Configuració' }).click();
     await expect(visibleSwitch).not.toBeChecked();
@@ -118,8 +123,17 @@ async function main(): Promise<void> {
     await visibleSwitch.check();
     await expect(soundSwitch).toBeEnabled();
     await expect(soundSwitch).toBeChecked();
+    await lifeLineSwitch.uncheck();
+    assert.equal(await page.evaluate(() => localStorage.getItem('petiloc.life-line.visible')), 'false');
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.getByRole('tab', { name: 'Configuració' }).click();
+    await expect(lifeLineSwitch).not.toBeChecked();
+    await lifeLineSwitch.check();
+    assert.equal(await page.evaluate(() => localStorage.getItem('petiloc.life-line.visible')), 'true');
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.getByRole('tab', { name: 'Configuració' }).click();
+    await expect(lifeLineSwitch).toBeChecked();
     await soundSwitch.uncheck();
-    const barkResponse = page.waitForResponse(response => response.url().endsWith('/audio/westie-bark.mp3'));
     for (let activation = 1; activation <= 5; activation += 1) {
       await soundSwitch.check();
       await page.waitForFunction(expected =>
@@ -128,7 +142,8 @@ async function main(): Promise<void> {
       await expect(page.getByText('Guau Guau activat.', { exact: true })).toBeVisible();
       if (activation < 5) await soundSwitch.uncheck();
     }
-    assert.ok([200, 206].includes((await barkResponse).status()), 'El lladruc local ha de carregar-se realment.');
+    assert.ok(barkAssetStatus !== null && [200, 206].includes(barkAssetStatus),
+      'El lladruc local ha de carregar-se realment.');
     assert.deepEqual(
       await page.evaluate(() => {
         const state = window as unknown as { __westieBarkPlays: number; __westieBarkOverlaps: number };
@@ -138,31 +153,48 @@ async function main(): Promise<void> {
       'Cinc activacions han de reproduir exactament deu lladrucs sense superposicions.'
     );
 
-    const assertCombination = async (visible: boolean, sound: boolean): Promise<void> => {
+    const assertCombination = async (visible: boolean, sound: boolean, lifeLineVisible: boolean): Promise<void> => {
       if (!await visibleSwitch.isChecked()) await visibleSwitch.setChecked(true);
       if ((await soundSwitch.isChecked()) !== sound) await soundSwitch.setChecked(sound);
       if ((await visibleSwitch.isChecked()) !== visible) await visibleSwitch.setChecked(visible);
+      if ((await lifeLineSwitch.isChecked()) !== lifeLineVisible) await lifeLineSwitch.setChecked(lifeLineVisible);
       assert.equal(await page.evaluate(() => localStorage.getItem('petiloc.westie.visible')), String(visible));
       assert.equal(await page.evaluate(() => localStorage.getItem('petiloc.westie.sound')), String(sound));
+      assert.equal(await page.evaluate(() => localStorage.getItem('petiloc.life-line.visible')), String(lifeLineVisible));
       await page.goto(`/places/${place.id}`, { waitUntil: 'domcontentloaded' });
       await expect(page.getByRole('heading', { level: 1, name: place.name })).toBeVisible();
       await expect(page.locator('.petiloc-detail__westie')).toHaveCount(visible ? 1 : 0);
-      await expect(page.locator('.petiloc-detail__life-line')).toHaveCount(visible ? 2 : 0);
-      await expect(page.locator('.petiloc-detail__route-node')).toHaveCount(visible ? 5 : 0);
-      await expect(page.locator('.petiloc-detail__hero-route')).toHaveCount(visible ? 1 : 0);
+      await expect(page.locator('.petiloc-detail__life-line')).toHaveCount(visible || lifeLineVisible ? 2 : 0);
+      await expect(page.locator('.petiloc-detail__life-line--route-only')).toHaveCount(!lifeLineVisible && visible ? 2 : 0);
+      await expect(page.locator('.petiloc-detail__route-node')).toHaveCount(lifeLineVisible ? 5 : 0);
+      await expect(page.locator('.petiloc-detail__hero-route')).toHaveCount(lifeLineVisible ? 1 : 0);
+      const bodyColumns = await page.locator('.petiloc-detail__body-stage').evaluate(element =>
+        getComputedStyle(element).gridTemplateColumns.split(' ').map(value => Number.parseFloat(value))
+      );
+      assert.equal(bodyColumns.length, 3, 'El body d’escriptori ha de conservar les tres columnes estructurals.');
+      const bodyWidth = bodyColumns.reduce((total, width) => total + width, 0);
+      const centralRatio = bodyColumns[1]! / bodyWidth;
+      if (lifeLineVisible) {
+        assert.ok(centralRatio >= .18, `La línia visible ha de recuperar el corredor aprovat (${centralRatio}).`);
+      } else {
+        assert.ok(centralRatio <= .12, `Sense línia, l’espai central s’ha de compactar (${centralRatio}).`);
+      }
       await page.goto('/perfil', { waitUntil: 'networkidle' });
       await page.getByRole('tab', { name: 'Configuració' }).click();
       if (visible) await expect(soundSwitch).toBeEnabled();
       else await expect(soundSwitch).toBeDisabled();
     };
 
-    await assertCombination(true, true);
-    await assertCombination(true, false);
-    await assertCombination(false, true);
-    await assertCombination(false, false);
+    await assertCombination(true, true, true);
+    await assertCombination(true, false, true);
+    await assertCombination(false, true, true);
+    await assertCombination(false, false, true);
+    await assertCombination(true, true, false);
+    await assertCombination(false, true, false);
 
     await visibleSwitch.setChecked(true);
     await soundSwitch.setChecked(true);
+    await lifeLineSwitch.setChecked(true);
     await page.goto(`/places/${place.id}`, { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('button', { name: /Afegir (la primera )?fotografia/ })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Foto', exact: true })).toHaveCount(0);
@@ -403,6 +435,12 @@ async function validateWestieAtRouteStart(
   const barkPlaysBeforeArrival = assertBarks
     ? await page.evaluate(() => (window as unknown as { __westieBarkPlays: number }).__westieBarkPlays)
     : 0;
+  const transformBeforeUserAction = await westie.evaluate(element => getComputedStyle(element).transform);
+  await page.waitForFunction(initialTransform => {
+    const dog = document.querySelector<HTMLElement>('.petiloc-detail__westie');
+    return dog?.dataset['animationState'] === 'moving'
+      && getComputedStyle(dog).transform !== initialTransform;
+  }, transformBeforeUserAction, { timeout: 2_000 });
   await page.locator('.petiloc-detail__identity').click({ position: { x: 12, y: 12 } });
   await page.waitForFunction(() =>
     document.querySelector<HTMLElement>('.petiloc-detail__westie')?.dataset['animationState'] === 'moving'
@@ -432,5 +470,20 @@ async function validateWestieAtRouteStart(
   assert.ok(result && result.distance <= 1,
     `El Westie ha d'arribar exactament al principi SVG, no quedar a ${result?.distance}px.`);
   assert.ok(result.opacity >= .99, 'El Westie ha de ser completament visible al principi del recorregut.');
+  const mapBeforeRestart = await page.evaluate(() => ({
+    mapPaneTransform: document.querySelector<HTMLElement>('.leaflet-map-pane')?.style.transform ?? '',
+    tileSources: Array.from(document.querySelectorAll<HTMLImageElement>('.leaflet-tile'))
+      .map(tile => tile.currentSrc || tile.src)
+      .sort()
+  }));
+  await page.waitForFunction(() =>
+    document.querySelector<HTMLElement>('.petiloc-detail__westie')?.dataset['animationDirection'] === 'up',
+  null, { timeout: 4_000 });
+  assert.deepEqual(await page.evaluate(() => ({
+    mapPaneTransform: document.querySelector<HTMLElement>('.leaflet-map-pane')?.style.transform ?? '',
+    tileSources: Array.from(document.querySelectorAll<HTMLImageElement>('.leaflet-tile'))
+      .map(tile => tile.currentSrc || tile.src)
+      .sort()
+  })), mapBeforeRestart, 'El retorn del Westie no pot reconstruir ni desplaçar el mapa.');
   await page.screenshot({ path: screenshotPath, fullPage: true });
 }

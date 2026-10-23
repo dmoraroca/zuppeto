@@ -138,6 +138,10 @@
   background: #f8f7ef;
 }
 
+.petiloc-detail__body-stage.petiloc-detail__body-stage--compact {
+  grid-template-columns: minmax(0, 55%) minmax(3rem, 10%) minmax(0, 35%);
+}
+
 .petiloc-detail__hero-photo,
 .petiloc-detail__hero-photo img,
 .petiloc-detail__fallback,
@@ -536,6 +540,8 @@
   stroke-linecap: round;
   vector-effect: non-scaling-stroke;
 }
+
+.petiloc-detail__life-line--route-only path { stroke: transparent; }
 
 .petiloc-detail__route-node {
   position: absolute;

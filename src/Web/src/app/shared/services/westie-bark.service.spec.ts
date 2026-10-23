@@ -50,44 +50,67 @@ describe('WestieBarkService', () => {
     globalThis.Audio = originalAudio;
   });
 
-  it('does not bark at the start before a voluntary user preview', async () => {
+  it('attempts both route barks without suppressing them behind an internal unlock flag', async () => {
+    vi.useFakeTimers();
     const service = TestBed.inject(WestieBarkService);
 
-    expect(await service.playAtStartOfRoute()).toBe(false);
-    expect(play).not.toHaveBeenCalled();
+    expect(service.userActivationReady()).toBe(false);
+    const result = service.playAtStartOfRoute();
+    await vi.runAllTimersAsync();
+    expect(await result).toBe(true);
+    expect(service.userActivationReady()).toBe(true);
+    expect(play).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
   });
 
   it('previews once and unlocks later route barks without overlapping audio', async () => {
+    vi.useFakeTimers();
     const service = TestBed.inject(WestieBarkService);
 
-    expect(await service.previewFromUserAction()).toBe(true);
-    expect(await service.playAtStartOfRoute()).toBe(true);
+    const preview = service.previewFromUserAction();
+    await vi.runAllTimersAsync();
+    expect(await preview).toBe(true);
+    expect(service.userActivationReady()).toBe(true);
+    const route = service.playAtStartOfRoute();
+    await vi.runAllTimersAsync();
+    expect(await route).toBe(true);
 
     expect(play).toHaveBeenCalledTimes(4);
     expect(pause).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
   });
 
   it('silently unlocks the persisted sound preference from an ordinary user interaction', async () => {
+    vi.useFakeTimers();
     const service = TestBed.inject(WestieBarkService);
 
     expect(await service.unlockFromUserAction()).toBe(true);
-    expect(await service.playAtStartOfRoute()).toBe(true);
+    expect(service.userActivationReady()).toBe(true);
+    const route = service.playAtStartOfRoute();
+    await vi.runAllTimersAsync();
+    expect(await route).toBe(true);
 
     expect(play).toHaveBeenCalledTimes(3);
     expect(pause).toHaveBeenCalledTimes(3);
+    vi.useRealTimers();
   });
 
   it('plays exactly two complete barks on each of five consecutive activations', async () => {
+    vi.useFakeTimers();
     const service = TestBed.inject(WestieBarkService);
 
     for (let activation = 0; activation < 5; activation += 1) {
-      expect(await service.previewFromUserAction()).toBe(true);
+      const result = service.previewFromUserAction();
+      await vi.runAllTimersAsync();
+      expect(await result).toBe(true);
     }
 
     expect(play).toHaveBeenCalledTimes(10);
+    vi.useRealTimers();
   });
 
   it('cancels an unfinished sequence before starting another one', async () => {
+    vi.useFakeTimers();
     play.mockResolvedValue(undefined);
     const service = TestBed.inject(WestieBarkService);
 
@@ -95,11 +118,12 @@ describe('WestieBarkService', () => {
     const second = service.previewFromUserAction();
     expect(await first).toBe(false);
     activeAudio?.emit('ended');
-    await Promise.resolve();
+    await vi.runAllTimersAsync();
     activeAudio?.emit('ended');
     expect(await second).toBe(true);
 
     expect(play).toHaveBeenCalledTimes(3);
+    vi.useRealTimers();
   });
 
   it('does not unlock route barks when the browser rejects playback', async () => {
@@ -107,7 +131,8 @@ describe('WestieBarkService', () => {
     const service = TestBed.inject(WestieBarkService);
 
     expect(await service.previewFromUserAction()).toBe(false);
+    expect(service.userActivationReady()).toBe(false);
     expect(await service.playAtStartOfRoute()).toBe(false);
-    expect(play).toHaveBeenCalledTimes(1);
+    expect(play).toHaveBeenCalledTimes(2);
   });
 });

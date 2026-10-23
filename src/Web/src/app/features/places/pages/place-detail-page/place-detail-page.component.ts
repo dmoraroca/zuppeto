@@ -47,6 +47,8 @@ export class PlaceDetailPageComponent {
     this.host.nativeElement,
     () => this.playWestieBark()
   );
+  private animatedWestieElement: HTMLImageElement | null = null;
+  private lifeLineAnimationConnected = false;
   private readonly route = inject(ActivatedRoute);
   private readonly placeService = inject(PlaceService);
   private readonly params = toSignal(this.route.paramMap, {
@@ -61,6 +63,7 @@ export class PlaceDetailPageComponent {
   protected readonly galleryAssets = signal<PlaceMediaAsset[]>([]);
   protected readonly galleryTotal = signal(0);
   protected readonly galleryBusy = signal(false);
+  protected readonly showAnimatedWestie = this.westiePreferences.westieVisible;
   protected readonly showLifeLine = this.westiePreferences.lifeLineVisible;
   private uploadTrigger: HTMLElement | null = null;
   private carouselTouchStartX: number | null = null;
@@ -69,8 +72,24 @@ export class PlaceDetailPageComponent {
 
   @ViewChild('animatedWestie')
   private set animatedWestie(element: ElementRef<HTMLImageElement> | undefined) {
-    if (element) this.lifeLineAnimation.connect(element.nativeElement);
-    else this.lifeLineAnimation.disconnect();
+    if (this.animatedWestieElement !== element?.nativeElement) {
+      this.lifeLineAnimation.disconnect();
+      this.lifeLineAnimationConnected = false;
+    }
+    this.animatedWestieElement = element?.nativeElement ?? null;
+    this.syncLifeLineAnimation();
+  }
+
+  private syncLifeLineAnimation(): void {
+    if (this.animatedWestieElement) {
+      if (!this.lifeLineAnimationConnected) {
+        this.lifeLineAnimation.connect(this.animatedWestieElement);
+        this.lifeLineAnimationConnected = true;
+      }
+      return;
+    }
+    if (this.lifeLineAnimationConnected) this.lifeLineAnimation.disconnect();
+    this.lifeLineAnimationConnected = false;
   }
 
   private playWestieBark(): void {

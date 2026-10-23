@@ -81,7 +81,7 @@
       </section>
       </section>
 
-      <section class="petiloc-detail__body-stage">
+      <section class="petiloc-detail__body-stage" [class.petiloc-detail__body-stage--compact]="!showLifeLine()">
       <nav class="petiloc-detail__section-nav" aria-label="Apartats del lloc">
         <a href="#petiloc-place"><span aria-hidden="true">⌂</span>El lloc</a>
         <a href="#petiloc-pets"><i class="petiloc-detail__paw" aria-hidden="true"></i>Mascotes</a>
@@ -121,20 +121,24 @@
       </div>
 
       <section id="petiloc-map" class="petiloc-detail__map-card" aria-labelledby="petiloc-map-title">
-        <header><div><h2 id="petiloc-map-title">Com hi arribo?</h2><p>{{ formattedAddress() }}</p></div><span aria-hidden="true">›</span></header>
+        <header><div><h2 id="petiloc-map-title">On està l’establiment?</h2><p>{{ formattedAddress() }}</p></div><span aria-hidden="true">›</span></header>
         <div class="petiloc-detail__map-frame"><app-place-map [places]="placeAsArray" [selectedPlaceId]="selectedPlace.id" [compactPresentation]="true" height="20.5rem" emptyTitle="No hi ha ubicació disponible" emptyCopy="Aquest lloc no té coordenades per mostrar al mapa." /></div>
         @if (directionsUrl()) { <a class="petiloc-detail__directions" [href]="directionsUrl()" target="_blank" rel="noopener noreferrer">Com arribar-hi <span aria-hidden="true">↗</span></a> }
       </section>
       </section>
 
+      @if (showLifeLine() || showAnimatedWestie()) {
+        <svg class="petiloc-detail__life-line petiloc-detail__life-line--desktop" [class.petiloc-detail__life-line--route-only]="!showLifeLine()" viewBox="0 0 1180 776" preserveAspectRatio="none" aria-hidden="true"><path d="M662 329 C 637 367 629 415 711 457 C 778 491 750 549 684 579 C 619 608 621 681 718 760 L738 776" /></svg>
+        <svg class="petiloc-detail__life-line petiloc-detail__life-line--mobile" [class.petiloc-detail__life-line--route-only]="!showLifeLine()" viewBox="0 329 1180 431" preserveAspectRatio="none" aria-hidden="true"><path d="M662 329 C 637 367 629 415 711 457 C 778 491 750 549 684 579 C 619 608 621 681 718 760" /></svg>
+      }
       @if (showLifeLine()) {
-        <svg class="petiloc-detail__life-line petiloc-detail__life-line--desktop" viewBox="0 0 1180 776" preserveAspectRatio="none" aria-hidden="true"><path d="M662 329 C 637 367 629 415 711 457 C 778 491 750 549 684 579 C 619 608 621 681 718 760 L738 776" /></svg>
-        <svg class="petiloc-detail__life-line petiloc-detail__life-line--mobile" viewBox="0 329 1180 431" preserveAspectRatio="none" aria-hidden="true"><path d="M662 329 C 637 367 629 415 711 457 C 778 491 750 549 684 579 C 619 608 621 681 718 760" /></svg>
         <span class="petiloc-detail__route-node petiloc-detail__route-node--hero" aria-hidden="true"><i class="petiloc-detail__paw"></i></span>
         <span class="petiloc-detail__route-node petiloc-detail__route-node--first" aria-hidden="true"><i class="petiloc-detail__paw"></i></span>
         <span class="petiloc-detail__route-node petiloc-detail__route-node--second" aria-hidden="true"><i class="petiloc-detail__paw"></i></span>
         <span class="petiloc-detail__route-node petiloc-detail__route-node--third" aria-hidden="true"><i class="petiloc-detail__paw"></i></span>
         <span class="petiloc-detail__route-node petiloc-detail__route-node--fourth" aria-hidden="true"><i class="petiloc-detail__paw"></i></span>
+      }
+      @if (showAnimatedWestie()) {
         <img #animatedWestie class="petiloc-detail__westie" src="/images/place-detail/westie-face.png" alt="" aria-hidden="true" />
       }
     </article>

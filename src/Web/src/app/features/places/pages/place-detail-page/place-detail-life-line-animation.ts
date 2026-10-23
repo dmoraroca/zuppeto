@@ -7,7 +7,6 @@ interface RoutePoint {
 const HERO_ROUTE_FRACTION = 0.19060951;
 const MOVEMENT_DURATION_MS = 21_000;
 const FINAL_PAUSE_MS = 3_000;
-const FADE_DURATION_MS = 300;
 
 export class PlaceDetailLifeLineAnimation {
   private westie: HTMLImageElement | null = null;
@@ -83,6 +82,7 @@ export class PlaceDetailLifeLineAnimation {
     }
     this.restoreStaticPresentation();
     this.westie?.removeAttribute('data-animation-state');
+    this.westie?.removeAttribute('data-animation-direction');
     this.westie = null;
     this.sheet = null;
     this.route = [];
@@ -207,21 +207,23 @@ export class PlaceDetailLifeLineAnimation {
 
     const cycleDuration = MOVEMENT_DURATION_MS + FINAL_PAUSE_MS;
     const elapsed = (timestamp - this.cycleStartedAt) % cycleDuration;
-    const moving = elapsed < MOVEMENT_DURATION_MS;
-    if (!moving && !this.reachedStartInCurrentCycle) {
+    const movingUp = elapsed < MOVEMENT_DURATION_MS;
+    const pausedAtStart = !movingUp;
+    if (pausedAtStart && !this.reachedStartInCurrentCycle) {
       this.reachedStartInCurrentCycle = true;
       this.onReachedStart();
-    } else if (moving && this.reachedStartInCurrentCycle) {
+    } else if (movingUp && this.reachedStartInCurrentCycle) {
       this.reachedStartInCurrentCycle = false;
     }
-    const progress = moving ? elapsed / MOVEMENT_DURATION_MS : 1;
+    const progress = movingUp ? elapsed / MOVEMENT_DURATION_MS : 1;
     const point = this.pointAtDistance(this.routeLength * (1 - progress));
     if (point) {
       const tilt = Math.max(-5, Math.min(5, point.tangentDegrees));
       this.westie.style.transform = `translate3d(${point.x}px, ${point.y}px, 0) translate(-50%, -50%) rotate(${tilt}deg)`;
-      this.westie.style.opacity = String(this.opacityFor(elapsed));
+      this.westie.style.opacity = '1';
     }
-    this.setAnimationState(moving ? 'moving' : 'paused');
+    this.setAnimationState(pausedAtStart ? 'paused' : 'moving');
+    this.westie.dataset['animationDirection'] = movingUp ? 'up' : 'paused';
     this.animationFrame = requestAnimationFrame(this.animate);
   };
 
@@ -243,13 +245,6 @@ export class PlaceDetailLifeLineAnimation {
       y: previous.y + (next.y - previous.y) * ratio,
       tangentDegrees: Math.atan2(next.y - previous.y, next.x - previous.x) * 180 / Math.PI
     };
-  }
-
-  private opacityFor(elapsed: number): number {
-    if (elapsed < FADE_DURATION_MS) return elapsed / FADE_DURATION_MS;
-    const fadeOutStartsAt = MOVEMENT_DURATION_MS + FINAL_PAUSE_MS - FADE_DURATION_MS;
-    if (elapsed > fadeOutStartsAt) return (MOVEMENT_DURATION_MS + FINAL_PAUSE_MS - elapsed) / FADE_DURATION_MS;
-    return 1;
   }
 
   private setAnimationState(state: 'moving' | 'paused' | 'suspended' | 'reduced'): void {
