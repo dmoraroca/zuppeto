@@ -166,7 +166,50 @@ async function main(): Promise<void> {
       `${environment.webBaseUrl}/places/${place.id}`,
       'Web Share ha de rebre l’URL pública neta del Place.'
     );
+    await expect(page.getByText('Establiment compartit.', { exact: true })).toBeVisible();
 
+    await page.waitForTimeout(2_500);
+    await page.evaluate(() => {
+      Object.defineProperty(navigator, 'share', {
+        configurable: true,
+        value: () => Promise.reject(new DOMException('Cancelled', 'AbortError'))
+      });
+    });
+    await page.getByRole('button', { name: 'Compartir' }).click();
+    await page.waitForTimeout(100);
+    await expect(page.locator('.petiloc-detail__feedback')).toHaveCount(0);
+
+    await page.evaluate(() => {
+      const state = window as unknown as { __shareCalls: number; __finishShare?: () => void };
+      state.__shareCalls = 0;
+      Object.defineProperty(navigator, 'share', {
+        configurable: true,
+        value: () => {
+          state.__shareCalls += 1;
+          return new Promise<void>(resolve => { state.__finishShare = resolve; });
+        }
+      });
+    });
+    await page.getByRole('button', { name: 'Compartir' }).evaluate((button: HTMLButtonElement) => {
+      button.click();
+      button.click();
+    });
+    assert.equal(await page.evaluate(() => (window as unknown as { __shareCalls: number }).__shareCalls), 1,
+      'Diversos clics no poden obrir operacions de compartició simultànies.');
+    await page.evaluate(() => (window as unknown as { __finishShare?: () => void }).__finishShare?.());
+    await expect(page.getByText('Establiment compartit.', { exact: true })).toBeVisible();
+
+    await page.waitForTimeout(2_500);
+    await page.evaluate(() => {
+      Object.defineProperty(navigator, 'share', {
+        configurable: true,
+        value: () => Promise.reject(new DOMException('Denied', 'NotAllowedError'))
+      });
+    });
+    await page.getByRole('button', { name: 'Compartir' }).click();
+    await expect(page.getByText('No s’ha pogut compartir l’establiment. Torna-ho a provar.', { exact: true })).toBeVisible();
+
+    await page.waitForTimeout(2_500);
     await page.evaluate(() => {
       Object.defineProperty(navigator, 'share', { configurable: true, value: undefined });
       Object.defineProperty(navigator, 'clipboard', {
@@ -186,6 +229,25 @@ async function main(): Promise<void> {
       'El fallback ha de copiar l’URL pública neta del Place.'
     );
     await expect(page.getByText('Enllaç copiat.', { exact: true })).toBeVisible();
+
+    await page.waitForTimeout(2_500);
+    await page.evaluate(() => {
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: { writeText: () => Promise.reject(new DOMException('Denied', 'NotAllowedError')) }
+      });
+      window.prompt = (message?: string, value?: string) => {
+        (window as unknown as { __manualCopy?: [string | undefined, string | undefined] }).__manualCopy = [message, value];
+        return null;
+      };
+    });
+    await page.getByRole('button', { name: 'Compartir' }).click();
+    assert.deepEqual(
+      await page.evaluate(() => (window as unknown as { __manualCopy?: [string, string] }).__manualCopy),
+      ['Copia aquest enllaç:', `${environment.webBaseUrl}/places/${place.id}`],
+      'Un error de permisos del porta-retalls ha d’oferir còpia manual accessible.'
+    );
+    await expect(page.getByText('No s’ha pogut copiar automàticament. Copia l’enllaç de la finestra.', { exact: true })).toBeVisible();
 
     const directions = page.getByRole('link', { name: /Com arribar-hi/ });
     if (Number.isFinite(place.latitude) && Number.isFinite(place.longitude)) {

@@ -4,6 +4,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 
 import { PlaceMapComponent } from '../../components/place-map/place-map.component';
 import { PlaceService } from '../../services/place.service';
+import { PlaceShareService } from '../../services/place-share.service';
 import { PlaceMediaAsset } from '../../models/place.model';
 import { PlaceDetailLifeLineAnimation } from './place-detail-life-line-animation';
 import { SiteHeaderComponent } from '../../../../core/layout/components/site-header/site-header.component';
@@ -46,6 +47,7 @@ export class PlaceDetailPageComponent {
   );
   private readonly route = inject(ActivatedRoute);
   private readonly placeService = inject(PlaceService);
+  private readonly placeShareService = inject(PlaceShareService);
   private readonly params = toSignal(this.route.paramMap, {
     initialValue: this.route.snapshot.paramMap
   });
@@ -62,6 +64,7 @@ export class PlaceDetailPageComponent {
   private uploadTrigger: HTMLElement | null = null;
   private carouselTouchStartX: number | null = null;
   private shareFeedbackTimer: ReturnType<typeof setTimeout> | null = null;
+  private shareInProgress = false;
 
   @ViewChild('animatedWestie')
   private set animatedWestie(element: ElementRef<HTMLImageElement> | undefined) {
@@ -452,18 +455,16 @@ export class PlaceDetailPageComponent {
 
   protected async sharePlace(): Promise<void> {
     const place = this.place();
-    if (!place) return;
-    const url = new URL(`/places/${encodeURIComponent(place.id)}`, location.origin).href;
-    const data = { title: place.name, text: `${place.name} · ${place.city}`, url };
-    if (navigator.share) {
-      await navigator.share(data).catch(() => undefined);
-      return;
-    }
+    if (!place || this.shareInProgress) return;
+    this.shareInProgress = true;
     try {
-      await navigator.clipboard.writeText(url);
-      this.setShareFeedback('Enllaç copiat.');
-    } catch {
-      this.setShareFeedback('No s’ha pogut copiar l’enllaç.');
+      const result = await this.placeShareService.share(place);
+      if (result.status === 'shared') this.setShareFeedback('Establiment compartit.');
+      if (result.status === 'copied') this.setShareFeedback('Enllaç copiat.');
+      if (result.status === 'manual' || result.status === 'failed') this.setShareFeedback(result.message);
+      // La cancel·lació voluntària del menú natiu no és cap error i no mostra cap avís.
+    } finally {
+      this.shareInProgress = false;
     }
   }
 
