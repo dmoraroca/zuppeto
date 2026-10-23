@@ -24,7 +24,12 @@ export class PlaceDetailLifeLineAnimation {
   private intersectionObserver: IntersectionObserver | null = null;
   private motionPreference: MediaQueryList | null = null;
 
-  public constructor(private readonly host: HTMLElement) {}
+  private reachedEndInCurrentCycle = false;
+
+  public constructor(
+    private readonly host: HTMLElement,
+    private readonly onReachedEnd: () => void = () => undefined
+  ) {}
 
   public connect(westie: HTMLImageElement): void {
     this.disconnect();
@@ -84,6 +89,7 @@ export class PlaceDetailLifeLineAnimation {
     this.routeLength = 0;
     this.cycleStartedAt = null;
     this.suspendedAt = null;
+    this.reachedEndInCurrentCycle = false;
     this.resizeObserver = null;
     this.intersectionObserver = null;
     this.motionPreference = null;
@@ -202,6 +208,12 @@ export class PlaceDetailLifeLineAnimation {
     const cycleDuration = MOVEMENT_DURATION_MS + FINAL_PAUSE_MS;
     const elapsed = (timestamp - this.cycleStartedAt) % cycleDuration;
     const moving = elapsed < MOVEMENT_DURATION_MS;
+    if (!moving && !this.reachedEndInCurrentCycle) {
+      this.reachedEndInCurrentCycle = true;
+      this.onReachedEnd();
+    } else if (moving && this.reachedEndInCurrentCycle) {
+      this.reachedEndInCurrentCycle = false;
+    }
     const progress = moving ? elapsed / MOVEMENT_DURATION_MS : 1;
     const point = this.pointAtDistance(this.routeLength * progress);
     if (point) {

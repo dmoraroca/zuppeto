@@ -29,6 +29,7 @@ import { shouldNavigateHomeAfterProfileSave } from '../../policies/federated-pro
 import { AuthService } from '../../services/auth.service';
 import { DB_FIELD_MAX } from '../../../../shared/policies/db-field-max-length';
 import { TerritorialLocationSelectorComponent, TerritorialLocationSelection } from '../../../../shared/components/territorial-location-selector/territorial-location-selector.component';
+import { WestiePreferencesService } from '../../../../shared/services/westie-preferences.service';
 
 @Component({
   selector: 'app-profile-page',
@@ -55,6 +56,7 @@ export class ProfilePageComponent implements AfterViewInit {
   );
   private readonly strengthPolicy = inject<PasswordStrengthPolicy>(PASSWORD_STRENGTH_POLICY);
   private readonly currentUser = this.authService.currentUser();
+  private readonly westiePreferences = inject(WestiePreferencesService);
 
   protected readonly dbMax = DB_FIELD_MAX;
   protected readonly user = computed(() => this.authService.currentUser());
@@ -91,6 +93,29 @@ export class ProfilePageComponent implements AfterViewInit {
   private readonly formRevision = signal(0);
   protected readonly currentPasswordMatches = signal(false);
   private currentEditedByUser = false;
+  protected readonly activeTab = signal<'profile' | 'settings'>('profile');
+  protected readonly showWestie = this.westiePreferences.visible;
+  protected readonly westieSoundEnabled = this.westiePreferences.soundEnabled;
+
+  protected selectTab(tab: 'profile' | 'settings'): void {
+    this.activeTab.set(tab);
+  }
+
+  protected onTabKeydown(event: KeyboardEvent): void {
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+    event.preventDefault();
+    this.activeTab.set(this.activeTab() === 'profile' ? 'settings' : 'profile');
+    const id = this.activeTab() === 'profile' ? 'profile-tab' : 'settings-tab';
+    document.getElementById(id)?.focus();
+  }
+
+  protected setWestieVisible(event: Event): void {
+    this.westiePreferences.setVisible((event.target as HTMLInputElement).checked);
+  }
+
+  protected setWestieSound(event: Event): void {
+    this.westiePreferences.setSoundEnabled((event.target as HTMLInputElement).checked);
+  }
 
   constructor() {
     effect(() => {

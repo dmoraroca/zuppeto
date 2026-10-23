@@ -1,21 +1,13 @@
+<app-site-header
+  [showPlaceActions]="!!place()"
+  [canSavePlace]="canWriteFavorites()"
+  [placeSaved]="place() ? isFavorite(place()!.id) : false"
+  (sharePlace)="sharePlace()"
+  (savePlace)="place() && toggleFavorite(place()!.id)"
+/>
+
 <main class="petiloc-detail">
   @if (place(); as selectedPlace) {
-    <header class="petiloc-detail__bar">
-      <a class="petiloc-detail__brand" routerLink="/" aria-label="PetiLoc, anar a l’inici">
-        <img src="/images/logo.png" alt="PetiLoc" />
-      </a>
-      <div class="petiloc-detail__bar-actions">
-        <button type="button" (click)="sharePlace()">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="2.3"/><circle cx="6" cy="12" r="2.3"/><circle cx="18" cy="19" r="2.3"/><path d="m8 11 7.8-4.6M8 13l7.8 4.6"/></svg>
-          <span class="petiloc-detail__action-label">Compartir</span>
-        </button>
-        @if (canWriteFavorites()) {
-          <app-favorite-toggle-button [compact]="true" inactiveLabel="Guardar" activeLabel="Guardat"
-            [active]="isFavorite(selectedPlace.id)" (toggled)="toggleFavorite(selectedPlace.id)" />
-        }
-      </div>
-    </header>
-
     @if (favoriteFeedback()) { <p class="petiloc-detail__feedback" role="status">{{ favoriteFeedback() }}</p> }
 
     <article class="petiloc-detail__sheet" aria-labelledby="petiloc-place-title">
@@ -141,7 +133,9 @@
       <span class="petiloc-detail__route-node petiloc-detail__route-node--second" aria-hidden="true"><i class="petiloc-detail__paw"></i></span>
       <span class="petiloc-detail__route-node petiloc-detail__route-node--third" aria-hidden="true"><i class="petiloc-detail__paw"></i></span>
       <span class="petiloc-detail__route-node petiloc-detail__route-node--fourth" aria-hidden="true"><i class="petiloc-detail__paw"></i></span>
-      <img #animatedWestie class="petiloc-detail__westie" src="/images/place-detail/westie-face.png" alt="" aria-hidden="true" />
+      @if (showWestie()) {
+        <img #animatedWestie class="petiloc-detail__westie" src="/images/place-detail/westie-face.png" alt="" aria-hidden="true" />
+      }
       <span class="petiloc-detail__flower" aria-hidden="true"><i></i><i></i><i></i></span>
     </article>
 
@@ -159,8 +153,6 @@
     <nav class="petiloc-detail__mobile-dock" aria-label="Accions del lloc">
       <button type="button" (click)="openUploadModal($event)"><span aria-hidden="true">▣</span>Foto</button>
       @if (directionsUrl()) { <a [href]="directionsUrl()" target="_blank" rel="noopener noreferrer" (click)="openDirections($event)"><span aria-hidden="true">⌖</span>Anar-hi</a> }
-      <button type="button" (click)="sharePlace()"><span aria-hidden="true">↗</span>Compartir</button>
-      @if (canWriteFavorites()) { <button type="button" (click)="toggleFavorite(selectedPlace.id)"><span aria-hidden="true">♡</span>{{ isFavorite(selectedPlace.id) ? 'Guardat' : 'Guardar' }}</button> }
     </nav>
 
     @if (galleryOpen()) {

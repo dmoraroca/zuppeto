@@ -40,6 +40,7 @@
     "e2e:place-media-phase6": "npm run runner:build && node .runner-build/runner/place-media-phase6-cli.js",
     "e2e:place-media-real-phase6": "npm run runner:build && node .runner-build/runner/place-media-real-phase6-cli.js",
     "e2e:place-full-import-phase6": "npm run runner:build && node .runner-build/runner/place-full-import-phase6-cli.js",
+    "e2e:petiloc-phase7": "npm run runner:build && node .runner-build/runner/petiloc-phase7-cli.js",
     "e2e:places-phase-one": "npm run runner:build && node .runner-build/runner/places-phase-one-cli.js"
   },
   "devDependencies": {

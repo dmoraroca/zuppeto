@@ -12,7 +12,33 @@
     </p>
   </section>
 
-  <section class="profile-layout">
+  <div class="profile-tabs" role="tablist" aria-label="Apartats del perfil" (keydown)="onTabKeydown($event)">
+    <button
+      id="profile-tab"
+      type="button"
+      role="tab"
+      [attr.aria-selected]="activeTab() === 'profile'"
+      aria-controls="profile-panel"
+      [tabindex]="activeTab() === 'profile' ? 0 : -1"
+      (click)="selectTab('profile')"
+    >
+      Perfil d’usuari
+    </button>
+    <button
+      id="settings-tab"
+      type="button"
+      role="tab"
+      [attr.aria-selected]="activeTab() === 'settings'"
+      aria-controls="settings-panel"
+      [tabindex]="activeTab() === 'settings' ? 0 : -1"
+      (click)="selectTab('settings')"
+    >
+      Configuració
+    </button>
+  </div>
+
+  @if (activeTab() === 'profile') {
+  <section id="profile-panel" class="profile-layout" role="tabpanel" aria-labelledby="profile-tab">
     <aside class="profile-card">
       <div class="profile-card__avatar">
         @if (showAvatarPreview()) {
@@ -201,5 +227,41 @@
       </form>
     </section>
   </section>
+  } @else {
+    <section id="settings-panel" class="profile-settings" role="tabpanel" aria-labelledby="settings-tab">
+      <div class="profile-settings__heading">
+        <h2>El teu Westie de PetiLoc</h2>
+        <p>Personalitza el nostre company de quatre potes mentre explores els llocs de PetiLoc.</p>
+      </div>
+
+      <div class="profile-settings__options">
+        <label class="profile-settings__option">
+          <span class="profile-settings__copy">
+            <strong>Mostrar el Westie</strong>
+            <span>Mostra el Westie animat que recorre la línia de vida.</span>
+          </span>
+          <span class="profile-switch">
+            <input type="checkbox" [checked]="showWestie()" (change)="setWestieVisible($event)" />
+            <span aria-hidden="true"></span>
+          </span>
+        </label>
+
+        <label class="profile-settings__option">
+          <span class="profile-settings__copy">
+            <strong>So del Westie</strong>
+            <span>Reprodueix un lladruc quan el Westie arriba al final de la línia de vida.</span>
+          </span>
+          <span class="profile-switch">
+            <input type="checkbox" [checked]="westieSoundEnabled()" (change)="setWestieSound($event)" />
+            <span aria-hidden="true"></span>
+          </span>
+        </label>
+      </div>
+
+      <p class="profile-settings__storage-note">
+        Aquestes preferències queden associades a aquest navegador i no se sincronitzen automàticament entre dispositius.
+      </p>
+    </section>
+  }
 </main>
 

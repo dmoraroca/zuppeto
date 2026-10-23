@@ -1,19 +1,25 @@
-import { Component, ElementRef, HostListener, ViewChild, computed, effect, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ElementRef, HostListener, ViewChild, computed, effect, inject, input, output, signal, ChangeDetectionStrategy } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 
 import { NavigationMenuItem } from '../../../models/navigation-menu.model';
 import { AuthService } from '../../../../features/auth/services/auth.service';
 import { ErrorNotificationsService } from '../../../services/error-notifications.service';
 import { hasPetilocAvatar } from '../../../../shared/utils/user-avatar-url.util';
+import { FavoriteToggleButtonComponent } from '../../../../shared/components/favorite-toggle-button/favorite-toggle-button.component';
 
 @Component({
   selector: 'app-site-header',
-  imports: [RouterLink, RouterLinkActive],
+  imports: [RouterLink, RouterLinkActive, FavoriteToggleButtonComponent],
   templateUrl: './site-header.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './site-header.component.scss'
 })
 export class SiteHeaderComponent {
+  public readonly showPlaceActions = input(false);
+  public readonly canSavePlace = input(false);
+  public readonly placeSaved = input(false);
+  public readonly sharePlace = output<void>();
+  public readonly savePlace = output<void>();
   private readonly authService = inject(AuthService);
   private readonly notifications = inject(ErrorNotificationsService);
   private readonly router = inject(Router);

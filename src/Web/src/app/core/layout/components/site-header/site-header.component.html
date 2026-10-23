@@ -96,6 +96,24 @@
           }
         </button>
 
+        @if (showPlaceActions()) {
+          <div class="site-header__context-actions" aria-label="Accions del lloc">
+            <button type="button" class="site-header__context-action" (click)="sharePlace.emit()">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="2.3"/><circle cx="6" cy="12" r="2.3"/><circle cx="18" cy="19" r="2.3"/><path d="m8 11 7.8-4.6M8 13l7.8 4.6"/></svg>
+              <span>Compartir</span>
+            </button>
+            @if (canSavePlace()) {
+              <app-favorite-toggle-button
+                [compact]="true"
+                inactiveLabel="Guardar"
+                activeLabel="Guardat"
+                [active]="placeSaved()"
+                (toggled)="savePlace.emit()"
+              />
+            }
+          </div>
+        }
+
         <details class="site-header__dropdown site-header__account" (toggle)="onDropdownToggle($event)">
           <summary class="site-header__account-trigger" aria-label="Compte">
             @if (hasAvatar()) {

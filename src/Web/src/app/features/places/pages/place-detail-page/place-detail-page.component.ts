@@ -2,12 +2,13 @@ import { Component, computed, DestroyRef, effect, ElementRef, HostListener, inje
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 
-import { FavoriteToggleButtonComponent } from '../../../../shared/components/favorite-toggle-button/favorite-toggle-button.component';
 import { FavoritesService } from '../../../favorites/services/favorites.service';
 import { PlaceMapComponent } from '../../components/place-map/place-map.component';
 import { PlaceService } from '../../services/place.service';
 import { PlaceMediaAsset } from '../../models/place.model';
 import { PlaceDetailLifeLineAnimation } from './place-detail-life-line-animation';
+import { SiteHeaderComponent } from '../../../../core/layout/components/site-header/site-header.component';
+import { WestiePreferencesService } from '../../../../shared/services/westie-preferences.service';
 import {
   contextTagsExcludingCity,
   hasPublicPetPolicy,
@@ -24,7 +25,7 @@ import {
   selector: 'app-place-detail-page',
   imports: [
     RouterLink,
-    FavoriteToggleButtonComponent,
+    SiteHeaderComponent,
     PlaceMapComponent
   ],
   templateUrl: './place-detail-page.component.html',
@@ -37,7 +38,11 @@ import {
 export class PlaceDetailPageComponent {
   private readonly host = inject(ElementRef<HTMLElement>);
   private readonly destroyRef = inject(DestroyRef);
-  private readonly lifeLineAnimation = new PlaceDetailLifeLineAnimation(this.host.nativeElement);
+  private readonly westiePreferences = inject(WestiePreferencesService);
+  private readonly lifeLineAnimation = new PlaceDetailLifeLineAnimation(
+    this.host.nativeElement,
+    () => this.playWestieBark()
+  );
   private readonly route = inject(ActivatedRoute);
   private readonly placeService = inject(PlaceService);
   private readonly favoritesService = inject(FavoritesService);
@@ -53,14 +58,31 @@ export class PlaceDetailPageComponent {
   protected readonly galleryAssets = signal<PlaceMediaAsset[]>([]);
   protected readonly galleryTotal = signal(0);
   protected readonly galleryBusy = signal(false);
+  protected readonly showWestie = this.westiePreferences.visible;
   private uploadTrigger: HTMLElement | null = null;
   private carouselTouchStartX: number | null = null;
   private favoriteFeedbackTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly westieBarkUrl: string | null = null;
+  private westieBark: HTMLAudioElement | null = null;
 
   @ViewChild('animatedWestie')
   private set animatedWestie(element: ElementRef<HTMLImageElement> | undefined) {
     if (element) this.lifeLineAnimation.connect(element.nativeElement);
     else this.lifeLineAnimation.disconnect();
+  }
+
+  private playWestieBark(): void {
+    if (
+      !this.showWestie()
+      || !this.westiePreferences.soundEnabled()
+      || document.hidden
+      || !this.westieBarkUrl
+    ) return;
+
+    this.westieBark ??= new Audio(this.westieBarkUrl);
+    this.westieBark.volume = 0.45;
+    this.westieBark.currentTime = 0;
+    void this.westieBark.play().catch(() => undefined);
   }
 
   constructor() {
