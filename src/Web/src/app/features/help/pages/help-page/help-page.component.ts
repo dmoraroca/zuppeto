@@ -1,7 +1,6 @@
 import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
-import { SiteFooterComponent } from '../../../../core/layout/components/site-footer/site-footer.component';
 import { SiteHeaderComponent } from '../../../../core/layout/components/site-header/site-header.component';
 import { GenericInfoCardComponent } from '../../../../shared/components/generic-info-card/generic-info-card.component';
 import { SectionHeadingComponent } from '../../../../shared/components/section-heading/section-heading.component';
@@ -11,7 +10,6 @@ import { SectionHeadingComponent } from '../../../../shared/components/section-h
   imports: [
     RouterLink,
     SiteHeaderComponent,
-    SiteFooterComponent,
     SectionHeadingComponent,
     GenericInfoCardComponent
   ],

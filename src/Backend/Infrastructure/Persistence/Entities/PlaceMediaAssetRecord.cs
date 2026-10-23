@@ -36,8 +36,48 @@ public sealed class PlaceMediaAssetRecord
     public DateTimeOffset? LastCheckedAtUtc { get; set; }
     public DateTimeOffset? ModeratedAtUtc { get; set; }
     public Guid? ModeratorActorId { get; set; }
+    public Guid? ContributorUserId { get; set; }
+    public string? RightsDeclaration { get; set; }
     public DateTimeOffset CreatedAtUtc { get; set; }
     public DateTimeOffset UpdatedAtUtc { get; set; }
+    public ICollection<PlaceMediaBlobRecord> Blobs { get; set; } = [];
+}
+
+public sealed class PlaceMediaBlobRecord
+{
+    public Guid Id { get; set; }
+    public Guid MediaAssetId { get; set; }
+    public PlaceMediaAssetRecord MediaAsset { get; set; } = null!;
+    public string Variant { get; set; } = string.Empty;
+    public string MimeType { get; set; } = string.Empty;
+    public byte[] Content { get; set; } = [];
+    public long SizeBytes { get; set; }
+    public int Width { get; set; }
+    public int Height { get; set; }
+    public string Sha256 { get; set; } = string.Empty;
+    public DateTimeOffset CreatedAtUtc { get; set; }
+}
+
+public sealed class PlaceMediaModerationRecord
+{
+    public Guid Id { get; set; }
+    public Guid MediaAssetId { get; set; }
+    public Guid ActorUserId { get; set; }
+    public string Action { get; set; } = string.Empty;
+    public string Reason { get; set; } = string.Empty;
+    public DateTimeOffset CreatedAtUtc { get; set; }
+}
+
+public sealed class PlaceMediaReportRecord
+{
+    public Guid Id { get; set; }
+    public Guid MediaAssetId { get; set; }
+    public Guid ReporterUserId { get; set; }
+    public string Reason { get; set; } = string.Empty;
+    public string Status { get; set; } = "Pending";
+    public DateTimeOffset CreatedAtUtc { get; set; }
+    public DateTimeOffset? ResolvedAtUtc { get; set; }
+    public Guid? ResolvedByUserId { get; set; }
 }
 
 public sealed class PlaceMediaDiscoveryRecord

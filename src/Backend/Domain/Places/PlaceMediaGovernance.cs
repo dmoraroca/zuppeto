@@ -14,7 +14,15 @@ public enum PlaceMediaVerificationStatus
 {
     Pending,
     Verified,
-    Rejected
+    Rejected,
+    Quarantined,
+    Withdrawn
+}
+
+public enum PlaceMediaVariant
+{
+    Optimized,
+    Thumbnail
 }
 
 public sealed record PlaceMediaAsset(
@@ -50,7 +58,21 @@ public sealed record PlaceMediaAsset(
     int? DistanceMeters = null,
     DateTimeOffset? LastCheckedAtUtc = null,
     DateTimeOffset? ModeratedAtUtc = null,
-    Guid? ModeratorActorId = null);
+    Guid? ModeratorActorId = null,
+    Guid? ContributorUserId = null,
+    string? RightsDeclaration = null);
+
+public sealed record ProcessedPlaceMediaVariant(
+    PlaceMediaVariant Variant,
+    string MimeType,
+    byte[] Content,
+    int Width,
+    int Height,
+    string Sha256);
+
+public sealed record ProcessedPlaceMedia(
+    string SourceSha256,
+    IReadOnlyCollection<ProcessedPlaceMediaVariant> Variants);
 
 public sealed class PlaceMediaSelectionPolicy
 {

@@ -29,6 +29,7 @@ internal static class PlaceEndpoints
 
         group.MapGet("/cities", GetAvailableCitiesAsync).AllowAnonymous();
         group.MapGet("/{id:guid}", GetByIdAsync);
+        group.MapPost("/missing-proposals", ProposeMissingPlaceAsync);
         group.MapPost("/", SaveAsync);
         group.MapPut("/{id:guid}", UpdateAsync);
         adminGroup.MapGet("/", AdminSearchAsync);
@@ -36,8 +37,42 @@ internal static class PlaceEndpoints
         adminGroup.MapPost("/", AdminSaveAsync);
         adminGroup.MapPut("/{id:guid}", AdminUpdateAsync);
         adminGroup.MapDelete("/{id:guid}", AdminDeleteAsync);
+        adminGroup.MapGet("/missing-proposals/pending", ListMissingPlaceProposalsAsync);
+        adminGroup.MapPost("/missing-proposals/{proposalId:guid}/decide", DecideMissingPlaceProposalAsync);
 
         return app;
+    }
+
+    private static async Task<IResult> ListMissingPlaceProposalsAsync(int? skip, int? take,
+        ClaimsPrincipal principal, IAdminApplicationService adminService, IMissingPlaceProposalService service,
+        CancellationToken cancellationToken)
+    {
+        if (!await principal.HasPermissionAsync(adminService, "action.places.manage", cancellationToken)) return TypedResults.Forbid();
+        return TypedResults.Ok(await service.ListPendingAsync(skip ?? 0, take ?? 50, cancellationToken));
+    }
+
+    private static async Task<IResult> DecideMissingPlaceProposalAsync(Guid proposalId,
+        DecideMissingPlaceProposalRequest request, ClaimsPrincipal principal, IAdminApplicationService adminService,
+        IMissingPlaceProposalService service, CancellationToken cancellationToken)
+    {
+        var actor = principal.GetCurrentUserId();
+        if (actor is null || !await principal.HasPermissionAsync(adminService, "action.places.manage", cancellationToken))
+            return TypedResults.Forbid();
+        try { await service.DecideAsync(proposalId, actor.Value, request, cancellationToken); return TypedResults.Ok(); }
+        catch (KeyNotFoundException) { return TypedResults.NotFound(); }
+        catch (InvalidOperationException exception) { return TypedResults.BadRequest(new { message = exception.Message }); }
+    }
+
+    private static async Task<IResult> ProposeMissingPlaceAsync(
+        MissingPlaceProposalRequest request,
+        ClaimsPrincipal principal,
+        IMissingPlaceProposalService service,
+        CancellationToken cancellationToken)
+    {
+        var userId = principal.GetCurrentUserId();
+        if (userId is null) return TypedResults.Unauthorized();
+        try { return TypedResults.Ok(await service.ProposeAsync(userId.Value, request, cancellationToken)); }
+        catch (InvalidOperationException exception) { return TypedResults.BadRequest(new { message = exception.Message }); }
     }
 
     private static async Task<Ok<PlaceSearchPageDto>> SearchAsync(

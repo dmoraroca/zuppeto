@@ -1,4 +1,5 @@
 .place-map {
+  position: relative;
   overflow: hidden;
   border-radius: 1.6rem;
   border: 1px solid rgba(209, 213, 219, 0.78);
@@ -7,6 +8,42 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+}
+
+.place-map--compact {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.place-map--compact .place-map__canvas {
+  margin-top: 0;
+}
+
+.place-map__compact-fullscreen {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 500;
+  display: grid;
+  place-items: center;
+  width: 2.35rem;
+  height: 2.35rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.94);
+  color: #0f766e;
+  box-shadow: 0 0.35rem 1rem rgba(15, 23, 42, 0.18);
+  font: inherit;
+  font-size: 1.1rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.place-map__compact-fullscreen:focus-visible {
+  outline: 3px solid #f59e0b;
+  outline-offset: 2px;
 }
 
 .place-map:fullscreen,

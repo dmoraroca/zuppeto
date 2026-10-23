@@ -2,7 +2,6 @@ import { Component, ElementRef, ViewChild, computed, effect, inject, signal, Cha
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
-import { SiteFooterComponent } from '../../../../core/layout/components/site-footer/site-footer.component';
 import { SiteHeaderComponent } from '../../../../core/layout/components/site-header/site-header.component';
 import { SectionHeadingComponent } from '../../../../shared/components/section-heading/section-heading.component';
 import { FavoritesService } from '../../../favorites/services/favorites.service';
@@ -24,7 +23,6 @@ import { placesVisibleOnOsmMap } from '../../utils/places-osm-map';
   imports: [
     RouterLink,
     SiteHeaderComponent,
-    SiteFooterComponent,
     SectionHeadingComponent,
     PlaceFiltersComponent,
     PlaceMapComponent,
@@ -43,6 +41,10 @@ export class PlacesPageComponent {
   private readonly favoritesService = inject(FavoritesService);
   private readonly territorialLocations = inject(TerritorialLocationService);
   private readonly selectedPlaceIdState = signal<string | null>(null);
+  protected readonly missingPlaceOpen = signal(false);
+  protected readonly missingPlaceSending = signal(false);
+  protected readonly missingPlaceMessage = signal('');
+  protected readonly missingPlaceError = signal('');
   private readonly queryParams = toSignal(this.route.queryParamMap, {
     initialValue: this.route.snapshot.queryParamMap
   });
@@ -342,6 +344,37 @@ export class PlacesPageComponent {
     this.selectedPlaceIdState.set(placeId);
     if (this.listingPlaces().some((place) => place.id === placeId)) {
       queueMicrotask(() => this.scrollToListedPlace(placeId));
+    }
+  }
+
+  protected openPlaceDetail(placeId: string): void {
+    void this.router.navigate(['/places', placeId], {
+      queryParams: this.currentSearchQueryParams()
+    });
+  }
+
+  protected async submitMissingPlace(event: Event): Promise<void> {
+    event.preventDefault();
+    const form = event.currentTarget as HTMLFormElement;
+    const data = new FormData(form);
+    this.missingPlaceSending.set(true);
+    this.missingPlaceError.set('');
+    this.missingPlaceMessage.set('');
+    try {
+      const result = await this.placeService.proposeMissingPlace({
+        name: String(data.get('name') ?? ''),
+        municipality: String(data.get('municipality') ?? ''),
+        approximateAddress: String(data.get('address') ?? ''),
+        additionalInformation: String(data.get('details') ?? '')
+      });
+      form.reset();
+      this.missingPlaceMessage.set(result.possibleDuplicatePlaceId
+        ? 'Proposta registrada. Hem detectat una possible coincidència perquè ADMIN la revisi.'
+        : 'Proposta registrada i pendent de revisió per ADMIN.');
+    } catch (error) {
+      this.missingPlaceError.set(error instanceof Error ? error.message : 'No s’ha pogut registrar la proposta.');
+    } finally {
+      this.missingPlaceSending.set(false);
     }
   }
 

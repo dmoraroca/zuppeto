@@ -1,309 +1,225 @@
-<app-site-header />
-
-<main class="place-detail-page">
+<main class="petiloc-detail">
   @if (place(); as selectedPlace) {
-    <nav class="place-detail-page__breadcrumbs" aria-label="Breadcrumb">
-      <a routerLink="/">Inici</a>
-      <span>/</span>
-      <a routerLink="/places" [queryParams]="backToPlacesQueryParams()">Llocs</a>
-      <span>/</span>
-      <span>{{ selectedPlace.name }}</span>
-    </nav>
-
-    <section class="place-detail-page__hero">
-      <div class="place-detail-page__hero-media">
-        <app-place-cover-image
-          class="place-detail-page__hero-cover"
-          [imageUrl]="selectedPlace.imageUrl"
-          [placeName]="selectedPlace.name"
-          [category]="selectedPlace.categoryLabel || selectedPlace.type"
-          [alt]="'Fotografia de ' + selectedPlace.name"
-          variant="hero"
-        />
-        @if (selectedPlace.coverAttribution?.trim()) {
-          <p class="place-detail-page__photo-credit">
-            Foto: {{ selectedPlace.coverAttribution }}
-            @if (primaryMedia(); as media) {
-              · {{ mediaSourceLabel(media.source) }}
-              ·
-              @if (media.licenseUrl) {
-                <a [href]="media.licenseUrl" target="_blank" rel="noopener noreferrer">{{ media.licenseIdentifier }}</a>
-              } @else {
-                {{ media.licenseIdentifier }}
-              }
-            }
-            @if (selectedPlace.coverSourceUri?.trim()) {
-              ·
-              <a [href]="selectedPlace.coverSourceUri" target="_blank" rel="noopener noreferrer">
-                Veure la font original
-              </a>
-            }
-          </p>
+    <header class="petiloc-detail__bar">
+      <a class="petiloc-detail__brand" routerLink="/" aria-label="PetiLoc, anar a l’inici">
+        <img src="/images/logo.png" alt="PetiLoc" />
+      </a>
+      <div class="petiloc-detail__bar-actions">
+        <button type="button" (click)="sharePlace()">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="2.3"/><circle cx="6" cy="12" r="2.3"/><circle cx="18" cy="19" r="2.3"/><path d="m8 11 7.8-4.6M8 13l7.8 4.6"/></svg>
+          <span class="petiloc-detail__action-label">Compartir</span>
+        </button>
+        @if (canWriteFavorites()) {
+          <app-favorite-toggle-button [compact]="true" inactiveLabel="Guardar" activeLabel="Guardat"
+            [active]="isFavorite(selectedPlace.id)" (toggled)="toggleFavorite(selectedPlace.id)" />
         }
       </div>
+    </header>
 
-      <div class="place-detail-page__hero-content">
-        <p class="place-detail-page__eyebrow">
-          {{ categoryEyebrow() || getTypeLabel(selectedPlace.type) }} · {{ selectedPlace.city }}, {{ selectedPlace.country }}
-          @if (selectedPlace.neighborhood?.trim()) {
-            · {{ selectedPlace.neighborhood }}
-          }
-        </p>
-        <h1>{{ selectedPlace.name }}</h1>
+    @if (favoriteFeedback()) { <p class="petiloc-detail__feedback" role="status">{{ favoriteFeedback() }}</p> }
 
-        <div class="place-detail-page__actions">
-          @if (canWriteFavorites()) {
-            <app-favorite-toggle-button
-              [active]="isFavorite(selectedPlace.id)"
-              (toggled)="toggleFavorite(selectedPlace.id)"
-            />
-          }
-          <a routerLink="/places" [queryParams]="backToPlacesQueryParams()">Tornar al llistat</a>
-          @if (cameFromMap()) {
-            <span class="place-detail-page__from-map">Has arribat des del mapa</span>
-          }
-        </div>
-      </div>
-    </section>
-
-    @if (galleryMedia().length > 1) {
-      <section class="place-detail-page__gallery" aria-labelledby="place-gallery-title">
-        <h2 id="place-gallery-title">Galeria</h2>
-        <div class="place-detail-page__gallery-grid">
-          @for (asset of galleryMedia(); track asset.id; let index = $index) {
-            <figure>
-              <img
-                [src]="asset.servedUrl"
-                [alt]="'Fotografia ' + (index + 1) + ' de ' + selectedPlace.name"
-                loading="lazy"
-                decoding="async"
-              />
-              <figcaption>
-                {{ asset.author || 'Autoria no indicada' }} · {{ mediaSourceLabel(asset.source) }} ·
-                @if (asset.licenseUrl) {
-                  <a [href]="asset.licenseUrl" target="_blank" rel="noopener noreferrer">{{ asset.licenseIdentifier }}</a>
-                } @else {
-                  {{ asset.licenseIdentifier }}
-                }
-                @if (asset.evidenceUrl) {
-                  · <a [href]="asset.evidenceUrl" target="_blank" rel="noopener noreferrer">fitxa original</a>
-                }
-              </figcaption>
-            </figure>
-          }
-        </div>
-      </section>
-    }
-
-    <section class="place-detail-page__stack">
-      <article class="place-detail-page__card">
-        <h2>Abans d'anar-hi</h2>
-        <p><strong>Adreça:</strong> {{ selectedPlace.address }}</p>
-        @if (selectedPlace.neighborhood?.trim()) {
-          <p><strong>Barri:</strong> {{ selectedPlace.neighborhood }}</p>
-        }
-        @if (selectedPlace.openingHours?.trim()) {
-          <p class="place-detail-page__hours">
-            <strong>Horari:</strong>
-            <span>{{ selectedPlace.openingHours }}</span>
-          </p>
-        }
-        @if (selectedPlace.phone?.trim()) {
-          <p>
-            <strong>Telèfon:</strong>
-            <a [href]="'tel:' + selectedPlace.phone">{{ selectedPlace.phone }}</a>
-          </p>
-        }
-        @if (selectedPlace.website?.trim()) {
-          <p>
-            <strong>Web:</strong>
-            <a [href]="selectedPlace.website" target="_blank" rel="noopener noreferrer">{{ selectedPlace.website }}</a>
-          </p>
-        }
-        @if (hasRating()) {
-          <p class="place-detail-page__rating">
-            Valoració:
-            <span
-              class="place-detail-page__stars"
-              [attr.aria-label]="'Valoració ' + selectedPlace.rating + ' de 5'"
-            >
-              @for (fill of ratingStarFills(); track $index) {
-                <span class="place-detail-page__star" aria-hidden="true">
-                  <span class="place-detail-page__star-empty">★</span>
-                  <span class="place-detail-page__star-fill" [style.width.%]="fill">★</span>
-                </span>
-              }
-            </span>
-            ({{ selectedPlace.reviewCount }} ressenyes)
-          </p>
-        }
-        @if (hasPrice()) {
-          <p><strong>Preu orientatiu:</strong> {{ selectedPlace.priceLabel }}</p>
-        }
-        @if (hasPetPolicy()) {
-          <p><strong>Política pet:</strong> {{ selectedPlace.petPolicyLabel }}</p>
-        } @else if (confirmPetsByPhone()) {
-          <p>
-            <strong>Mascotes:</strong>
-            No tenim cap dada ni ressenya pet-friendly. Cal confirmar-ho trucant
-            @if (selectedPlace.phone?.trim()) {
-              a
-              <a [href]="'tel:' + selectedPlace.phone">{{ selectedPlace.phone }}</a>.
-            } @else {
-              al local.
-            }
-          </p>
-        }
-        @if (selectedPlace.petNotes?.trim()) {
-          <p><strong>Notes per mascotes:</strong> {{ selectedPlace.petNotes }}</p>
-        }
-        <p><strong>Estat pet-friendly:</strong> {{ petStatusLabel() }}</p>
-        @if (selectedPlace.petSpecies?.length) {
-          <p><strong>Espècies:</strong> {{ selectedPlace.petSpecies!.join(', ') }}</p>
-        }
-        @if (selectedPlace.petConditions?.length) {
-          <p><strong>Condicions:</strong> {{ conditionLabels(selectedPlace.petConditions!) }}</p>
-        }
-        @if (selectedPlace.isPetPolicyVerified) {
-          <p>
-            <strong>Verificació:</strong> Informació verificada
-            @if (selectedPlace.petPolicyVerifiedAtUtc) {
-              el {{ selectedPlace.petPolicyVerifiedAtUtc | date:'dd/MM/yyyy' }}
-            }
-          </p>
-        } @else {
-          <p><strong>Verificació:</strong> Informació encara no verificada</p>
-        }
-      </article>
-
-      <article class="place-detail-page__card">
-        <h2>Procedència i estat</h2>
-        <p><strong>Procedència:</strong> {{ selectedPlace.dataProvenance }}</p>
-        @if (selectedPlace.dataAttributions?.length) {
-          <ul aria-label="Fonts de les dades del lloc">
-            @for (source of selectedPlace.dataAttributions; track source.organisation + source.dataset + source.licenseCode) {
-              <li>
-                {{ source.attribution || (source.organisation + ' · ' + source.dataset) }} ·
-                <a [href]="source.licenseUrl" target="_blank" rel="noopener noreferrer">{{ source.licenseCode }}</a>
-                · <a [href]="source.datasetUrl" target="_blank" rel="noopener noreferrer">font</a>
-              </li>
-            }
-          </ul>
-        }
-        <p><strong>Estat del negoci:</strong> {{ selectedPlace.businessStatus || 'Obert' }}</p>
-        @if (selectedPlace.updatedAtUtc) {
-          <p><strong>Darrera actualització:</strong> {{ selectedPlace.updatedAtUtc | date:'dd/MM/yyyy' }}</p>
-        }
-        @if (selectedPlace.coordinates) {
-          <p><strong>Coordenades:</strong> {{ selectedPlace.coordinates.lat }}, {{ selectedPlace.coordinates.lng }}</p>
-        }
-      </article>
-
-      <article class="place-detail-page__card place-detail-page__regulation">
-        <p class="place-detail-page__eyebrow">Espai preparat per a una fase futura</p>
-        <h2>Normativa sobre mascotes</h2>
-        <p>
-          Aquí es mostrarà la normativa oficial aplicable del país, la regió, el municipi i la categoria
-          de l’establiment, amb font i data de verificació. Encara no hi ha cap connector legislatiu actiu.
-        </p>
-      </article>
-
-      @if (featureChips().length) {
-        <article class="place-detail-page__card">
-          <h2>Què hi trobaràs</h2>
-          <div class="place-detail-page__tags">
-            @for (feature of featureChips(); track feature) {
-              <span>{{ feature }}</span>
-            }
-          </div>
-        </article>
-      }
-
-      @if (hasQuickContext()) {
-        <article class="place-detail-page__card">
-          <h2>Context ràpid</h2>
-          @if (contextDescription()) {
-            <p class="place-detail-page__copy">{{ contextDescription() }}</p>
-          }
-          @if (contextTags().length) {
-            <div class="place-detail-page__tags">
-              @for (tag of contextTags(); track tag) {
-                <span>{{ tag }}</span>
+    <article class="petiloc-detail__sheet" aria-labelledby="petiloc-place-title">
+      <section class="petiloc-detail__hero-stage">
+      <div class="petiloc-detail__hero-media">
+        @if (primaryMedia(); as media) {
+          <button type="button" class="petiloc-detail__hero-photo" (click)="openLightbox(activeHeroPhotoIndex())"
+            [attr.aria-label]="'Ampliar fotografia ' + (activeHeroPhotoIndex() + 1) + ' de ' + galleryMedia().length">
+            <img [src]="media.servedUrl" [alt]="'Fotografia de ' + selectedPlace.name" />
+          </button>
+          <div class="petiloc-detail__hero-gallery">
+            <div class="petiloc-detail__hero-thumbnails" aria-label="Fotografies destacades">
+              @for (photo of heroMedia(); track photo.id; let index = $index) {
+                <button type="button" [class.is-active]="activeHeroPhotoIndex() === index"
+                  [attr.aria-label]="'Ampliar fotografia ' + (index + 1) + ' de ' + galleryMedia().length"
+                  (click)="openHeroPhoto(index)">
+                  <img [src]="photo.servedUrl" alt="" />
+                </button>
               }
             </div>
-          }
-        </article>
-      }
-    </section>
-
-    @if (showsGoogleMapsAttribution()) {
-      <p class="place-detail-page__gmp-attr" translate="no">Google Maps</p>
-    }
-    @if (showsOpenStreetMapAttribution()) {
-      <p class="place-detail-page__gmp-attr">Dades © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a> · ODbL 1.0</p>
-    }
-
-    <section class="place-detail-page__map-block">
-      <div class="place-detail-page__map-copy">
-        <h2>Ubicació aproximada</h2>
-        <p>El mapa mostra la posició del local per orientar-te abans d’anar-hi.</p>
+            <div class="petiloc-detail__hero-photo-actions">
+              <button type="button" class="petiloc-detail__photo-count" (click)="openGallery()"><span aria-hidden="true">▦</span> {{ galleryTotal() || galleryMedia().length }} fotografies</button>
+              <button type="button" (click)="openUploadModal($event)">Afegir fotografia</button>
+              <button type="button" (click)="openGallery()">Veure totes les fotos</button>
+            </div>
+          </div>
+        } @else {
+          <div class="petiloc-detail__fallback">
+            <img src="/images/place-detail/editorial-fallback.webp" alt="Il·lustració PetiLoc amb arquitectura orgànica i vegetació" />
+            <span>Il·lustració PetiLoc</span>
+            <button type="button" class="petiloc-detail__first-photo" (click)="openUploadModal($event)">Afegir la primera fotografia</button>
+          </div>
+        }
+        <span class="petiloc-detail__signature" aria-hidden="true"><i class="petiloc-detail__paw"></i> PetiLoc</span>
       </div>
 
-      <app-place-map
-        [places]="placeAsArray"
-        [selectedPlaceId]="selectedPlace.id"
-        height="20rem"
-        emptyTitle="No hi ha ubicació disponible"
-        emptyCopy="Aquest lloc no té coordenades per mostrar al mapa."
-      />
-    </section>
+      <nav class="petiloc-detail__crumbs" aria-label="Fil d’Ariadna">
+        <a routerLink="/places" [queryParams]="backToPlacesQueryParams()">Llocs</a><span aria-hidden="true">›</span><span aria-current="page">{{ selectedPlace.name }}</span>
+      </nav>
 
-    @if (relatedPlaces().length) {
-      <section class="place-detail-page__related">
-        <div class="place-detail-page__map-copy">
-          <h2>Més llocs a {{ selectedPlace.city }}</h2>
-          <p>
-            Si aquest lloc t'interessa, aquí tens altres opcions properes per continuar el recorregut
-            sense tornar a començar des de zero.
-          </p>
-        </div>
+      <svg class="petiloc-detail__hero-organic" viewBox="0 0 1000 324" preserveAspectRatio="none" aria-hidden="true">
+        <defs>
+          <path id="petiloc-hero-contour" pathLength="100" d="M710 0 C790 3 835 36 845 74 C853 106 838 125 865 151 C887 172 925 184 928 211 C932 242 905 263 927 286 C940 300 958 313 970 324 H0 V0 Z" />
+        </defs>
+        <use class="petiloc-detail__hero-surface" href="#petiloc-hero-contour" />
+        <use class="petiloc-detail__hero-route" href="#petiloc-hero-contour" data-route-fraction="0.19060951" />
+      </svg>
 
-        <div class="place-detail-page__related-grid">
-          @for (relatedPlace of relatedPlaces(); track relatedPlace.id) {
-            <a class="place-detail-page__related-card" [routerLink]="['/places', relatedPlace.id]">
-              <app-place-cover-image
-                [imageUrl]="relatedPlace.imageUrl"
-                [placeName]="relatedPlace.name"
-                [category]="relatedPlace.categoryLabel || relatedPlace.type"
-                [alt]="'Fotografia de ' + relatedPlace.name"
-                variant="related"
-              />
-              <div>
-                <p class="place-detail-page__related-eyebrow">
-                  {{ getTypeLabel(relatedPlace.type) }}
-                  @if (relatedPlace.reviewCount > 0) {
-                    · {{ relatedPlace.rating }}
-                  }
-                </p>
-                <h3>{{ relatedPlace.name }}</h3>
-                <p>{{ relatedPlace.shortDescription }}</p>
-              </div>
-            </a>
+      <section class="petiloc-detail__identity">
+        <p class="petiloc-detail__category">
+          <span class="petiloc-detail__category-icon" aria-hidden="true">
+            <svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="15"/><path d="M6 22 13 14l4 4 3-3 6 7M9 10.5h.01"/></svg>
+          </span>
+          {{ categoryEyebrow() || getTypeLabel(selectedPlace.type) }}
+        </p>
+        <h1 id="petiloc-place-title">{{ selectedPlace.name }}</h1>
+        <p class="petiloc-detail__address">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>
+          <span>{{ formattedAddress() }}</span>
+        </p>
+        <div class="petiloc-detail__pet-state" [attr.data-tone]="petStatusTone()">
+          <i class="petiloc-detail__paw" aria-hidden="true"></i>
+          @if (petStatusLabel() === 'Desconegut') {
+            <strong>Pet-friendly: Desconegut</strong>
+          } @else {
+            <strong>{{ petStatusLabel() }}</strong><small>· {{ selectedPlace.isPetPolicyVerified ? 'Verificat' : 'Estat no verificat' }}</small>
           }
         </div>
       </section>
+      </section>
+
+      <section class="petiloc-detail__body-stage">
+      <nav class="petiloc-detail__section-nav" aria-label="Apartats del lloc">
+        <a href="#petiloc-place"><span aria-hidden="true">⌂</span>El lloc</a>
+        <a href="#petiloc-pets"><i class="petiloc-detail__paw" aria-hidden="true"></i>Mascotes</a>
+        <a href="#petiloc-location"><span aria-hidden="true">⌖</span>Ubicació</a>
+        <button type="button" (click)="openGallery()"><span aria-hidden="true">▦</span>Fotos</button>
+      </nav>
+
+      <div class="petiloc-detail__chapters">
+        <section id="petiloc-place" class="petiloc-detail__chapter">
+          <span class="petiloc-detail__chapter-icon" aria-hidden="true">⌂</span>
+          <div class="petiloc-detail__chapter-copy"><h2>El lloc</h2><p>{{ selectedPlace.shortDescription || formattedAddress() }}</p></div>
+          <div class="petiloc-detail__chapter-visual">
+            @if (galleryMedia().length) { <button type="button" (click)="openLightbox(0)"><img [src]="galleryMedia()[0].servedUrl" [alt]="'Fotografia de ' + selectedPlace.name" /></button> }
+            @else { <img src="/images/place-detail/editorial-fallback.webp" alt="" /> }
+          </div>
+        </section>
+
+        <section id="petiloc-pets" class="petiloc-detail__chapter">
+          <span class="petiloc-detail__chapter-icon" aria-hidden="true"><i class="petiloc-detail__paw"></i></span>
+          <div class="petiloc-detail__chapter-copy"><h2>Mascotes</h2><p>{{ petStatusDescription() }}</p></div>
+          <div class="petiloc-detail__chapter-visual petiloc-detail__chapter-visual--pet">
+            @if (galleryMedia().length > 1) { <button type="button" (click)="openLightbox(1)"><img [src]="galleryMedia()[1].servedUrl" [alt]="'Fotografia de ' + selectedPlace.name" /></button> }
+            @else { <i class="petiloc-detail__paw" aria-hidden="true"></i> }
+          </div>
+        </section>
+
+        <a id="petiloc-location" class="petiloc-detail__chapter" [routerLink]="[]" fragment="petiloc-map">
+          <span class="petiloc-detail__chapter-icon" aria-hidden="true">⌖</span>
+          <div class="petiloc-detail__chapter-copy"><h2>Ubicació</h2><p>{{ formattedAddress() }}</p></div>
+          <span class="petiloc-detail__map-preview" aria-hidden="true"><i></i></span>
+        </a>
+
+        <section class="petiloc-detail__chapter petiloc-detail__chapter--photos">
+          <span class="petiloc-detail__chapter-icon" aria-hidden="true">▧</span>
+          <div class="petiloc-detail__chapter-copy"><h2>Fotos</h2><p>{{ galleryMedia().length ? (galleryTotal() || galleryMedia().length) + ' fotografies verificades' : 'Encara no hi ha fotografies verificades' }}</p></div>
+          <button type="button" class="petiloc-detail__add-photo" (click)="openUploadModal($event)"><span aria-hidden="true">▣</span> Afegir fotografia</button>
+        </section>
+      </div>
+
+      <section id="petiloc-map" class="petiloc-detail__map-card" aria-labelledby="petiloc-map-title">
+        <header><div><h2 id="petiloc-map-title">Com hi arribo?</h2><p>{{ formattedAddress() }}</p></div><span aria-hidden="true">›</span></header>
+        <div class="petiloc-detail__map-frame"><app-place-map [places]="placeAsArray" [selectedPlaceId]="selectedPlace.id" [compactPresentation]="true" height="20.5rem" emptyTitle="No hi ha ubicació disponible" emptyCopy="Aquest lloc no té coordenades per mostrar al mapa." /></div>
+        @if (directionsUrl()) { <a class="petiloc-detail__directions" [href]="directionsUrl()" target="_blank" rel="noopener noreferrer" (click)="openDirections($event)">Com arribar-hi <span aria-hidden="true">↗</span></a> }
+      </section>
+      </section>
+
+      <svg class="petiloc-detail__life-line petiloc-detail__life-line--desktop" viewBox="0 0 1180 776" preserveAspectRatio="none" aria-hidden="true"><path d="M662 329 C 637 367 629 415 711 457 C 778 491 750 549 684 579 C 619 608 621 681 718 760 L738 776" /></svg>
+      <svg class="petiloc-detail__life-line petiloc-detail__life-line--mobile" viewBox="0 329 1180 431" preserveAspectRatio="none" aria-hidden="true"><path d="M662 329 C 637 367 629 415 711 457 C 778 491 750 549 684 579 C 619 608 621 681 718 760" /></svg>
+      <span class="petiloc-detail__route-node petiloc-detail__route-node--hero" aria-hidden="true"><i class="petiloc-detail__paw"></i></span>
+      <span class="petiloc-detail__route-node petiloc-detail__route-node--first" aria-hidden="true"><i class="petiloc-detail__paw"></i></span>
+      <span class="petiloc-detail__route-node petiloc-detail__route-node--second" aria-hidden="true"><i class="petiloc-detail__paw"></i></span>
+      <span class="petiloc-detail__route-node petiloc-detail__route-node--third" aria-hidden="true"><i class="petiloc-detail__paw"></i></span>
+      <span class="petiloc-detail__route-node petiloc-detail__route-node--fourth" aria-hidden="true"><i class="petiloc-detail__paw"></i></span>
+      <img #animatedWestie class="petiloc-detail__westie" src="/images/place-detail/westie-face.png" alt="" aria-hidden="true" />
+      <span class="petiloc-detail__flower" aria-hidden="true"><i></i><i></i><i></i></span>
+    </article>
+
+    <details class="petiloc-detail__sources">
+      <summary>Informació complementària</summary>
+      <div>
+        <p><strong>Procedència de les dades:</strong> {{ selectedPlace.dataProvenance || 'PetiLoc' }}</p>
+        @if (galleryMedia().length) {
+          <p><strong>Fotografies:</strong></p><ul>@for (media of galleryMedia(); track media.id) { <li>{{ media.attribution || mediaSourceLabel(media.source) }}</li> }</ul>
+          <button type="button" (click)="openGallery()">Veure la galeria completa</button>
+        }
+      </div>
+    </details>
+
+    <nav class="petiloc-detail__mobile-dock" aria-label="Accions del lloc">
+      <button type="button" (click)="openUploadModal($event)"><span aria-hidden="true">▣</span>Foto</button>
+      @if (directionsUrl()) { <a [href]="directionsUrl()" target="_blank" rel="noopener noreferrer" (click)="openDirections($event)"><span aria-hidden="true">⌖</span>Anar-hi</a> }
+      <button type="button" (click)="sharePlace()"><span aria-hidden="true">↗</span>Compartir</button>
+      @if (canWriteFavorites()) { <button type="button" (click)="toggleFavorite(selectedPlace.id)"><span aria-hidden="true">♡</span>{{ isFavorite(selectedPlace.id) ? 'Guardat' : 'Guardar' }}</button> }
+    </nav>
+
+    @if (galleryOpen()) {
+      <div class="place-detail-page__gallery-backdrop" role="presentation" (mousedown)="closeGallery()">
+        <section class="place-detail-page__gallery" role="dialog" aria-modal="true" aria-labelledby="place-gallery-title" (mousedown)="$event.stopPropagation()">
+          <header class="place-detail-page__gallery-heading"><div><p>Fotografies verificades</p><h2 id="place-gallery-title" tabindex="-1">Galeria de {{ selectedPlace.name }}</h2></div><button type="button" aria-label="Tancar la galeria" (click)="closeGallery()">×</button></header>
+          <div class="place-detail-page__gallery-grid">
+            @for (media of galleryMedia(); track media.id; let index = $index) {
+              <figure><button type="button" (click)="closeGallery(); openLightbox(index)"><img [src]="media.servedUrl" [alt]="'Fotografia ' + (index + 1) + ' de ' + selectedPlace.name" /></button><figcaption><span>{{ media.attribution || mediaSourceLabel(media.source) }}</span><button type="button" (click)="reportPhoto(media.id)">Informar d’un problema</button></figcaption></figure>
+            }
+          </div>
+          @if (galleryAssets().length < galleryTotal()) { <button type="button" class="place-detail-page__gallery-more" [disabled]="galleryBusy()" (click)="loadMorePhotos()">{{ galleryBusy() ? 'Carregant…' : 'Carregar més fotografies' }}</button> }
+        </section>
+      </div>
+    }
+
+    @if (uploadOpen()) {
+      <div class="place-detail-page__upload-backdrop" role="presentation" (mousedown)="closeUploadModal()">
+        <section class="place-detail-page__upload" role="dialog" aria-modal="true" aria-labelledby="photo-upload-title" aria-describedby="photo-upload-description" (mousedown)="$event.stopPropagation()">
+          <header class="place-detail-page__upload-header"><div><p class="petiloc-detail__modal-eyebrow">Aportació comunitària</p><h2 id="photo-upload-title">Afegir fotografies</h2></div><button type="button" class="place-detail-page__upload-close" aria-label="Tancar el formulari" (click)="closeUploadModal()">×</button></header>
+          <p id="photo-upload-description" class="place-detail-page__upload-intro">Comparteix imatges útils del local. Màxim 5 fotografies, 10 MB i 20 megapíxels per fitxer.</p>
+          <aside class="place-detail-page__privacy-warning" role="note"><span aria-hidden="true">!</span><div><strong>Protegeix la teva privacitat</strong><p>No seleccionis documents, matrícules ni imatges amb dades personals.</p></div></aside>
+          <div class="place-detail-page__upload-choices"><label>◉ Fer una fotografia<input type="file" accept="image/*" capture="environment" (change)="selectPhotos($event)" /></label><label>▧ Seleccionar fotografies<input type="file" accept="image/*" multiple (change)="selectPhotos($event)" /></label></div>
+          @if (selectedPhotos().length) {
+            <div class="place-detail-page__selection-summary" role="status">{{ selectedPhotos().length }} de 5 seleccionades · encara no s’han enviat</div>
+            <div class="place-detail-page__previews">@for (photo of selectedPhotos(); track photo.previewUrl; let index = $index) { <figure><img [src]="photo.previewUrl" [alt]="'Previsualització privada de ' + photo.file.name" /><figcaption><span>{{ photo.file.name }}</span><button type="button" (click)="removePhoto(index)" [attr.aria-label]="'Retirar ' + photo.file.name">Retirar</button></figcaption></figure> }</div>
+            <label class="place-detail-page__rights"><input type="checkbox" [checked]="rightsAccepted()" (change)="rightsAccepted.set($any($event.target).checked)" /><span>Declaro que soc titular dels drets o que disposo d’autorització suficient perquè PetiLoc pugui publicar i moderar aquestes fotografies.</span></label>
+          }
+          @if (uploadError()) { <p class="place-detail-page__upload-error" role="alert">{{ uploadError() }}</p> }
+          @if (uploadMessage()) { <p class="place-detail-page__upload-success" role="status">{{ uploadMessage() }}</p> }
+          <footer class="place-detail-page__upload-footer"><button type="button" class="place-detail-page__upload-cancel" (click)="closeUploadModal()">Cancel·lar</button><button class="place-detail-page__upload-submit" type="button" [disabled]="!selectedPhotos().length || !rightsAccepted() || uploadBusy()" (click)="uploadPhotos()">{{ uploadBusy() ? 'Enviant…' : 'Confirmar la pujada' }}</button></footer>
+        </section>
+      </div>
+    }
+
+    @if (lightboxIndex() !== null) {
+      <div class="place-detail-page__lightbox" role="dialog" aria-modal="true" aria-label="Galeria ampliada"
+        (click)="closeLightbox()" (touchstart)="carouselTouchStart($event)" (touchend)="carouselTouchEnd($event)">
+        <button type="button" class="place-detail-page__lightbox-close" aria-label="Tancar" (click)="closeLightbox()">×</button>
+        @if (galleryMedia().length > 1) { <button type="button" class="place-detail-page__lightbox-prev" aria-label="Anterior" (click)="$event.stopPropagation(); movePhoto(-1)">‹</button> }
+        <figure (click)="$event.stopPropagation()">
+          <img [src]="galleryMedia()[lightboxIndex()!].servedUrl" [alt]="'Fotografia ampliada de ' + selectedPlace.name" />
+          <figcaption>
+            <strong>{{ lightboxIndex()! + 1 }}/{{ galleryMedia().length }}</strong>
+            <span>{{ galleryMedia()[lightboxIndex()!].author || 'Autoria no indicada' }} · {{ mediaSourceLabel(galleryMedia()[lightboxIndex()!].source) }}</span>
+            @if (galleryMedia()[lightboxIndex()!].attribution) { <span>{{ galleryMedia()[lightboxIndex()!].attribution }}</span> }
+            @if (galleryMedia()[lightboxIndex()!].licenseUrl) {
+              <a [href]="galleryMedia()[lightboxIndex()!].licenseUrl" target="_blank" rel="noopener noreferrer">{{ galleryMedia()[lightboxIndex()!].licenseIdentifier }}</a>
+            } @else if (galleryMedia()[lightboxIndex()!].licenseIdentifier) {
+              <span>{{ galleryMedia()[lightboxIndex()!].licenseIdentifier }}</span>
+            }
+          </figcaption>
+        </figure>
+        @if (galleryMedia().length > 1) { <button type="button" class="place-detail-page__lightbox-next" aria-label="Següent" (click)="$event.stopPropagation(); movePhoto(1)">›</button> }
+      </div>
     }
   } @else if (!hasLoaded()) {
-    <section class="place-detail-page__missing">
-      <h1>Carregant lloc...</h1>
-      <a routerLink="/places">Tornar a Llocs</a>
-    </section>
+    <section class="petiloc-detail__loading" aria-label="Carregant el detall" aria-busy="true"></section>
   } @else {
-    <section class="place-detail-page__missing">
-      <h1>No hem trobat aquest lloc.</h1>
-      <a routerLink="/places">Tornar a Llocs</a>
-    </section>
+    <section class="petiloc-detail__missing"><h1>No hem trobat aquest lloc.</h1><a routerLink="/places">Tornar a Llocs</a></section>
   }
 </main>
-
-<app-site-footer />

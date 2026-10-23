@@ -141,7 +141,7 @@
           [selected]="selectedPlaceId() === place.id"
           [detailQueryParams]="currentSearchQueryParams()"
           (favoriteToggled)="toggleFavorite($event)"
-          (placeClicked)="openPlaceFromMap($event)"
+          (placeClicked)="openPlaceDetail($event)"
         />
       } @empty {
         <article class="places-page__empty">
@@ -150,12 +150,30 @@
           } @else {
             <h3>No hi ha resultats amb aquest filtre.</h3>
             <p>Prova una altra ciutat o neteja els filtres per tornar a començar.</p>
+            <button type="button" class="places-page__missing-trigger" (click)="missingPlaceOpen.set(true)">
+              No trobes el teu establiment?
+            </button>
           }
         </article>
       }
     </div>
 
+    @if (missingPlaceOpen()) {
+      <form class="places-page__missing-form" (submit)="submitMissingPlace($event)">
+        <div><strong>Proposa un establiment que falta</strong><p>No es publicarà automàticament: ADMIN comprovarà coincidències i dades.</p></div>
+        <label>Nom del negoci<input name="name" required minlength="2" maxlength="200" /></label>
+        <label>Municipi<input name="municipality" required minlength="2" maxlength="150" [value]="filters().city" /></label>
+        <label>Adreça aproximada<input name="address" required minlength="3" maxlength="300" /></label>
+        <label>Informació addicional<textarea name="details" maxlength="2000" rows="3"></textarea></label>
+        <div class="places-page__missing-actions">
+          <button type="submit" [disabled]="missingPlaceSending()">{{ missingPlaceSending() ? 'Enviant…' : 'Enviar proposta' }}</button>
+          <button type="button" (click)="missingPlaceOpen.set(false)">Tancar</button>
+        </div>
+        @if (missingPlaceError()) { <p role="alert">{{ missingPlaceError() }}</p> }
+        @if (missingPlaceMessage()) { <p role="status">{{ missingPlaceMessage() }}</p> }
+      </form>
+    }
+
   </section>
 </main>
 
-<app-site-footer />

@@ -11,7 +11,7 @@ public sealed class PlaceMediaAssetConfiguration : IEntityTypeConfiguration<Plac
         builder.ToTable("place_media_assets", table =>
         {
             table.HasCheckConstraint("ck_place_media_source", "source IN ('PetiLoc','Owner','User','WikimediaCommons','Mapillary','OfficialWebsite')");
-            table.HasCheckConstraint("ck_place_media_verification", "verification_status IN ('Pending','Verified','Rejected')");
+            table.HasCheckConstraint("ck_place_media_verification", "verification_status IN ('Pending','Verified','Rejected','Quarantined','Withdrawn')");
         });
         builder.HasKey(asset => asset.Id);
         builder.Property(asset => asset.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()");
@@ -48,10 +48,14 @@ public sealed class PlaceMediaAssetConfiguration : IEntityTypeConfiguration<Plac
         builder.Property(asset => asset.LastCheckedAtUtc).HasColumnName("last_checked_at_utc");
         builder.Property(asset => asset.ModeratedAtUtc).HasColumnName("moderated_at_utc");
         builder.Property(asset => asset.ModeratorActorId).HasColumnName("moderator_actor_id");
+        builder.Property(asset => asset.ContributorUserId).HasColumnName("contributor_user_id");
+        builder.HasOne<UserRecord>().WithMany().HasForeignKey(asset => asset.ContributorUserId).OnDelete(DeleteBehavior.SetNull);
+        Optional(builder, asset => asset.RightsDeclaration, "rights_declaration", 2000);
         builder.Property(asset => asset.CreatedAtUtc).HasColumnName("created_at_utc").HasDefaultValueSql("NOW()");
         builder.Property(asset => asset.UpdatedAtUtc).HasColumnName("updated_at_utc").HasDefaultValueSql("NOW()");
         builder.HasIndex(asset => new { asset.PlaceId, asset.ContentHash }).IsUnique().HasDatabaseName("ux_place_media_place_hash");
         builder.HasIndex(asset => asset.PlaceId).HasDatabaseName("ix_place_media_place");
+        builder.HasIndex(asset => new { asset.ContributorUserId, asset.CreatedAtUtc }).HasDatabaseName("ix_place_media_contributor_created");
         builder.HasIndex(asset => new { asset.PlaceId, asset.IsPrimary })
             .IsUnique().HasFilter("is_primary = TRUE").HasDatabaseName("ux_place_media_primary");
     }
@@ -61,6 +65,71 @@ public sealed class PlaceMediaAssetConfiguration : IEntityTypeConfiguration<Plac
 
     private static void Optional<T>(EntityTypeBuilder<T> builder, System.Linq.Expressions.Expression<Func<T, string?>> property, string name, int length) where T : class =>
         builder.Property(property).HasColumnName(name).HasMaxLength(length);
+}
+
+public sealed class PlaceMediaBlobConfiguration : IEntityTypeConfiguration<PlaceMediaBlobRecord>
+{
+    public void Configure(EntityTypeBuilder<PlaceMediaBlobRecord> builder)
+    {
+        builder.ToTable("place_media_blobs", table =>
+            table.HasCheckConstraint("ck_place_media_blob_variant", "variant IN ('Optimized','Thumbnail')"));
+        builder.HasKey(blob => blob.Id);
+        builder.Property(blob => blob.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()");
+        builder.Property(blob => blob.MediaAssetId).HasColumnName("media_asset_id");
+        builder.HasOne(blob => blob.MediaAsset).WithMany(asset => asset.Blobs)
+            .HasForeignKey(blob => blob.MediaAssetId).OnDelete(DeleteBehavior.Cascade);
+        builder.Property(blob => blob.Variant).HasColumnName("variant").HasMaxLength(24).IsRequired();
+        builder.Property(blob => blob.MimeType).HasColumnName("mime_type").HasMaxLength(100).IsRequired();
+        builder.Property(blob => blob.Content).HasColumnName("content").HasColumnType("bytea").IsRequired();
+        builder.Property(blob => blob.SizeBytes).HasColumnName("size_bytes");
+        builder.Property(blob => blob.Width).HasColumnName("width");
+        builder.Property(blob => blob.Height).HasColumnName("height");
+        builder.Property(blob => blob.Sha256).HasColumnName("sha256").HasMaxLength(64).IsRequired();
+        builder.Property(blob => blob.CreatedAtUtc).HasColumnName("created_at_utc").HasDefaultValueSql("NOW()");
+        builder.HasIndex(blob => new { blob.MediaAssetId, blob.Variant }).IsUnique()
+            .HasDatabaseName("ux_place_media_blob_asset_variant");
+        builder.HasIndex(blob => blob.Sha256).HasDatabaseName("ix_place_media_blob_sha256");
+    }
+}
+
+public sealed class PlaceMediaModerationConfiguration : IEntityTypeConfiguration<PlaceMediaModerationRecord>
+{
+    public void Configure(EntityTypeBuilder<PlaceMediaModerationRecord> builder)
+    {
+        builder.ToTable("place_media_moderation_history");
+        builder.HasKey(item => item.Id);
+        builder.Property(item => item.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()");
+        builder.Property(item => item.MediaAssetId).HasColumnName("media_asset_id");
+        builder.HasOne<PlaceMediaAssetRecord>().WithMany().HasForeignKey(item => item.MediaAssetId).OnDelete(DeleteBehavior.Cascade);
+        builder.Property(item => item.ActorUserId).HasColumnName("actor_user_id");
+        builder.HasOne<UserRecord>().WithMany().HasForeignKey(item => item.ActorUserId).OnDelete(DeleteBehavior.Restrict);
+        builder.Property(item => item.Action).HasColumnName("action").HasMaxLength(40).IsRequired();
+        builder.Property(item => item.Reason).HasColumnName("reason").HasMaxLength(1000).IsRequired();
+        builder.Property(item => item.CreatedAtUtc).HasColumnName("created_at_utc").HasDefaultValueSql("NOW()");
+        builder.HasIndex(item => new { item.MediaAssetId, item.CreatedAtUtc }).HasDatabaseName("ix_place_media_moderation_asset_created");
+    }
+}
+
+public sealed class PlaceMediaReportConfiguration : IEntityTypeConfiguration<PlaceMediaReportRecord>
+{
+    public void Configure(EntityTypeBuilder<PlaceMediaReportRecord> builder)
+    {
+        builder.ToTable("place_media_reports", table =>
+            table.HasCheckConstraint("ck_place_media_report_status", "status IN ('Pending','Resolved','Dismissed')"));
+        builder.HasKey(item => item.Id);
+        builder.Property(item => item.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()");
+        builder.Property(item => item.MediaAssetId).HasColumnName("media_asset_id");
+        builder.HasOne<PlaceMediaAssetRecord>().WithMany().HasForeignKey(item => item.MediaAssetId).OnDelete(DeleteBehavior.Cascade);
+        builder.Property(item => item.ReporterUserId).HasColumnName("reporter_user_id");
+        builder.HasOne<UserRecord>().WithMany().HasForeignKey(item => item.ReporterUserId).OnDelete(DeleteBehavior.Restrict);
+        builder.Property(item => item.Reason).HasColumnName("reason").HasMaxLength(1000).IsRequired();
+        builder.Property(item => item.Status).HasColumnName("status").HasMaxLength(24).IsRequired();
+        builder.Property(item => item.CreatedAtUtc).HasColumnName("created_at_utc").HasDefaultValueSql("NOW()");
+        builder.Property(item => item.ResolvedAtUtc).HasColumnName("resolved_at_utc");
+        builder.Property(item => item.ResolvedByUserId).HasColumnName("resolved_by_user_id");
+        builder.HasOne<UserRecord>().WithMany().HasForeignKey(item => item.ResolvedByUserId).OnDelete(DeleteBehavior.SetNull);
+        builder.HasIndex(item => new { item.MediaAssetId, item.Status }).HasDatabaseName("ix_place_media_report_asset_status");
+    }
 }
 
 public sealed class PlaceMediaDiscoveryConfiguration : IEntityTypeConfiguration<PlaceMediaDiscoveryRecord>

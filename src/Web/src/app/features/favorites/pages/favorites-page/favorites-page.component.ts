@@ -1,7 +1,6 @@
 import { Component, ElementRef, ViewChild, computed, effect, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 
-import { SiteFooterComponent } from '../../../../core/layout/components/site-footer/site-footer.component';
 import { SiteHeaderComponent } from '../../../../core/layout/components/site-header/site-header.component';
 import { SectionHeadingComponent } from '../../../../shared/components/section-heading/section-heading.component';
 import { PlaceCardComponent } from '../../../places/components/place-card/place-card.component';
@@ -26,7 +25,6 @@ import {
   imports: [
     RouterLink,
     SiteHeaderComponent,
-    SiteFooterComponent,
     SectionHeadingComponent,
     PlaceFiltersComponent,
     PlaceCardComponent,

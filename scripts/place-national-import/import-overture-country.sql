@@ -26,7 +26,7 @@ SET coverage = 'Espanya i Alemanya',
     dataset_version = '2026-09-23.1',
     consulted_at_utc = now()
 WHERE source_key = 'overture-maps-places';
-
+2
 CREATE TEMP TABLE national_run_map ON COMMIT DROP AS
 WITH source AS (
     SELECT id

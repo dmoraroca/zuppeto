@@ -1,14 +1,13 @@
 import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 
-import { SiteFooterComponent } from '../../../../core/layout/components/site-footer/site-footer.component';
 import { SiteHeaderComponent } from '../../../../core/layout/components/site-header/site-header.component';
 import { GenericInfoCardComponent } from '../../../../shared/components/generic-info-card/generic-info-card.component';
 import { SectionHeadingComponent } from '../../../../shared/components/section-heading/section-heading.component';
 
 @Component({
   selector: 'app-permissions-page',
-  imports: [SiteHeaderComponent, SiteFooterComponent, GenericInfoCardComponent, SectionHeadingComponent],
+  imports: [SiteHeaderComponent, GenericInfoCardComponent, SectionHeadingComponent],
   templateUrl: './permissions-page.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './permissions-page.component.scss'

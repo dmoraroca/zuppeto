@@ -7,5 +7,5 @@
   [attr.aria-label]="active() ? 'Treure de favorits' : 'Afegir a favorits'"
   (click)="onToggle($event)"
 >
-  <span>{{ active() ? 'Treure' : 'Favorit' }}</span>
+  <span>{{ active() ? activeLabel() : inactiveLabel() }}</span>
 </button>

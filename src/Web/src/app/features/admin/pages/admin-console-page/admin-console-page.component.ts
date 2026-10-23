@@ -14,7 +14,6 @@ import {
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { filter, merge, of } from 'rxjs';
 
-import { SiteFooterComponent } from '../../../../core/layout/components/site-footer/site-footer.component';
 import { SiteHeaderComponent } from '../../../../core/layout/components/site-header/site-header.component';
 import { ErrorNotificationsService } from '../../../../core/services/error-notifications.service';
 import { PasswordFieldComponent } from '../../../auth/components/password-field/password-field.component';
@@ -85,7 +84,6 @@ type AvatarSuccessOperation = 'crear' | 'modificar' | 'esborrar';
     DecimalPipe,
     TerritorialLocationSelectorComponent,
     SiteHeaderComponent,
-    SiteFooterComponent,
     SectionHeadingComponent,
     PasswordFieldComponent,
     PetGovernancePanelComponent,
@@ -266,6 +264,9 @@ export class AdminConsolePageComponent {
   protected readonly placeIsNew = signal(false);
   protected readonly placeDeleteCandidate = signal<AdminPlaceDto | null>(null);
   protected readonly placeMediaAssets = signal<AdminPlaceMediaAssetDto[]>([]);
+  protected readonly placeMediaHistory = signal<import('../../services/admin.service').AdminPlaceMediaModerationDto[]>([]);
+  protected readonly placeMediaReports = signal<import('../../services/admin.service').AdminPlaceMediaReportDto[]>([]);
+  protected readonly missingPlaceProposals = signal<import('../../services/admin.service').AdminMissingPlaceProposalDto[]>([]);
   protected readonly placeMediaBusy = signal(false);
   protected readonly mapillaryCandidates = signal<AdminPlaceProximityMediaCandidateDto[]>([]);
   protected readonly mapillaryBusy = signal(false);
@@ -2091,6 +2092,7 @@ export class AdminConsolePageComponent {
     this.placeDetailEditMode.set(false);
     this.createMaintenancePrivacyAccepted.set(false);
     this.placeMediaAssets.set([]);
+    this.placeMediaHistory.set([]);
     this.mapillaryCandidates.set([]);
   }
 
@@ -2106,6 +2108,47 @@ export class AdminConsolePageComponent {
     } finally {
       this.placeMediaBusy.set(false);
     }
+  }
+
+  protected async loadPendingMediaQueue(): Promise<void> {
+    if (this.placeMediaBusy()) return;
+    this.placeMediaBusy.set(true);
+    try {
+      this.placeMediaAssets.set(await this.adminService.listPendingPlaceMedia());
+      this.notifications.notify('Cua de moderació', 'S’han carregat les primeres 50 fotografies pendents.', 'success');
+    } catch (error) { this.notifyHttpError(error, 'No s’ha pogut carregar la cua de moderació.'); }
+    finally { this.placeMediaBusy.set(false); }
+  }
+
+  protected async loadParticipationQueues(): Promise<void> {
+    if (this.placeMediaBusy()) return;
+    this.placeMediaBusy.set(true);
+    try {
+      const [reports, proposals] = await Promise.all([
+        this.adminService.listPendingMediaReports(), this.adminService.listMissingPlaceProposals()
+      ]);
+      this.placeMediaReports.set(reports);
+      this.missingPlaceProposals.set(proposals);
+    } catch (error) { this.notifyHttpError(error, 'No s’han pogut carregar les cues participatives.'); }
+    finally { this.placeMediaBusy.set(false); }
+  }
+
+  protected async resolveMediaReport(reportId: string, decision: 'Resolved' | 'Dismissed'): Promise<void> {
+    const reason = window.prompt('Motiu de la resolució de la denúncia:')?.trim();
+    if (!reason) return;
+    try {
+      await this.adminService.resolveMediaReport(reportId, decision, reason);
+      this.placeMediaReports.update(items => items.filter(item => item.id !== reportId));
+    } catch (error) { this.notifyHttpError(error, 'No s’ha pogut resoldre la denúncia.'); }
+  }
+
+  protected async decideMissingProposal(id: string, decision: 'Accepted' | 'Rejected' | 'Duplicate'): Promise<void> {
+    const reason = window.prompt('Motiu de la decisió sobre la proposta:')?.trim();
+    if (!reason) return;
+    try {
+      await this.adminService.decideMissingPlaceProposal(id, decision, reason);
+      this.missingPlaceProposals.update(items => items.filter(item => item.id !== id));
+    } catch (error) { this.notifyHttpError(error, 'No s’ha pogut resoldre la proposta.'); }
   }
 
   protected async searchMapillaryMedia(): Promise<void> {
@@ -2173,7 +2216,7 @@ export class AdminConsolePageComponent {
   }
 
   protected async acceptMedia(asset: AdminPlaceMediaAssetDto): Promise<void> {
-    const placeId = this.editablePlace().id;
+    const placeId = asset.placeId;
     if (!placeId || this.placeMediaBusy()) return;
     const reason = window.prompt('Indica com has comprovat que la fotografia correspon exactament a aquest establiment:');
     if (!reason?.trim()) return;
@@ -2190,7 +2233,7 @@ export class AdminConsolePageComponent {
   }
 
   protected async rejectMedia(asset: AdminPlaceMediaAssetDto): Promise<void> {
-    const placeId = this.editablePlace().id;
+    const placeId = asset.placeId;
     if (!placeId) return;
     const reason = window.prompt('Motiu del rebuig de la imatge:')?.trim();
     if (!reason) return;
@@ -2201,6 +2244,28 @@ export class AdminConsolePageComponent {
     } catch (error: unknown) {
       this.notifyHttpError(error, 'No s’ha pogut rebutjar la imatge.');
     }
+  }
+
+  protected async quarantineMedia(asset: AdminPlaceMediaAssetDto): Promise<void> {
+    const placeId = asset.placeId;
+    const reason = window.prompt('Motiu de la quarantena preventiva:')?.trim();
+    if (!placeId || !reason) return;
+    try {
+      await this.adminService.quarantinePlaceMedia(placeId, asset.id, reason);
+      await this.loadPlaceMedia(placeId);
+      this.notifications.notify('Imatge en quarantena', 'La imatge ha deixat de ser accessible públicament.', 'success');
+    } catch (error) { this.notifyHttpError(error, 'No s’ha pogut posar la imatge en quarantena.'); }
+  }
+
+  protected async withdrawMedia(asset: AdminPlaceMediaAssetDto): Promise<void> {
+    const placeId = asset.placeId;
+    const reason = window.prompt('Motiu de la retirada:')?.trim();
+    if (!placeId || !reason) return;
+    try {
+      await this.adminService.withdrawPlaceMedia(placeId, asset.id, reason);
+      await this.loadPlaceMedia(placeId);
+      this.notifications.notify('Imatge retirada', 'La retirada ha quedat registrada a l’historial.', 'success');
+    } catch (error) { this.notifyHttpError(error, 'No s’ha pogut retirar la imatge.'); }
   }
 
   protected beginPlaceDetailEdit(): void {
@@ -2562,9 +2627,15 @@ export class AdminConsolePageComponent {
 
   private async loadPlaceMedia(placeId: string): Promise<void> {
     try {
-      this.placeMediaAssets.set(await this.adminService.listPlaceMedia(placeId));
+      const [assets, history] = await Promise.all([
+        this.adminService.listPlaceMedia(placeId),
+        this.adminService.listPlaceMediaHistory(placeId)
+      ]);
+      this.placeMediaAssets.set(assets);
+      this.placeMediaHistory.set(history);
     } catch {
       this.placeMediaAssets.set([]);
+      this.placeMediaHistory.set([]);
     }
   }
 

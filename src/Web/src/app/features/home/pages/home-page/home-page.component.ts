@@ -1,7 +1,6 @@
 import { Component, computed, inject, ChangeDetectionStrategy } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
-import { SiteFooterComponent } from '../../../../core/layout/components/site-footer/site-footer.component';
 import { SiteHeaderComponent } from '../../../../core/layout/components/site-header/site-header.component';
 import { HomeHeroSectionComponent } from '../../components/home-hero-section/home-hero-section.component';
 import { TrendingCitiesSectionComponent } from '../../components/trending-cities-section/trending-cities-section.component';
@@ -20,7 +19,6 @@ import { PlaceService } from '../../../places/services/place.service';
   imports: [
     RouterLink,
     SiteHeaderComponent,
-    SiteFooterComponent,
     HomeHeroSectionComponent,
     TrendingCitiesSectionComponent,
     WhyZuppetoSectionComponent

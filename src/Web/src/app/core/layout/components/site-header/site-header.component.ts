@@ -23,9 +23,12 @@ export class SiteHeaderComponent {
   protected readonly isAuthenticated = computed(() => this.authService.isAuthenticated());
   protected readonly isAdmin = computed(() => this.authService.isAdmin());
   protected readonly navigationMenu = computed(() => this.authService.navigationMenu());
-  protected readonly primaryNavigationMenu = computed(() =>
-    this.navigationMenu().filter((item) => item.key !== 'help')
-  );
+  protected readonly primaryNavigationMenu = computed(() => {
+    const items = new Map(this.navigationMenu().map((item) => [item.key, item]));
+    return ['home', 'places', 'favorites', 'admin']
+      .map((key) => items.get(key))
+      .filter((item): item is NavigationMenuItem => item !== undefined);
+  });
   protected readonly helpMenu = computed(
     () => this.navigationMenu().find((item) => item.key === 'help') ?? null
   );

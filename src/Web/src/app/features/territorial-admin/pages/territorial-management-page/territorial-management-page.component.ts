@@ -2,7 +2,6 @@ import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject }
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 
-import { SiteFooterComponent } from '../../../../core/layout/components/site-footer/site-footer.component';
 import { SiteHeaderComponent } from '../../../../core/layout/components/site-header/site-header.component';
 import { PageResult, TerritorialContext, TerritorialImport } from '../../models/territorial-admin.model';
 import { TerritorialAdminApiService } from '../../services/territorial-admin-api.service';
@@ -13,7 +12,7 @@ import { OfficialSourcesComponent } from '../../components/official-sources/offi
 
 @Component({
   selector: 'app-territorial-management-page',
-  imports: [FormsModule, SiteHeaderComponent, SiteFooterComponent, TerritorialImportHistoryComponent, TerritorialImportWizardComponent, TerritorialCatalogComponent, OfficialSourcesComponent],
+  imports: [FormsModule, SiteHeaderComponent, TerritorialImportHistoryComponent, TerritorialImportWizardComponent, TerritorialCatalogComponent, OfficialSourcesComponent],
   templateUrl: './territorial-management-page.component.html',
   styleUrl: './territorial-management-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush

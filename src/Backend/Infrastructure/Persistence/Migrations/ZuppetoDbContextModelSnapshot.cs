@@ -430,6 +430,88 @@ namespace Infrastructure.Persistence.Migrations
                     b.ToTable("menu_roles", (string)null);
                 });
 
+            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.MissingPlaceProposalRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<string>("AdditionalInformation")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("additional_information");
+
+                    b.Property<string>("ApproximateAddress")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("approximate_address");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<string>("Municipality")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)")
+                        .HasColumnName("municipality");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<Guid?>("PossibleDuplicatePlaceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("possible_duplicate_place_id");
+
+                    b.Property<string>("ReviewReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("review_reason");
+
+                    b.Property<DateTimeOffset?>("ReviewedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("reviewed_at_utc");
+
+                    b.Property<Guid?>("ReviewedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("reviewed_by_user_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("SubmittedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("submitted_by_user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PossibleDuplicatePlaceId");
+
+                    b.HasIndex("ReviewedByUserId");
+
+                    b.HasIndex("Status", "CreatedAtUtc")
+                        .HasDatabaseName("ix_missing_place_proposal_status_created");
+
+                    b.HasIndex("SubmittedByUserId", "CreatedAtUtc")
+                        .HasDatabaseName("ix_missing_place_proposal_user_created");
+
+                    b.ToTable("missing_place_proposals", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_missing_place_proposal_status", "status IN ('Pending','Accepted','Rejected','Duplicate')");
+                        });
+                });
+
             modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.PermissionRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1702,6 +1784,10 @@ namespace Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(128)")
                         .HasColumnName("content_hash");
 
+                    b.Property<Guid?>("ContributorUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("contributor_user_id");
+
                     b.Property<DateTimeOffset>("CreatedAtUtc")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
@@ -1803,6 +1889,11 @@ namespace Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(2000)")
                         .HasColumnName("reuse_conditions");
 
+                    b.Property<string>("RightsDeclaration")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("rights_declaration");
+
                     b.Property<string>("ServedUrl")
                         .IsRequired()
                         .HasMaxLength(2048)
@@ -1852,6 +1943,9 @@ namespace Infrastructure.Persistence.Migrations
                     b.HasIndex("PlaceId")
                         .HasDatabaseName("ix_place_media_place");
 
+                    b.HasIndex("ContributorUserId", "CreatedAtUtc")
+                        .HasDatabaseName("ix_place_media_contributor_created");
+
                     b.HasIndex("PlaceId", "ContentHash")
                         .IsUnique()
                         .HasDatabaseName("ux_place_media_place_hash");
@@ -1865,7 +1959,75 @@ namespace Infrastructure.Persistence.Migrations
                         {
                             t.HasCheckConstraint("ck_place_media_source", "source IN ('PetiLoc','Owner','User','WikimediaCommons','Mapillary','OfficialWebsite')");
 
-                            t.HasCheckConstraint("ck_place_media_verification", "verification_status IN ('Pending','Verified','Rejected')");
+                            t.HasCheckConstraint("ck_place_media_verification", "verification_status IN ('Pending','Verified','Rejected','Quarantined','Withdrawn')");
+                        });
+                });
+
+            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.PlaceMediaBlobRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<byte[]>("Content")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("content");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<int>("Height")
+                        .HasColumnType("integer")
+                        .HasColumnName("height");
+
+                    b.Property<Guid>("MediaAssetId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("media_asset_id");
+
+                    b.Property<string>("MimeType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("mime_type");
+
+                    b.Property<string>("Sha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("sha256");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint")
+                        .HasColumnName("size_bytes");
+
+                    b.Property<string>("Variant")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)")
+                        .HasColumnName("variant");
+
+                    b.Property<int>("Width")
+                        .HasColumnType("integer")
+                        .HasColumnName("width");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Sha256")
+                        .HasDatabaseName("ix_place_media_blob_sha256");
+
+                    b.HasIndex("MediaAssetId", "Variant")
+                        .IsUnique()
+                        .HasDatabaseName("ux_place_media_blob_asset_variant");
+
+                    b.ToTable("place_media_blobs", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_place_media_blob_variant", "variant IN ('Optimized','Thumbnail')");
                         });
                 });
 
@@ -1934,6 +2096,107 @@ namespace Infrastructure.Persistence.Migrations
                     b.ToTable("place_media_discoveries", null, t =>
                         {
                             t.HasCheckConstraint("ck_place_media_discovery_status", "status IN ('Completed','Failed')");
+                        });
+                });
+
+            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.PlaceMediaModerationRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("action");
+
+                    b.Property<Guid>("ActorUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("actor_user_id");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<Guid>("MediaAssetId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("media_asset_id");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("reason");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorUserId");
+
+                    b.HasIndex("MediaAssetId", "CreatedAtUtc")
+                        .HasDatabaseName("ix_place_media_moderation_asset_created");
+
+                    b.ToTable("place_media_moderation_history", (string)null);
+                });
+
+            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.PlaceMediaReportRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<Guid>("MediaAssetId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("media_asset_id");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("reason");
+
+                    b.Property<Guid>("ReporterUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("reporter_user_id");
+
+                    b.Property<DateTimeOffset?>("ResolvedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("resolved_at_utc");
+
+                    b.Property<Guid?>("ResolvedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("resolved_by_user_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)")
+                        .HasColumnName("status");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReporterUserId");
+
+                    b.HasIndex("ResolvedByUserId");
+
+                    b.HasIndex("MediaAssetId", "Status")
+                        .HasDatabaseName("ix_place_media_report_asset_status");
+
+                    b.ToTable("place_media_reports", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_place_media_report_status", "status IN ('Pending','Resolved','Dismissed')");
                         });
                 });
 
@@ -4261,6 +4524,25 @@ namespace Infrastructure.Persistence.Migrations
                     b.Navigation("RoleRef");
                 });
 
+            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.MissingPlaceProposalRecord", b =>
+                {
+                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.PlaceRecord", null)
+                        .WithMany()
+                        .HasForeignKey("PossibleDuplicatePlaceId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.UserRecord", null)
+                        .WithMany()
+                        .HasForeignKey("ReviewedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.UserRecord", null)
+                        .WithMany()
+                        .HasForeignKey("SubmittedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.PetFriendlyAssertionRecord", b =>
                 {
                     b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.PlaceRecord", "Place")
@@ -4541,6 +4823,11 @@ namespace Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.PlaceMediaAssetRecord", b =>
                 {
+                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.UserRecord", null)
+                        .WithMany()
+                        .HasForeignKey("ContributorUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.PlaceRecord", "Place")
                         .WithMany()
                         .HasForeignKey("PlaceId")
@@ -4548,6 +4835,17 @@ namespace Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Place");
+                });
+
+            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.PlaceMediaBlobRecord", b =>
+                {
+                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.PlaceMediaAssetRecord", "MediaAsset")
+                        .WithMany("Blobs")
+                        .HasForeignKey("MediaAssetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("MediaAsset");
                 });
 
             modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.PlaceMediaDiscoveryRecord", b =>
@@ -4559,6 +4857,41 @@ namespace Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Place");
+                });
+
+            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.PlaceMediaModerationRecord", b =>
+                {
+                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.UserRecord", null)
+                        .WithMany()
+                        .HasForeignKey("ActorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.PlaceMediaAssetRecord", null)
+                        .WithMany()
+                        .HasForeignKey("MediaAssetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.PlaceMediaReportRecord", b =>
+                {
+                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.PlaceMediaAssetRecord", null)
+                        .WithMany()
+                        .HasForeignKey("MediaAssetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.UserRecord", null)
+                        .WithMany()
+                        .HasForeignKey("ReporterUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.UserRecord", null)
+                        .WithMany()
+                        .HasForeignKey("ResolvedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 
             modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.PlaceRecord", b =>
@@ -5120,6 +5453,11 @@ namespace Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.PermissionRecord", b =>
                 {
                     b.Navigation("RolePermissions");
+                });
+
+            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.PlaceMediaAssetRecord", b =>
+                {
+                    b.Navigation("Blobs");
                 });
 
             modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.PlaceRecord", b =>

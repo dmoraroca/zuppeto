@@ -16,6 +16,11 @@
   cursor: pointer;
 }
 
+.place-card:focus-visible {
+  outline: 4px solid var(--yp-color-primary-dark);
+  outline-offset: 4px;
+}
+
 .place-card[data-pet-tone='allowed'] {
   background: linear-gradient(105deg, rgba(240, 253, 244, 0.98), rgba(255, 255, 255, 0.96));
   border-color: rgba(22, 163, 74, 0.28);

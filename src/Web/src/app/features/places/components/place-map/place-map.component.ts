@@ -58,6 +58,7 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   readonly emptyTitle = input('No hi ha ubicacions per mostrar');
   readonly emptyCopy = input('Ajusta els filtres per veure llocs al mapa.');
   readonly showToolbarActions = input(true);
+  readonly compactPresentation = input(false);
   /** When there are no markers, centre the map here (selected city) instead of Europe. */
   readonly focusCenter = input<{ lat: number; lng: number } | null>(null);
   readonly municipality = input<PlaceMapMunicipality | null>(null);

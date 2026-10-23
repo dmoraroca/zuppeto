@@ -1753,6 +1753,8 @@
                     <h4 id="place-media-title" style="margin:0">Imatges del lloc</h4>
                   </div>
                   <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+                    <button type="button" (click)="loadPendingMediaQueue()" [disabled]="placeMediaBusy()">Cua pendent</button>
+                    <button type="button" (click)="loadParticipationQueues()" [disabled]="placeMediaBusy()">Denúncies i negocis mancants</button>
                     <button type="button" (click)="importWikimediaMedia()" [disabled]="placeMediaBusy()">
                       {{ placeMediaBusy() ? 'Revisant…' : 'Cercar al QID vinculat' }}
                     </button>
@@ -1814,11 +1816,46 @@
                             {{ asset.isPrimary ? 'Principal' : 'Fer principal' }}
                           </button>
                           <button type="button" (click)="rejectMedia(asset)" [disabled]="asset.verificationStatus === 'Rejected'">Rebutjar</button>
+                          <button type="button" (click)="quarantineMedia(asset)" [disabled]="asset.verificationStatus === 'Quarantined'">Quarantena</button>
+                          <button type="button" (click)="withdrawMedia(asset)" [disabled]="asset.verificationStatus === 'Withdrawn'">Retirar</button>
                           @if (asset.evidenceUrl) { <a [href]="asset.evidenceUrl" target="_blank" rel="noopener noreferrer">Veure atribució</a> }
                         </div>
                       </article>
                     }
                   </div>
+                }
+                @if (placeMediaHistory().length) {
+                  <details>
+                    <summary>Historial de moderació ({{ placeMediaHistory().length }})</summary>
+                    <ul>
+                      @for (entry of placeMediaHistory(); track entry.mediaAssetId + entry.createdAtUtc) {
+                        <li><strong>{{ entry.action }}</strong> · {{ entry.createdAtUtc | date:'short' }} · {{ entry.reason }}</li>
+                      }
+                    </ul>
+                  </details>
+                }
+                @if (placeMediaReports().length) {
+                  <section><h5>Denúncies pendents</h5>
+                    @for (report of placeMediaReports(); track report.id) {
+                      <article><strong>Fotografia {{ report.mediaAssetId }}</strong><p>{{ report.reason }}</p>
+                        <button type="button" (click)="resolveMediaReport(report.id, 'Resolved')">Resoldre</button>
+                        <button type="button" (click)="resolveMediaReport(report.id, 'Dismissed')">Descartar</button>
+                      </article>
+                    }
+                  </section>
+                }
+                @if (missingPlaceProposals().length) {
+                  <section><h5>Establiments proposats</h5>
+                    @for (proposal of missingPlaceProposals(); track proposal.id) {
+                      <article><strong>{{ proposal.name }} · {{ proposal.municipality }}</strong>
+                        <p>{{ proposal.approximateAddress }} · {{ proposal.additionalInformation || 'Sense informació addicional' }}</p>
+                        @if (proposal.possibleDuplicatePlaceId) { <p>Possible duplicat: {{ proposal.possibleDuplicatePlaceId }}</p> }
+                        <button type="button" (click)="decideMissingProposal(proposal.id, 'Accepted')">Acceptar proposta</button>
+                        <button type="button" (click)="decideMissingProposal(proposal.id, 'Duplicate')">Duplicat</button>
+                        <button type="button" (click)="decideMissingProposal(proposal.id, 'Rejected')">Rebutjar</button>
+                      </article>
+                    }
+                  </section>
                 }
               </section>
             }
@@ -2118,4 +2155,3 @@
   }
 </main>
 
-<app-site-footer />

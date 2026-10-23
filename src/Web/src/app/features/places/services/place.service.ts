@@ -6,7 +6,7 @@ import { firstValueFrom } from 'rxjs';
 import { API_BASE_URL } from '../../../core/config/api.config';
 import { AuthService } from '../../auth/services/auth.service';
 import { FavoritesService } from '../../favorites/services/favorites.service';
-import { Place, PlaceFilters, PlaceType } from '../models/place.model';
+import { Place, PlaceFilters, PlaceMediaAsset, PlaceType } from '../models/place.model';
 import { PLACE_TYPE_LABELS } from '../mock/places.fake';
 import { DEFAULT_PLACE_FILTERS, filterPlaces, normalizePlaceTypes } from '../utils/place-list-filter';
 
@@ -163,6 +163,34 @@ export class PlaceService {
     this.placesState.update((existing) => this.mergePlacesById(existing, [place]));
     this.loadedState.set(true);
     return place;
+  }
+
+  async uploadPhotos(placeId: string, files: File[], rightsDeclaration: string): Promise<void> {
+    if (files.length < 1 || files.length > 5) throw new Error('Selecciona entre 1 i 5 fotografies.');
+    const form = new FormData();
+    files.forEach((file) => form.append('files', file, file.name));
+    form.append('rightsAccepted', 'true');
+    form.append('rightsDeclaration', rightsDeclaration);
+    await firstValueFrom(this.http.post(`${API_BASE_URL}/places/${placeId}/media/upload`, form));
+  }
+
+  async loadMediaPage(placeId: string, skip = 0, take = 20): Promise<PlaceMediaPage> {
+    const page = await firstValueFrom(this.http.get<PlaceMediaPage>(`${API_BASE_URL}/places/${placeId}/media`, {
+      params: { skip, take }
+    }));
+    return {
+      ...page,
+      items: page.items.map((asset) => ({ ...asset, servedUrl: resolveMediaUrl(asset.servedUrl) }))
+    };
+  }
+
+  async proposeMissingPlace(proposal: MissingPlaceProposal): Promise<{ possibleDuplicatePlaceId?: string | null }> {
+    return await firstValueFrom(this.http.post<{ possibleDuplicatePlaceId?: string | null }>(
+      `${API_BASE_URL}/places/missing-proposals`, proposal));
+  }
+
+  async reportPhoto(placeId: string, assetId: string, reason: string): Promise<void> {
+    await firstValueFrom(this.http.post(`${API_BASE_URL}/places/${placeId}/media/${assetId}/reports`, { reason }));
   }
 
   async searchPage(
@@ -527,6 +555,20 @@ export class PlaceService {
       return code;
     }
   }
+}
+
+export interface MissingPlaceProposal {
+  name: string;
+  municipality: string;
+  approximateAddress: string;
+  additionalInformation?: string;
+}
+export interface PlaceMediaPage {
+  items: PlaceMediaAsset[];
+  total: number;
+  skip: number;
+  take: number;
+  hasMore: boolean;
 }
 
 interface PlaceApiSummaryDto {

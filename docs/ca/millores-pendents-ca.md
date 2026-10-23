@@ -1,5 +1,13 @@
 # Millores pendents (CA)
 
+## 2026-10-21 — Fase VI, fotografies i participació
+
+**Estat:** implementació tècnica validada; migració activa i revisió jurídica pendents.
+
+El detall responsive, la galeria paginada, la pujada múltiple, WebP optimitzat + miniatura, `bytea`, moderació, retirada, quarantena, denúncies i propostes d’establiments mancants estan implementats i validats sobre una restauració temporal. Abans de producció resten: autorització específica per aplicar `20261021113924_AddCommunityPlaceMediaAndMissingPlaceProposalsPhase6` a la base activa; revisió jurídica del text provisional de drets; decisió sobre retenció de denúncies i historial; prova de càrrega representativa; i validació Safari real en dispositiu Apple, ja que Playwright WebKit no certifica Safari/iOS real.
+
+No s’ha d’activar la pujada real mentre l’esquema actiu no contingui les taules noves. El backup previ verificat és `/tmp/petiloc-phase6-pre-media.dump`, SHA-256 `a7b1c1179f98fc520d4fee58f3ce731e02b5c28242f22f440d89c116a2d4fe34`; és un artefacte local temporal i no forma part del repositori.
+
 ## Iteració 7 — després de Fase VI
 
 La cerca, el radi, la paginació PostgreSQL, el GPS privat, el mapa sincronitzat i la fitxa ampliada estan implementats, i la migració d'índexs ja s'ha aplicat a PostgreSQL real. Resten com a millores no bloquejants: validar un municipi amb més de 50 Places quan existeixi, mesurar offsets profunds, revisar visualment el pin provisional i reobrir clustering server-side/PostGIS només amb mètriques representatives. [Informe](iteracio-7-fase-vi-cercador-mapa-ux-ca.md).
@@ -540,3 +548,41 @@ No deixar la targeta buida. No implementar ara (cal font: Places Details, web de
 **Pendent:** ampliar identitats exactes de Wikidata, revisar manualment els candidats útils d’Arenys i definir un object storage durador abans d’un desplegament distribuït. Les aportacions de propietari/usuari i les webs oficials no s’han d’activar sense prova de drets i moderació.
 
 **Estat:** Fase VI oberta; no s’ha fet aprovació massiva.
+
+## 2026-10-21 — Protecció automàtica de contingut sensible
+
+**Àmbit:** aportacions fotogràfiques de la comunitat.
+
+**Aplicat ara:** modal privat amb advertiment explícit, previsualització local, retirada immediata i confirmació obligatòria abans d'enviar. Les fotografies continuen pendents de moderació i no es publiquen automàticament.
+
+**Pendent:** estudiar una detecció local o de servidor de documents d'identitat, matrícules, targetes i altres dades personals, amb revisió humana i sense incorporar APIs de pagament. Una declaració de drets no s'ha de considerar prova suficient per publicar contingut sensible.
+
+**Estat:** pendent de disseny funcional, jurídic i tècnic; fora de la Iteració II perquè requeriria backend i governança.
+
+## 2026-10-21 — Validació ampliada del detall premium
+
+**Aplicat ara:** la Iteració III queda coberta en Chrome amb emulació responsive a 320–1920 px, teclat, gest tàctil, moviment reduït, navegació interna, favorits, galeria, modal i retorn al llistat. Les quatre captures obligatòries s'han revisat visualment.
+
+**Pendent:** validar el mateix detall en dispositius físics i completar una regressió focalitzada en Firefox i WebKit abans de considerar la compatibilitat mult navegador acreditada.
+
+**Estat:** millora de cobertura; no bloqueja el PASS focalitzat de Chrome.
+
+## 2026-10-22 — Recursos gràfics definitius del detall PetiLoc
+
+**Àmbit:** detall de lloc (`/places/:id`) · identitat visual.
+
+**Aplicat ara:** reconstrucció fidel de la composició aprovada amb línia de vida, petjades, formes orgàniques i vegetació provisionals creades amb SVG/CSS; il·lustració local diferenciada de les fotografies reals del Place.
+
+**Pendent:** substituir els recursos provisionals pels originals editables quan disseny lliuri el traçat SVG font, la petjada corporativa, les il·lustracions botàniques i, si correspon, les il·lustracions de categoria en resolució i llicència definitives. Cal repetir llavors la comparació d'escriptori i 390 px sense alterar la composició ni les funcionalitats.
+
+**Estat:** pendent de recursos de disseny; no bloqueja la implementació provisional sol·licitada.
+
+## 2026-10-22 — Retirada de fotografies publicades
+
+**Àmbit:** detall de lloc (`/places/:id`) · galeria i governança de media.
+
+**Aplicat ara:** la pantalla permet retirar fitxers de la selecció privada abans de pujar-los i denunciar una fotografia publicada perquè ADMIN la revisi. Les fotografies pendents no es mostren com a publicades.
+
+**Pendent:** no existeix cap cas d'ús ni endpoint públic perquè el contribuïdor retiri definitivament una fotografia ja publicada, ni un contracte que exposi a Angular l'autoria efectiva i el permís de retirada de cada asset. Cal definir-ho a domini, aplicació i permisos abans d'afegir l'acció, amb confirmació i auditoria. Fins aleshores no es mostra cap botó de retirada publicat, tampoc de manera només visual.
+
+**Estat:** pendent de disseny funcional i de backend; exclòs d'aquesta millora per no alterar la governança existent.

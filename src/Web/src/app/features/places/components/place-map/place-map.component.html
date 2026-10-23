@@ -1,10 +1,12 @@
 <section
   class="place-map"
   #mapShell
+  [class.place-map--compact]="compactPresentation()"
   [class.place-map--fullscreen-fallback]="fallbackFullscreen()"
   [attr.data-fullscreen]="fullscreen()"
 >
-  <div class="place-map__toolbar">
+  @if (!compactPresentation()) {
+    <div class="place-map__toolbar">
     <div class="place-map__summary">
       <strong>{{ hasPlaces ? placesCountLabel : emptyTitle() }}</strong>
       @if (hasPlaces) {
@@ -41,7 +43,18 @@
         }
       </div>
     }
-  </div>
+    </div>
+  } @else {
+    <button
+      type="button"
+      class="place-map__compact-fullscreen"
+      [attr.aria-label]="fullscreen() ? 'Sortir de pantalla completa' : 'Veure el mapa a pantalla completa'"
+      [attr.aria-pressed]="fullscreen()"
+      (click)="toggleFullscreen()"
+    >
+      <span aria-hidden="true">{{ fullscreen() ? '×' : '↗' }}</span>
+    </button>
+  }
 
   <div
     class="place-map__canvas"
@@ -55,21 +68,23 @@
     aria-label="Mapa interactiu de llocs"
   ></div>
 
-  <div
-    class="place-map__resize-handle"
-    role="separator"
-    tabindex="0"
-    aria-label="Redimensiona verticalment el mapa"
-    aria-orientation="horizontal"
-    [attr.aria-valuemin]="minimumMapHeight()"
-    [attr.aria-valuemax]="maximumMapHeight()"
-    [attr.aria-valuenow]="mapHeightPx() ?? 400"
-    (pointerdown)="beginResize($event)"
-    (pointermove)="resizeFromPointer($event)"
-    (pointerup)="finishResize($event)"
-    (pointercancel)="finishResize($event)"
-    (keydown)="resizeFromKeyboard($event)"
-  >
-    <span aria-hidden="true"></span>
-  </div>
+  @if (!compactPresentation()) {
+    <div
+      class="place-map__resize-handle"
+      role="separator"
+      tabindex="0"
+      aria-label="Redimensiona verticalment el mapa"
+      aria-orientation="horizontal"
+      [attr.aria-valuemin]="minimumMapHeight()"
+      [attr.aria-valuemax]="maximumMapHeight()"
+      [attr.aria-valuenow]="mapHeightPx() ?? 400"
+      (pointerdown)="beginResize($event)"
+      (pointermove)="resizeFromPointer($event)"
+      (pointerup)="finishResize($event)"
+      (pointercancel)="finishResize($event)"
+      (keydown)="resizeFromKeyboard($event)"
+    >
+      <span aria-hidden="true"></span>
+    </div>
+  }
 </section>

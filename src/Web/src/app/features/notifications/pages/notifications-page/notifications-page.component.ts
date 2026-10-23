@@ -1,14 +1,13 @@
 import { DatePipe } from '@angular/common';
 import { Component, computed, inject, ChangeDetectionStrategy } from '@angular/core';
 
-import { SiteFooterComponent } from '../../../../core/layout/components/site-footer/site-footer.component';
 import { SiteHeaderComponent } from '../../../../core/layout/components/site-header/site-header.component';
 import { ErrorNotificationsService } from '../../../../core/services/error-notifications.service';
 import { SectionHeadingComponent } from '../../../../shared/components/section-heading/section-heading.component';
 
 @Component({
   selector: 'app-notifications-page',
-  imports: [DatePipe, SiteHeaderComponent, SiteFooterComponent, SectionHeadingComponent],
+  imports: [DatePipe, SiteHeaderComponent, SectionHeadingComponent],
   templateUrl: './notifications-page.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './notifications-page.component.scss'

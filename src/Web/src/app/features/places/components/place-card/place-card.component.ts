@@ -52,4 +52,9 @@ export class PlaceCardComponent {
 
     this.placeClicked.emit(this.place().id);
   }
+
+  protected onCardKeyboardSelect(event: Event): void {
+    event.preventDefault();
+    this.placeClicked.emit(this.place().id);
+  }
 }

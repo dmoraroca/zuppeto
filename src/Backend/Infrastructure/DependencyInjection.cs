@@ -216,6 +216,8 @@ public static class DependencyInjection
             client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "PetiLoc-Media/1.0 (https://github.com/dmoraroca/zuppeto)");
         });
         services.AddScoped<IPlaceMediaSource, WikimediaCommonsMediaSource>();
+        services.AddScoped<IPlaceMediaProcessor, SkiaSharpPlaceMediaProcessor>();
+        services.AddScoped<IMissingPlaceProposalRepository, MissingPlaceProposalRepository>();
         services.AddHttpClient<IPlaceProximityMediaSource, MapillaryMediaSource>((sp, client) =>
         {
             var options = sp.GetRequiredService<IOptions<MapillaryOptions>>().Value;

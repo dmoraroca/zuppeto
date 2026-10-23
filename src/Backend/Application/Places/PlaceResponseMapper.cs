@@ -22,7 +22,7 @@ internal sealed class PlaceResponseMapper(IPlaceCoverStorage coverStorage, Place
             place.Type.ToString(),
             PlacePublicCopy.SanitizeDescription(place.ShortDescription, place.Name),
             PlacePublicCopy.PublicNarrative(place.Description, place.Name, place.Address.Line1, place.Address.City),
-            primaryMedia?.ServedUri.ToString() ?? LegacyCoverUrl(place),
+            primaryMedia is null ? LegacyCoverUrl(place) : ThumbnailUrl(primaryMedia.ServedUri.ToString()),
             place.Address.Line1,
             place.Address.City,
             place.Address.Country,
@@ -56,9 +56,14 @@ internal sealed class PlaceResponseMapper(IPlaceCoverStorage coverStorage, Place
             place.PetPolicy.Status.ToString(),
             place.PetPolicy.Species.Select(x => x.Code).ToArray(),
             place.PetPolicy.Conditions.Select(x => new PetConditionDto(x.Code, x.Value)).ToArray(),
-            Media: publicMedia.Select(PlaceMediaApplicationService.ToDto).ToArray(),
+            Media: publicMedia.Take(5).Select(PlaceMediaApplicationService.ToDto).ToArray(),
             CommercialCategory: place.CommercialCategory);
     }
+
+    private static string ThumbnailUrl(string servedUrl) =>
+        servedUrl.EndsWith("/optimized", StringComparison.OrdinalIgnoreCase)
+            ? $"{servedUrl[..^"optimized".Length]}thumbnail"
+            : servedUrl;
 
     internal PlaceSummaryDto ToSummary(PlacePublicSearchRow row) => ToSummary(row.Place) with
     {

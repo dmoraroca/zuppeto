@@ -4,7 +4,6 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
 
-import { SiteFooterComponent } from '../../../../core/layout/components/site-footer/site-footer.component';
 import { SiteHeaderComponent } from '../../../../core/layout/components/site-header/site-header.component';
 import { ErrorNotificationsService } from '../../../../core/services/error-notifications.service';
 import { SectionHeadingComponent } from '../../../../shared/components/section-heading/section-heading.component';
@@ -36,7 +35,6 @@ import { TerritorialLocationSelectorComponent, TerritorialLocationSelection } fr
   imports: [
     ReactiveFormsModule,
     SiteHeaderComponent,
-    SiteFooterComponent,
     SectionHeadingComponent,
     PasswordFieldComponent,
     RouterLink,

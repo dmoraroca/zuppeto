@@ -1,133 +1,587 @@
 import assert from 'node:assert/strict';
-import type { Route } from '@playwright/test';
+import { mkdir } from 'node:fs/promises';
+import type { BrowserContext, Page, Route } from '@playwright/test';
 import { PilotChromeLauncher } from '../infrastructure/playwright/pilot-chrome-launcher.js';
 
 const webBaseUrl = process.env.E2E_BASE_URL ?? 'http://localhost:4200';
-const validId = '10000000-0000-0000-0000-000000000001';
-const emptyId = '10000000-0000-0000-0000-000000000002';
-const brokenId = '10000000-0000-0000-0000-000000000003';
-const brandId = '10000000-0000-0000-0000-000000000004';
-const ambiguousId = '10000000-0000-0000-0000-000000000005';
-
-const media = [
-  {
-    id: '20000000-0000-0000-0000-000000000001', source: 'PetiLoc',
-    originalUrl: `${webBaseUrl}/images/westie.jpg`, servedUrl: `${webBaseUrl}/images/westie.jpg`, author: 'PetiLoc',
-    licenseIdentifier: 'Drets verificats', licenseVersion: null, licenseUrl: null,
-    attribution: 'PetiLoc · imatge pròpia verificada', verificationStatus: 'Verified',
-    canBePrimary: true, isPrimary: true, evidenceUrl: null
-  },
-  {
-    id: '20000000-0000-0000-0000-000000000002', source: 'PetiLoc',
-    originalUrl: `${webBaseUrl}/images/maya.jpeg`, servedUrl: `${webBaseUrl}/images/maya.jpeg`, author: 'PetiLoc',
-    licenseIdentifier: 'Drets verificats', licenseVersion: null, licenseUrl: null,
-    attribution: 'PetiLoc · imatge pròpia verificada', verificationStatus: 'Verified',
-    canBePrimary: true, isPrimary: false, evidenceUrl: null
-  }
-];
-
+const ids = {
+  empty: '10000000-0000-0000-0000-000000000001',
+  one: '10000000-0000-0000-0000-000000000002',
+  two: '10000000-0000-0000-0000-000000000003',
+  five: '10000000-0000-0000-0000-000000000004',
+  six: '10000000-0000-0000-0000-000000000005'
+};
 const places = [
-  place(validId, 'Local amb fotografia', `${webBaseUrl}/images/westie.jpg`, media, 'Allowed', true),
-  place(emptyId, 'Local sense fotografia', '', [], 'Unknown', false, ['Terrassa']),
-  place(brokenId, 'Local amb error de fotografia', `${webBaseUrl}/images/no-existeix.jpg`, [], 'Unknown', false),
-  place(brandId, 'Marca amb QID corporatiu', '', [], 'Unknown', false),
-  place(ambiguousId, 'Montcalvari ambigu', '', [], 'Unknown', false)
+  place(ids.empty, 'Local sense fotografia', 0),
+  place(ids.one, 'Local amb una fotografia', 1),
+  place(ids.two, 'Local amb dues fotografies', 2),
+  place(ids.five, 'Local amb cinc fotografies', 5),
+  place(ids.six, 'Local amb sis fotografies', 6)
 ];
 
 async function main(): Promise<void> {
+  await mkdir('artifacts', { recursive: true });
   const browser = await new PilotChromeLauncher().launch(false);
   try {
-    const context = await browser.newContext({ baseURL: webBaseUrl });
-    await context.addInitScript(session => localStorage.setItem('zuppeto-auth-session', JSON.stringify(session)), session());
-    await context.route('**/*', route => dispatch(route));
-    const page = await context.newPage();
-
-    await page.goto('/places?country=Espanya&city=Arenys%20de%20Mar', { waitUntil: 'networkidle' });
-    const cards = page.locator('app-place-card');
-    await cards.filter({ hasText: 'Local amb fotografia' }).locator('img').waitFor({ timeout: 15_000 }).catch(async error => {
-      throw new Error(`No s'ha carregat la targeta de media a ${page.url()}:\n${(await page.locator('body').innerText()).slice(0, 3000)}`, { cause: error });
-    });
-    assert.equal(await cards.filter({ hasText: 'Local amb fotografia' }).locator('img').getAttribute('loading'), 'lazy');
-    assert.match(await cards.filter({ hasText: 'Local amb fotografia' }).locator('img').getAttribute('alt') ?? '', /Fotografia de Local amb fotografia/);
-    const allowedCard = cards.filter({ hasText: 'Local amb fotografia' }).locator('.place-card');
-    assert.equal(await allowedCard.getAttribute('data-pet-tone'), 'allowed');
-    assert.ok(await cards.filter({ hasText: 'Local amb fotografia' }).getByText('Accepta mascotes').count() > 0);
-
-    const terraceCard = cards.filter({ hasText: 'Local sense fotografia' });
-    assert.ok(await terraceCard.getByText('Il·lustració PetiLoc').count() > 0);
-    assert.equal(await terraceCard.locator('.place-card').getAttribute('data-pet-tone'), 'terrace-hint');
-    assert.ok(await terraceCard.getByText('Terrassa disponible · admissió pendent de confirmar').count() > 0);
-    assert.ok(await terraceCard.getByText('Informació desconeguda').count() > 0);
-
-    const failedImageCard = cards.filter({ hasText: 'Local amb error de fotografia' });
-    await failedImageCard.locator('img').dispatchEvent('error');
-    await failedImageCard.getByText('Il·lustració PetiLoc').first().waitFor();
-    assert.equal(await failedImageCard.locator('.place-card').getAttribute('data-pet-tone'), 'neutral');
-
-    for (const name of ['Marca amb QID corporatiu', 'Montcalvari ambigu']) {
-      const protectedCard = cards.filter({ hasText: name });
-      assert.equal(await protectedCard.locator('img').count(), 0, `${name} no pot usar una fotografia no verificada.`);
-      assert.ok(await protectedCard.getByText('Il·lustració PetiLoc').count() > 0);
+    await validateNavigation(browser);
+    await validateDesktop(browser);
+    for (const width of [320, 375, 390, 430, 768, 1024, 1920]) {
+      await validateResponsive(browser, { width, height: width <= 430 ? 844 : 1000 }, width <= 430);
     }
+    console.log('PASS Chrome detall aprovat Fase VI: animació completa del Westie, composició, 0/1/2/5/>5 fotos, lightbox, modal privat, teclat i amplades 320–1920 px.');
+  } finally { await browser.close(); }
+}
 
-    await cards.filter({ hasText: 'Local amb fotografia' }).getByRole('link', { name: 'Veure detall' }).click();
-    await page.getByRole('heading', { level: 1, name: 'Local amb fotografia' }).waitFor();
-    assert.equal(await page.getByText(/Foto: PetiLoc · imatge pròpia verificada/).count(), 1);
-    assert.equal(await page.getByRole('heading', { name: 'Galeria' }).count(), 1);
-    assert.equal(await page.locator('.place-detail-page__gallery figure').count(), 2);
-    assert.ok(await page.locator('.place-detail-page__gallery figcaption').first().getByText(/PetiLoc/).count() > 0);
+async function validateNavigation(browser: Awaited<ReturnType<PilotChromeLauncher['launch']>>): Promise<void> {
+  const context = await browser.newContext({ baseURL: webBaseUrl, viewport: { width: 1440, height: 900 } });
+  const adminSession = session('Admin', [
+    'menu.admin', 'page.admin.places', 'action.places.manage', 'action.favorites.write'
+  ]);
+  await prepare(context, adminSession, [
+    {
+      key: 'admin', label: 'Del administrador', route: null,
+      children: [{
+        key: 'admin.negoci', label: 'Negoci', route: null,
+        children: [{ key: 'admin.places', label: 'Catàleg de llocs', route: '/admin/llocs', children: [] }]
+      }]
+    },
+    { key: 'create', label: 'Crear', route: null, children: [] }
+  ]);
+  const page = await context.newPage();
+  await page.goto(`/places/${ids.empty}`, { waitUntil: 'networkidle' });
+  const detailBar = page.locator('.petiloc-detail__bar');
+  await detailBar.getByRole('link', { name: /PetiLoc/ }).waitFor();
+  await detailBar.getByRole('button', { name: 'Compartir' }).waitFor();
+  await detailBar.getByRole('button', { name: 'Afegir a favorits' }).waitFor();
+  assert.equal(await detailBar.getByText('Crear', { exact: true }).count(), 0,
+    'La barra compacta del detall no ha de mostrar funcionalitats de creació no validades.');
+  await context.close();
+}
 
-    await context.close();
-    console.log('PASS Chrome media Fase VI: foto/atribució, placeholders, QID corporatiu i Montcalvari ambigu sense media falsa.');
-  } finally {
-    await browser.close();
+async function validateDesktop(browser: Awaited<ReturnType<PilotChromeLauncher['launch']>>): Promise<void> {
+  const context = await browser.newContext({ baseURL: webBaseUrl, viewport: { width: 1440, height: 900 } });
+  await prepare(context);
+  const page = await context.newPage();
+  await page.goto(`/places/${ids.six}`, { waitUntil: 'networkidle' });
+  await page.getByRole('heading', { level: 1, name: 'Local amb sis fotografies' }).waitFor();
+  await page.locator('.petiloc-detail__bar').waitFor();
+  await validateWestieAnimationCycle(page);
+  await validateDirections(page);
+  await validateApprovedHeader(page, 1440, 'artifacts/phase6-approved-header-desktop.png');
+  const heroPhoto = page.locator('.petiloc-detail__hero-photo');
+  await heroPhoto.waitFor();
+  assert.equal(await page.locator('.petiloc-detail__hero-thumbnails button').count(), 5,
+    'El hero ha de limitar la tira inicial a cinc miniatures optimitzades.');
+  await page.getByRole('button', { name: 'Afegir fotografia', exact: true }).first().waitFor();
+  await page.getByRole('button', { name: 'Veure totes les fotos' }).waitFor();
+  await page.locator('.petiloc-detail__hero-thumbnails button').nth(1).click();
+  const directLightbox = page.getByRole('dialog', { name: 'Galeria ampliada' });
+  await directLightbox.waitFor();
+  await page.getByText(/^2\/6/).waitFor();
+  await page.getByText(/PetiLoc · PetiLoc/).waitFor();
+  await page.screenshot({ path: 'artifacts/phase6-lightbox-desktop.png' });
+  await directLightbox.evaluate(element => {
+    const dispatchTouch = (type: string, clientX: number) => {
+      const event = new Event(type, { bubbles: true });
+      Object.defineProperty(event, 'changedTouches', { value: [{ clientX }] });
+      element.dispatchEvent(event);
+    };
+    dispatchTouch('touchstart', 300);
+    dispatchTouch('touchend', 180);
+  });
+  await page.getByText(/^3\/6/).waitFor();
+  await page.keyboard.press('Escape');
+  await directLightbox.waitFor({ state: 'detached' });
+  const heroPhotoBox = await heroPhoto.boundingBox();
+  assert.ok(heroPhotoBox, 'La fotografia principal ha de tenir una zona visual clicable.');
+  await heroPhoto.click({ position: { x: heroPhotoBox.width * .84, y: heroPhotoBox.height * .45 } });
+  await directLightbox.waitFor();
+  await page.getByText(/^2\/6/).waitFor();
+  await page.keyboard.press('Escape');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  assert.equal(await page.getByRole('button', { name: 'Afegir a favorits' }).evaluate(element => getComputedStyle(element).transitionDuration), '0s');
+  await page.getByRole('button', { name: 'Afegir a favorits' }).click();
+  await page.getByText('Desat als teus favorits.').waitFor();
+  assert.equal(await page.locator('.petiloc-detail__chapter').count(), 4,
+    'La composició aprovada ha de conservar els quatre mòduls funcionals.');
+  assert.equal(await page.getByRole('heading', { name: 'Què hi trobaràs' }).count(), 0,
+    'No s’ha de mostrar una secció de contingut sense informació real.');
+  await page.locator('.petiloc-detail__chapters').scrollIntoViewIfNeeded();
+  await validateBodySeparation(page, 1440);
+  await validateLifeLine(page, 1440);
+  await validateWestieAndDisclosure(page, 1440);
+  await page.screenshot({ path: 'artifacts/petiloc-puntuals-despres-desktop.png', fullPage: true });
+  const footer = page.locator('app-site-footer');
+  assert.equal(await footer.count(), 1, 'El footer compartit ha d’aparèixer una sola vegada.');
+  await footer.scrollIntoViewIfNeeded();
+  await footer.getByRole('link', { name: 'Inici' }).waitFor();
+  await page.screenshot({ path: 'artifacts/petiloc-correccions-footer-desktop.png' });
+  assert.equal(await heroPhoto.count(), 1);
+  assert.equal(await page.getByRole('dialog', { name: 'Afegir fotografies' }).count(), 0, 'El formulari ha de començar ocult.');
+  await page.getByRole('button', { name: '6 fotografies' }).click();
+  const gallery = page.getByRole('dialog', { name: /Galeria de Local amb sis fotografies/ });
+  await gallery.waitFor();
+  assert.equal(await gallery.locator('figure').count(), 6, 'La galeria completa ha de conservar les sis fotografies verificades.');
+  await gallery.locator('figure').first().getByRole('button').first().click();
+  await page.getByRole('dialog', { name: 'Galeria ampliada' }).waitFor();
+  await page.keyboard.press('ArrowRight');
+  await page.getByText(/^2\/6/).waitFor();
+  await page.getByRole('button', { name: 'Tancar', exact: true }).click();
+
+  await page.getByRole('button', { name: 'Afegir fotografia', exact: true }).first().click();
+  await page.getByText('Protegeix la teva privacitat').waitFor();
+  const modalButtonStyles = await page.locator('.place-detail-page__upload-footer button').evaluateAll(buttons =>
+    buttons.map(button => {
+      const style = getComputedStyle(button);
+      return { height: button.getBoundingClientRect().height, radius: style.borderRadius, font: style.fontFamily };
+    })
+  );
+  assert.equal(modalButtonStyles.length, 2);
+  assert.equal(modalButtonStyles[0]?.height, modalButtonStyles[1]?.height,
+    'Cancel·lar i Confirmar la pujada han de tenir la mateixa alçada.');
+  assert.equal(modalButtonStyles[0]?.radius, modalButtonStyles[1]?.radius,
+    'Cancel·lar i Confirmar la pujada han de compartir arrodoniment.');
+  assert.equal(modalButtonStyles[0]?.font, modalButtonStyles[1]?.font,
+    'Els botons del modal han de compartir tipografia.');
+  await page.keyboard.press('Escape');
+  await page.getByRole('dialog', { name: 'Afegir fotografies' }).waitFor({ state: 'detached' });
+  await page.getByRole('button', { name: 'Afegir fotografia', exact: true }).first().click();
+  const chooser = page.locator('input[type=file][multiple]');
+  await chooser.setInputFiles([
+    upload('primera.png'), upload('segona.png')
+  ]);
+  assert.equal(await page.locator('.place-detail-page__previews figure').count(), 2);
+  await page.getByRole('button', { name: 'Retirar primera.png' }).click();
+  await page.locator('.place-detail-page__previews figure').nth(1).waitFor({ state: 'detached' });
+  assert.equal(await page.locator('.place-detail-page__previews figure').count(), 1);
+  await page.getByText(/Declaro que soc titular/).click();
+  await page.getByRole('button', { name: 'Confirmar la pujada' }).click();
+  await page.getByText(/pendents de moderació/).waitFor();
+  await page.getByRole('button', { name: 'Tancar el formulari' }).click();
+  await page.getByRole('dialog', { name: 'Afegir fotografies' }).waitFor({ state: 'detached' });
+
+  await page.goto(`/places/${ids.empty}`);
+  await page.getByRole('heading', { level: 1, name: 'Local sense fotografia' }).waitFor();
+  await page.getByText('Pet-friendly: Desconegut', { exact: true }).waitFor();
+  await validateApprovedHeader(page, 1440, 'artifacts/phase6-approved-header-empty-desktop.png');
+  await page.getByText('Il·lustració PetiLoc').first().waitFor();
+  assert.equal(await page.locator('.petiloc-detail__hero-photo').count(), 0);
+  await page.getByRole('button', { name: 'Afegir la primera fotografia' }).waitFor();
+  assert.equal(await page.getByRole('dialog', { name: 'Afegir fotografies' }).count(), 0,
+    'El CTA del hero ha de reutilitzar el formulari existent, que comença tancat.');
+  await page.getByRole('button', { name: 'Afegir la primera fotografia' }).click();
+  await page.getByRole('dialog', { name: 'Afegir fotografies' }).waitFor();
+  await page.keyboard.press('Escape');
+  const emptyVisual = await page.locator('.petiloc-detail__hero-media').boundingBox();
+  const emptyCopy = await page.locator('.petiloc-detail__identity').boundingBox();
+  assert.ok(emptyVisual && emptyCopy && emptyCopy.x >= emptyVisual.x
+    && emptyCopy.x + emptyCopy.width < emptyVisual.x + emptyVisual.width,
+    'La identitat ha de conservar la superfície orgànica superposada al visual també sense fotografies.');
+  await page.screenshot({ path: 'artifacts/phase6-approved-detail-empty-desktop.png', fullPage: true });
+
+  await page.goto(`/places/${ids.one}`);
+  await page.getByRole('heading', { level: 1, name: 'Local amb una fotografia' }).waitFor();
+  assert.equal(await page.locator('.petiloc-detail__hero-photo img').count(), 1);
+  assert.equal(await page.locator('.petiloc-detail__hero-thumbnails button').count(), 1);
+  await validateGallerySize(page, 1);
+
+  await page.goto(`/places/${ids.two}`);
+  await page.getByRole('heading', { level: 1, name: 'Local amb dues fotografies' }).waitFor();
+  await page.getByRole('button', { name: '2 fotografies' }).waitFor();
+  assert.equal(await page.locator('.petiloc-detail__hero-thumbnails button').count(), 2);
+  await validateGallerySize(page, 2);
+
+  await page.goto(`/places/${ids.five}`);
+  await page.getByRole('heading', { level: 1, name: 'Local amb cinc fotografies' }).waitFor();
+  await page.getByRole('button', { name: '5 fotografies' }).waitFor();
+  assert.equal(await page.locator('.petiloc-detail__hero-thumbnails button').count(), 5);
+  await validateGallerySize(page, 5);
+  assert.equal(await page.getByRole('button', { name: /Retirar fotografia publicada/ }).count(), 0,
+    'No s’ha d’inventar una retirada pública sense cas d’ús ni permís backend.');
+  await page.evaluate(() => document.querySelector('app-root')?.scrollTo(0, 0));
+  await page.screenshot({ path: 'artifacts/phase6-approved-detail-five-photos-desktop.png', fullPage: true });
+  await Promise.all([
+    page.waitForURL(/\/places(?:\?|$)/u),
+    page.getByRole('navigation', { name: 'Fil d’Ariadna' }).getByRole('link', { name: 'Llocs' }).click()
+  ]);
+  assert.match(page.url(), /\/places(?:\?|$)/u, 'El retorn al llistat ha de continuar funcionant.');
+  await context.close();
+}
+
+async function validateResponsive(
+  browser: Awaited<ReturnType<PilotChromeLauncher['launch']>>,
+  viewport: { width: number; height: number },
+  mobile: boolean
+): Promise<void> {
+  const context = await browser.newContext({ baseURL: webBaseUrl, viewport, isMobile: mobile, hasTouch: true });
+  await prepare(context);
+  const page = await context.newPage();
+  await page.goto(`/places/${ids.six}`, { waitUntil: 'networkidle' });
+  await page.getByRole('heading', { level: 1, name: 'Local amb sis fotografies' }).waitFor();
+  if (viewport.width === 390) {
+    await validateApprovedHeader(page, viewport.width, 'artifacts/phase6-approved-header-mobile-390.png');
+  }
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  assert.ok(overflow <= 1, `No hi pot haver scroll horitzontal accidental a ${viewport.width}px (desviació ${overflow}px).`);
+  await validateBodySeparation(page, viewport.width);
+  await validateLifeLine(page, viewport.width);
+  await validateWestieAndDisclosure(page, viewport.width);
+  if (mobile) {
+    assert.equal(await page.locator('.petiloc-detail__hero-photo').isVisible(), true);
+    assert.equal(await page.locator('.petiloc-detail__mobile-dock').isVisible(), true,
+      'Les accions essencials han de quedar accessibles al dock mòbil.');
+    await page.getByRole('navigation', { name: 'Apartats del lloc' }).getByRole('button', { name: 'Fotos' }).waitFor();
+    if (viewport.width === 390) {
+      await page.screenshot({ path: 'artifacts/phase6-approved-detail-with-photos-mobile-390.png', fullPage: true });
+      await page.locator('.petiloc-detail__chapters').scrollIntoViewIfNeeded();
+      await page.screenshot({ path: 'artifacts/phase6-approved-detail-mobile-390.png' });
+      await page.screenshot({ path: 'artifacts/petiloc-puntuals-despres-mobile-390.png' });
+      await page.locator('.petiloc-detail__westie').scrollIntoViewIfNeeded();
+      await page.screenshot({ path: 'artifacts/petiloc-puntuals-westie-mobile-390.png' });
+      await page.goto(`/places/${ids.empty}`, { waitUntil: 'networkidle' });
+      await page.getByRole('heading', { level: 1, name: 'Local sense fotografia' }).waitFor();
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), 0);
+      await page.screenshot({ path: 'artifacts/phase6-approved-detail-empty-mobile-390.png', fullPage: true });
+    }
+  } else assert.equal(await page.locator('.petiloc-detail__hero-photo').isVisible(), true);
+  assert.equal(await page.locator('.leaflet-container').count(), 1, `El mapa ha d’existir a ${viewport.width}px.`);
+  await context.close();
+}
+
+async function validateGallerySize(page: Page, expected: number): Promise<void> {
+  await page.getByRole('button', { name: 'Veure totes les fotos' }).click();
+  const gallery = page.getByRole('dialog', { name: /Galeria de/ });
+  await gallery.waitFor();
+  assert.equal(await gallery.locator('figure').count(), expected,
+    `La galeria ha de mostrar ${expected} fotografies verificades.`);
+  await gallery.getByRole('button', { name: 'Tancar la galeria' }).click();
+  await gallery.waitFor({ state: 'detached' });
+}
+
+async function validateBodySeparation(page: Page, viewportWidth: number): Promise<void> {
+  const sheet = await page.locator('.petiloc-detail__sheet').boundingBox();
+  const chapters = await page.locator('.petiloc-detail__chapters').boundingBox();
+  const map = await page.locator('.petiloc-detail__map-card').boundingBox();
+  assert.ok(sheet && chapters && map, 'El body, els blocs i el mapa han de ser visibles.');
+  if (viewportWidth > 720) {
+    const hero = await page.locator('.petiloc-detail__hero-media').boundingBox();
+    assert.ok(hero && Math.abs(chapters.y - (hero.y + hero.height)) <= 1,
+      `El body ha de començar exactament al final del hero a ${viewportWidth}px.`);
+    assert.ok(sheet.width >= viewportWidth * .94,
+      `El body ha d’aprofitar l’amplada útil a ${viewportWidth}px (amplada ${sheet.width}px).`);
+    assert.ok(chapters.x + chapters.width < map.x,
+      `Els blocs i el mapa han de reservar un corredor central a ${viewportWidth}px.`);
+    assert.ok(sheet.x + sheet.width * .67 < map.x,
+      `El mapa no pot envair el recorregut SVG a ${viewportWidth}px.`);
+  } else {
+    const organic = await page.locator('.petiloc-detail__hero-organic').boundingBox();
+    const bodyNavigation = await page.locator('.petiloc-detail__section-nav').boundingBox();
+    assert.ok(organic && bodyNavigation && Math.abs(bodyNavigation.y - (organic.y + organic.height)) <= 1,
+      `El body mòbil ha de començar exactament al final del hero a ${viewportWidth}px.`);
+    assert.ok(map.x + map.width <= viewportWidth - 2.5 * 16,
+      `El mapa ha de deixar lliure el corredor dret de la línia a ${viewportWidth}px.`);
   }
 }
 
-async function dispatch(route: Route): Promise<void> {
-  const url = new URL(route.request().url());
-  if (url.pathname.startsWith('/api/')) {
-    if (url.pathname === '/api/auth/me') return json(route, session());
-    if (url.pathname === '/api/navigation/menu' || url.pathname.startsWith('/api/favorites')) return json(route, []);
-    if (url.pathname === '/api/places/cities') return json(route, [{ city: 'Arenys de Mar', country: 'Espanya', countryCode: 'ES', displayLabel: 'Arenys de Mar (Espanya)', source: 'territorial' }]);
-    if (url.pathname === '/api/territorial/countries') return json(route, []);
-    if (url.pathname === '/api/places') return json(route, { items: places, total: places.length, skip: 0, take: 20, hasMore: false });
-    const selected = places.find(item => url.pathname.endsWith(item.id));
-    return json(route, selected ?? {});
+async function validateLifeLine(page: Page, viewportWidth: number): Promise<void> {
+  const result = await page.evaluate(() => {
+    const sheet = document.querySelector<HTMLElement>('.petiloc-detail__sheet');
+    const visibleSvg = Array.from(document.querySelectorAll<SVGSVGElement>('.petiloc-detail__life-line'))
+      .find(svg => getComputedStyle(svg).display !== 'none');
+    const path = visibleSvg?.querySelector<SVGPathElement>('path');
+    if (!sheet || !path) return null;
+
+    const screenPoint = (point: DOMPoint) => point.matrixTransform(path.getScreenCTM() ?? new DOMMatrix());
+    const start = screenPoint(path.getPointAtLength(0));
+    const end = screenPoint(path.getPointAtLength(path.getTotalLength()));
+    const nodeDistances = ['first', 'second', 'third', 'fourth'].map(name => {
+      const node = document.querySelector<HTMLElement>(`.petiloc-detail__route-node--${name}`);
+      const box = node?.getBoundingClientRect();
+      if (!box) return Number.POSITIVE_INFINITY;
+      const center = { x: box.left + box.width / 2, y: box.top + box.height / 2 };
+      let nearest = Number.POSITIVE_INFINITY;
+      const length = path.getTotalLength();
+      for (let index = 0; index <= 1000; index += 1) {
+        const point = screenPoint(path.getPointAtLength(length * index / 1000));
+        nearest = Math.min(nearest, Math.hypot(center.x - point.x, center.y - point.y));
+      }
+      return nearest;
+    });
+    const sheetBox = sheet.getBoundingClientRect();
+    const firstNode = document.querySelector<HTMLElement>('.petiloc-detail__route-node--first')?.getBoundingClientRect();
+    const flower = document.querySelector<HTMLElement>('.petiloc-detail__flower')?.getBoundingClientRect();
+    const decorativeLeaves = Array.from(document.querySelectorAll<HTMLElement>(
+      '.petiloc-detail__flower i'
+    )).map(element => element.getBoundingClientRect());
+    return {
+      startOffset: start.y - (sheetBox.top + (innerWidth <= 720 ? 25.25 * 16 : 20.25 * 16)),
+      endOffset: sheetBox.bottom - end.y,
+      nodeDistances,
+      firstNodeDeltaX: firstNode ? firstNode.left + firstNode.width / 2 - start.x : Number.POSITIVE_INFINITY,
+      firstNodeDeltaY: firstNode ? firstNode.top + firstNode.height / 2 - start.y : Number.POSITIVE_INFINITY,
+      decorationInside: Boolean(flower && flower.right <= sheetBox.right + 1
+        && decorativeLeaves.every(leaf => leaf.left >= -1 && leaf.right <= innerWidth + 1))
+    };
+  });
+
+  assert.ok(result, `El traçat ha de ser mesurable a ${viewportWidth}px.`);
+  assert.ok(result.startOffset >= 3 && result.startOffset <= 8,
+    `El tram del body ha de començar uns 5 px sota el hero a ${viewportWidth}px (${result.startOffset}px).`);
+  assert.ok(Math.abs(result.endOffset) <= 2,
+    `La línia ha d'arribar al límit inferior del body a ${viewportWidth}px (${result.endOffset}px).`);
+  assert.ok(Math.abs(result.firstNodeDeltaX + 10) <= .75 && Math.abs(result.firstNodeDeltaY) <= .75,
+    `La primera petjada del body ha d'estar exactament 10 px a l'esquerra a ${viewportWidth}px (${result.firstNodeDeltaX}, ${result.firstNodeDeltaY}).`);
+  assert.ok(result.nodeDistances.slice(1).every(distance => distance <= 3),
+    `La resta de petjades han de continuar centrades sobre la línia a ${viewportWidth}px (${result.nodeDistances.join(', ')}).`);
+  assert.equal(result.decorationInside, true,
+    `La decoració de transició ha de quedar dins el contenidor a ${viewportWidth}px.`);
+}
+
+async function validateWestieAndDisclosure(page: Page, viewportWidth: number): Promise<void> {
+  const result = await page.evaluate(() => {
+    const westie = document.querySelector<HTMLImageElement>('.petiloc-detail__westie');
+    const map = document.querySelector<HTMLElement>('.petiloc-detail__map-card');
+    const heroSvg = document.querySelector<SVGSVGElement>('.petiloc-detail__hero-organic');
+    const heroPath = heroSvg?.querySelector<SVGPathElement>('#petiloc-hero-contour');
+    const visibleSvg = Array.from(document.querySelectorAll<SVGSVGElement>('.petiloc-detail__life-line'))
+      .find(svg => getComputedStyle(svg).display !== 'none');
+    const bodyPath = visibleSvg?.querySelector<SVGPathElement>('path');
+    if (!westie || !map || !heroSvg || !heroPath || !bodyPath) return null;
+    const westieBox = westie.getBoundingClientRect();
+    const mapBox = map.getBoundingClientRect();
+    const mobileDock = document.querySelector<HTMLElement>('.petiloc-detail__mobile-dock');
+    const dockBox = mobileDock && getComputedStyle(mobileDock).display !== 'none'
+      ? mobileDock.getBoundingClientRect()
+      : null;
+    const overlaps = (a: DOMRect, b: DOMRect) =>
+      a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+    const center = { x: westieBox.left + westieBox.width / 2, y: westieBox.top + westieBox.height / 2 };
+    const nearestDistance = (path: SVGPathElement, matrix: DOMMatrix, fraction = 1) => {
+      const length = path.getTotalLength() * fraction;
+      let nearest = Number.POSITIVE_INFINITY;
+      for (let index = 0; index <= 1000; index += 1) {
+        const point = path.getPointAtLength(length * index / 1000).matrixTransform(matrix);
+        nearest = Math.min(nearest, Math.hypot(center.x - point.x, center.y - point.y));
+      }
+      return nearest;
+    };
+    const routeDistance = Math.min(
+      nearestDistance(heroPath, heroSvg.getScreenCTM() ?? new DOMMatrix(), .19060951),
+      nearestDistance(bodyPath, bodyPath.getScreenCTM() ?? new DOMMatrix())
+    );
+    return {
+      loaded: westie.complete && westie.naturalWidth > 0,
+      animationState: westie.dataset['animationState'] ?? '',
+      insideViewport: westieBox.left >= 0 && westieBox.right <= innerWidth,
+      overlapsMap: overlaps(westieBox, mapBox),
+      overlapsControls: dockBox ? overlaps(westieBox, dockBox) : false,
+      routeDistance
+    };
+  });
+
+  assert.ok(result?.loaded, `La il·lustració local del Westie s'ha de carregar a ${viewportWidth}px.`);
+  assert.equal(await page.locator('.petiloc-detail__plant').count(), 0,
+    'Les fulles decoratives inferiors s’han d’eliminar completament.');
+  assert.equal(result.insideViewport, true, `El Westie ha de quedar dins el viewport a ${viewportWidth}px.`);
+  assert.equal(result.overlapsMap, false, `El Westie no pot tapar el mapa a ${viewportWidth}px.`);
+  assert.equal(result.overlapsControls, false, `El Westie no pot tapar controls a ${viewportWidth}px.`);
+  if (result.animationState !== 'reduced') {
+    assert.ok(result.routeDistance <= 4,
+      `El centre del Westie ha de seguir la línia visible a ${viewportWidth}px (${result.routeDistance}px).`);
   }
-  if (url.origin !== new URL(webBaseUrl).origin) return route.abort('blockedbyclient');
-  await route.continue();
+  await page.getByText('Informació complementària', { exact: true }).waitFor();
+  assert.equal(await page.getByText('Fonts, llicències i informació complementària', { exact: true }).count(), 0);
+}
+
+async function validateWestieAnimationCycle(page: Page): Promise<void> {
+  const westie = page.locator('.petiloc-detail__westie');
+  await westie.waitFor();
+  await page.waitForFunction(() =>
+    document.querySelector<HTMLElement>('.petiloc-detail__westie')?.dataset['animationState'] === 'moving'
+  );
+
+  const routeEnds = () => page.evaluate(() => {
+    const dog = document.querySelector<HTMLElement>('.petiloc-detail__westie');
+    const heroSvg = document.querySelector<SVGSVGElement>('.petiloc-detail__hero-organic');
+    const heroPath = heroSvg?.querySelector<SVGPathElement>('#petiloc-hero-contour');
+    const bodySvg = Array.from(document.querySelectorAll<SVGSVGElement>('.petiloc-detail__life-line'))
+      .find(svg => getComputedStyle(svg).display !== 'none');
+    const bodyPath = bodySvg?.querySelector<SVGPathElement>('path');
+    if (!dog || !heroSvg || !heroPath || !bodyPath) return null;
+    const dogBox = dog.getBoundingClientRect();
+    const center = { x: dogBox.left + dogBox.width / 2, y: dogBox.top + dogBox.height / 2 };
+    const heroStart = heroPath.getPointAtLength(0).matrixTransform(heroSvg.getScreenCTM() ?? new DOMMatrix());
+    const bodyEnd = bodyPath.getPointAtLength(bodyPath.getTotalLength())
+      .matrixTransform(bodyPath.getScreenCTM() ?? new DOMMatrix());
+    return {
+      state: dog.dataset['animationState'] ?? '',
+      startDistance: Math.hypot(center.x - heroStart.x, center.y - heroStart.y),
+      endDistance: Math.hypot(center.x - bodyEnd.x, center.y - bodyEnd.y)
+    };
+  });
+
+  const start = await routeEnds();
+  assert.ok(start && start.startDistance <= 100,
+    `El primer cicle ha de començar al tram superior real (${start?.startDistance}px).`);
+  await page.screenshot({ path: 'artifacts/petiloc-westie-animation-01-inici.png', fullPage: true });
+  await page.waitForTimeout(10_000);
+  await page.screenshot({ path: 'artifacts/petiloc-westie-animation-02-recorregut.png', fullPage: true });
+  await page.waitForFunction(() =>
+    document.querySelector<HTMLElement>('.petiloc-detail__westie')?.dataset['animationState'] === 'paused',
+  null, { timeout: 13_000 });
+  const end = await routeEnds();
+  assert.ok(end && end.endDistance <= 4,
+    `El Westie ha d'arribar al final real del recorregut (${end?.endDistance}px).`);
+  await page.screenshot({ path: 'artifacts/petiloc-westie-animation-03-pausa-final.png', fullPage: true });
+  await page.waitForFunction(() =>
+    document.querySelector<HTMLElement>('.petiloc-detail__westie')?.dataset['animationState'] === 'moving',
+  null, { timeout: 4_000 });
+  const secondCycle = await routeEnds();
+  assert.ok(secondCycle && secondCycle.startDistance <= 60,
+    `El segon cicle ha de reprendre's al començament real (${secondCycle?.startDistance}px).`);
+  await page.screenshot({ path: 'artifacts/petiloc-westie-animation-04-segon-cicle.png', fullPage: true });
+  await page.setViewportSize({ width: 1024, height: 900 });
+  await page.waitForFunction(() => {
+    const dog = document.querySelector<HTMLElement>('.petiloc-detail__westie');
+    const heroSvg = document.querySelector<SVGSVGElement>('.petiloc-detail__hero-organic');
+    const path = heroSvg?.querySelector<SVGPathElement>('#petiloc-hero-contour');
+    if (!dog || !heroSvg || !path) return false;
+    const box = dog.getBoundingClientRect();
+    const center = { x: box.left + box.width / 2, y: box.top + box.height / 2 };
+    const matrix = heroSvg.getScreenCTM() ?? new DOMMatrix();
+    const length = path.getTotalLength() * .19060951;
+    let nearest = Number.POSITIVE_INFINITY;
+    for (let index = 0; index <= 500; index += 1) {
+      const point = path.getPointAtLength(length * index / 500).matrixTransform(matrix);
+      nearest = Math.min(nearest, Math.hypot(center.x - point.x, center.y - point.y));
+    }
+    return nearest <= 4;
+  }, null, { timeout: 2_000 });
+  await validateWestieAndDisclosure(page, 1024);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.waitForTimeout(250);
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'hidden', { configurable: true, value: true });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await page.waitForFunction(() =>
+    document.querySelector<HTMLElement>('.petiloc-detail__westie')?.dataset['animationState'] === 'suspended'
+  );
+  const suspended = await westie.boundingBox();
+  await page.waitForTimeout(300);
+  assert.deepEqual(await westie.boundingBox(), suspended,
+    'El Westie s’ha de mantenir immòbil mentre la pestanya no és visible.');
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'hidden', { configurable: true, value: false });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await page.waitForFunction(() =>
+    document.querySelector<HTMLElement>('.petiloc-detail__westie')?.dataset['animationState'] === 'moving'
+  );
+}
+
+async function validateDirections(page: Page): Promise<void> {
+  const link = page.getByRole('link', { name: /Com arribar-hi/ });
+  await link.waitFor();
+  assert.match(await link.getAttribute('href') ?? '',
+    /^https:\/\/www\.google\.com\/maps\/dir\/\?api=1&destination=41\.58%2C2\.55/u,
+    'Les indicacions han d’obrir Google Maps amb les coordenades reals com a destinació.');
+}
+
+async function validateApprovedHeader(page: Page, viewportWidth: number, screenshotPath: string): Promise<void> {
+  const bar = await page.locator('.petiloc-detail__bar').boundingBox();
+  const hero = await page.locator('.petiloc-detail__hero-media').boundingBox();
+  const identity = await page.locator('.petiloc-detail__identity').boundingBox();
+  const clientWidth = await page.evaluate(() => document.documentElement.clientWidth);
+  assert.ok(bar && hero && identity, 'La barra, el visual i la superfície orgànica han de ser visibles.');
+  assert.ok(bar.x <= 0 && bar.x + bar.width >= clientWidth,
+    `La barra ha de cobrir el viewport complet de ${clientWidth}px (x=${bar.x}, amplada=${bar.width}).`);
+  assert.ok(hero.x <= 0 && hero.x + hero.width >= clientWidth,
+    `El hero ha de cobrir el viewport complet de ${clientWidth}px (x=${hero.x}, amplada=${hero.width}).`);
+  const organicSurfaceFits = viewportWidth <= 720
+    ? identity.x >= hero.x && identity.x + identity.width <= hero.x + hero.width + 1
+    : identity.x >= hero.x && identity.x <= 1 && identity.x + identity.width < hero.x + hero.width;
+  assert.ok(organicSurfaceFits,
+    `La superfície orgànica ha de quedar integrada dins el hero (identitat x=${identity.x}, amplada=${identity.width}; hero x=${hero.x}, amplada=${hero.width}).`);
+  await page.screenshot({
+    path: screenshotPath,
+    clip: { x: 0, y: 0, width: clientWidth, height: Math.ceil(identity.y + identity.height + 2) }
+  });
+}
+
+async function prepare(
+  context: BrowserContext,
+  authSession = session(),
+  navigation: unknown[] = []
+): Promise<void> {
+  await context.addInitScript(value => localStorage.setItem('zuppeto-auth-session', JSON.stringify(value)), authSession);
+  await context.route('**/*', route => dispatch(route, authSession, navigation));
+}
+
+async function dispatch(route: Route, authSession: ReturnType<typeof session>, navigation: unknown[]): Promise<void> {
+  const url = new URL(route.request().url());
+  if (!url.pathname.startsWith('/api/')) {
+    if (url.origin !== new URL(webBaseUrl).origin) return route.abort('blockedbyclient');
+    return route.continue();
+  }
+  if (url.pathname === '/api/auth/me') return json(route, authSession);
+  if (url.pathname === '/api/navigation/menu') return json(route, navigation);
+  if (url.pathname.startsWith('/api/favorites')) return json(route, []);
+  if (url.pathname === '/api/places/cities') return json(route, []);
+  if (url.pathname === '/api/territorial/countries') return json(route, []);
+  if (url.pathname === '/api/places') return json(route, { items: places, total: places.length, skip: 0, take: 20, hasMore: false });
+  const mediaMatch = url.pathname.match(/^\/api\/places\/([^/]+)\/media\/?$/u);
+  if (mediaMatch) {
+    if (route.request().method() === 'POST') return json(route, mediaFor(mediaMatch[1], 2, 'Pending'));
+    const items = mediaFor(mediaMatch[1], countFor(mediaMatch[1]));
+    return json(route, { items, total: items.length, skip: 0, take: 20, hasMore: false });
+  }
+  const selected = places.find(item => url.pathname === `/api/places/${item.id}`);
+  return selected ? json(route, selected) : json(route, {});
 }
 
 async function json(route: Route, body: unknown): Promise<void> {
   await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
 }
 
-function place(
-  id: string,
-  name: string,
-  coverImageUrl: string,
-  placeMedia: typeof media,
-  petAccessStatus: string,
-  isPetPolicyVerified: boolean,
-  features: string[] = []
-) {
+function place(id: string, name: string, count: number) {
+  const media = mediaFor(id, count);
   return {
     id, name, type: 'Restaurant', shortDescription: 'Fixture focalitzada de media.', description: 'Prova focalitzada.',
-    coverImageUrl, addressLine1: 'Riera 1', city: 'Arenys de Mar', country: 'Espanya', neighborhood: '',
-    latitude: null, longitude: null, dataProvenance: 'Internal', acceptsDogs: false, acceptsCats: false,
-    petPolicyLabel: '', petPolicyNotes: '', pricingLabel: '', ratingAverage: 0, reviewCount: 0,
-    tags: [], features, coverAttribution: placeMedia[0]?.attribution ?? '', coverSourceUri: '',
-    petAccessStatus, petSpecies: [], petConditions: [], isPetPolicyVerified,
-    businessStatus: 'Open', media: placeMedia
+    coverImageUrl: media[0]?.servedUrl ?? '', addressLine1: 'Riera 1', city: 'Arenys de Mar', country: 'Espanya', neighborhood: '',
+    latitude: 41.58, longitude: 2.55, dataProvenance: 'OpenStreetMap', acceptsDogs: true, acceptsCats: false,
+    petPolicyLabel: 'Mascotes admeses', petPolicyNotes: '', pricingLabel: '', ratingAverage: 0, reviewCount: 0,
+    tags: [], features: [], coverAttribution: media[0]?.attribution ?? '', coverSourceUri: '',
+    petAccessStatus: id === ids.empty ? 'Unknown' : 'Allowed', petSpecies: ['dog'], petConditions: [],
+    isPetPolicyVerified: id !== ids.empty,
+    businessStatus: 'Open', media: media.slice(0, 5)
   };
 }
 
-function session() {
+function mediaFor(placeId: string, count: number, status = 'Verified') {
+  return Array.from({ length: count }, (_, index) => ({
+    id: `20000000-0000-0000-0000-${String(index + 1).padStart(12, '0')}`,
+    placeId, source: 'PetiLoc', originalUrl: `${webBaseUrl}/images/westie.jpg`,
+    servedUrl: `${webBaseUrl}${index % 2 ? '/images/maya.jpeg' : '/images/westie.jpg'}`,
+    author: 'PetiLoc', licenseIdentifier: 'Drets verificats', licenseVersion: null, licenseUrl: null,
+    attribution: `PetiLoc · fotografia ${index + 1}`, verificationStatus: status,
+    canBePrimary: status === 'Verified', isPrimary: index === 0, identityVerified: status === 'Verified', evidenceUrl: null
+  }));
+}
+
+function countFor(id: string): number {
+  return id === ids.empty ? 0 : id === ids.one ? 1 : id === ids.two ? 2 : id === ids.five ? 5 : 6;
+}
+
+function upload(name: string) {
+  return { name, mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64') };
+}
+
+function session(role = 'User', permissionKeys = ['action.favorites.write']) {
   return {
     accessToken: 'media-local-token', expiresAtUtc: '2099-01-01T00:00:00Z', provider: 'password',
-    permissionKeys: ['favorites.write'], requiresProfileCompletion: false,
-    user: { id: 'media-user', email: 'media@example.invalid', name: 'Media', displayName: 'Media', role: 'User',
+    permissionKeys, requiresProfileCompletion: false,
+    user: { id: 'media-user', email: 'media@example.invalid', name: 'Media', displayName: 'Media', role,
       city: '', country: '', countryId: null, territorialUnitId: null, comments: '', avatarUrl: null,
       privacyAccepted: true, privacyAcceptedAtUtc: '2026-10-15T00:00:00Z', hasLocalCredential: true, isTotpEnabled: false }
   };

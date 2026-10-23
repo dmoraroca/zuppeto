@@ -2,7 +2,12 @@
   class="place-card"
   [class.place-card--selected]="selected()"
   [attr.data-pet-tone]="visualState().tone"
+  role="link"
+  tabindex="0"
+  [attr.aria-label]="'Obrir la fitxa de ' + place().name"
   (click)="onCardSelect($event)"
+  (keydown.enter)="onCardKeyboardSelect($event)"
+  (keydown.space)="onCardKeyboardSelect($event)"
 >
   <div class="place-card__image-wrap">
     @if (selected()) {

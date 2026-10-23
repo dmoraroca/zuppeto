@@ -9,6 +9,8 @@ import { Component, input, output, ChangeDetectionStrategy } from '@angular/core
 export class FavoriteToggleButtonComponent {
   readonly active = input(false);
   readonly compact = input(false);
+  readonly inactiveLabel = input('Favorit');
+  readonly activeLabel = input('Treure');
   readonly toggled = output<void>();
 
   protected onToggle(event: Event): void {

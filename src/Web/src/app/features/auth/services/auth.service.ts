@@ -400,7 +400,11 @@ export class AuthService {
       const withReparented = this.reparentGeographicMenuItemsToNegoci(menu);
       const withGeographic = this.ensureGeographicAdminLinks(withReparented);
       const normalized = this.normalizeNavigationMenu(withGeographic);
-      this.navigationMenuState.set(normalized.length > 0 ? normalized : this.buildFallbackNavigationMenu());
+      this.navigationMenuState.set(
+        normalized.length > 0
+          ? this.ensureAdminPrimaryNavigation(normalized)
+          : this.buildFallbackNavigationMenu()
+      );
     } catch {
       this.navigationMenuState.set(this.buildFallbackNavigationMenu());
     }
@@ -733,6 +737,13 @@ export class AuthService {
     }
 
     return items;
+  }
+
+  private ensureAdminPrimaryNavigation(items: NavigationMenuItem[]): NavigationMenuItem[] {
+    const required = this.buildPublicNavigationMenu()
+      .filter((item) => item.key === 'home' || item.key === 'places' || item.key === 'favorites');
+    const present = new Set(items.map((item) => item.key));
+    return [...required.filter((item) => !present.has(item.key)), ...items];
   }
 
   /** Keeps countries under Negoci and hides the retired cities menu from stale databases/caches. */

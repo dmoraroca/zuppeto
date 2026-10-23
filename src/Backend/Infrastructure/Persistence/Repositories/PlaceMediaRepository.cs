@@ -188,10 +188,15 @@ internal sealed class PlaceMediaRepository(ZuppetoDbContext db) : IPlaceMediaRep
         asset.ModeratedAtUtc = DateTimeOffset.UtcNow;
         asset.ModeratorActorId = actorId;
         asset.UpdatedAtUtc = asset.ModeratedAtUtc.Value;
+        db.PlaceMediaModerationHistory.Add(new PlaceMediaModerationRecord
+        {
+            Id = Guid.NewGuid(), MediaAssetId = assetId, ActorUserId = actorId,
+            Action = "Accepted", Reason = reason, CreatedAtUtc = asset.UpdatedAtUtc
+        });
         await db.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task RejectAsync(Guid placeId, Guid assetId, string reason, CancellationToken cancellationToken = default)
+    public async Task RejectAsync(Guid placeId, Guid assetId, Guid actorId, string reason, CancellationToken cancellationToken = default)
     {
         var asset = await db.PlaceMediaAssets.SingleOrDefaultAsync(item => item.PlaceId == placeId && item.Id == assetId, cancellationToken)
             ?? throw new KeyNotFoundException("No s’ha trobat la imatge.");
@@ -200,7 +205,158 @@ internal sealed class PlaceMediaRepository(ZuppetoDbContext db) : IPlaceMediaRep
         asset.IsPrimary = false;
         asset.RejectionReason = reason;
         asset.ModeratedAtUtc = DateTimeOffset.UtcNow;
+        asset.ModeratorActorId = actorId;
         asset.UpdatedAtUtc = DateTimeOffset.UtcNow;
+        db.PlaceMediaModerationHistory.Add(new PlaceMediaModerationRecord
+        {
+            Id = Guid.NewGuid(), MediaAssetId = assetId, ActorUserId = actorId,
+            Action = "Rejected", Reason = reason, CreatedAtUtc = asset.UpdatedAtUtc
+        });
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<PlaceMediaUploadQuota> GetUploadQuotaAsync(Guid contributorUserId, DateTimeOffset sinceUtc,
+        CancellationToken cancellationToken = default)
+    {
+        var uploadedToday = await db.PlaceMediaAssets.AsNoTracking().CountAsync(
+            asset => asset.ContributorUserId == contributorUserId && asset.CreatedAtUtc >= sinceUtc, cancellationToken);
+        var pending = await db.PlaceMediaAssets.AsNoTracking().CountAsync(
+            asset => asset.ContributorUserId == contributorUserId
+                && asset.VerificationStatus == nameof(PlaceMediaVerificationStatus.Pending), cancellationToken);
+        return new PlaceMediaUploadQuota(uploadedToday, pending);
+    }
+
+    public Task<bool> ContentHashExistsAsync(Guid placeId, string contentHash,
+        CancellationToken cancellationToken = default) =>
+        db.PlaceMediaAssets.AsNoTracking().AnyAsync(
+            asset => asset.PlaceId == placeId && asset.ContentHash == contentHash, cancellationToken);
+
+    public async Task SaveProcessedUploadAsync(PlaceMediaAsset asset,
+        IReadOnlyCollection<ProcessedPlaceMediaVariant> variants,
+        CancellationToken cancellationToken = default)
+    {
+        if (!await db.Places.AnyAsync(place => place.Id == asset.PlaceId, cancellationToken))
+            throw new KeyNotFoundException("No s’ha trobat el Place.");
+
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        var record = new PlaceMediaAssetRecord
+        {
+            Id = asset.Id, PlaceId = asset.PlaceId, CreatedAtUtc = DateTimeOffset.UtcNow,
+            UpdatedAtUtc = DateTimeOffset.UtcNow
+        };
+        Apply(asset, record);
+        db.PlaceMediaAssets.Add(record);
+        foreach (var variant in variants)
+        {
+            db.PlaceMediaBlobs.Add(new PlaceMediaBlobRecord
+            {
+                Id = Guid.NewGuid(), MediaAssetId = asset.Id, Variant = variant.Variant.ToString(),
+                MimeType = variant.MimeType, Content = variant.Content, SizeBytes = variant.Content.LongLength,
+                Width = variant.Width, Height = variant.Height, Sha256 = variant.Sha256,
+                CreatedAtUtc = DateTimeOffset.UtcNow
+            });
+        }
+        await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+    }
+
+    public async Task<PlaceMediaBlobDto?> GetBlobAsync(Guid placeId, Guid assetId, PlaceMediaVariant variant,
+        bool includeNonPublic, CancellationToken cancellationToken = default)
+    {
+        var query = db.PlaceMediaBlobs.AsNoTracking().Where(blob =>
+            blob.MediaAssetId == assetId && blob.MediaAsset.PlaceId == placeId && blob.Variant == variant.ToString());
+        if (!includeNonPublic)
+        {
+            query = query.Where(blob =>
+                blob.MediaAsset.VerificationStatus == nameof(PlaceMediaVerificationStatus.Verified)
+                && blob.MediaAsset.IdentityVerified);
+        }
+        return await query.Select(blob => new PlaceMediaBlobDto(
+            blob.Content, blob.MimeType, blob.Sha256, blob.CreatedAtUtc)).SingleOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyCollection<PlaceMediaAsset>> ListPendingAsync(int skip, int take,
+        CancellationToken cancellationToken = default) =>
+        (await db.PlaceMediaAssets.AsNoTracking()
+            .Where(asset => asset.VerificationStatus == nameof(PlaceMediaVerificationStatus.Pending))
+            .OrderBy(asset => asset.CreatedAtUtc).Skip(skip).Take(take).ToArrayAsync(cancellationToken))
+        .Select(ToDomain).ToArray();
+
+    public Task QuarantineAsync(Guid placeId, Guid assetId, Guid actorId, string reason,
+        CancellationToken cancellationToken = default) =>
+        ChangeStatusAsync(placeId, assetId, actorId, PlaceMediaVerificationStatus.Quarantined, "Quarantined", reason, cancellationToken);
+
+    public Task WithdrawAsync(Guid placeId, Guid assetId, Guid actorId, string reason,
+        CancellationToken cancellationToken = default) =>
+        ChangeStatusAsync(placeId, assetId, actorId, PlaceMediaVerificationStatus.Withdrawn, "Withdrawn", reason, cancellationToken);
+
+    public async Task ReportAsync(Guid placeId, Guid assetId, Guid reporterUserId, string reason,
+        CancellationToken cancellationToken = default)
+    {
+        if (!await db.PlaceMediaAssets.AsNoTracking().AnyAsync(
+            asset => asset.Id == assetId && asset.PlaceId == placeId
+                && asset.VerificationStatus == nameof(PlaceMediaVerificationStatus.Verified), cancellationToken))
+            throw new KeyNotFoundException("No s’ha trobat la fotografia pública.");
+        db.PlaceMediaReports.Add(new PlaceMediaReportRecord
+        {
+            Id = Guid.NewGuid(), MediaAssetId = assetId, ReporterUserId = reporterUserId,
+            Reason = reason, Status = "Pending", CreatedAtUtc = DateTimeOffset.UtcNow
+        });
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyCollection<PlaceMediaModerationDto>> ListModerationHistoryAsync(Guid placeId,
+        CancellationToken cancellationToken = default) =>
+        await db.PlaceMediaModerationHistory.AsNoTracking()
+            .Where(item => db.PlaceMediaAssets.Any(asset => asset.Id == item.MediaAssetId && asset.PlaceId == placeId))
+            .OrderByDescending(item => item.CreatedAtUtc)
+            .Select(item => new PlaceMediaModerationDto(item.MediaAssetId, item.ActorUserId, item.Action,
+                item.Reason, item.CreatedAtUtc)).ToArrayAsync(cancellationToken);
+
+    public async Task<IReadOnlyCollection<PlaceMediaReportDto>> ListPendingReportsAsync(int skip, int take,
+        CancellationToken cancellationToken = default) =>
+        await db.PlaceMediaReports.AsNoTracking().Where(item => item.Status == "Pending")
+            .OrderBy(item => item.CreatedAtUtc).Skip(skip).Take(take)
+            .Select(item => new PlaceMediaReportDto(item.Id, item.MediaAssetId,
+                db.PlaceMediaAssets.Where(asset => asset.Id == item.MediaAssetId).Select(asset => asset.PlaceId).Single(),
+                item.ReporterUserId, item.Reason, item.Status, item.CreatedAtUtc))
+            .ToArrayAsync(cancellationToken);
+
+    public async Task ResolveReportAsync(Guid reportId, Guid actorId, string decision, string reason,
+        CancellationToken cancellationToken = default)
+    {
+        var report = await db.PlaceMediaReports.SingleOrDefaultAsync(item => item.Id == reportId, cancellationToken)
+            ?? throw new KeyNotFoundException("No s’ha trobat la denúncia.");
+        if (report.Status != "Pending") throw new InvalidOperationException("La denúncia ja està resolta.");
+        report.Status = decision;
+        report.ResolvedAtUtc = DateTimeOffset.UtcNow;
+        report.ResolvedByUserId = actorId;
+        db.PlaceMediaModerationHistory.Add(new PlaceMediaModerationRecord
+        {
+            Id = Guid.NewGuid(), MediaAssetId = report.MediaAssetId, ActorUserId = actorId,
+            Action = $"Report{decision}", Reason = reason, CreatedAtUtc = report.ResolvedAtUtc.Value
+        });
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task ChangeStatusAsync(Guid placeId, Guid assetId, Guid actorId,
+        PlaceMediaVerificationStatus status, string action, string reason, CancellationToken cancellationToken)
+    {
+        var asset = await db.PlaceMediaAssets.SingleOrDefaultAsync(
+            item => item.PlaceId == placeId && item.Id == assetId, cancellationToken)
+            ?? throw new KeyNotFoundException("No s’ha trobat la imatge.");
+        asset.VerificationStatus = status.ToString();
+        asset.CanBePrimary = false;
+        asset.IsPrimary = false;
+        asset.RejectionReason = reason;
+        asset.ModeratedAtUtc = DateTimeOffset.UtcNow;
+        asset.ModeratorActorId = actorId;
+        asset.UpdatedAtUtc = asset.ModeratedAtUtc.Value;
+        db.PlaceMediaModerationHistory.Add(new PlaceMediaModerationRecord
+        {
+            Id = Guid.NewGuid(), MediaAssetId = assetId, ActorUserId = actorId,
+            Action = action, Reason = reason, CreatedAtUtc = asset.UpdatedAtUtc
+        });
         await db.SaveChangesAsync(cancellationToken);
     }
 
@@ -217,7 +373,8 @@ internal sealed class PlaceMediaRepository(ZuppetoDbContext db) : IPlaceMediaRep
         record.IdentityVerified, record.ReuseConditions, record.WikidataQid, record.WikimediaFileName,
         string.IsNullOrWhiteSpace(record.EvidenceUrl) ? null : new Uri(record.EvidenceUrl), record.RejectionReason,
         record.CapturedAtUtc, record.Latitude, record.Longitude, record.HeadingDegrees, record.DistanceMeters,
-        record.LastCheckedAtUtc, record.ModeratedAtUtc, record.ModeratorActorId);
+        record.LastCheckedAtUtc, record.ModeratedAtUtc, record.ModeratorActorId,
+        record.ContributorUserId, record.RightsDeclaration);
 
     private static void Apply(PlaceMediaAsset asset, PlaceMediaAssetRecord record)
     {
@@ -237,5 +394,6 @@ internal sealed class PlaceMediaRepository(ZuppetoDbContext db) : IPlaceMediaRep
         record.HeadingDegrees = asset.HeadingDegrees; record.DistanceMeters = asset.DistanceMeters;
         record.LastCheckedAtUtc = asset.LastCheckedAtUtc; record.ModeratedAtUtc = asset.ModeratedAtUtc;
         record.ModeratorActorId = asset.ModeratorActorId;
+        record.ContributorUserId = asset.ContributorUserId; record.RightsDeclaration = asset.RightsDeclaration;
     }
 }

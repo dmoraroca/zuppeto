@@ -293,7 +293,7 @@ export interface AdminPlaceMediaAssetDto {
   permanentStorageAllowed: boolean;
   transformationAllowed: boolean;
   contentHash: string;
-  verificationStatus: 'Pending' | 'Verified' | 'Rejected';
+  verificationStatus: 'Pending' | 'Verified' | 'Rejected' | 'Quarantined' | 'Withdrawn';
   canBePrimary: boolean;
   isPrimary: boolean;
   identityVerified: boolean;
@@ -323,6 +323,22 @@ export interface AdminPlaceProximityMediaCandidateDto {
   longitude: number;
   distanceMeters: number;
   attribution: string;
+}
+export interface AdminPlaceMediaModerationDto {
+  mediaAssetId: string;
+  actorUserId: string;
+  action: string;
+  reason: string;
+  createdAtUtc: string;
+}
+export interface AdminPlaceMediaReportDto {
+  id: string; mediaAssetId: string; placeId: string; reporterUserId: string;
+  reason: string; status: string; createdAtUtc: string;
+}
+export interface AdminMissingPlaceProposalDto {
+  id: string; submittedByUserId: string; name: string; municipality: string;
+  approximateAddress: string; additionalInformation?: string | null;
+  possibleDuplicatePlaceId?: string | null; status: string; createdAtUtc: string;
 }
 
 export interface PetConditionDto { code: string; value?: string | null; }
@@ -603,7 +619,47 @@ export class AdminService {
   }
 
   async listPlaceMedia(placeId: string): Promise<AdminPlaceMediaAssetDto[]> {
-    return await firstValueFrom(this.http.get<AdminPlaceMediaAssetDto[]>(`${API_BASE_URL}/admin/places/${placeId}/media`));
+    const assets = await firstValueFrom(this.http.get<AdminPlaceMediaAssetDto[]>(`${API_BASE_URL}/admin/places/${placeId}/media`));
+    return await this.withModerationPreviews(assets);
+  }
+
+  async listPlaceMediaHistory(placeId: string): Promise<AdminPlaceMediaModerationDto[]> {
+    return await firstValueFrom(this.http.get<AdminPlaceMediaModerationDto[]>(`${API_BASE_URL}/admin/places/${placeId}/media/history`));
+  }
+
+  async listPendingPlaceMedia(skip = 0, take = 50): Promise<AdminPlaceMediaAssetDto[]> {
+    const assets = await firstValueFrom(this.http.get<AdminPlaceMediaAssetDto[]>(`${API_BASE_URL}/admin/place-media/pending`, {
+      params: { skip, take }
+    }));
+    return await this.withModerationPreviews(assets);
+  }
+
+  async listPendingMediaReports(): Promise<AdminPlaceMediaReportDto[]> {
+    return await firstValueFrom(this.http.get<AdminPlaceMediaReportDto[]>(`${API_BASE_URL}/admin/place-media/reports`));
+  }
+
+  async resolveMediaReport(reportId: string, decision: 'Resolved' | 'Dismissed', reason: string): Promise<void> {
+    await firstValueFrom(this.http.post(`${API_BASE_URL}/admin/place-media/reports/${reportId}/resolve`, { decision, reason }));
+  }
+
+  async listMissingPlaceProposals(): Promise<AdminMissingPlaceProposalDto[]> {
+    return await firstValueFrom(this.http.get<AdminMissingPlaceProposalDto[]>(`${API_BASE_URL}/admin/places/missing-proposals/pending`));
+  }
+
+  async decideMissingPlaceProposal(id: string, decision: 'Accepted' | 'Rejected' | 'Duplicate', reason: string): Promise<void> {
+    await firstValueFrom(this.http.post(`${API_BASE_URL}/admin/places/missing-proposals/${id}/decide`, { decision, reason }));
+  }
+
+  private async withModerationPreviews(assets: AdminPlaceMediaAssetDto[]): Promise<AdminPlaceMediaAssetDto[]> {
+    return await Promise.all(assets.map(async (asset) => {
+      if (!asset.servedUrl.includes('/api/places/') || asset.verificationStatus === 'Verified') return asset;
+      try {
+        const blob = await firstValueFrom(this.http.get(
+          `${API_BASE_URL}/admin/places/${asset.placeId}/media/${asset.id}/blob/thumbnail`,
+          { responseType: 'blob' }));
+        return { ...asset, servedUrl: URL.createObjectURL(blob) };
+      } catch { return asset; }
+    }));
   }
 
   async importPlaceMediaFromWikimedia(placeId: string): Promise<AdminPlaceMediaAssetDto[]> {
@@ -628,6 +684,14 @@ export class AdminService {
 
   async rejectPlaceMedia(placeId: string, assetId: string, reason: string): Promise<void> {
     await firstValueFrom(this.http.post(`${API_BASE_URL}/admin/places/${placeId}/media/${assetId}/reject`, { reason }));
+  }
+
+  async quarantinePlaceMedia(placeId: string, assetId: string, reason: string): Promise<void> {
+    await firstValueFrom(this.http.post(`${API_BASE_URL}/admin/places/${placeId}/media/${assetId}/quarantine`, { reason }));
+  }
+
+  async withdrawPlaceMedia(placeId: string, assetId: string, reason: string): Promise<void> {
+    await firstValueFrom(this.http.post(`${API_BASE_URL}/admin/places/${placeId}/media/${assetId}/withdraw`, { reason }));
   }
 
   getPetGovernance(placeId: string): Promise<PetGovernanceOverviewDto> {

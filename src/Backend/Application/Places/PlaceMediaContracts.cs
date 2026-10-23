@@ -43,13 +43,26 @@ public sealed record RejectPlaceMediaRequest(string Reason);
 public sealed record AcceptPlaceMediaRequest(string Reason);
 public sealed record PlaceMediaUpload(
     byte[] Content,
+    string FileName,
+    string ContentType,
     string Source,
     string Author,
     string LicenseIdentifier,
     string? LicenseUrl,
     string Attribution,
     string RightsDeclaration,
-    string? EvidenceUrl);
+    string? EvidenceUrl,
+    Guid? ContributorUserId = null);
+
+public sealed record PlaceMediaBlobDto(byte[] Content, string MimeType, string Sha256, DateTimeOffset CreatedAtUtc);
+public sealed record PlaceMediaUploadQuota(int UploadedToday, int Pending);
+public sealed record PlaceMediaReportRequest(string Reason);
+public sealed record PlaceMediaModerationDto(Guid MediaAssetId, Guid ActorUserId, string Action, string Reason,
+    DateTimeOffset CreatedAtUtc);
+public sealed record PlaceMediaPageDto(IReadOnlyCollection<PlaceMediaAssetDto> Items, int Total, int Skip, int Take, bool HasMore);
+public sealed record PlaceMediaReportDto(Guid Id, Guid MediaAssetId, Guid PlaceId, Guid ReporterUserId,
+    string Reason, string Status, DateTimeOffset CreatedAtUtc);
+public sealed record ResolvePlaceMediaReportRequest(string Decision, string Reason);
 
 public sealed record PlaceProximityMediaCandidateDto(
     string ExternalId,
@@ -77,7 +90,29 @@ public interface IPlaceMediaRepository
         CancellationToken cancellationToken = default);
     Task SetPrimaryAsync(Guid placeId, Guid assetId, CancellationToken cancellationToken = default);
     Task AcceptAsync(Guid placeId, Guid assetId, Guid actorId, string reason, CancellationToken cancellationToken = default);
-    Task RejectAsync(Guid placeId, Guid assetId, string reason, CancellationToken cancellationToken = default);
+    Task RejectAsync(Guid placeId, Guid assetId, Guid actorId, string reason, CancellationToken cancellationToken = default);
+    Task<PlaceMediaUploadQuota> GetUploadQuotaAsync(Guid contributorUserId, DateTimeOffset sinceUtc,
+        CancellationToken cancellationToken = default);
+    Task<bool> ContentHashExistsAsync(Guid placeId, string contentHash, CancellationToken cancellationToken = default);
+    Task SaveProcessedUploadAsync(PlaceMediaAsset asset, IReadOnlyCollection<ProcessedPlaceMediaVariant> variants,
+        CancellationToken cancellationToken = default);
+    Task<PlaceMediaBlobDto?> GetBlobAsync(Guid placeId, Guid assetId, PlaceMediaVariant variant, bool includeNonPublic,
+        CancellationToken cancellationToken = default);
+    Task<IReadOnlyCollection<PlaceMediaAsset>> ListPendingAsync(int skip, int take, CancellationToken cancellationToken = default);
+    Task QuarantineAsync(Guid placeId, Guid assetId, Guid actorId, string reason, CancellationToken cancellationToken = default);
+    Task WithdrawAsync(Guid placeId, Guid assetId, Guid actorId, string reason, CancellationToken cancellationToken = default);
+    Task ReportAsync(Guid placeId, Guid assetId, Guid reporterUserId, string reason, CancellationToken cancellationToken = default);
+    Task<IReadOnlyCollection<PlaceMediaModerationDto>> ListModerationHistoryAsync(Guid placeId,
+        CancellationToken cancellationToken = default);
+    Task<IReadOnlyCollection<PlaceMediaReportDto>> ListPendingReportsAsync(int skip, int take,
+        CancellationToken cancellationToken = default);
+    Task ResolveReportAsync(Guid reportId, Guid actorId, string decision, string reason,
+        CancellationToken cancellationToken = default);
+}
+
+public interface IPlaceMediaProcessor
+{
+    Task<ProcessedPlaceMedia> ProcessAsync(byte[] content, CancellationToken cancellationToken = default);
 }
 
 public interface IPlaceMediaBinaryStorage
@@ -89,6 +124,7 @@ public interface IPlaceMediaBinaryStorage
 public interface IPlaceMediaApplicationService
 {
     Task<IReadOnlyCollection<PlaceMediaAssetDto>> ListAsync(Guid placeId, CancellationToken cancellationToken = default);
+    Task<PlaceMediaPageDto> ListPublicAsync(Guid placeId, int skip, int take, CancellationToken cancellationToken = default);
     Task<IReadOnlyCollection<PlaceMediaAssetDto>> ImportFromWikimediaAsync(Guid placeId, CancellationToken cancellationToken = default);
     Task<IReadOnlyCollection<PlaceProximityMediaCandidateDto>> SearchMapillaryAsync(
         Guid placeId,
@@ -97,7 +133,19 @@ public interface IPlaceMediaApplicationService
         CancellationToken cancellationToken = default);
     Task SetPrimaryAsync(Guid placeId, Guid assetId, CancellationToken cancellationToken = default);
     Task AcceptAsync(Guid placeId, Guid assetId, Guid actorId, string reason, CancellationToken cancellationToken = default);
-    Task RejectAsync(Guid placeId, Guid assetId, string reason, CancellationToken cancellationToken = default);
+    Task RejectAsync(Guid placeId, Guid assetId, Guid actorId, string reason, CancellationToken cancellationToken = default);
+    Task<PlaceMediaBlobDto?> GetBlobAsync(Guid placeId, Guid assetId, PlaceMediaVariant variant, bool includeNonPublic,
+        CancellationToken cancellationToken = default);
+    Task<IReadOnlyCollection<PlaceMediaAssetDto>> ListPendingAsync(int skip, int take, CancellationToken cancellationToken = default);
+    Task QuarantineAsync(Guid placeId, Guid assetId, Guid actorId, string reason, CancellationToken cancellationToken = default);
+    Task WithdrawAsync(Guid placeId, Guid assetId, Guid actorId, string reason, CancellationToken cancellationToken = default);
+    Task ReportAsync(Guid placeId, Guid assetId, Guid reporterUserId, string reason, CancellationToken cancellationToken = default);
+    Task<IReadOnlyCollection<PlaceMediaModerationDto>> ListModerationHistoryAsync(Guid placeId,
+        CancellationToken cancellationToken = default);
+    Task<IReadOnlyCollection<PlaceMediaReportDto>> ListPendingReportsAsync(int skip, int take,
+        CancellationToken cancellationToken = default);
+    Task ResolveReportAsync(Guid reportId, Guid actorId, string decision, string reason,
+        CancellationToken cancellationToken = default);
 }
 
 internal sealed class PlaceMediaApplicationService(
@@ -106,10 +154,23 @@ internal sealed class PlaceMediaApplicationService(
     IEnumerable<IPlaceProximityMediaSource> proximitySources,
     IPlaceRepository places,
     IPlaceMediaBinaryStorage binaryStorage,
+    IPlaceMediaProcessor mediaProcessor,
     PlaceMediaLicensePolicy licensePolicy) : IPlaceMediaApplicationService
 {
     public async Task<IReadOnlyCollection<PlaceMediaAssetDto>> ListAsync(Guid placeId, CancellationToken cancellationToken = default) =>
         (await repository.ListAsync(placeId, cancellationToken)).Select(ToDto).ToArray();
+
+    public async Task<PlaceMediaPageDto> ListPublicAsync(Guid placeId, int skip, int take,
+        CancellationToken cancellationToken = default)
+    {
+        var safeSkip = Math.Max(0, skip);
+        var safeTake = Math.Clamp(take, 1, 50);
+        var assets = (await repository.ListAsync(placeId, cancellationToken))
+            .Where(asset => asset.VerificationStatus == PlaceMediaVerificationStatus.Verified
+                && asset.IdentityVerified && asset.CanBePrimary).ToArray();
+        return new PlaceMediaPageDto(assets.Skip(safeSkip).Take(safeTake).Select(ToDto).ToArray(),
+            assets.Length, safeSkip, safeTake, safeSkip + safeTake < assets.Length);
+    }
 
     public async Task<IReadOnlyCollection<PlaceMediaAssetDto>> ImportFromWikimediaAsync(
         Guid placeId,
@@ -236,39 +297,48 @@ internal sealed class PlaceMediaApplicationService(
         if (!Enum.TryParse<PlaceMediaSource>(upload.Source, true, out var source)
             || source is PlaceMediaSource.WikimediaCommons or PlaceMediaSource.Mapillary)
             throw new InvalidOperationException("La font de la fotografia aportada no és vàlida.");
-        if (upload.Content.Length is < 4 or > 10_000_000 || upload.Content[0] != 0xff || upload.Content[1] != 0xd8)
-            throw new InvalidOperationException("Cal aportar un JPEG vàlid de com a màxim 10 MB.");
+        if (upload.Content.Length is < 4 or > 10_000_000)
+            throw new InvalidOperationException("La fotografia ha de tenir un màxim de 10 MB.");
         if (string.IsNullOrWhiteSpace(upload.Author) || string.IsNullOrWhiteSpace(upload.Attribution)
             || string.IsNullOrWhiteSpace(upload.RightsDeclaration))
             throw new InvalidOperationException("Cal indicar autoria, atribució i declaració de drets.");
         var licenseUri = Uri.TryCreate(upload.LicenseUrl, UriKind.Absolute, out var parsedLicenseUri) ? parsedLicenseUri : null;
-        var license = licensePolicy.Evaluate(upload.LicenseIdentifier, licenseUri?.ToString());
+        var userContribution = source == PlaceMediaSource.User && upload.ContributorUserId.HasValue;
+        var license = userContribution
+            ? new PlaceMediaLicenseDecision(true, true, true, null,
+                "Aportació pendent de moderació subjecta a la declaració de drets.")
+            : licensePolicy.Evaluate(upload.LicenseIdentifier, licenseUri?.ToString());
         if (!license.Allowed || !license.PermanentStorageAllowed)
             throw new InvalidOperationException("La llicència indicada no acredita una reutilització compatible.");
         var evidenceUri = Uri.TryCreate(upload.EvidenceUrl, UriKind.Absolute, out var parsedEvidenceUri) ? parsedEvidenceUri : null;
         if (source == PlaceMediaSource.OfficialWebsite && evidenceUri is null)
             throw new InvalidOperationException("Una fotografia de web oficial necessita una URL d’evidència.");
 
+        if (upload.ContributorUserId is { } contributorId)
+        {
+            var startOfUtcDay = new DateTimeOffset(DateTime.UtcNow.Date, TimeSpan.Zero);
+            var quota = await repository.GetUploadQuotaAsync(contributorId, startOfUtcDay, cancellationToken);
+            if (quota.UploadedToday >= 20) throw new InvalidOperationException("Has arribat al límit de 20 fotografies diàries.");
+            if (quota.Pending >= 50) throw new InvalidOperationException("Tens 50 fotografies pendents de moderació.");
+        }
+
+        var processed = await mediaProcessor.ProcessAsync(upload.Content, cancellationToken);
+        if (await repository.ContentHashExistsAsync(placeId, processed.SourceSha256, cancellationToken))
+            throw new InvalidOperationException("Aquesta fotografia ja s’ha aportat a l’establiment.");
+
         var id = Guid.NewGuid();
-        var hash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(upload.Content)).ToLowerInvariant();
-        var servedUrl = await binaryStorage.SaveJpegAsync(placeId, id, upload.Content, cancellationToken);
-        var servedUri = new Uri(servedUrl, UriKind.RelativeOrAbsolute);
+        var servedUrl = $"/api/places/{placeId}/media/{id}/optimized";
+        var servedUri = new Uri(servedUrl, UriKind.Relative);
         var asset = new PlaceMediaAsset(
             id, placeId, source, SourceOrganisation(source), id.ToString("N"), evidenceUri ?? servedUri, servedUri,
             upload.Author.Trim(), upload.LicenseIdentifier.Trim(), license.Version, licenseUri, upload.Attribution.Trim(),
-            DateTimeOffset.UtcNow, true, license.TransformationAllowed, hash, PlaceMediaVerificationStatus.Pending,
+            DateTimeOffset.UtcNow, true, license.TransformationAllowed, processed.SourceSha256, PlaceMediaVerificationStatus.Pending,
             false, false, false, upload.RightsDeclaration.Trim(), null, null, evidenceUri, null,
-            LastCheckedAtUtc: DateTimeOffset.UtcNow);
-        try
-        {
-            await repository.UpsertAsync(asset, cancellationToken);
-            return ToDto(asset);
-        }
-        catch
-        {
-            binaryStorage.Delete(placeId, id);
-            throw;
-        }
+            LastCheckedAtUtc: DateTimeOffset.UtcNow,
+            ContributorUserId: upload.ContributorUserId,
+            RightsDeclaration: upload.RightsDeclaration.Trim());
+        await repository.SaveProcessedUploadAsync(asset, processed.Variants, cancellationToken);
+        return ToDto(asset);
     }
 
     public Task AcceptAsync(Guid placeId, Guid assetId, Guid actorId, string reason, CancellationToken cancellationToken = default)
@@ -281,7 +351,13 @@ internal sealed class PlaceMediaApplicationService(
     {
         var asset = (await repository.ListAsync(placeId, cancellationToken)).SingleOrDefault(item => item.Id == assetId)
             ?? throw new KeyNotFoundException("No s’ha trobat la imatge.");
-        var license = licensePolicy.Evaluate(asset.LicenseIdentifier, asset.LicenseUri?.ToString());
+        var userContribution = asset.Source == PlaceMediaSource.User
+            && asset.ContributorUserId.HasValue
+            && !string.IsNullOrWhiteSpace(asset.RightsDeclaration);
+        var license = userContribution
+            ? new PlaceMediaLicenseDecision(true, true, true, null,
+                "Aportació d’usuari amb declaració de drets pendent de validació jurídica.")
+            : licensePolicy.Evaluate(asset.LicenseIdentifier, asset.LicenseUri?.ToString());
         if (!license.Allowed || !license.PermanentStorageAllowed)
             throw new InvalidOperationException("La imatge no té una llicència acreditada compatible amb l’ús de PetiLoc.");
         if (asset.Source == PlaceMediaSource.Mapillary)
@@ -310,10 +386,52 @@ internal sealed class PlaceMediaApplicationService(
         await repository.AcceptAsync(placeId, assetId, actorId, reason, cancellationToken);
     }
 
-    public Task RejectAsync(Guid placeId, Guid assetId, string reason, CancellationToken cancellationToken = default)
+    public Task RejectAsync(Guid placeId, Guid assetId, Guid actorId, string reason, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(reason)) throw new InvalidOperationException("Cal indicar el motiu del rebuig.");
-        return repository.RejectAsync(placeId, assetId, reason.Trim(), cancellationToken);
+        return repository.RejectAsync(placeId, assetId, actorId, reason.Trim(), cancellationToken);
+    }
+
+    public Task<PlaceMediaBlobDto?> GetBlobAsync(Guid placeId, Guid assetId, PlaceMediaVariant variant,
+        bool includeNonPublic, CancellationToken cancellationToken = default) =>
+        repository.GetBlobAsync(placeId, assetId, variant, includeNonPublic, cancellationToken);
+
+    public async Task<IReadOnlyCollection<PlaceMediaAssetDto>> ListPendingAsync(int skip, int take,
+        CancellationToken cancellationToken = default) =>
+        (await repository.ListPendingAsync(Math.Max(0, skip), Math.Clamp(take, 1, 100), cancellationToken))
+        .Select(ToDto).ToArray();
+
+    public Task QuarantineAsync(Guid placeId, Guid assetId, Guid actorId, string reason,
+        CancellationToken cancellationToken = default) =>
+        string.IsNullOrWhiteSpace(reason)
+            ? throw new InvalidOperationException("Cal indicar el motiu de la quarantena.")
+            : repository.QuarantineAsync(placeId, assetId, actorId, reason.Trim(), cancellationToken);
+
+    public Task WithdrawAsync(Guid placeId, Guid assetId, Guid actorId, string reason,
+        CancellationToken cancellationToken = default) =>
+        string.IsNullOrWhiteSpace(reason)
+            ? throw new InvalidOperationException("Cal indicar el motiu de la retirada.")
+            : repository.WithdrawAsync(placeId, assetId, actorId, reason.Trim(), cancellationToken);
+
+    public Task ReportAsync(Guid placeId, Guid assetId, Guid reporterUserId, string reason,
+        CancellationToken cancellationToken = default) =>
+        string.IsNullOrWhiteSpace(reason)
+            ? throw new InvalidOperationException("Cal indicar el motiu de la denúncia.")
+            : repository.ReportAsync(placeId, assetId, reporterUserId, reason.Trim(), cancellationToken);
+
+    public Task<IReadOnlyCollection<PlaceMediaModerationDto>> ListModerationHistoryAsync(Guid placeId,
+        CancellationToken cancellationToken = default) => repository.ListModerationHistoryAsync(placeId, cancellationToken);
+
+    public Task<IReadOnlyCollection<PlaceMediaReportDto>> ListPendingReportsAsync(int skip, int take,
+        CancellationToken cancellationToken = default) =>
+        repository.ListPendingReportsAsync(Math.Max(0, skip), Math.Clamp(take, 1, 100), cancellationToken);
+
+    public Task ResolveReportAsync(Guid reportId, Guid actorId, string decision, string reason,
+        CancellationToken cancellationToken = default)
+    {
+        if (decision is not ("Resolved" or "Dismissed") || string.IsNullOrWhiteSpace(reason))
+            throw new InvalidOperationException("Cal una decisió vàlida i un motiu.");
+        return repository.ResolveReportAsync(reportId, actorId, decision, reason.Trim(), cancellationToken);
     }
 
     internal static PlaceMediaAssetDto ToDto(PlaceMediaAsset asset) => new(
