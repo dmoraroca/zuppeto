@@ -39,6 +39,8 @@ export interface PlaceMapMunicipality {
   placeCount: number;
 }
 
+const VIEWPORT_SEARCH_DEBOUNCE_MS = 450;
+
 @Component({
   selector: 'app-place-map',
   templateUrl: './place-map.component.html',
@@ -79,13 +81,14 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   private resizeObserver?: ResizeObserver;
   private resizeFrame?: number;
   private markerRedrawFrame?: number;
+  private viewportSearchTimer?: number;
+  private lastViewportSearchKey = '';
   private resizingPointerId: number | null = null;
   private resizeStartY = 0;
   private resizeStartHeight = 0;
   private layoutCamera?: { center: import('leaflet').LatLng; zoom: number };
   private stableCamera?: { center: import('leaflet').LatLng; zoom: number };
   private layoutCameraReleaseTimer?: number;
-  protected readonly viewportChanged = signal(false);
   protected readonly visibleLayer = signal<PlaceMapLayerMode>('municipality');
   protected readonly currentZoom = signal(CITY_INITIAL_ZOOM);
   protected readonly currentCenter = signal<{ lat: number; lng: number } | null>(null);
@@ -96,7 +99,11 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     const resized = this.mapHeightPx();
     return resized === null ? this.height() : `${resized}px`;
   });
-  private automaticCameraUntil = 0;
+  private userCameraIntentUntil = 0;
+
+  private readonly markUserCameraIntent = (): void => {
+    this.userCameraIntentUntil = Date.now() + 5_000;
+  };
 
   private readonly onFullscreenChange = (): void => {
     if (this.stableCamera) this.layoutCamera = this.stableCamera;
@@ -127,6 +134,10 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       this.resizeObserver = new ResizeObserver(() => this.scheduleMapResize());
       this.resizeObserver.observe(canvas);
     }
+    canvas?.addEventListener('pointerdown', this.markUserCameraIntent, { passive: true });
+    canvas?.addEventListener('pointerup', this.markUserCameraIntent, { passive: true });
+    canvas?.addEventListener('wheel', this.markUserCameraIntent, { passive: true });
+    canvas?.addEventListener('keydown', this.markUserCameraIntent);
     this.document.addEventListener('fullscreenchange', this.onFullscreenChange);
     this.document.addEventListener('keydown', this.onDocumentKeydown);
     this.renderMap();
@@ -138,10 +149,16 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
 
   ngOnDestroy(): void {
     this.resizeObserver?.disconnect();
+    const canvas = this.mapContainer?.nativeElement;
+    canvas?.removeEventListener('pointerdown', this.markUserCameraIntent);
+    canvas?.removeEventListener('pointerup', this.markUserCameraIntent);
+    canvas?.removeEventListener('wheel', this.markUserCameraIntent);
+    canvas?.removeEventListener('keydown', this.markUserCameraIntent);
     this.document.removeEventListener('fullscreenchange', this.onFullscreenChange);
     this.document.removeEventListener('keydown', this.onDocumentKeydown);
     if (this.resizeFrame !== undefined) cancelAnimationFrame(this.resizeFrame);
     if (this.markerRedrawFrame !== undefined) cancelAnimationFrame(this.markerRedrawFrame);
+    if (this.viewportSearchTimer !== undefined) window.clearTimeout(this.viewportSearchTimer);
     if (this.layoutCameraReleaseTimer !== undefined) window.clearTimeout(this.layoutCameraReleaseTimer);
     this.map?.remove();
     this.map = undefined;
@@ -165,20 +182,18 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
 
   protected focusAllPlaces(): void {
     if (!this.map || !this.leaflet) return;
+    this.markUserCameraIntent();
     if (this.municipality()) {
       const municipality = this.municipality()!;
-      this.markAutomaticCamera();
       this.map.panTo([municipality.lat, municipality.lng]);
     } else if (this.hasPlaces) {
       const bounds = this.places().reduce((accumulator, place) => {
         accumulator.extend([place.coordinates!.lat, place.coordinates!.lng]);
         return accumulator;
       }, this.leaflet.latLngBounds([]));
-      this.markAutomaticCamera();
       this.map.panTo(bounds.getCenter());
     } else {
       const focus = this.focusCenter();
-      this.markAutomaticCamera();
       this.map.panTo(focus ? [focus.lat, focus.lng] : PlaceMapComponent.defaultMapCenter);
     }
   }
@@ -265,16 +280,21 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     this.releaseLayoutCameraSoon();
   }
 
-  protected searchCurrentViewport(): void {
+  private emitCurrentViewportSearch(): void {
     if (!this.map) return;
     const bounds = this.map.getBounds();
-    this.viewportChanged.set(false);
-    this.viewportSearch.emit({
+    const viewport = {
       north: bounds.getNorth(),
       south: bounds.getSouth(),
       east: bounds.getEast(),
       west: bounds.getWest()
-    });
+    };
+    const key = [viewport.north, viewport.south, viewport.east, viewport.west]
+      .map(value => value.toFixed(6))
+      .join(':');
+    if (key === this.lastViewportSearchKey) return;
+    this.lastViewportSearchKey = key;
+    this.viewportSearch.emit(viewport);
   }
 
   private async ensureMap(): Promise<void> {
@@ -599,7 +619,6 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
 
   private zoomToMunicipality(municipality: PlaceMapMunicipality): void {
     if (!this.map) return;
-    this.markAutomaticCamera();
     this.map.setView([municipality.lat, municipality.lng], CITY_CLICK_ZOOM);
   }
 
@@ -647,7 +666,6 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       className: 'place-map__cluster-label'
     });
     const zoomIn = () => {
-      this.markAutomaticCamera();
       this.map!.setView([lat, lng], Math.min(this.map!.getZoom() + 2, 17));
     };
     marker.on('click', zoomIn);
@@ -715,7 +733,7 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       : 'unknown';
     return this.leaflet!.divIcon({
       className: '',
-      html: `<span class="place-map__pet-pin place-map__pet-pin--${statusClass}${selected ? ' place-map__pet-pin--selected' : ''}" aria-hidden="true"><span>🐶</span></span>`,
+      html: `<span class="place-map__pet-pin place-map__pet-pin--${statusClass}${selected ? ' place-map__pet-pin--selected' : ''}" aria-hidden="true"><img src="/images/place-detail/westie-face.png" alt="" /></span>`,
       iconSize: selected ? [42, 50] : [34, 42],
       iconAnchor: selected ? [21, 48] : [17, 40],
       popupAnchor: [0, -38]
@@ -733,14 +751,22 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   }
 
   private markAutomaticCamera(): void {
-    this.automaticCameraUntil = Date.now() + 600;
-    this.viewportChanged.set(false);
+    this.userCameraIntentUntil = 0;
+    if (this.viewportSearchTimer !== undefined) {
+      window.clearTimeout(this.viewportSearchTimer);
+      this.viewportSearchTimer = undefined;
+    }
   }
 
   private markViewportChanged(): void {
     const center = this.map?.getCenter();
     this.currentCenter.set(center ? { lat: center.lat, lng: center.lng } : null);
-    if (Date.now() >= this.automaticCameraUntil) this.viewportChanged.set(true);
+    if (Date.now() > this.userCameraIntentUntil) return;
+    if (this.viewportSearchTimer !== undefined) window.clearTimeout(this.viewportSearchTimer);
+    this.viewportSearchTimer = window.setTimeout(() => {
+      this.viewportSearchTimer = undefined;
+      this.emitCurrentViewportSearch();
+    }, VIEWPORT_SEARCH_DEBOUNCE_MS);
   }
 }
 

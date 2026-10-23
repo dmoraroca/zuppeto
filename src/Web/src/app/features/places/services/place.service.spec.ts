@@ -35,6 +35,15 @@ describe('PlaceService phase I characterization', () => {
     expect(values).not.toContain('dog_grooming');
   });
 
+  it('bounds the authenticated session catalog request', () => {
+    service.reload();
+    const request = http.expectOne((candidate) => candidate.url.endsWith('/api/places'));
+
+    expect(request.request.params.get('skip')).toBe('0');
+    expect(request.request.params.get('take')).toBe('100');
+    request.flush({ items: [], total: 0, skip: 0, take: 100, hasMore: false });
+  });
+
   it('maps the public API DTO, media URL and address without requiring a session', async () => {
     const promise = service.fetchPublicPlaces();
     const request = http.expectOne('http://localhost:5211/api/places');

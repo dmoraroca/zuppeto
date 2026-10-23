@@ -24,11 +24,11 @@ export class PlaceDetailLifeLineAnimation {
   private intersectionObserver: IntersectionObserver | null = null;
   private motionPreference: MediaQueryList | null = null;
 
-  private reachedEndInCurrentCycle = false;
+  private reachedStartInCurrentCycle = false;
 
   public constructor(
     private readonly host: HTMLElement,
-    private readonly onReachedEnd: () => void = () => undefined
+    private readonly onReachedStart: () => void = () => undefined
   ) {}
 
   public connect(westie: HTMLImageElement): void {
@@ -89,7 +89,7 @@ export class PlaceDetailLifeLineAnimation {
     this.routeLength = 0;
     this.cycleStartedAt = null;
     this.suspendedAt = null;
-    this.reachedEndInCurrentCycle = false;
+    this.reachedStartInCurrentCycle = false;
     this.resizeObserver = null;
     this.intersectionObserver = null;
     this.motionPreference = null;
@@ -208,14 +208,14 @@ export class PlaceDetailLifeLineAnimation {
     const cycleDuration = MOVEMENT_DURATION_MS + FINAL_PAUSE_MS;
     const elapsed = (timestamp - this.cycleStartedAt) % cycleDuration;
     const moving = elapsed < MOVEMENT_DURATION_MS;
-    if (!moving && !this.reachedEndInCurrentCycle) {
-      this.reachedEndInCurrentCycle = true;
-      this.onReachedEnd();
-    } else if (moving && this.reachedEndInCurrentCycle) {
-      this.reachedEndInCurrentCycle = false;
+    if (!moving && !this.reachedStartInCurrentCycle) {
+      this.reachedStartInCurrentCycle = true;
+      this.onReachedStart();
+    } else if (moving && this.reachedStartInCurrentCycle) {
+      this.reachedStartInCurrentCycle = false;
     }
     const progress = moving ? elapsed / MOVEMENT_DURATION_MS : 1;
-    const point = this.pointAtDistance(this.routeLength * progress);
+    const point = this.pointAtDistance(this.routeLength * (1 - progress));
     if (point) {
       const tilt = Math.max(-5, Math.min(5, point.tangentDegrees));
       this.westie.style.transform = `translate3d(${point.x}px, ${point.y}px, 0) translate(-50%, -50%) rotate(${tilt}deg)`;

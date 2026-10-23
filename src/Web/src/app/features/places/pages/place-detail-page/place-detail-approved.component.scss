@@ -160,19 +160,6 @@
   object-position: center 51%;
 }
 
-.petiloc-detail__fallback span {
-  position: absolute;
-  right: 1rem;
-  bottom: .85rem;
-  z-index: 3;
-  padding: .32rem .6rem;
-  border-radius: 999px;
-  background: rgba(5, 49, 44, .84);
-  color: #fff;
-  font-size: .6rem;
-  font-weight: 800;
-}
-
 .petiloc-detail__hero-gallery {
   position: absolute;
   right: clamp(1rem, 2.5vw, 2.5rem);
@@ -226,23 +213,6 @@
   right: clamp(8rem, 12vw, 12rem);
   bottom: 3.4rem;
   z-index: 5;
-}
-
-.petiloc-detail__signature {
-  position: absolute;
-  top: .7rem;
-  left: 60%;
-  z-index: 4;
-  display: inline-flex;
-  align-items: center;
-  gap: .26rem;
-  padding: .34rem .62rem;
-  border-radius: 999px;
-  background: #e8bd51;
-  color: #243c37;
-  font-size: .62rem;
-  font-weight: 900;
-  rotate: -3deg;
 }
 
 .petiloc-detail__crumbs {
@@ -591,27 +561,19 @@
   background: radial-gradient(circle at 20% 25%, currentColor 0 10%, transparent 11%), radial-gradient(circle at 43% 12%, currentColor 0 11%, transparent 12%), radial-gradient(circle at 67% 17%, currentColor 0 11%, transparent 12%), radial-gradient(circle at 84% 35%, currentColor 0 10%, transparent 11%), radial-gradient(ellipse at 52% 68%, currentColor 0 27%, transparent 28%);
 }
 
-.petiloc-detail__signature .petiloc-detail__paw { width: .78rem; height: .78rem; }
 .petiloc-detail__pet-state .petiloc-detail__paw { width: .82rem; height: .82rem; }
 .petiloc-detail__chapter-icon .petiloc-detail__paw,
 .petiloc-detail__route-node .petiloc-detail__paw { width: 1.2rem; height: 1.2rem; }
 
-.petiloc-detail__flower { position: absolute; z-index: 4; pointer-events: none; }
 .petiloc-detail__westie {
   position: absolute;
   right: calc(30% + .75rem);
   bottom: 1.35rem;
-  z-index: 2;
+  z-index: 4;
   width: clamp(3.25rem, 6vw, 7rem);
   height: auto;
   pointer-events: none;
 }
-.petiloc-detail__flower { top: 17.7rem; right: 2.75rem; width: 4.3rem; height: 4.3rem; }
-.petiloc-detail__flower i { position: absolute; width: 2.2rem; height: 3.5rem; border-radius: 100% 0 100% 55%; background: #e9ca68; transform-origin: 100% 100%; }
-.petiloc-detail__flower i:nth-child(1) { rotate: -38deg; }
-.petiloc-detail__flower i:nth-child(2) { rotate: 35deg; }
-.petiloc-detail__flower i:nth-child(3) { rotate: 105deg; }
-
 .petiloc-detail__sources {
   position: relative;
   z-index: 3;
@@ -657,13 +619,11 @@
   .petiloc-detail__body-stage { display: block; height: auto; }
   .petiloc-detail__hero-media { width: calc(100vw + .5rem); height: 14rem; }
   .petiloc-detail__hero-photo img, .petiloc-detail__fallback img { object-position: center; }
-  .petiloc-detail__signature { top: .6rem; right: .65rem; left: auto; }
   .petiloc-detail__hero-gallery { top: 8.4rem; right: .65rem; bottom: auto; max-width: 56%; }
   .petiloc-detail__hero-thumbnails button { width: 2.35rem; height: 1.75rem; }
   .petiloc-detail__hero-photo-actions button { min-height: 1.8rem; padding: .3rem .5rem; font-size: .56rem; }
   .petiloc-detail__hero-photo-actions .petiloc-detail__photo-count { display: none; }
   .petiloc-detail__first-photo { top: 8.5rem; right: .65rem; bottom: auto; }
-  .petiloc-detail__fallback span { right: .65rem; bottom: .6rem; }
   .petiloc-detail__crumbs { top: 1rem; left: calc(50% - 50vw + 1rem); max-width: 62%; padding: .24rem .42rem; border-radius: 999px; background: rgba(255, 253, 246, .86); backdrop-filter: blur(.2rem); }
   .petiloc-detail__hero-organic { top: 10.25rem; width: calc(100vw + .5rem); height: 15rem; }
   .petiloc-detail__identity { top: 10.25rem; left: 50%; width: calc(100vw + .5rem); height: 15rem; min-height: 0; padding: 2.15rem 1.25rem 1.25rem; border-radius: 0; background: transparent; transform: translateX(-50%); }
@@ -695,7 +655,6 @@
   .petiloc-detail__route-node--third { top: calc(58.0046% + 9.61rem); left: calc(90.7525% - 1.125rem); }
   .petiloc-detail__route-node--fourth { top: calc(84.116% + 2.935rem); left: calc(90.2305% - 1.125rem); }
   .petiloc-detail__westie { right: 4.25rem; bottom: 4.25rem; width: 5.25rem; }
-  .petiloc-detail__flower { top: 12.4rem; right: 3rem; transform: scale(.7); transform-origin: right top; }
   .petiloc-detail__sources { margin-bottom: 1rem; }
   .petiloc-detail__mobile-dock { position: fixed; right: .55rem; bottom: max(.55rem, env(safe-area-inset-bottom)); left: .55rem; z-index: 900; display: grid; grid-template-columns: repeat(4, 1fr); gap: .12rem; padding: .32rem; border-radius: 1rem; background: rgba(7, 54, 49, .97); box-shadow: 0 .75rem 2rem rgba(2, 27, 24, .28); }
   .petiloc-detail__mobile-dock a, .petiloc-detail__mobile-dock button { display: grid; place-items: center; gap: .14rem; min-width: 0; min-height: 3.1rem; padding: .2rem; border: 0; background: transparent; color: #fff; font: inherit; font-size: .59rem; font-weight: 850; text-decoration: none; }

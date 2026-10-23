@@ -75,7 +75,12 @@ export class PlaceDetailPageComponent {
       || !this.westiePreferences.soundEnabled()
       || document.hidden
     ) return;
-    void this.westieBark.playAtEndOfRoute();
+    void this.westieBark.playAtStartOfRoute();
+  }
+
+  private unlockWestieBarkFromUserAction(): void {
+    if (!this.showWestie() || !this.westiePreferences.soundEnabled()) return;
+    void this.westieBark.unlockFromUserAction();
   }
 
   constructor() {
@@ -407,6 +412,7 @@ export class PlaceDetailPageComponent {
 
   @HostListener('document:keydown', ['$event'])
   protected handleGlobalKeydown(event: KeyboardEvent): void {
+    this.unlockWestieBarkFromUserAction();
     if (event.key === 'Tab' && (this.uploadOpen() || this.galleryOpen() || this.lightboxIndex() !== null)) {
       const modalSelector = this.uploadOpen()
         ? '.place-detail-page__upload'
@@ -459,6 +465,11 @@ export class PlaceDetailPageComponent {
     } catch {
       this.setShareFeedback('No s’ha pogut copiar l’enllaç.');
     }
+  }
+
+  @HostListener('document:pointerdown')
+  protected handleGlobalPointerDown(): void {
+    this.unlockWestieBarkFromUserAction();
   }
 
   private setShareFeedback(message: string): void {

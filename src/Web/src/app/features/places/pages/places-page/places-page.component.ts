@@ -68,7 +68,11 @@ export class PlacesPageComponent {
       petAccessStatuses: splitParam(map.get('petPolicies')) as PlaceFilters['petAccessStatuses'],
       verifiedOnly: map.get('verified') === 'true',
       searchSort: parseSort(map.get('sort')),
-      radiusKm: parseRadius(map.get('radius'))
+      radiusKm: parseRadius(map.get('radius')),
+      north: parseFiniteNumber(map.get('north')),
+      south: parseFiniteNumber(map.get('south')),
+      east: parseFiniteNumber(map.get('east')),
+      west: parseFiniteNumber(map.get('west'))
     };
   });
 
@@ -104,7 +108,11 @@ export class PlacesPageComponent {
     petAccessStatuses: splitParam(this.route.snapshot.queryParamMap.get('petPolicies')) as PlaceFilters['petAccessStatuses'],
     verifiedOnly: this.route.snapshot.queryParamMap.get('verified') === 'true',
     searchSort: parseSort(this.route.snapshot.queryParamMap.get('sort')),
-    radiusKm: parseRadius(this.route.snapshot.queryParamMap.get('radius'))
+    radiusKm: parseRadius(this.route.snapshot.queryParamMap.get('radius')),
+    north: parseFiniteNumber(this.route.snapshot.queryParamMap.get('north')),
+    south: parseFiniteNumber(this.route.snapshot.queryParamMap.get('south')),
+    east: parseFiniteNumber(this.route.snapshot.queryParamMap.get('east')),
+    west: parseFiniteNumber(this.route.snapshot.queryParamMap.get('west'))
   });
   private listingRequest = 0;
   private listingAbort?: AbortController;
@@ -527,7 +535,11 @@ export class PlacesPageComponent {
       petPolicies: filters.petAccessStatuses?.length ? filters.petAccessStatuses.join(',') : null,
       verified: filters.verifiedOnly ? 'true' : null,
       sort: filters.searchSort !== 'name' ? filters.searchSort ?? null : null,
-      radius: filters.radiusKm || null
+      radius: filters.radiusKm || null,
+      north: filters.north ?? null,
+      south: filters.south ?? null,
+      east: filters.east ?? null,
+      west: filters.west ?? null
     };
   }
 
@@ -552,4 +564,10 @@ function parseRadius(value: string | null): PlaceFilters['radiusKm'] {
 
 function parseSort(value: string | null): PlaceFilters['searchSort'] {
   return value === 'distance' || value === 'verified' || value === 'recent' ? value : 'name';
+}
+
+function parseFiniteNumber(value: string | null): number | undefined {
+  if (value === null || value.trim() === '') return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
 }

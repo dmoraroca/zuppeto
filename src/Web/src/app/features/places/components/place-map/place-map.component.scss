@@ -108,10 +108,6 @@
   border: 1px solid rgba(15, 118, 110, 0.18);
 }
 
-.place-map__actions .place-map__viewport-button {
-  background: #b45309;
-}
-
 .place-map__canvas {
   width: 100%;
   margin-top: 0.9rem;
@@ -209,10 +205,11 @@
   box-shadow: 0 5px 14px rgba(15, 23, 42, 0.32);
 }
 
-:host ::ng-deep .place-map__pet-pin > span {
+:host ::ng-deep .place-map__pet-pin > img {
+  width: 76%;
+  height: 76%;
+  object-fit: contain;
   transform: rotate(45deg);
-  font-size: 17px;
-  line-height: 1;
 }
 
 :host ::ng-deep .place-map__pet-pin--allowed { background: #4ade80; }

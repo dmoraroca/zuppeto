@@ -31,11 +31,6 @@
         >
           {{ fullscreen() ? 'Sortir de pantalla completa' : 'Pantalla completa' }}
         </button>
-        @if (viewportChanged()) {
-          <button type="button" class="place-map__viewport-button" (click)="searchCurrentViewport()">
-            Cercar en aquesta zona
-          </button>
-        }
         @if (hasPlaces && selectedPlace) {
           <button type="button" class="place-map__ghost-button" (click)="clearSelection()">
             Treure selecció

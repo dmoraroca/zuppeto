@@ -36,8 +36,15 @@ async function main(): Promise<void> {
     });
 
     const page = await context.newPage();
-    await page.goto(`/places?country=Espanya&city=Arenys%20de%20Mar&countryId=${countryId}&territorialUnitId=${territorialUnitId}`, { waitUntil: 'networkidle' });
-    await page.waitForTimeout(1500);
+    const viewportSearchRequests: string[] = [];
+    page.on('request', request => {
+      const url = new URL(request.url());
+      if (url.pathname.replace(/\/$/u, '') === '/api/places' && url.searchParams.has('north')) {
+        viewportSearchRequests.push(url.href);
+      }
+    });
+    await page.goto(`/places?country=Espanya&city=Arenys%20de%20Mar&countryId=${countryId}&territorialUnitId=${territorialUnitId}`, { waitUntil: 'domcontentloaded' });
+    await page.locator('app-place-card').first().waitFor({ timeout: 30_000 });
     const initialBody = await page.locator('body').innerText();
     const initialCardCount = await page.locator('app-place-card').count();
     assert.ok(initialCardCount > 0, `La cerca inicial d’Arenys ha de mostrar locals:\n${initialBody}`);
@@ -74,10 +81,23 @@ async function main(): Promise<void> {
 
     await page.getByRole('button', { name: /Apropar cluster/ }).first().click();
     await page.waitForFunction(() => document.querySelector('.place-map__canvas')?.getAttribute('data-map-layer') === 'places');
+    await page.waitForURL(url => ['north', 'south', 'east', 'west'].every(key => url.searchParams.has(key)));
+    await page.waitForTimeout(700);
+    assert.equal(await page.getByRole('button', { name: 'Cercar en aquesta zona' }).count(), 0,
+      'La cerca de viewport ha de ser automàtica i el botó manual no ha d’existir.');
+    const territorialViewportKeys = uniqueViewportKeys(viewportSearchRequests);
+    assert.ok(territorialViewportKeys.length >= 1 && territorialViewportKeys.length <= 2,
+      `Municipi i cluster han de produir com a màxim un viewport estabilitzat cadascun, no ${territorialViewportKeys.length}.`);
+    assert.equal(await page.getByLabel('Hotels').isChecked(), true, 'La cerca del mapa ha de conservar les categories.');
+    assert.equal(await page.getByLabel('Bars').isChecked(), true, 'La cerca del mapa ha de conservar les categories.');
+    assert.equal(await page.getByLabel('Restaurants').isChecked(), true, 'La cerca del mapa ha de conservar les categories.');
     assert.equal(await page.locator('.place-map__municipality-marker').count(), 0, 'El municipi ha d’estar ocult quan es mostren POI.');
     assert.ok(await page.locator('.place-map__pet-pin').count() > 0, 'El zoom proper ha de mostrar POI individuals.');
     await page.getByRole('button', { name: /Seleccionar .* al mapa/ }).first().click();
     await page.getByText('Seleccionat al mapa').waitFor();
+
+    await page.goto(`/places?country=Espanya&city=Arenys%20de%20Mar&countryId=${countryId}&territorialUnitId=${territorialUnitId}`, { waitUntil: 'domcontentloaded' });
+    await page.locator('app-place-card').first().waitFor({ timeout: 30_000 });
 
     await page.getByLabel('Desconegut').check();
     await page.getByRole('button', { name: 'Cercar', exact: true }).click();
@@ -111,11 +131,13 @@ async function main(): Promise<void> {
     assert.ok(Math.abs(Number(await mapCanvas.getAttribute('data-center-lat')) - 41.58) < 0.08, 'Els bounds del radi han de conservar Arenys al centre.');
 
     const firstCard = page.locator('app-place-card').first();
-    await firstCard.click();
-    await page.getByText('Seleccionat al mapa').waitFor();
-    await page.getByRole('button', { name: 'Veure detall' }).click();
-    await page.getByRole('heading', { name: 'Normativa sobre mascotes' }).waitFor();
-    await page.getByRole('link', { name: 'Tornar al llistat' }).first().click();
+    await page.locator('.places-page__loading').waitFor({ state: 'detached' });
+    await Promise.all([
+      page.waitForURL(/\/places\/[^/?]+/u),
+      firstCard.click()
+    ]);
+    await page.locator('h1').waitFor();
+    await page.getByRole('navigation', { name: 'Fil d’Ariadna' }).getByRole('link', { name: 'Llocs' }).click();
     await page.waitForURL(/radius=10/);
     assert.equal(await page.getByLabel('10 km').isChecked(), true, 'El radi s’ha de restaurar en tornar del detall.');
 
@@ -123,15 +145,22 @@ async function main(): Promise<void> {
     await page.getByText('A prop meu — Arenys de Mar').waitFor();
     await page.waitForTimeout(1000);
 
-    await page.locator('.leaflet-control-zoom-in').click();
-    await page.getByRole('button', { name: 'Cercar en aquesta zona' }).waitFor();
+    viewportSearchRequests.length = 0;
+    const zoomIn = page.locator('.leaflet-control-zoom-in');
+    await zoomIn.click();
+    await zoomIn.click();
+    await zoomIn.click();
+    await page.waitForURL(url => ['north', 'south', 'east', 'west'].every(key => url.searchParams.has(key)));
+    await page.waitForTimeout(700);
+    assert.equal(uniqueViewportKeys(viewportSearchRequests).length, 1,
+      `Tres zooms ràpids han de produir un sol viewport amb debounce, no ${uniqueViewportKeys(viewportSearchRequests).length}.`);
 
     const noGpsContext = await browser.newContext({ baseURL: webBaseUrl, permissions: [] });
     await noGpsContext.addInitScript(({ key, value }) => localStorage.setItem(key, JSON.stringify(value)), {
       key: 'zuppeto-auth-session', value: session
     });
     const noGpsPage = await noGpsContext.newPage();
-    await noGpsPage.goto('/places', { waitUntil: 'networkidle' });
+    await noGpsPage.goto('/places', { waitUntil: 'domcontentloaded' });
     await noGpsPage.getByRole('button', { name: /A prop meu/ }).click();
     await noGpsPage.getByText(/seleccionar país i municipi manualment|selecció manual continua disponible/).waitFor();
     await noGpsContext.close();
@@ -150,7 +179,7 @@ async function main(): Promise<void> {
       }
     });
     const mobilePage = await mobileContext.newPage();
-    await mobilePage.goto(`/places?country=Espanya&city=Arenys%20de%20Mar&countryId=${countryId}&territorialUnitId=${territorialUnitId}`, { waitUntil: 'networkidle' });
+    await mobilePage.goto(`/places?country=Espanya&city=Arenys%20de%20Mar&countryId=${countryId}&territorialUnitId=${territorialUnitId}`, { waitUntil: 'domcontentloaded' });
     const filtersToggle = mobilePage.getByRole('button', { name: 'Mostrar filtres' });
     await filtersToggle.waitFor();
     assert.equal(await mobilePage.locator('#places-search-filters').isVisible(), false, 'Els filtres mòbils han de començar plegats.');
@@ -160,6 +189,8 @@ async function main(): Promise<void> {
     assert.equal(await mobileLocality.inputValue(), 'Arenys de Mar');
     await mobileContext.close();
 
+    await page.goto(`/places?country=Espanya&city=Arenys%20de%20Mar&countryId=${countryId}&territorialUnitId=${territorialUnitId}`, { waitUntil: 'domcontentloaded' });
+    await page.locator('app-place-card').first().waitFor({ timeout: 30_000 });
     await page.getByRole('searchbox', { name: 'Cerca' }).fill('zzzz-sense-resultats');
     await page.getByRole('button', { name: 'Cercar', exact: true }).click();
     await page.waitForURL(/search=zzzz-sense-resultats/);
@@ -184,3 +215,10 @@ main().catch(error => {
   console.error(error);
   process.exitCode = 1;
 });
+
+function uniqueViewportKeys(requests: readonly string[]): string[] {
+  return [...new Set(requests.map(request => {
+    const url = new URL(request);
+    return ['north', 'south', 'east', 'west'].map(key => url.searchParams.get(key) ?? '').join(':');
+  }))];
+}

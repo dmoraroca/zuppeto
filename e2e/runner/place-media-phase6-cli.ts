@@ -164,7 +164,9 @@ async function validateDesktop(browser: Awaited<ReturnType<PilotChromeLauncher['
   await page.getByRole('heading', { level: 1, name: 'Local sense fotografia' }).waitFor();
   await page.getByText('Pet-friendly: Desconegut', { exact: true }).waitFor();
   await validateApprovedHeader(page, 1440, 'artifacts/phase6-approved-header-empty-desktop.png');
-  await page.getByText('Il·lustració PetiLoc').first().waitFor();
+  await page.locator('.petiloc-detail__fallback img').waitFor();
+  assert.equal(await page.getByText('Il·lustració PetiLoc', { exact: true }).count(), 0,
+    'L’etiqueta superposada «Il·lustració PetiLoc» s’ha de mantenir eliminada.');
   assert.equal(await page.locator('.petiloc-detail__hero-photo').count(), 0);
   await page.getByRole('button', { name: 'Afegir la primera fotografia' }).waitFor();
   assert.equal(await page.getByRole('dialog', { name: 'Afegir fotografies' }).count(), 0,
@@ -309,18 +311,12 @@ async function validateLifeLine(page: Page, viewportWidth: number): Promise<void
     });
     const sheetBox = sheet.getBoundingClientRect();
     const firstNode = document.querySelector<HTMLElement>('.petiloc-detail__route-node--first')?.getBoundingClientRect();
-    const flower = document.querySelector<HTMLElement>('.petiloc-detail__flower')?.getBoundingClientRect();
-    const decorativeLeaves = Array.from(document.querySelectorAll<HTMLElement>(
-      '.petiloc-detail__flower i'
-    )).map(element => element.getBoundingClientRect());
     return {
       startOffset: start.y - (sheetBox.top + (innerWidth <= 720 ? 25.25 * 16 : 20.25 * 16)),
       endOffset: sheetBox.bottom - end.y,
       nodeDistances,
       firstNodeDeltaX: firstNode ? firstNode.left + firstNode.width / 2 - start.x : Number.POSITIVE_INFINITY,
-      firstNodeDeltaY: firstNode ? firstNode.top + firstNode.height / 2 - start.y : Number.POSITIVE_INFINITY,
-      decorationInside: Boolean(flower && flower.right <= sheetBox.right + 1
-        && decorativeLeaves.every(leaf => leaf.left >= -1 && leaf.right <= innerWidth + 1))
+      firstNodeDeltaY: firstNode ? firstNode.top + firstNode.height / 2 - start.y : Number.POSITIVE_INFINITY
     };
   });
 
@@ -333,8 +329,8 @@ async function validateLifeLine(page: Page, viewportWidth: number): Promise<void
     `La primera petjada del body ha d'estar exactament 10 px a l'esquerra a ${viewportWidth}px (${result.firstNodeDeltaX}, ${result.firstNodeDeltaY}).`);
   assert.ok(result.nodeDistances.slice(1).every(distance => distance <= 3),
     `La resta de petjades han de continuar centrades sobre la línia a ${viewportWidth}px (${result.nodeDistances.join(', ')}).`);
-  assert.equal(result.decorationInside, true,
-    `La decoració de transició ha de quedar dins el contenidor a ${viewportWidth}px.`);
+  assert.equal(await page.locator('.petiloc-detail__flower').count(), 0,
+    'La fulla groga retirada no ha de tornar a aparèixer.');
 }
 
 async function validateWestieAndDisclosure(page: Page, viewportWidth: number): Promise<void> {
@@ -416,13 +412,16 @@ async function validateWestieAnimationCycle(page: Page): Promise<void> {
     return {
       state: dog.dataset['animationState'] ?? '',
       startDistance: Math.hypot(center.x - heroStart.x, center.y - heroStart.y),
-      endDistance: Math.hypot(center.x - bodyEnd.x, center.y - bodyEnd.y)
+      endDistance: Math.hypot(center.x - bodyEnd.x, center.y - bodyEnd.y),
+      opacity: Number(getComputedStyle(dog).opacity),
+      dogZIndex: Number(getComputedStyle(dog).zIndex),
+      sourcesZIndex: Number(getComputedStyle(document.querySelector<HTMLElement>('.petiloc-detail__sources')!).zIndex)
     };
   });
 
   const start = await routeEnds();
-  assert.ok(start && start.startDistance <= 100,
-    `El primer cicle ha de començar al tram superior real (${start?.startDistance}px).`);
+  assert.ok(start && start.endDistance <= 100,
+    `El primer cicle ha de començar al tram inferior real (${start?.endDistance}px).`);
   await page.screenshot({ path: 'artifacts/petiloc-westie-animation-01-inici.png', fullPage: true });
   await page.waitForTimeout(10_000);
   await page.screenshot({ path: 'artifacts/petiloc-westie-animation-02-recorregut.png', fullPage: true });
@@ -430,33 +429,19 @@ async function validateWestieAnimationCycle(page: Page): Promise<void> {
     document.querySelector<HTMLElement>('.petiloc-detail__westie')?.dataset['animationState'] === 'paused',
   null, { timeout: 13_000 });
   const end = await routeEnds();
-  assert.ok(end && end.endDistance <= 4,
-    `El Westie ha d'arribar al final real del recorregut (${end?.endDistance}px).`);
+  assert.ok(end && end.startDistance <= 1,
+    `El Westie ha d'arribar al principi real del recorregut (${end?.startDistance}px).`);
+  assert.ok(end && end.opacity >= .99, 'El Westie ha de romandre completament visible en arribar al principi.');
   await page.screenshot({ path: 'artifacts/petiloc-westie-animation-03-pausa-final.png', fullPage: true });
   await page.waitForFunction(() =>
     document.querySelector<HTMLElement>('.petiloc-detail__westie')?.dataset['animationState'] === 'moving',
   null, { timeout: 4_000 });
   const secondCycle = await routeEnds();
-  assert.ok(secondCycle && secondCycle.startDistance <= 60,
-    `El segon cicle ha de reprendre's al començament real (${secondCycle?.startDistance}px).`);
+  assert.ok(secondCycle && secondCycle.endDistance <= 60,
+    `El segon cicle ha de reprendre's al final inferior real (${secondCycle?.endDistance}px).`);
   await page.screenshot({ path: 'artifacts/petiloc-westie-animation-04-segon-cicle.png', fullPage: true });
   await page.setViewportSize({ width: 1024, height: 900 });
-  await page.waitForFunction(() => {
-    const dog = document.querySelector<HTMLElement>('.petiloc-detail__westie');
-    const heroSvg = document.querySelector<SVGSVGElement>('.petiloc-detail__hero-organic');
-    const path = heroSvg?.querySelector<SVGPathElement>('#petiloc-hero-contour');
-    if (!dog || !heroSvg || !path) return false;
-    const box = dog.getBoundingClientRect();
-    const center = { x: box.left + box.width / 2, y: box.top + box.height / 2 };
-    const matrix = heroSvg.getScreenCTM() ?? new DOMMatrix();
-    const length = path.getTotalLength() * .19060951;
-    let nearest = Number.POSITIVE_INFINITY;
-    for (let index = 0; index <= 500; index += 1) {
-      const point = path.getPointAtLength(length * index / 500).matrixTransform(matrix);
-      nearest = Math.min(nearest, Math.hypot(center.x - point.x, center.y - point.y));
-    }
-    return nearest <= 4;
-  }, null, { timeout: 2_000 });
+  await page.waitForTimeout(250);
   await validateWestieAndDisclosure(page, 1024);
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.waitForTimeout(250);

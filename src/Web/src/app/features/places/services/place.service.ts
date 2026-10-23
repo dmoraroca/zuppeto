@@ -124,10 +124,13 @@ export class PlaceService {
     return type in PLACE_TYPE_LABELS ? PLACE_TYPE_LABELS[type as PlaceType] : type;
   }
 
-  /** Full catalog (no query). Used after login so favorites/detail can resolve IDs. */
+  /** Bounded session catalog. Used after login so favorites/detail can resolve IDs. */
   reload(): void {
+    const params = new HttpParams()
+      .set('skip', '0')
+      .set('take', String(PLACE_LIST_BATCH_SIZE));
     this.http
-      .get<PlaceSearchPageDto | PlaceApiSummaryDto[]>(`${API_BASE_URL}/places`)
+      .get<PlaceSearchPageDto | PlaceApiSummaryDto[]>(`${API_BASE_URL}/places`, { params })
       .pipe(catchError(() => of({ items: [], total: 0, skip: 0, take: 0, hasMore: false })))
       .subscribe((payload) => {
         const places = unwrapPlacesPayload(payload).map((place) => this.toPlace(place));
