@@ -182,7 +182,7 @@ internal sealed class OvertureMapsPlaceDiscoverySource(IOptions<OvertureMapsOpti
         }
 
         var mapping = OverturePlaceCategoryMapper.Map(properties);
-        if (!requested.Contains(mapping.PetiLocCategory))
+        if (mapping.PetiLocCategory is null || !requested.Contains(mapping.PetiLocCategory))
         {
             metrics.UnsupportedCategory++;
             return;
@@ -221,18 +221,22 @@ internal sealed class OvertureMapsPlaceDiscoverySource(IOptions<OvertureMapsOpti
         string license, string attribution, DateTimeOffset observedAt)
     {
         var fields = new Dictionary<string, SourceFieldValue>(StringComparer.OrdinalIgnoreCase);
+        var petiLocCategory = mapping.PetiLocCategory
+            ?? throw new InvalidOperationException("No es pot publicar una classificació pendent.");
         void Add(string key, string? original, string? normalized = null)
         {
             if (string.IsNullOrWhiteSpace(original)) return;
             fields[key] = new(original, normalized ?? original, license, attribution, true, observedAt, null, null);
         }
         Add("name", name);
-        Add("category", mapping.OriginalCategory, mapping.PetiLocCategory);
+        Add("category", mapping.OriginalCategory, petiLocCategory);
         Add("category.family", mapping.OriginalCategory,
-            PlaceCommercialClassification.GeneralType(mapping.PetiLocCategory).ToString());
-        Add("category.subcategory", mapping.OriginalSubcategory, mapping.PetiLocCategory);
+            PlaceCommercialClassification.GeneralType(petiLocCategory).ToString());
+        Add("category.subcategory", mapping.OriginalSubcategory, petiLocCategory);
         Add("source.category", mapping.OriginalCategory);
         Add("source.subcategory", mapping.OriginalSubcategory);
+        Add("source.taxonomy.hierarchy", JsonSerializer.Serialize(mapping.OriginalHierarchy));
+        Add("classification.rule", mapping.AppliedRule);
         Add("classification.status", mapping.RequiresClassificationReview ? "PendingReview" : "Mapped");
         Add("latitude", latitude.ToString(CultureInfo.InvariantCulture));
         Add("longitude", longitude.ToString(CultureInfo.InvariantCulture));
@@ -312,7 +316,8 @@ internal sealed class OvertureMapsPlaceDiscoverySource(IOptions<OvertureMapsOpti
     private static readonly HashSet<string> BasicPublicationFields = new(StringComparer.OrdinalIgnoreCase)
     {
         "name", "category", "category.family", "category.subcategory", "source.category", "source.subcategory",
-        "classification.status", "latitude", "longitude", "address.complete", "address.locality",
+        "source.taxonomy.hierarchy", "classification.rule", "classification.status",
+        "latitude", "longitude", "address.complete", "address.locality",
         "address.postcode", "address.region", "address.country", "overture.version", "overture.release"
     };
 

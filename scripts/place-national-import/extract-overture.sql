@@ -92,6 +92,7 @@ FROM (
         operating_status,
         basic_category AS original_category,
         taxonomy.primary AS original_subcategory,
+        taxonomy.hierarchy AS original_hierarchy,
         sources,
         list_transform(
             list_concat(
@@ -119,26 +120,47 @@ WHERE candidate_rank = 1;
 CREATE OR REPLACE TEMP VIEW classified_candidates AS
 SELECT * EXCLUDE (category_text),
     CASE
-        WHEN regexp_matches(category_text, '(^|\\|)([^|]*_)?(pet_grooming|dog_grooming)(\\||$)') THEN 'pet_grooming'
-        WHEN regexp_matches(category_text, '(^|\\|)([^|]*_)?(veterinary|veterinarian|animal_hospital)(\\||$)') THEN 'veterinary'
-        WHEN regexp_matches(category_text, '(^|\\|)([^|]*_)?(pet_service|pet_services)(\\||$)') THEN 'pet_service'
-        WHEN regexp_matches(category_text, '(^|\\|)([^|]*_)?(pharmacy|pharmacy_and_drug_store)(\\||$)') THEN 'pharmacy'
-        WHEN regexp_matches(category_text, '(^|\\|)([^|]*_)?(fuel|gas_station|petrol_station)(\\||$)') THEN 'fuel'
-        WHEN regexp_matches(category_text, '(^|\\|)([^|]*_)?bakery(\\||$)') THEN 'bakery'
-        WHEN regexp_matches(category_text, '(^|\\|)([^|]*_)?(ice_cream|ice_cream_shop)(\\||$)') THEN 'ice_cream'
-        WHEN regexp_matches(category_text, '(^|\\|)([^|]*_)?(fast_food|fast_food_restaurant)(\\||$)') THEN 'fast_food'
-        WHEN regexp_matches(category_text, '(^|\\|)([^|]*_)?(cafe|coffee_shop)(\\||$)') THEN 'cafe'
-        WHEN regexp_matches(category_text, '(^|\\|)([^|]*_)?(pub|gastropub|nightclub)(\\||$)') THEN 'pub'
-        WHEN regexp_matches(category_text, '(^|\\|)([^|]*_)?(bar|biergarten|beer_garden)(\\||$)') THEN 'bar'
-        WHEN regexp_matches(category_text, '(^|\\|)([^|]*_)?(restaurant|food_court)(\\||$)') THEN 'restaurant'
-        WHEN regexp_matches(category_text, '(^|\\|)([^|]*_)?(hostel|guest_house|pension|bed_and_breakfast)(\\||$)') THEN 'hostel'
-        WHEN regexp_matches(category_text, '(^|\\|)([^|]*_)?(apartment|apartment_hotel|vacation_rental|private_lodging)(\\||$)') THEN 'apartment'
-        WHEN regexp_matches(category_text, '(^|\\|)([^|]*_)?(camping|campground|rv_park)(\\||$)') THEN 'camping'
-        WHEN regexp_matches(category_text, '(^|\\|)([^|]*_)?(hotel|motel|resort)(\\||$)') THEN 'hotel'
-        WHEN regexp_matches(category_text, '(^|\\|)([^|]*_)?(park|dog_park)(\\||$)') THEN 'park'
-        WHEN regexp_matches(category_text, '(^|\\|)([^|]*_)?(shop|store|shopping|supermarket|grocery_store|convenience_store)(\\||$)') THEN 'shop'
-        ELSE 'service'
-    END AS category
+        WHEN list_has_any(category_tokens, ['pet_grooming','dog_grooming','pet_groomer']) THEN 'pet_grooming'
+        WHEN list_has_any(category_tokens, ['pet_service','pet_services','animal_or_pet_service','animal_boarding','pet_boarding','kennel','dog_training','pet_training','dog_trainer','dog_walking','dog_walker','animal_shelter','animal_rescue','pet_adoption']) THEN 'pet_service'
+        WHEN list_has_any(category_tokens, ['veterinary','veterinarian','animal_hospital']) THEN 'veterinary'
+        WHEN list_has_any(category_tokens, ['pharmacy','pharmacy_and_drug_store']) THEN 'pharmacy'
+        WHEN list_has_any(category_tokens, ['fuel','gas_station','petrol_station','truck_stop','electric_vehicle_charging_station']) THEN 'fuel'
+        WHEN list_has_any(category_tokens, ['bakery']) THEN 'bakery'
+        WHEN list_has_any(category_tokens, ['ice_cream','ice_cream_shop']) THEN 'ice_cream'
+        WHEN list_has_any(category_tokens, ['fast_food','fast_food_restaurant']) THEN 'fast_food'
+        WHEN list_has_any(category_tokens, ['cafe','coffee_shop']) THEN 'cafe'
+        WHEN list_has_any(category_tokens, ['pub','gastropub','nightclub']) THEN 'pub'
+        WHEN list_has_any(category_tokens, ['bar','biergarten','beer_garden']) THEN 'bar'
+        WHEN list_has_any(category_tokens, ['restaurant','food_court']) THEN 'restaurant'
+        WHEN list_has_any(category_tokens, ['hostel','guest_house','pension','bed_and_breakfast']) THEN 'hostel'
+        WHEN list_has_any(category_tokens, ['apartment','apartment_hotel','vacation_rental','private_lodging','holiday_rental_home']) THEN 'apartment'
+        WHEN list_has_any(category_tokens, ['camping','campground','rv_park']) THEN 'camping'
+        WHEN list_has_any(category_tokens, ['hotel','motel','resort']) THEN 'hotel'
+        WHEN list_has_any(category_tokens, ['park','urban_park','natural_park','national_park','nature_reserve','dog_park','recreation_ground','playground','public_garden']) THEN 'park'
+        WHEN list_has_any(category_tokens, ['shop','store','shopping','supermarket','grocery_store','convenience_store','shopping_center','department_store']) THEN 'shop'
+        ELSE 'pending_review'
+    END AS category,
+    CASE
+        WHEN list_has_any(category_tokens, ['pet_grooming','dog_grooming','pet_groomer']) THEN 'animal.pet_grooming'
+        WHEN list_has_any(category_tokens, ['pet_service','pet_services','animal_or_pet_service','animal_boarding','pet_boarding','kennel','dog_training','pet_training','dog_trainer','dog_walking','dog_walker','animal_shelter','animal_rescue','pet_adoption']) THEN 'animal.pet_service'
+        WHEN list_has_any(category_tokens, ['veterinary','veterinarian','animal_hospital']) THEN 'animal.veterinary'
+        WHEN list_has_any(category_tokens, ['pharmacy','pharmacy_and_drug_store']) THEN 'health.pharmacy'
+        WHEN list_has_any(category_tokens, ['fuel','gas_station','petrol_station','truck_stop','electric_vehicle_charging_station']) THEN 'mobility.fuel'
+        WHEN list_has_any(category_tokens, ['bakery']) THEN 'food.bakery'
+        WHEN list_has_any(category_tokens, ['ice_cream','ice_cream_shop']) THEN 'food.ice_cream'
+        WHEN list_has_any(category_tokens, ['fast_food','fast_food_restaurant']) THEN 'food.fast_food'
+        WHEN list_has_any(category_tokens, ['cafe','coffee_shop']) THEN 'food.cafe'
+        WHEN list_has_any(category_tokens, ['pub','gastropub','nightclub']) THEN 'food.pub'
+        WHEN list_has_any(category_tokens, ['bar','biergarten','beer_garden']) THEN 'food.bar'
+        WHEN list_has_any(category_tokens, ['restaurant','food_court']) THEN 'food.restaurant'
+        WHEN list_has_any(category_tokens, ['hostel','guest_house','pension','bed_and_breakfast']) THEN 'lodging.hostel'
+        WHEN list_has_any(category_tokens, ['apartment','apartment_hotel','vacation_rental','private_lodging','holiday_rental_home']) THEN 'lodging.apartment'
+        WHEN list_has_any(category_tokens, ['camping','campground','rv_park']) THEN 'lodging.camping'
+        WHEN list_has_any(category_tokens, ['hotel','motel','resort']) THEN 'lodging.hotel'
+        WHEN list_has_any(category_tokens, ['park','urban_park','natural_park','national_park','nature_reserve','dog_park','recreation_ground','playground','public_garden']) THEN 'outdoor.park'
+        WHEN list_has_any(category_tokens, ['shop','store','shopping','supermarket','grocery_store','convenience_store','shopping_center','department_store']) THEN 'retail.shop'
+        ELSE 'unmapped.pending_review'
+    END AS classification_rule
 FROM source_candidates;
 
 CREATE OR REPLACE TEMP VIEW locality_matches AS

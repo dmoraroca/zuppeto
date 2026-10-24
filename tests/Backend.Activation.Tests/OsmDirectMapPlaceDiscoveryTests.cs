@@ -34,8 +34,9 @@ public sealed class OsmDirectMapPlaceDiscoveryTests(ITestOutputHelper output)
     [Fact]
     public void Category_mapping_covers_the_direct_map_pilot_categories()
     {
-        var expected = new[] { "biergarten", "food_court", "nightclub", "pharmacy", "fuel", "motel", "apartment" };
+        var expected = new[] { "biergarten", "food_court", "nightclub", "pharmacy", "motel", "apartment" };
         Assert.All(expected, category => Assert.NotEmpty(OsmPlaceCategoryMapper.Selectors(category)));
+        Assert.Empty(OsmPlaceCategoryMapper.Selectors("fuel"));
     }
 
     [Fact]

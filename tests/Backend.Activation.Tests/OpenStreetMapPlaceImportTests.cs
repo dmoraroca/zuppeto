@@ -86,6 +86,20 @@ public sealed class OpenStreetMapPlaceImportTests(ITestOutputHelper output)
         }
     }
 
+    [Theory]
+    [InlineData("amenity", "fuel")]
+    [InlineData("amenity", "parking")]
+    public void Disallowed_or_unrelated_Osm_amenities_are_not_public_categories(string key, string value)
+    {
+        var requested = PlaceCatalogCategories.All.ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var mapped = OsmPlaceCategoryMapper.TryMap(
+            new Dictionary<string, string> { [key] = value }, requested, out var category);
+
+        Assert.False(mapped);
+        Assert.Empty(category);
+    }
+
     [Fact]
     public async Task Wikidata_connector_keeps_CC0_structured_data_separate_and_rejects_unknown_ids()
     {

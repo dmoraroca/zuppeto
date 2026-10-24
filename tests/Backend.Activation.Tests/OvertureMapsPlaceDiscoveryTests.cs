@@ -63,14 +63,47 @@ public sealed class OvertureMapsPlaceDiscoveryTests(ITestOutputHelper output)
     [InlineData("gas_station", "fuel")]
     [InlineData("dog_grooming", "pet_grooming")]
     [InlineData("pet_service", "pet_service")]
-    [InlineData("accounting_service", "service")]
-    public void Mapping_covers_the_19_PetiLoc_categories_and_preserves_unknowns(string overture, string expected)
+    public void Mapping_covers_the_approved_PetiLoc_categories(string overture, string expected)
     {
         using var json = JsonDocument.Parse($$$"""{"basic_category":"{{{overture}}}","taxonomy":{"primary":"{{{overture}}}","hierarchy":["{{{overture}}}"]}}""");
         var mapping = OverturePlaceCategoryMapper.Map(json.RootElement);
         Assert.Equal(expected, mapping.PetiLocCategory);
         Assert.Equal(overture, mapping.OriginalCategory);
-        Assert.Equal(expected == "service", mapping.RequiresClassificationReview);
+        Assert.False(mapping.RequiresClassificationReview);
+        Assert.NotEqual("unmapped.pending_review", mapping.AppliedRule);
+    }
+
+    [Theory]
+    [InlineData("public_utility")]
+    [InlineData("publisher")]
+    [InlineData("barber")]
+    [InlineData("parking")]
+    [InlineData("mobile_home_park")]
+    [InlineData("pharmacy_school")]
+    [InlineData("accounting_service")]
+    public void Ambiguous_or_disallowed_categories_are_pending_instead_of_using_a_text_fragment_or_service_default(
+        string overture)
+    {
+        using var json = JsonDocument.Parse($$$"""{"basic_category":"{{{overture}}}","taxonomy":{"primary":"{{{overture}}}","hierarchy":["{{{overture}}}"]}}""");
+
+        var mapping = OverturePlaceCategoryMapper.Map(json.RootElement);
+
+        Assert.Null(mapping.PetiLocCategory);
+        Assert.True(mapping.RequiresClassificationReview);
+        Assert.Equal("unmapped.pending_review", mapping.AppliedRule);
+        Assert.Contains(overture, mapping.OriginalHierarchy);
+    }
+
+    [Fact]
+    public void Explicit_parent_taxonomy_can_classify_a_specialized_child_without_matching_fragments()
+    {
+        using var json = JsonDocument.Parse("""{"basic_category":"personal_or_beauty_service","taxonomy":{"primary":"barber","hierarchy":["barber","personal_or_beauty_service"]}}""");
+
+        var mapping = OverturePlaceCategoryMapper.Map(json.RootElement);
+
+        Assert.Null(mapping.PetiLocCategory);
+        Assert.Equal("barber", mapping.OriginalSubcategory);
+        Assert.Equal(["personal_or_beauty_service", "barber"], mapping.OriginalHierarchy);
     }
 
     [Fact]
@@ -320,7 +353,8 @@ public sealed class OvertureMapsPlaceDiscoveryTests(ITestOutputHelper output)
     private static readonly string[] BasicPublicationFields =
     [
         "name", "category", "category.family", "category.subcategory", "source.category", "source.subcategory",
-        "classification.status", "latitude", "longitude", "address.complete", "address.locality",
+        "source.taxonomy.hierarchy", "classification.rule", "classification.status",
+        "latitude", "longitude", "address.complete", "address.locality",
         "address.postcode", "address.region", "address.country", "overture.version", "overture.release"
     ];
 

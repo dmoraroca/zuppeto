@@ -115,7 +115,7 @@ internal sealed class GeofabrikRegionalIndex(string directory)
             if (change.Action == "delete") { deleted++; continue; }
             if (change.Latitude is null || change.Longitude is null) { requiresRebuild = true; continue; }
             if (!OsmPlaceCategoryMapper.TryMap(change.Tags,
-                PlaceCatalogCategories.All.ToHashSet(StringComparer.OrdinalIgnoreCase), out var category))
+                OsmPlaceCategoryMapper.SupportedCategories.ToHashSet(StringComparer.OrdinalIgnoreCase), out var category))
             { if (change.Action == "modify") modified++; else created++; continue; }
             var municipalityKey = mutable.Values.Where(x => x.Contains(change.Latitude.Value, change.Longitude.Value))
                 .OrderBy(x => x.OfficialCode, StringComparer.Ordinal).Select(x => x.OfficialCode).FirstOrDefault();
@@ -245,7 +245,7 @@ internal sealed class GeofabrikRegionalIndex(string directory)
 
     private sealed class RegionalBuilder(string path, string? sourceVersion)
     {
-        private readonly HashSet<string> categories = PlaceCatalogCategories.All.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        private readonly HashSet<string> categories = OsmPlaceCategoryMapper.SupportedCategories.ToHashSet(StringComparer.OrdinalIgnoreCase);
         private readonly List<RawPoi> pois = [];
         private readonly List<RawBoundary> boundaries = [];
         private readonly Dictionary<long, long[]> ways = [];

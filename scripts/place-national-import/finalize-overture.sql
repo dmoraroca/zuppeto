@@ -10,6 +10,8 @@ COPY (
         candidate.category,
         candidate.original_category,
         candidate.original_subcategory,
+        to_json(candidate.original_hierarchy) AS original_hierarchy,
+        candidate.classification_rule,
         candidate.address,
         candidate.source_locality,
         candidate.postal_code,

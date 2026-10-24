@@ -29,7 +29,7 @@ internal sealed class OsmDirectMapPlaceDiscoverySource(
         Attribution,
         true,
         new DateTimeOffset(2026, 10, 15, 0, 0, 0, TimeSpan.Zero),
-        new(["ES"], ["es:ine:municipality"], PlaceCatalogCategories.All, settings.Enabled,
+        new(["ES"], ["es:ine:municipality"], OsmPlaceCategoryMapper.SupportedCategories, settings.Enabled,
             settings.Enabled ? null : "La consulta OSM directa està desactivada per configuració."));
 
     public async Task<Result<PlaceDiscoveryBatch>> DiscoverAsync(PlaceSourceContext context, CancellationToken cancellationToken)

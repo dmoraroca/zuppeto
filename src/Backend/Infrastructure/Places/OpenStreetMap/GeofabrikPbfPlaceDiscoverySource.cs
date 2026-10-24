@@ -34,7 +34,7 @@ internal sealed class GeofabrikPbfPlaceDiscoverySource(IOptions<GeofabrikExtract
         Attribution,
         true,
         new DateTimeOffset(2026, 10, 14, 0, 0, 0, TimeSpan.Zero),
-        new(["ES"], ["es:ine:municipality"], PlaceCatalogCategories.All,
+        new(["ES"], ["es:ine:municipality"], OsmPlaceCategoryMapper.SupportedCategories,
             !string.IsNullOrWhiteSpace(settings.ExtractPath) && File.Exists(settings.ExtractPath),
             !string.IsNullOrWhiteSpace(settings.ExtractPath) && File.Exists(settings.ExtractPath)
                 ? null : "No hi ha cap extracte Geofabrik local configurat i disponible."));

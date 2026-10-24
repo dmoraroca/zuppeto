@@ -22,7 +22,8 @@ internal sealed class OverpassPlaceDiscoverySource(HttpClient http, IOptions<Ove
         Attribution,
         true,
         new DateTimeOffset(2026, 10, 13, 0, 0, 0, TimeSpan.Zero),
-        new(["ES", "DE"], ["es:ine:municipality", "de:destatis:ags", "de:destatis:land"], PlaceCatalogCategories.All, true));
+        new(["ES", "DE"], ["es:ine:municipality", "de:destatis:ags", "de:destatis:land"],
+            OsmPlaceCategoryMapper.SupportedCategories, true));
 
     public async Task<Result<PlaceDiscoveryBatch>> DiscoverAsync(PlaceSourceContext context, CancellationToken cancellationToken)
     {

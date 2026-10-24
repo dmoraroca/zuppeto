@@ -47,7 +47,9 @@ WITH source AS (
         territorial_unit_id,
         max(territorial_name) AS territorial_name,
         max(official_code) AS official_code,
-        count(*)::integer AS candidate_count
+        count(*) FILTER (WHERE category IN (
+            'restaurant','cafe','bar','pub','fast_food','bakery','ice_cream','hotel','hostel','apartment',
+            'camping','park','shop','veterinary','pharmacy','pet_grooming','pet_service'))::integer AS candidate_count
     FROM place_national_import_staging_20260923
     WHERE country_iso2 = :'country'
       AND territorial_unit_id IS NOT NULL
@@ -67,7 +69,7 @@ WITH source AS (
         eligible.territorial_name,
         CASE WHEN :'country' = 'ES' THEN 'es:ine:municipality' ELSE 'de:destatis:ags' END,
         coalesce(eligible.official_code, ''),
-        '["restaurant","cafe","bar","pub","fast_food","bakery","ice_cream","hotel","hostel","apartment","camping","park","shop","veterinary","pharmacy","fuel","pet_grooming","pet_service","service"]'::jsonb,
+        '["restaurant","cafe","bar","pub","fast_food","bakery","ice_cream","hotel","hostel","apartment","camping","park","shop","veterinary","pharmacy","pet_grooming","pet_service"]'::jsonb,
         'OVERTURE_MAPS_PLACES_EXTRACT', 'Published', 'PublicationCompleted', false,
         'overture-national:' || lower(:'country') || ':' || coalesce(eligible.official_code, eligible.territorial_unit_id::text),
         eligible.candidate_count, eligible.candidate_count, 0, 0,
@@ -106,6 +108,9 @@ SELECT
         'category', staging.category,
         'category.original', staging.original_category,
         'category.subcategory', staging.original_subcategory,
+        'category.hierarchy', staging.original_hierarchy,
+        'classification.rule', staging.classification_rule,
+        'classification.status', CASE WHEN staging.category = 'pending_review' THEN 'PendingReview' ELSE 'Mapped' END,
         'address.complete', staging.address,
         'address.locality', staging.source_locality,
         'address.postcode', staging.postal_code,
@@ -125,10 +130,12 @@ SELECT
         staging.latitude, staging.longitude, staging.address, staging.phone,
         staging.website, staging.brand_name, staging.operating_status)) ||
     md5(concat_ws('|', staging.original_category, staging.original_subcategory,
+        staging.original_hierarchy::text, staging.classification_rule,
         staging.postal_code, staging.source_locality, staging.source_provenance::text)),
     'https://explore.overturemaps.org/?id=' || staging.external_id,
     timestamp with time zone '2026-09-23 00:00:00+00', now(), now(), now(), 'Active', null,
-    CASE WHEN staging.territorial_unit_id IS NULL THEN 'PendingReview' ELSE 'New' END,
+    CASE WHEN staging.territorial_unit_id IS NULL OR staging.category IN ('pending_review', 'fuel')
+        THEN 'PendingReview' ELSE 'New' END,
     'Pending', null
 FROM place_national_import_staging_20260923 staging
 CROSS JOIN place_dataset_sources source
@@ -169,7 +176,10 @@ LEFT JOIN LATERAL (
     HAVING count(*) = 1
 ) existing ON true
 WHERE staging.country_iso2 = :'country'
-  AND staging.territorial_unit_id IS NOT NULL;
+  AND staging.territorial_unit_id IS NOT NULL
+  AND staging.category IN (
+      'restaurant','cafe','bar','pub','fast_food','bakery','ice_cream','hotel','hostel','apartment',
+      'camping','park','shop','veterinary','pharmacy','pet_grooming','pet_service');
 
 CREATE INDEX ON national_candidate_resolution (source_record_id);
 CREATE INDEX ON national_candidate_resolution (place_id);
@@ -233,6 +243,8 @@ SELECT
         'name', resolution.name, 'category', resolution.category,
         'category.original', resolution.original_category,
         'category.subcategory', resolution.original_subcategory,
+        'category.hierarchy', resolution.original_hierarchy,
+        'classification.rule', resolution.classification_rule,
         'address.complete', resolution.address,
         'address.postcode', resolution.postal_code,
         'location.latitude', resolution.latitude,
@@ -292,6 +304,8 @@ CROSS JOIN LATERAL (VALUES
     ('category', resolution.category),
     ('category.original', resolution.original_category),
     ('category.subcategory', resolution.original_subcategory),
+    ('category.hierarchy', resolution.original_hierarchy::text),
+    ('classification.rule', resolution.classification_rule),
     ('address.complete', resolution.address),
     ('address.postcode', resolution.postal_code),
     ('location.latitude', resolution.latitude::text),

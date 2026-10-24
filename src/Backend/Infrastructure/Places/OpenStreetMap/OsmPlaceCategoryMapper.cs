@@ -4,7 +4,9 @@ namespace Zuppeto.Infrastructure.Places.OpenStreetMap;
 
 internal static class OsmPlaceCategoryMapper
 {
-    internal static readonly string[] SupportedCategories = PlaceCatalogCategories.All;
+    internal static readonly string[] SupportedCategories = PlaceCatalogCategories.All
+        .Where(category => category is not ("fuel" or "service"))
+        .ToArray();
 
     internal static bool TryMap(IReadOnlyDictionary<string, string> tags,
         IReadOnlySet<string> requestedCategories, out string category)
@@ -24,7 +26,6 @@ internal static class OsmPlaceCategoryMapper
         "food_court" => [("amenity", "food_court")],
         "nightclub" => [("amenity", "nightclub")],
         "pharmacy" => [("amenity", "pharmacy")],
-        "fuel" => [("amenity", "fuel")],
         "ice_cream" => [("amenity", "ice_cream"), ("shop", "ice_cream")],
         "bakery" => [("shop", "bakery")],
         "hotel" => [("tourism", "hotel")],
@@ -46,7 +47,7 @@ internal static class OsmPlaceCategoryMapper
     {
         var amenity = tags.GetValueOrDefault("amenity");
         if (amenity is "restaurant" or "cafe" or "bar" or "pub" or "fast_food" or "ice_cream" or "biergarten"
-            or "food_court" or "nightclub" or "veterinary" or "pharmacy" or "fuel") yield return amenity;
+            or "food_court" or "nightclub" or "veterinary" or "pharmacy") yield return amenity;
         if (amenity is "animal_shelter" or "animal_boarding") yield return "pet_service";
 
         var tourism = tags.GetValueOrDefault("tourism");
