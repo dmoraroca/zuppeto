@@ -170,6 +170,19 @@ public sealed class PlacePhaseOneCharacterizationTests
         Assert.Null(detail.PetPolicyVerifiedAtUtc);
     }
 
+    [Fact]
+    public async Task Public_detail_hides_an_excluded_place_while_administration_can_still_read_it()
+    {
+        var place = PlaceFixture("Agbar");
+        var fixture = new SearchFixture(false, publicVisibility: new HiddenPlaceVisibility(place.Id))
+        {
+            CatalogPlaces = [place]
+        };
+
+        Assert.Null(await fixture.Service.GetByIdAsync(place.Id));
+        Assert.NotNull(await fixture.Service.GetByIdForAdministrationAsync(place.Id));
+    }
+
     private static PlaceSearchRequest Request(int skip = 0, int? take = null) =>
         new("cafè", null, "Barcelona", "Restaurant", "All", skip, take);
 
@@ -206,7 +219,10 @@ public sealed class PlacePhaseOneCharacterizationTests
             MaxBackgroundEnrichmentsPerPage = 3
         };
 
-        public SearchFixture(bool allowExternalCalls, IPetGovernanceApplicationService? governance = null)
+        public SearchFixture(
+            bool allowExternalCalls,
+            IPetGovernanceApplicationService? governance = null,
+            IPlacePublicVisibilityQuery? publicVisibility = null)
         {
             callPolicy = new CallPolicy(allowExternalCalls);
             var optionsWrapper = Options.Create(options);
@@ -220,7 +236,8 @@ public sealed class PlacePhaseOneCharacterizationTests
                 this, this, this, this, optionsWrapper, callPolicy, filter);
             Service = new PlaceApplicationService(
                 this, this, this, importer, Assembler, mapper, optionsWrapper,
-                new TerritorialLocationService(this), petGovernance: governance);
+                new TerritorialLocationService(this), petGovernance: governance,
+                publicVisibility: publicVisibility);
         }
 
         public PlaceApplicationService Service { get; }
@@ -310,6 +327,17 @@ public sealed class PlacePhaseOneCharacterizationTests
         public Task<TerritorialLocationSelectionDto> ResolveSelectionAsync(
             Guid countryId, Guid territorialUnitId, CancellationToken cancellationToken = default) =>
             throw new NotSupportedException();
+    }
+
+    private sealed class HiddenPlaceVisibility(Guid hiddenPlaceId) : IPlacePublicVisibilityQuery
+    {
+        public Task<bool> IsVisibleAsync(Guid placeId, CancellationToken cancellationToken = default) =>
+            Task.FromResult(placeId != hiddenPlaceId);
+
+        public Task<IReadOnlySet<Guid>> FilterVisibleAsync(
+            IReadOnlyCollection<Guid> placeIds,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlySet<Guid>>(placeIds.Where(id => id != hiddenPlaceId).ToHashSet());
     }
 
     private sealed record CallPolicy(bool AllowsBillableCalls) : IExternalPlaceCallPolicy;

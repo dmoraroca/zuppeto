@@ -1,5 +1,9 @@
 # Document funcional (CA)
 
+> Zoom i recentrat (25.10.2026): ampliar o reduir el mapa conserva tots els filtres actius, inclosos municipi, «A prop meu» i radi. «Recentrar mapa» torna directament a la població seleccionada i, si no hi ha municipi o localitat, a Madrid; no desactiva filtres ni dispara una cerca de viewport addicional. Amb «A prop meu» actiu, una població resolta sempre preval sobre Madrid, fins i tot mentre l'API en execució encara omet el centre municipal separat. Validació Chrome real READ ONLY: PASS amb Arenys, Sant Vicenç de Montalt i fallback Madrid.
+
+> Consolidació de «Llocs» i detall (25.10.2026): tres columnes en escriptori, filtres compactes, categories en dues columnes, deu categories inicials amb `Bars`, `Gossos` per defecte, «A prop meu» restaurable i recentrat al municipi o a Madrid sense desactivar-lo. El detall conserva Google Maps per coordenades, Westie només de baix cap a dalt, dos lladrucs per activació i amplada compacta sense línia de vida. Els gates tècnics passen; la revalidació final Chrome, visual i auditiva continua pendent. [Informe consolidat](iteracio-7-depuracio-enriquiment-cataleg-espanyol-20261024.md#10-consolidació-dels-retocs-de-llocs-i-del-detall--25102026).
+
 > Iteració 7, Fase VI (15.10.2026): el cercador públic ja treballa amb municipi territorial, radi, categories, política pet-friendly, qualitat i ordre; sincronitza llista/mapa, conserva filtres, ofereix GPS opcional sense persistir-lo i amplia la fitxa Place. [Informe funcional](iteracio-7-fase-vi-cercador-mapa-ux-ca.md).
 
 > Cobertura multifont (16.10.2026): la comparació de 50 Places, 68 candidats Geofabrik i 73 candidats OSM directes confirma cinc categories noves, però també absències conegudes que requereixen fonts oficials i revisió. No s’ha publicat ni modificat cap Place. [Evidència](evidencies/osm-direct-coverage-arenys-20261016.md).

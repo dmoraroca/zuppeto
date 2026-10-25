@@ -15,8 +15,8 @@ internal static class OverturePlaceCategoryMapper
     internal static readonly string[] PetiLocCategories =
     [
         "restaurant", "cafe", "bar", "pub", "fast_food", "bakery", "ice_cream", "hotel", "hostel",
-        "apartment", "camping", "park", "shop", "veterinary", "pharmacy", "fuel", "pet_grooming",
-        "pet_service", "service"
+        "apartment", "camping", "park", "shop", "veterinary", "pharmacy", "pet_grooming",
+        "pet_service"
     ];
 
     internal static OvertureCategoryMapping Map(JsonElement properties)
@@ -54,8 +54,6 @@ internal static class OverturePlaceCategoryMapper
             "dog_walking", "dog_walker", "animal_shelter", "animal_rescue", "pet_adoption"),
         Mapping("veterinary", "animal.veterinary", "veterinary", "veterinarian", "animal_hospital"),
         Mapping("pharmacy", "health.pharmacy", "pharmacy", "pharmacy_and_drug_store"),
-        Mapping("fuel", "mobility.fuel", "fuel", "gas_station", "petrol_station", "truck_stop",
-            "electric_vehicle_charging_station"),
         Mapping("bakery", "food.bakery", "bakery"),
         Mapping("ice_cream", "food.ice_cream", "ice_cream", "ice_cream_shop"),
         Mapping("fast_food", "food.fast_food", "fast_food", "fast_food_restaurant"),

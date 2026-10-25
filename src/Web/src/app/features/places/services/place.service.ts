@@ -8,6 +8,7 @@ import { AuthService } from '../../auth/services/auth.service';
 import { FavoritesService } from '../../favorites/services/favorites.service';
 import { Place, PlaceFilters, PlaceMediaAsset, PlaceType } from '../models/place.model';
 import { PLACE_TYPE_LABELS } from '../mock/places.fake';
+import { validGeographicFilters } from '../utils/place-geographic-state';
 import { DEFAULT_PLACE_FILTERS, filterPlaces, normalizePlaceTypes } from '../utils/place-list-filter';
 
 export const PLACE_LIST_PAGE_SIZE = 20;
@@ -101,10 +102,8 @@ export class PlaceService {
       { value: 'shop', label: 'Comerços' },
       { value: 'veterinary', label: 'Veterinaris' },
       { value: 'pharmacy', label: 'Farmàcies' },
-      { value: 'fuel', label: 'Benzineres' },
       { value: 'pet_grooming', label: 'Perruqueries canines' },
-      { value: 'pet_service', label: 'Serveis pet' },
-      { value: 'service', label: 'Altres serveis' }
+      { value: 'pet_service', label: 'Serveis pet' }
     ];
   }
 
@@ -352,6 +351,7 @@ export class PlaceService {
 
   private buildPlacesQueryParams(filters: PlaceFilters): HttpParams {
     let params = new HttpParams();
+    const geographic = validGeographicFilters(filters);
     const search = (filters.search ?? '').trim();
     const country = (filters.country ?? '').trim();
     const city = (filters.city ?? '').trim();
@@ -397,12 +397,12 @@ export class PlaceService {
     params = params.set('sort', filters.searchSort ?? 'name');
     params = params.set('radiusKm', String(filters.radiusKm ?? 0));
     const numericParameters: [string, number | undefined][] = [
-      ['centerLatitude', filters.centerLatitude],
-      ['centerLongitude', filters.centerLongitude],
-      ['north', filters.north],
-      ['south', filters.south],
-      ['east', filters.east],
-      ['west', filters.west]
+      ['centerLatitude', geographic.centerLatitude],
+      ['centerLongitude', geographic.centerLongitude],
+      ['north', geographic.north],
+      ['south', geographic.south],
+      ['east', geographic.east],
+      ['west', geographic.west]
     ];
     for (const [key, value] of numericParameters) {
       if (value !== undefined && Number.isFinite(value)) {
@@ -649,6 +649,8 @@ interface PlaceSearchPageDto {
 interface PlaceSearchMapApiDto {
   centerLatitude: number | null;
   centerLongitude: number | null;
+  municipalityLatitude: number | null;
+  municipalityLongitude: number | null;
   radiusKm: number;
   areas: PlaceSearchMapArea[];
   points?: PlaceMapPointApiDto[];
@@ -682,6 +684,8 @@ export interface PlaceSearchMapArea {
 export interface PlaceSearchMap {
   centerLatitude: number | null;
   centerLongitude: number | null;
+  municipalityLatitude: number | null;
+  municipalityLongitude: number | null;
   radiusKm: number;
   areas: PlaceSearchMapArea[];
   points?: Place[];

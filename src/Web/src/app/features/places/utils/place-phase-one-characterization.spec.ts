@@ -1,7 +1,7 @@
 import { sortPlacesForFavoriteReview } from '../../favorites/utils/favorite-places-sort';
 import { Place } from '../models/place.model';
 import { hasConfirmedPetPolicy, petAccessLabelForPlace } from './place-detail-copy';
-import { filterPlaces, parsePetSpecies, parsePlaceTypes, serializePlaceTypes } from './place-list-filter';
+import { filterPlaces, parsePetSpecies, parsePlaceTypes, serializePetSpecies, serializePlaceTypes } from './place-list-filter';
 import { resolveCityMapFocus } from './city-map-focus';
 import { placesVisibleOnOsmMap } from './places-osm-map';
 
@@ -50,7 +50,11 @@ describe('Places phase I presentation rules', () => {
       'bakery', 'ice_cream', 'hotel', 'hostel', 'camping'
     ])).toBeNull();
     expect(serializePlaceTypes([])).toBe('all');
+    expect(parsePetSpecies(null)).toEqual(['dogs']);
+    expect(parsePetSpecies('all')).toEqual([]);
     expect(parsePetSpecies('dogs,cats')).toEqual(['dogs', 'cats']);
+    expect(serializePetSpecies(['dogs'])).toBeNull();
+    expect(serializePetSpecies([])).toBe('all');
     expect(resolveCityMapFocus('Arenys de Mar')).toEqual({ lat: 41.5803, lng: 2.5508 });
   });
 

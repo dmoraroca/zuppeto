@@ -266,7 +266,7 @@ internal static class PlaceEndpoints
             return TypedResults.Forbid();
         }
 
-        var place = await service.GetByIdAsync(id, cancellationToken);
+        var place = await service.GetByIdForAdministrationAsync(id, cancellationToken);
         return place is null ? TypedResults.NotFound() : TypedResults.Ok(place);
     }
 

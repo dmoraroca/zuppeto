@@ -24,34 +24,45 @@
   }
 
   @if (showType()) {
-    <fieldset class="place-filters__group place-filters__categories">
-      <legend>
-        Categories
-        <span>{{ (filters().types ?? []).length }} seleccionades</span>
-      </legend>
-      <div class="place-filters__chips">
-        @for (type of types(); track type.value) {
-          <label class="place-filters__chip" [class.place-filters__chip--active]="(filters().types ?? []).includes(type.value)">
+    <details class="place-filters__group place-filters__categories" open>
+      <summary>
+        <strong>Categories</strong>
+        <small>{{ (filters().types ?? []).length }} seleccionades</small>
+      </summary>
+      <div class="place-filters__choices">
+        @for (type of visibleTypes(); track type.value) {
+          <label class="place-filters__choice" [class.place-filters__choice--active]="(filters().types ?? []).includes(type.value)">
             <input
               type="checkbox"
               [checked]="(filters().types ?? []).includes(type.value)"
               (change)="toggleType(type.value)"
             />
-            <span>{{ type.label }}</span>
+            <span class="place-filters__control-dot" aria-hidden="true"></span>
+            <span class="place-filters__choice-label">{{ type.label }}</span>
           </label>
         }
+        @if (hasMoreCategories()) {
+          <button
+            type="button"
+            class="place-filters__show-more"
+            [attr.aria-expanded]="categoriesExpanded()"
+            (click)="toggleCategoriesExpanded()"
+          >
+            {{ categoriesExpanded() ? 'Mostra’n menys' : 'Mostra’n més' }}
+          </button>
+        }
       </div>
-    </fieldset>
+    </details>
   }
 
   @if (showPet()) {
-    <fieldset class="place-filters__group place-filters__policies">
-      <legend>Política pet-friendly</legend>
-      <div class="place-filters__chips">
+    <details class="place-filters__group place-filters__policies" open>
+      <summary><strong>Política pet-friendly</strong></summary>
+      <div class="place-filters__choices">
         @for (policy of petPolicies; track policy.value) {
           <label
-            class="place-filters__chip place-filters__chip--policy"
-            [class.place-filters__chip--active]="(filters().petAccessStatuses ?? []).includes(policy.value)"
+            class="place-filters__choice place-filters__choice--policy"
+            [class.place-filters__choice--active]="(filters().petAccessStatuses ?? []).includes(policy.value)"
             [title]="policy.hint"
           >
             <input
@@ -59,64 +70,36 @@
               [checked]="(filters().petAccessStatuses ?? []).includes(policy.value)"
               (change)="togglePetPolicy(policy.value)"
             />
-            <span>{{ policy.label }}</span>
+            <span class="place-filters__control-dot" aria-hidden="true"></span>
+            <span class="place-filters__choice-copy"><strong>{{ policy.label }}</strong><small>{{ policy.hint }}</small></span>
           </label>
         }
       </div>
-    </fieldset>
+    </details>
 
   }
 
-  <div class="place-filters__compact-row">
-    @if (showPet()) {
-      <fieldset class="place-filters__group place-filters__species">
-        <legend>Espècie</legend>
-        <div class="place-filters__chips">
-          @for (species of petSpecies; track species.value) {
-            <label class="place-filters__chip" [class.place-filters__chip--active]="selectedPetSpecies().includes(species.value)">
-              <input
-                type="checkbox"
-                [value]="species.value"
-                [checked]="selectedPetSpecies().includes(species.value)"
-                (change)="togglePetSpecies(species.value)"
-              />
-              <span>{{ species.label }}</span>
-            </label>
-          }
-        </div>
-      </fieldset>
-    }
-
-    <fieldset class="place-filters__group place-filters__radius">
-      <legend>Radi de cerca <strong>{{ filters().radiusKm ?? 0 }} km</strong></legend>
-      <div class="place-filters__radius-options">
-        @for (radius of radii; track radius) {
-          <label [class.place-filters__radius-option--active]="(filters().radiusKm ?? 0) === radius">
-            <input type="radio" name="search-radius" [value]="radius" [checked]="(filters().radiusKm ?? 0) === radius" (change)="onRadius($event)" />
-            <span>{{ radius === 0 ? 'Només municipi' : radius + ' km' }}</span>
+  @if (showPet()) {
+    <details class="place-filters__group place-filters__species" open>
+      <summary><strong>Espècie</strong></summary>
+      <div class="place-filters__choices place-filters__choices--compact">
+        @for (species of petSpecies; track species.value) {
+          <label class="place-filters__choice" [class.place-filters__choice--active]="selectedPetSpecies().includes(species.value)">
+            <input
+              type="checkbox"
+              [value]="species.value"
+              [checked]="selectedPetSpecies().includes(species.value)"
+              (change)="togglePetSpecies(species.value)"
+            />
+            <span class="place-filters__control-dot" aria-hidden="true"></span>
+            <span class="place-filters__choice-label">{{ species.label }}</span>
           </label>
         }
       </div>
-    </fieldset>
-  </div>
+    </details>
+  }
 
   <div class="place-filters__quality">
-    <label class="place-filters__verified">
-      <span class="place-filters__verified-copy">
-        <strong>Només informació verificada</strong>
-        <small>Exclou dades exclusivament automàtiques</small>
-      </span>
-      <span class="place-filters__switch">
-        <input
-          type="checkbox"
-          role="switch"
-          aria-label="Només informació verificada"
-          [checked]="filters().verifiedOnly ?? false"
-          (change)="onVerified($event)"
-        />
-        <span class="place-filters__switch-track" aria-hidden="true"><span></span></span>
-      </span>
-    </label>
     <label class="place-filters__standard">
       <span>Ordena per</span>
       <select [value]="filters().searchSort ?? 'name'" (change)="onPublicSort($event)">

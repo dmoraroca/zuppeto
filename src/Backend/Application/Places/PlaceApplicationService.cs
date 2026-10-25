@@ -20,6 +20,7 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
     private readonly IPlaceMediaRepository? placeMediaRepository;
     private readonly IPetGovernanceApplicationService? petGovernance;
     private readonly IPlaceDataAttributionQuery? dataAttributions;
+    private readonly IPlacePublicVisibilityQuery? publicVisibility;
 
     public PlaceApplicationService(
         IPlaceRepository placeRepository,
@@ -33,7 +34,8 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
         IPlaceMediaRepository? placeMediaRepository = null,
         IPlacePublicSearchQuery? publicSearchQuery = null,
         IPetGovernanceApplicationService? petGovernance = null,
-        IPlaceDataAttributionQuery? dataAttributions = null)
+        IPlaceDataAttributionQuery? dataAttributions = null,
+        IPlacePublicVisibilityQuery? publicVisibility = null)
     {
         this.placeRepository = placeRepository;
         this.placeSearchQueryRepository = placeSearchQueryRepository;
@@ -47,12 +49,25 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
         this.publicSearchQuery = publicSearchQuery;
         this.petGovernance = petGovernance;
         this.dataAttributions = dataAttributions;
+        this.publicVisibility = publicVisibility;
     }
 
     private int CoordinateCacheRetentionDays =>
         Math.Clamp(externalIntegrationOptions.Value.CoordinateCacheRetentionDays, 1, 366);
 
     public async Task<PlaceDetailDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        if (publicVisibility is not null && !await publicVisibility.IsVisibleAsync(id, cancellationToken))
+        {
+            return null;
+        }
+
+        return await GetByIdForAdministrationAsync(id, cancellationToken);
+    }
+
+    public async Task<PlaceDetailDto?> GetByIdForAdministrationAsync(
+        Guid id,
+        CancellationToken cancellationToken = default)
     {
         var place = await placeRepository.GetByIdAsync(id, cancellationToken);
         if (place is null)
@@ -143,7 +158,11 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
             : null;
         if (cachedIds is { Count: > 0 })
         {
-            var cachedPlaces = await placeRepository.GetByIdsAsync(cachedIds, cancellationToken);
+            var visibleIds = publicVisibility is null
+                ? cachedIds.ToHashSet()
+                : await publicVisibility.FilterVisibleAsync(cachedIds, cancellationToken);
+            var cachedPlaces = await placeRepository.GetByIdsAsync(
+                cachedIds.Where(visibleIds.Contains).ToArray(), cancellationToken);
             return searchPageAssembler.FromPlaces(cachedPlaces, request);
         }
 
@@ -157,6 +176,12 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
             request.TerritorialUnitId);
 
         var places = await placeRepository.SearchAsync(criteria, cancellationToken);
+        if (publicVisibility is not null && places.Count > 0)
+        {
+            var visibleIds = await publicVisibility.FilterVisibleAsync(
+                places.Select(place => place.Id).ToArray(), cancellationToken);
+            places = places.Where(place => visibleIds.Contains(place.Id)).ToArray();
+        }
         var ordered = places.ToArray();
         if (ordered.Length > 0 && useSnapshot)
         {
@@ -235,7 +260,14 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
             normalized.Skip,
             normalized.Take.Value,
             normalized.Skip + items.Length < result.Total,
-            new PlaceSearchMapDto(result.CenterLatitude, result.CenterLongitude, normalized.RadiusKm, result.Areas, result.MapPoints));
+            new PlaceSearchMapDto(
+                result.CenterLatitude,
+                result.CenterLongitude,
+                result.MunicipalityLatitude,
+                result.MunicipalityLongitude,
+                normalized.RadiusKm,
+                result.Areas,
+                result.MapPoints));
     }
 
     public async Task<IReadOnlyCollection<PlaceSearchHistoryDto>> GetRecentSearchesAsync(

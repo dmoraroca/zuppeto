@@ -19,7 +19,7 @@ internal sealed class OvertureMapsPlaceDiscoverySource(IOptions<OvertureMapsOpti
             | PlaceSourceCapability.StoragePermissionValidation,
         [
             "La publicació exigeix validació territorial per geometria o revisió explícita",
-            "Les categories desconegudes es conserven com a service i PendingReview",
+            "Les categories desconegudes o no aprovades es conserven per a revisió sense publicar-les",
             "Les fotografies no formen part del connector Places i requereixen una font de media separada"
         ],
         OvertureStoragePermissionPolicy.License,

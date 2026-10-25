@@ -30,7 +30,15 @@ import { clampMapHeight, mapHeightLimits } from './place-map-layout';
 type LeafletModule = typeof import('leaflet');
 type LeafletMap = import('leaflet').Map;
 type LeafletLayerGroup = import('leaflet').LayerGroup;
-export interface PlaceMapViewport { north: number; south: number; east: number; west: number; }
+export interface PlaceMapViewport {
+  north: number;
+  south: number;
+  east: number;
+  west: number;
+  centerLatitude?: number;
+  centerLongitude?: number;
+  zoom?: number;
+}
 export interface PlaceMapMunicipality {
   id: string;
   name: string;
@@ -40,6 +48,7 @@ export interface PlaceMapMunicipality {
 }
 
 const VIEWPORT_SEARCH_DEBOUNCE_MS = 450;
+const MADRID_MAP_CENTER: [number, number] = [40.4168, -3.7038];
 
 @Component({
   selector: 'app-place-map',
@@ -65,6 +74,7 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   readonly focusCenter = input<{ lat: number; lng: number } | null>(null);
   readonly municipality = input<PlaceMapMunicipality | null>(null);
   readonly radiusKm = input(0);
+  readonly restoredViewport = input<PlaceMapViewport | null>(null);
   readonly placeSelected = output<string>();
   readonly selectionCleared = output<void>();
   readonly viewportSearch = output<PlaceMapViewport>();
@@ -76,6 +86,7 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   private mapInitialization?: Promise<void>;
   private lastDataKey = '';
   private activeMunicipalityKey = '';
+  private activeRestoredViewportKey = '';
   private initialCameraApplied = false;
   private hadPlaces = false;
   private resizeObserver?: ResizeObserver;
@@ -181,21 +192,20 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   }
 
   protected focusAllPlaces(): void {
-    if (!this.map || !this.leaflet) return;
-    this.markUserCameraIntent();
-    if (this.municipality()) {
-      const municipality = this.municipality()!;
-      this.map.panTo([municipality.lat, municipality.lng]);
-    } else if (this.hasPlaces) {
-      const bounds = this.places().reduce((accumulator, place) => {
-        accumulator.extend([place.coordinates!.lat, place.coordinates!.lng]);
-        return accumulator;
-      }, this.leaflet.latLngBounds([]));
-      this.map.panTo(bounds.getCenter());
-    } else {
-      const focus = this.focusCenter();
-      this.map.panTo(focus ? [focus.lat, focus.lng] : PlaceMapComponent.defaultMapCenter);
+    if (!this.map) return;
+    const municipality = this.municipality();
+    if (municipality) {
+      this.markAutomaticCamera();
+      this.map.setView([municipality.lat, municipality.lng], CITY_INITIAL_ZOOM, { animate: false });
+      return;
     }
+
+    const focus = this.focusCenter();
+    this.markAutomaticCamera();
+    this.map.setView(
+      focus ? [focus.lat, focus.lng] : MADRID_MAP_CENTER,
+      CITY_INITIAL_ZOOM
+    );
   }
 
   protected clearSelection(): void {
@@ -287,7 +297,10 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       north: bounds.getNorth(),
       south: bounds.getSouth(),
       east: bounds.getEast(),
-      west: bounds.getWest()
+      west: bounds.getWest(),
+      centerLatitude: this.map.getCenter().lat,
+      centerLongitude: this.map.getCenter().lng,
+      zoom: this.map.getZoom()
     };
     const key = [viewport.north, viewport.south, viewport.east, viewport.west]
       .map(value => value.toFixed(6))
@@ -366,8 +379,18 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
         ? `${municipality.id}:${municipality.lat}:${municipality.lng}`
         : '';
       const municipalityChanged = municipalityKey !== '' && municipalityKey !== this.activeMunicipalityKey;
+      const restoredViewport = this.restoredViewport();
+      const restoredViewportKey = restoredViewport
+        ? [restoredViewport.north, restoredViewport.south, restoredViewport.east, restoredViewport.west,
+          restoredViewport.centerLatitude, restoredViewport.centerLongitude, restoredViewport.zoom].join(':')
+        : '';
+      const restoredViewportChanged = restoredViewportKey !== ''
+        && restoredViewportKey !== this.activeRestoredViewportKey;
 
-      if (municipalityChanged) {
+      if (restoredViewportChanged) {
+        this.applyRestoredViewport(restoredViewport!);
+        this.initialCameraApplied = true;
+      } else if (municipalityChanged) {
         // The municipality usually arrives after the first async search. It must
         // establish the territorial camera even if Leaflet already showed Spain.
         this.setMunicipalityView();
@@ -381,6 +404,7 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
         this.fitMapToPlaces();
       }
       this.activeMunicipalityKey = municipalityKey;
+      this.activeRestoredViewportKey = restoredViewportKey;
       this.hadPlaces = this.hasPlaces;
 
       if (dataChanged || municipalityChanged) {
@@ -518,6 +542,20 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     this.map.setView(PlaceMapComponent.defaultMapCenter, PlaceMapComponent.defaultMapZoom);
   }
 
+  private applyRestoredViewport(viewport: PlaceMapViewport): void {
+    if (!this.map || !this.leaflet) return;
+    this.markAutomaticCamera();
+    if (viewport.centerLatitude !== undefined && viewport.centerLongitude !== undefined
+      && viewport.zoom !== undefined) {
+      this.map.setView([viewport.centerLatitude, viewport.centerLongitude], viewport.zoom, { animate: false });
+      return;
+    }
+    this.map.fitBounds(
+      [[viewport.south, viewport.west], [viewport.north, viewport.east]],
+      { animate: false }
+    );
+  }
+
   private setMunicipalityView(): void {
     if (!this.leaflet || !this.map) return;
     const municipality = this.municipality();
@@ -619,6 +657,7 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
 
   private zoomToMunicipality(municipality: PlaceMapMunicipality): void {
     if (!this.map) return;
+    this.markUserCameraIntent();
     this.map.setView([municipality.lat, municipality.lng], CITY_CLICK_ZOOM);
   }
 
@@ -666,6 +705,7 @@ export class PlaceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       className: 'place-map__cluster-label'
     });
     const zoomIn = () => {
+      this.markUserCameraIntent();
       this.map!.setView([lat, lng], Math.min(this.map!.getZoom() + 2, 17));
     };
     marker.on('click', zoomIn);

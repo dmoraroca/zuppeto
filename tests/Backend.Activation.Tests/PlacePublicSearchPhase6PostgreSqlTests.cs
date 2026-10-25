@@ -104,6 +104,91 @@ public sealed class PlacePublicSearchPhase6PostgreSqlTests
     }
 
     [Fact]
+    public async Task Rejected_and_excluded_source_hides_place_from_public_search_map_and_detail_but_preserves_admin_record()
+    {
+        var baseConnection = Environment.GetEnvironmentVariable("ZUPPETO_TERRITORIAL_TEST_DB");
+        if (string.IsNullOrWhiteSpace(baseConnection)) return;
+        var adminConnection = new NpgsqlConnectionStringBuilder(baseConnection) { Database = "postgres" }.ConnectionString;
+        var testConnection = new NpgsqlConnectionStringBuilder(baseConnection) { Database = TemporaryDatabase }.ConnectionString;
+        await RecreateDatabaseAsync(adminConnection);
+        try
+        {
+            var options = new DbContextOptionsBuilder<ZuppetoDbContext>().UseNpgsql(testConnection).Options;
+            await using var db = new ZuppetoDbContext(options);
+            await db.Database.MigrateAsync();
+            var now = DateTimeOffset.UtcNow;
+            var agbar = Place("Agbar", "FoodAndDrink", "Unknown", 41.564953m, 2.516271m, now, "pub");
+            db.Places.Add(agbar);
+            AddImportedCategory(db, agbar, "pub", now);
+            await db.SaveChangesAsync();
+
+            var source = await db.PlaceSourceRecords.SingleAsync(item => item.CanonicalPlaceId == agbar.Id);
+            source.State = "Excluded";
+            source.VerificationStatus = "Rejected";
+            source.VerifiedAtUtc = now;
+            await db.SaveChangesAsync();
+
+            var search = await new PlacePublicSearchQuery(db).SearchAsync(new PlaceSearchRequest(
+                null, null, "Arenys de Mar", null, "All", 0, 20,
+                North: 41.6m, South: 41.5m, East: 2.6m, West: 2.4m));
+            Assert.Empty(search.Items);
+            Assert.Empty(search.MapPoints!);
+            Assert.Equal(0, search.Total);
+
+            var visibility = new PlacePublicVisibilityQuery(db);
+            Assert.False(await visibility.IsVisibleAsync(agbar.Id));
+            Assert.NotNull(await new PlaceRepository(db).GetByIdAsync(agbar.Id));
+            Assert.Equal("Rejected", source.VerificationStatus);
+            Assert.Equal("Excluded", source.State);
+        }
+        finally
+        {
+            await DropDatabaseAsync(adminConnection);
+        }
+    }
+
+    [Fact]
+    public async Task Incompatible_original_activity_hides_place_without_mutating_the_imported_record()
+    {
+        var baseConnection = Environment.GetEnvironmentVariable("ZUPPETO_TERRITORIAL_TEST_DB");
+        if (string.IsNullOrWhiteSpace(baseConnection)) return;
+        var adminConnection = new NpgsqlConnectionStringBuilder(baseConnection) { Database = "postgres" }.ConnectionString;
+        var testConnection = new NpgsqlConnectionStringBuilder(baseConnection) { Database = TemporaryDatabase }.ConnectionString;
+        await RecreateDatabaseAsync(adminConnection);
+        try
+        {
+            var options = new DbContextOptionsBuilder<ZuppetoDbContext>().UseNpgsql(testConnection).Options;
+            await using var db = new ZuppetoDbContext(options);
+            await db.Database.MigrateAsync();
+            var now = DateTimeOffset.UtcNow;
+            var utility = Place("Companyia d'aigües", "FoodAndDrink", "Unknown", 41.580m, 2.550m, now, "pub");
+            db.Places.Add(utility);
+            AddImportedCategory(
+                db,
+                utility,
+                "pub",
+                now,
+                sourcePayloadJson: "{\"category.original\":\"water_utility_provider\",\"category.subcategory\":\"water_utility_provider\"}");
+            await db.SaveChangesAsync();
+
+            var search = await new PlacePublicSearchQuery(db).SearchAsync(new PlaceSearchRequest(
+                null, null, "Arenys de Mar", null, "All", 0, 20,
+                North: 41.6m, South: 41.5m, East: 2.6m, West: 2.4m));
+
+            Assert.Empty(search.Items);
+            Assert.False(await new PlacePublicVisibilityQuery(db).IsVisibleAsync(utility.Id));
+            Assert.NotNull(await new PlaceRepository(db).GetByIdAsync(utility.Id));
+            var source = await db.PlaceSourceRecords.SingleAsync(item => item.CanonicalPlaceId == utility.Id);
+            Assert.Equal("Active", source.State);
+            Assert.NotEqual("Rejected", source.VerificationStatus);
+        }
+        finally
+        {
+            await DropDatabaseAsync(adminConnection);
+        }
+    }
+
+    [Fact]
     public async Task PostgreSql_filters_radius_orders_and_pages_without_loading_the_full_catalog()
     {
         var baseConnection = Environment.GetEnvironmentVariable("ZUPPETO_TERRITORIAL_TEST_DB");
@@ -324,7 +409,8 @@ public sealed class PlacePublicSearchPhase6PostgreSqlTests
         PlaceRecord place,
         string category,
         DateTimeOffset now,
-        string normalizedFieldsJson = "{}")
+        string normalizedFieldsJson = "{}",
+        string sourcePayloadJson = "{}")
     {
         var actorId = Guid.NewGuid();
         var countryId = Guid.NewGuid();
@@ -374,7 +460,7 @@ public sealed class PlacePublicSearchPhase6PostgreSqlTests
         });
         db.PlaceSourceRecords.Add(new PlaceSourceRecord
         {
-            Id = sourceRecordId, SourceId = sourceId, ExternalId = "node/phase6", NormalizedPayloadJson = "{}",
+            Id = sourceRecordId, SourceId = sourceId, ExternalId = "node/phase6", NormalizedPayloadJson = sourcePayloadJson,
             ContentHash = "phase6", EvidenceUri = "https://www.openstreetmap.org/node/phase6",
             ObservedAtUtc = now, RetrievedAtUtc = now, FirstSeenAtUtc = now, LastSeenAtUtc = now,
             State = "Active", CanonicalPlaceId = place.Id

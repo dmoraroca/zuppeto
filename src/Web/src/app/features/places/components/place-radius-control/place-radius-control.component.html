@@ -1,0 +1,63 @@
+<section
+  class="place-radius"
+  [class.place-radius--disabled]="disabled()"
+  [attr.aria-disabled]="disabled()"
+  aria-labelledby="place-radius-title"
+>
+  <div class="place-radius__heading">
+    <strong id="place-radius-title">Radi de cerca</strong>
+    <button
+      type="button"
+      class="place-radius__municipality"
+      [class.place-radius__municipality--active]="value() === 0"
+      [attr.aria-pressed]="value() === 0"
+      [disabled]="disabled()"
+      (click)="selectMunicipality()"
+    >
+      Només municipi
+    </button>
+  </div>
+
+  <div class="place-radius__gauge" [class.place-radius__gauge--active]="value() !== 0">
+    <svg viewBox="0 0 220 126" aria-hidden="true">
+      <path class="place-radius__track" d="M 20 110 A 90 90 0 0 1 200 110" />
+      <path class="place-radius__progress" d="M 20 110 A 90 90 0 0 1 200 110" />
+      <line
+        class="place-radius__needle"
+        x1="110"
+        y1="110"
+        x2="110"
+        y2="34"
+        [attr.transform]="'rotate(' + needleAngle() + ' 110 110)'"
+      />
+      <circle class="place-radius__hub" cx="110" cy="110" r="8" />
+      <text x="18" y="124">5</text>
+      <text x="194" y="124">50</text>
+    </svg>
+
+    <div class="place-radius__value" aria-hidden="true">
+      <strong>{{ preview() }}</strong><span>km</span>
+    </div>
+
+    <input
+      class="place-radius__interaction"
+      type="range"
+      min="0"
+      max="4"
+      step="1"
+      [value]="previewIndex()"
+      aria-label="Radi de cerca en quilòmetres"
+      [attr.aria-valuetext]="preview() + ' quilòmetres'"
+      [disabled]="disabled()"
+      (input)="previewRadius($event)"
+      (change)="confirmRadius($event)"
+    />
+  </div>
+
+  <div class="place-radius__scale" aria-hidden="true">
+    @for (radius of radii; track radius) {
+      <span [class.place-radius__scale-value--selected]="value() === radius">{{ radius }}</span>
+    }
+  </div>
+  <p>Arrossega l’agulla o utilitza les fletxes del teclat. La cerca s’actualitza en confirmar el valor.</p>
+</section>

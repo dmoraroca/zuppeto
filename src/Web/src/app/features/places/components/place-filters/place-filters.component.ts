@@ -1,7 +1,9 @@
-import { Component, input, output, ChangeDetectionStrategy } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 
 import { TerritorialLocationSelectorComponent, TerritorialLocationSelection } from '../../../../shared/components/territorial-location-selector/territorial-location-selector.component';
-import { PetAccessFilter, PetSpeciesFilter, PlaceFilters, PlaceSearchRadius, PlaceSearchSort } from '../../models/place.model';
+import { PetAccessFilter, PetSpeciesFilter, PlaceFilters, PlaceSearchSort } from '../../models/place.model';
+
+const INITIAL_CATEGORY_COUNT = 7;
 
 export type PlaceFilterSort = 'recent' | 'rating' | 'name';
 
@@ -14,7 +16,6 @@ export type PlaceFilterSort = 'recent' | 'rating' | 'name';
   styleUrl: './place-filters.component.scss'
 })
 export class PlaceFiltersComponent {
-  protected readonly radii: PlaceSearchRadius[] = [0, 5, 10, 20, 30, 50];
   protected readonly petSpecies: { value: PetSpeciesFilter; label: string }[] = [
     { value: 'dogs', label: 'Gossos' },
     { value: 'cats', label: 'Gats' }
@@ -22,10 +23,7 @@ export class PlaceFiltersComponent {
   protected readonly petPolicies: { value: PetAccessFilter; label: string; hint: string }[] = [
     { value: 'Allowed', label: 'Accepta mascotes', hint: 'Entrada permesa segons la informació disponible' },
     { value: 'TerraceOnly', label: 'Només terrassa', hint: 'Mascotes admeses només a l’espai exterior' },
-    { value: 'Conditional', label: 'Amb condicions', hint: 'Hi ha requisits específics abans d’anar-hi' },
-    { value: 'NotAllowed', label: 'No admet', hint: 'No s’ha de confondre amb informació desconeguda' },
-    { value: 'Unknown', label: 'Desconegut', hint: 'Encara no hi ha informació pet-friendly' },
-    { value: 'PendingReview', label: 'Pendent de revisió', hint: 'Informació detectada que requereix revisió' }
+    { value: 'Conditional', label: 'Amb condicions', hint: 'Hi ha requisits específics abans d’anar-hi' }
   ];
   readonly filters = input.required<PlaceFilters>();
   /** Cities of pins currently found (map/listing). Shown first in the combo. */
@@ -48,6 +46,14 @@ export class PlaceFiltersComponent {
   readonly enableRemoteCitySearch = input(true);
   readonly filtersChanged = output<Partial<PlaceFilters>>();
   readonly sortChanged = output<PlaceFilterSort>();
+  protected readonly categoriesExpanded = signal(false);
+  protected readonly visibleTypes = computed(() => {
+    const all = this.types();
+    if (this.categoriesExpanded()) return all;
+    const selected = new Set(this.filters().types ?? []);
+    return all.filter((type, index) => index < INITIAL_CATEGORY_COUNT || selected.has(type.value));
+  });
+  protected readonly hasMoreCategories = computed(() => this.types().length > INITIAL_CATEGORY_COUNT);
 
   protected onSearch(event: Event): void {
     const value = (event.target as HTMLInputElement).value;
@@ -85,14 +91,6 @@ export class PlaceFiltersComponent {
     });
   }
 
-  protected onRadius(event: Event): void {
-    this.filtersChanged.emit({ radiusKm: Number((event.target as HTMLInputElement).value) as PlaceSearchRadius });
-  }
-
-  protected onVerified(event: Event): void {
-    this.filtersChanged.emit({ verifiedOnly: (event.target as HTMLInputElement).checked });
-  }
-
   protected onPublicSort(event: Event): void {
     this.filtersChanged.emit({ searchSort: (event.target as HTMLSelectElement).value as PlaceSearchSort });
   }
@@ -117,6 +115,10 @@ export class PlaceFiltersComponent {
 
   protected onSort(event: Event): void {
     this.sortChanged.emit((event.target as HTMLSelectElement).value as PlaceFilterSort);
+  }
+
+  protected toggleCategoriesExpanded(): void {
+    this.categoriesExpanded.update((expanded) => !expanded);
   }
 
   protected clear(): void {

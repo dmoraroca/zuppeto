@@ -1,0 +1,121 @@
+.place-radius {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.65rem 0 0;
+  border-top: 1px solid rgba(15, 118, 110, 0.16);
+  transition: opacity 150ms ease;
+}
+
+.place-radius--disabled { opacity: 0.46; }
+
+.place-radius__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.place-radius__municipality {
+  min-height: 2.25rem;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid rgba(15, 118, 110, 0.25);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--yp-color-primary-dark);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.place-radius__municipality--active {
+  background: var(--yp-color-primary-dark);
+  color: #fff;
+}
+
+.place-radius__municipality:disabled,
+.place-radius__interaction:disabled { cursor: not-allowed; }
+
+.place-radius__gauge {
+  position: relative;
+  width: min(100%, 15.5rem);
+  aspect-ratio: 220 / 126;
+  margin: 0 auto;
+}
+
+.place-radius__gauge svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.place-radius__track,
+.place-radius__progress {
+  fill: none;
+  stroke-width: 12;
+  stroke-linecap: round;
+}
+
+.place-radius__track { stroke: rgba(15, 118, 110, 0.14); }
+.place-radius__progress { stroke: #0f766e; opacity: 0.42; }
+.place-radius__gauge--active .place-radius__progress { opacity: 1; }
+
+.place-radius__needle {
+  stroke: #163f3b;
+  stroke-width: 4;
+  stroke-linecap: round;
+  transition: transform 120ms ease-out;
+}
+
+.place-radius__hub { fill: #163f3b; }
+.place-radius__gauge text { fill: var(--yp-color-text-muted); font-size: 11px; font-weight: 800; }
+
+.place-radius__value {
+  position: absolute;
+  left: 50%;
+  bottom: 0.7rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.2rem;
+  transform: translateX(-50%);
+  color: var(--yp-color-primary-dark);
+}
+
+.place-radius__value strong { font-size: 1.45rem; line-height: 1; }
+.place-radius__value span { font-size: 0.72rem; font-weight: 800; }
+
+.place-radius__interaction {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: grab;
+  touch-action: none;
+}
+
+.place-radius__interaction:active { cursor: grabbing; }
+.place-radius__gauge:focus-within {
+  border-radius: 50% 50% 0 0;
+  outline: 3px solid #f59e0b;
+  outline-offset: 3px;
+}
+
+.place-radius__scale {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.2rem;
+  text-align: center;
+  color: var(--yp-color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.place-radius__scale-value--selected { color: var(--yp-color-primary-dark); font-weight: 900; }
+.place-radius p { margin: 0; color: var(--yp-color-text-muted); font-size: 0.76rem; line-height: 1.4; }
+
+@media (prefers-reduced-motion: reduce) {
+  .place-radius__needle { transition: none; }
+}

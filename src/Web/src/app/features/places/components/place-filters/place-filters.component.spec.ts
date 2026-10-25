@@ -37,23 +37,34 @@ describe('PlaceFiltersComponent Phase VI', () => {
     expect(fixture.nativeElement.textContent).toContain('0 seleccionades');
   });
 
-  it('shows all radius values and keeps Unknown separate from NotAllowed', () => {
+  it('only exposes actionable public pet policies and removes the public verified control', () => {
+    fixture.componentRef.setInput('filters', {
+      ...fixture.componentInstance.filters(),
+      petAccessStatuses: ['NotAllowed', 'Unknown', 'PendingReview']
+    });
+    fixture.detectChanges();
     const text = fixture.nativeElement.textContent;
-    expect(text).toContain('Només municipi');
-    expect(text).toContain('50 km');
-    expect(text).toContain('No admet');
-    expect(text).toContain('Desconegut');
-    expect(text).toContain('Només informació verificada');
+    expect(text).toContain('Accepta mascotes');
+    expect(text).toContain('Només terrassa');
+    expect(text).toContain('Amb condicions');
+    expect(text).not.toContain('No admet');
+    expect(text).not.toContain('Desconegut');
+    expect(text).not.toContain('Pendent de revisió');
+    expect(text).not.toContain('Només informació verificada');
     expect(text).not.toContain('Totes');
     expect(text).not.toContain('Altres');
-    expect(fixture.nativeElement.querySelector('[role="switch"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('[role="switch"]')).toBeNull();
   });
 
-  it('emits the compact verified switch and independently selectable species chips', () => {
+  it('uses collapsible groups and round selection controls', () => {
+    expect(fixture.nativeElement.querySelectorAll('details.place-filters__group').length).toBe(3);
+    expect(fixture.nativeElement.querySelectorAll('.place-filters__control-dot').length).toBeGreaterThan(0);
+  });
+
+  it('emits independently selectable species controls', () => {
     const emitted: unknown[] = [];
     fixture.componentInstance.filtersChanged.subscribe((value) => emitted.push(value));
 
-    (fixture.nativeElement.querySelector('[role="switch"]') as HTMLInputElement).click();
     const species = [...fixture.nativeElement.querySelectorAll('.place-filters__species label')] as HTMLLabelElement[];
     (species.find((label) => label.textContent?.includes('Gossos'))!.querySelector('input') as HTMLInputElement).click();
     fixture.componentRef.setInput('filters', {
@@ -62,8 +73,31 @@ describe('PlaceFiltersComponent Phase VI', () => {
     fixture.detectChanges();
     (species.find((label) => label.textContent?.includes('Gats'))!.querySelector('input') as HTMLInputElement).click();
 
-    expect(emitted).toContainEqual({ verifiedOnly: true });
     expect(emitted).toContainEqual({ petSpecies: ['dogs'], pet: 'dogs' });
     expect(emitted).toContainEqual({ petSpecies: ['dogs', 'cats'], pet: 'all' });
+  });
+
+  it('shows principal categories first and keeps selected categories visible when collapsed', () => {
+    const types = Array.from({ length: 9 }, (_, index) => ({
+      value: `category-${index}`,
+      label: `Categoria ${index + 1}`
+    }));
+    fixture.componentRef.setInput('types', types);
+    fixture.componentRef.setInput('filters', {
+      ...fixture.componentInstance.filters(),
+      types: ['category-8']
+    });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelectorAll('.place-filters__categories input').length).toBe(8);
+    expect(fixture.nativeElement.textContent).toContain('Categoria 9');
+
+    (fixture.nativeElement.querySelector('.place-filters__show-more') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('.place-filters__categories input').length).toBe(9);
+
+    (fixture.nativeElement.querySelector('.place-filters__show-more') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Categoria 9');
   });
 });

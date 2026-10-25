@@ -60,7 +60,6 @@ public sealed class OvertureMapsPlaceDiscoveryTests(ITestOutputHelper output)
     [InlineData("supermarket", "shop")]
     [InlineData("veterinarian", "veterinary")]
     [InlineData("pharmacy_and_drug_store", "pharmacy")]
-    [InlineData("gas_station", "fuel")]
     [InlineData("dog_grooming", "pet_grooming")]
     [InlineData("pet_service", "pet_service")]
     public void Mapping_covers_the_approved_PetiLoc_categories(string overture, string expected)
@@ -81,6 +80,7 @@ public sealed class OvertureMapsPlaceDiscoveryTests(ITestOutputHelper output)
     [InlineData("mobile_home_park")]
     [InlineData("pharmacy_school")]
     [InlineData("accounting_service")]
+    [InlineData("gas_station")]
     public void Ambiguous_or_disallowed_categories_are_pending_instead_of_using_a_text_fragment_or_service_default(
         string overture)
     {

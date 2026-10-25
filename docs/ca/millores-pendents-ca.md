@@ -1,5 +1,13 @@
 # Millores pendents (CA)
 
+## 2026-10-25 — Revalidació final de «Llocs» i del detall
+
+**Estat:** implementació i gates tècnics PASS; validació humana i E2E final pendents.
+
+Després de compactar els filtres, dividir categories en dues columnes, restaurar les deu categories inicials amb `Bars`, activar `Gossos` per defecte i corregir «A prop meu» i «Recentrar mapa», passen 16/16 proves Angular focalitzades, el build Angular i `git diff --check`. Encara cal reexecutar Chrome sobre l'estat final, comprovar visualment ordinador i mòbil, escoltar cinc activacions consecutives de «Guau Guau» amb dos lladrucs cadascuna i observar que el Westie completa sempre el recorregut de baix cap a dalt. També continua pendent provar Google Maps amb diversos Places reals. No s'ha de considerar tancada la Fase VI fins completar aquestes comprovacions. [Traça completa](iteracio-7-depuracio-enriquiment-cataleg-espanyol-20261024.md#10-consolidació-dels-retocs-de-llocs-i-del-detall--25102026).
+
+La pèrdua del filtre en fer zoom i el recentrat sobre el centre de càmera han quedat corregits i validats: el viewport conserva els filtres i el mapa rep un centre territorial independent. Les regressions passen 11/11 en Angular, 2/2 en .NET i l'E2E Chrome real READ ONLY valida Arenys i el fallback Madrid. **FET.**
+
 ## 2026-10-21 — Fase VI, fotografies i participació
 
 **Estat:** implementació tècnica validada; migració activa i revisió jurídica pendents.

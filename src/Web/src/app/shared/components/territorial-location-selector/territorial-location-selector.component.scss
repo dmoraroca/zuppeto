@@ -17,6 +17,11 @@
   grid-column: span 5;
 }
 
+:host-context(.places-page__search) .location-pair > label:first-child,
+:host-context(.places-page__search) .location-pair > label:last-child {
+  grid-column: 1 / -1;
+}
+
 :host(.place-filters__territory) .location-pair > label {
   gap: .4rem;
 }

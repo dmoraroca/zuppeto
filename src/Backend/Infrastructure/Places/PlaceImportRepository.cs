@@ -122,10 +122,16 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
             }
             else
             {
-                sourceRecord.SourceVersion = staged.Source.SourceVersion; sourceRecord.NormalizedPayloadJson = payload;
+                var isGovernanceExclusion = sourceRecord.State == "Excluded"
+                    && sourceRecord.VerificationStatus == "Rejected";
+                sourceRecord.SourceVersion = staged.Source.SourceVersion;
+                if (!isGovernanceExclusion)
+                {
+                    sourceRecord.NormalizedPayloadJson = payload;
+                    sourceRecord.MatchStatus = staged.Match.RequiresHumanReview ? "PendingReview" : staged.Match.Band;
+                }
                 sourceRecord.ContentHash = staged.ContentHash; sourceRecord.ObservedAtUtc = staged.Source.ObservedAtUtc;
                 sourceRecord.RetrievedAtUtc = now; sourceRecord.LastSeenAtUtc = now;
-                sourceRecord.MatchStatus = staged.Match.RequiresHumanReview ? "PendingReview" : staged.Match.Band;
             }
             await db.SaveChangesAsync(ct);
             db.PlaceImportItems.Add(new PlaceImportItemRecord
@@ -266,6 +272,13 @@ internal sealed class PlaceImportRepository(ZuppetoDbContext db) : IPlaceImportR
         var now = DateTimeOffset.UtcNow;
         foreach (var item in items)
         {
+            if (item.SourceRecord.State == "Excluded"
+                && item.SourceRecord.VerificationStatus == "Rejected")
+            {
+                item.Status = "RejectedConflict";
+                continue;
+            }
+
             var matchedPlaceId = item.SourceRecord.CanonicalPlaceId
                 ?? (item.Status != "PendingReview" ? item.PlaceId : null);
             if (matchedPlaceId is Guid existingPlaceId)

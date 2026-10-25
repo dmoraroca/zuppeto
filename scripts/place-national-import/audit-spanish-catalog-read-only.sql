@@ -36,31 +36,80 @@ WITH latest_overture AS (
       ON source.id = record.source_id AND source.source_key = 'overture-maps-places'
     WHERE record.canonical_place_id IS NOT NULL
     ORDER BY record.canonical_place_id, record.last_seen_at_utc DESC
-), assessed AS (
-    SELECT place.id,
+), classified AS (
+    SELECT place.id, place.commercial_category AS current_category,
         CASE
-            WHEN place.commercial_category = 'fuel' THEN 'EXCLUDE'
-            WHEN place.commercial_category = 'service' THEN 'PENDING_REVIEW'
-            WHEN place.commercial_category = 'pub'
-              AND coalesce(nullif(source.original_subcategory, ''), nullif(source.original_category, '')) IS NOT NULL
-              AND NOT (source.original_category = ANY (ARRAY['pub','gastropub','nightclub'])
-                    OR source.original_subcategory = ANY (ARRAY['pub','gastropub','nightclub'])) THEN 'PENDING_REVIEW'
-            WHEN place.commercial_category = 'bar'
-              AND (source.original_category = 'barber' OR source.original_subcategory = 'barber') THEN 'PENDING_REVIEW'
-            WHEN place.commercial_category = 'park'
-              AND (source.original_category = ANY (ARRAY['parking','parking_lot','mobile_home_park'])
-                OR source.original_subcategory = ANY (ARRAY['parking','parking_lot','mobile_home_park'])) THEN 'PENDING_REVIEW'
-            WHEN place.commercial_category = 'pharmacy'
-              AND (source.original_category = 'pharmacy_school' OR source.original_subcategory = 'pharmacy_school') THEN 'PENDING_REVIEW'
-            ELSE 'KEEP'
-        END AS proposed_action
+            WHEN coalesce(nullif(source.original_subcategory, ''), source.original_category) = ANY (ARRAY['pet_grooming','dog_grooming','pet_groomer']) THEN 'pet_grooming'
+            WHEN coalesce(nullif(source.original_subcategory, ''), source.original_category) = ANY (ARRAY['pet_service','pet_services','animal_or_pet_service','animal_boarding','pet_boarding','kennel','dog_training','pet_training','dog_trainer','dog_walking','dog_walker','animal_shelter','animal_rescue','pet_adoption']) THEN 'pet_service'
+            WHEN coalesce(nullif(source.original_subcategory, ''), source.original_category) = ANY (ARRAY['veterinary','veterinarian','animal_hospital']) THEN 'veterinary'
+            WHEN coalesce(nullif(source.original_subcategory, ''), source.original_category) = ANY (ARRAY['pharmacy','pharmacy_and_drug_store']) THEN 'pharmacy'
+            WHEN coalesce(nullif(source.original_subcategory, ''), source.original_category) = 'bakery' THEN 'bakery'
+            WHEN coalesce(nullif(source.original_subcategory, ''), source.original_category) = ANY (ARRAY['ice_cream','ice_cream_shop']) THEN 'ice_cream'
+            WHEN coalesce(nullif(source.original_subcategory, ''), source.original_category) = ANY (ARRAY['fast_food','fast_food_restaurant']) THEN 'fast_food'
+            WHEN coalesce(nullif(source.original_subcategory, ''), source.original_category) = ANY (ARRAY['cafe','coffee_shop']) THEN 'cafe'
+            WHEN coalesce(nullif(source.original_subcategory, ''), source.original_category) = ANY (ARRAY['pub','gastropub','nightclub']) THEN 'pub'
+            WHEN coalesce(nullif(source.original_subcategory, ''), source.original_category) = ANY (ARRAY['bar','biergarten','beer_garden']) THEN 'bar'
+            WHEN coalesce(nullif(source.original_subcategory, ''), source.original_category) = ANY (ARRAY['restaurant','food_court']) THEN 'restaurant'
+            WHEN coalesce(nullif(source.original_subcategory, ''), source.original_category) = ANY (ARRAY['hostel','guest_house','pension','bed_and_breakfast']) THEN 'hostel'
+            WHEN coalesce(nullif(source.original_subcategory, ''), source.original_category) = ANY (ARRAY['apartment','apartment_hotel','vacation_rental','private_lodging','holiday_rental_home']) THEN 'apartment'
+            WHEN coalesce(nullif(source.original_subcategory, ''), source.original_category) = ANY (ARRAY['camping','campground','rv_park']) THEN 'camping'
+            WHEN coalesce(nullif(source.original_subcategory, ''), source.original_category) = ANY (ARRAY['hotel','motel','resort']) THEN 'hotel'
+            WHEN coalesce(nullif(source.original_subcategory, ''), source.original_category) = ANY (ARRAY['park','urban_park','natural_park','national_park','nature_reserve','dog_park','recreation_ground','playground','public_garden']) THEN 'park'
+            WHEN coalesce(nullif(source.original_subcategory, ''), source.original_category) = ANY (ARRAY['shop','store','shopping','supermarket','grocery_store','convenience_store','shopping_center','department_store']) THEN 'shop'
+        END AS proposed_category,
+        source.original_category,
+        source.original_subcategory,
+        EXISTS (SELECT 1 FROM place_source_records excluded
+            WHERE excluded.canonical_place_id = place.id
+              AND excluded.verification_status = 'Rejected' AND excluded.state = 'Excluded') AS already_excluded
     FROM places place
     LEFT JOIN latest_overture source ON source.canonical_place_id = place.id
+), assessed AS (
+    SELECT id, current_category, proposed_category,
+        CASE
+            WHEN already_excluded THEN 'EXCLUDE'
+            WHEN current_category = 'fuel' THEN 'EXCLUDE'
+            WHEN proposed_category IS NULL THEN 'PENDING_REVIEW'
+            WHEN current_category IS DISTINCT FROM proposed_category THEN 'RECLASSIFY'
+            ELSE 'KEEP'
+        END AS proposed_action
+    FROM classified
 )
-SELECT proposed_action, count(*) AS places
+SELECT proposed_action, coalesce(proposed_category, '(none)') AS proposed_category, count(*) AS places
 FROM assessed
-GROUP BY proposed_action
-ORDER BY proposed_action;
+GROUP BY proposed_action, proposed_category
+ORDER BY proposed_action, proposed_category;
+
+\echo 'NATIONAL_DRY_RUN_SUMMARY'
+WITH latest_overture AS (
+    SELECT DISTINCT ON (record.canonical_place_id)
+        record.canonical_place_id,
+        lower(coalesce(record.normalized_payload->>'category.original', '')) AS original_category,
+        lower(coalesce(record.normalized_payload->>'category.subcategory', '')) AS original_subcategory
+    FROM place_source_records record
+    JOIN place_dataset_sources source ON source.id = record.source_id AND source.source_key = 'overture-maps-places'
+    WHERE record.canonical_place_id IS NOT NULL
+    ORDER BY record.canonical_place_id, record.last_seen_at_utc DESC
+)
+SELECT
+    count(*) AS total_places,
+    count(*) FILTER (WHERE place.commercial_category NOT IN ('fuel','service')
+      AND NOT EXISTS (SELECT 1 FROM place_source_records excluded WHERE excluded.canonical_place_id=place.id AND excluded.verification_status='Rejected' AND excluded.state='Excluded')) AS currently_public_candidates,
+    count(*) FILTER (WHERE place.commercial_category = 'fuel') AS exclude_fuel,
+    count(*) FILTER (WHERE place.commercial_category = 'service') AS pending_service,
+    count(*) FILTER (WHERE place.commercial_category IN ('pub','bar','park','pharmacy')
+      AND coalesce(nullif(source.original_subcategory,''), source.original_category) NOT IN
+        ('pub','gastropub','nightclub','bar','biergarten','beer_garden','park','urban_park','natural_park','national_park','nature_reserve','dog_park','recreation_ground','playground','public_garden','pharmacy','pharmacy_and_drug_store')) AS suspicious_known_mismatch
+FROM places place
+LEFT JOIN latest_overture source ON source.canonical_place_id=place.id;
+
+\echo 'AGBAR_READ_ONLY_STATUS'
+SELECT count(*) AS matching_names,
+       count(*) FILTER (WHERE place.commercial_category='pub') AS classified_as_pub,
+       count(*) FILTER (WHERE source.verification_status='Rejected' AND source.state='Excluded') AS already_excluded
+FROM places place
+LEFT JOIN place_source_records source ON source.canonical_place_id=place.id
+WHERE place.name ILIKE '%agbar%';
 
 \echo 'ARENYS_PILOT_50'
 WITH base AS (

@@ -92,8 +92,10 @@ export interface PlaceFilters {
   verifiedOnly?: boolean;
   searchSort?: PlaceSearchSort;
   radiusKm?: PlaceSearchRadius;
+  nearby?: boolean;
   centerLatitude?: number;
   centerLongitude?: number;
+  zoom?: number;
   north?: number;
   south?: number;
   east?: number;

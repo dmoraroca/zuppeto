@@ -6,22 +6,43 @@
     <p>{{ pageCopy() }}</p>
   </section>
 
-  <form class="places-page__search" (submit)="onSearchSubmit($event)">
+  <section class="places-page__search" aria-label="Filtres de cerca">
     <section class="places-page__nearby" aria-live="polite">
-      <div>
-        <strong>{{ nearbyLabel() || 'Vols començar a prop teu?' }}</strong>
-        @if (geolocationState() === 'denied') {
-          <span>Permís no concedit. Pots seleccionar país i municipi manualment.</span>
-        } @else if (geolocationState() === 'unavailable') {
-          <span>No hem pogut determinar el municipi. La selecció manual continua disponible.</span>
-        } @else {
-          <span>La posició exacta només s’utilitza per trobar el municipi i no es desa.</span>
-        }
+      <div class="places-page__nearby-header">
+        <div class="places-page__nearby-copy">
+          <strong>
+            {{ nearbyLabel() || (draftFilters().nearby && draftFilters().city
+              ? 'A prop meu — ' + draftFilters().city
+              : 'Vols començar a prop teu?') }}
+          </strong>
+          @if (geolocationState() === 'denied') {
+            <span>Permís no concedit. Pots seleccionar país i municipi manualment.</span>
+          } @else if (geolocationState() === 'unavailable') {
+            <span>No hem pogut determinar el municipi. La selecció manual continua disponible.</span>
+          } @else {
+            <span>La posició exacta només s’utilitza per trobar el municipi i no es desa.</span>
+          }
+        </div>
+        <button
+          type="button"
+          class="places-page__nearby-button"
+          [class.places-page__nearby-button--active]="draftFilters().nearby"
+          [attr.aria-pressed]="draftFilters().nearby"
+          [disabled]="geolocationState() === 'locating'"
+          (click)="toggleNearby()"
+        >
+          {{ geolocationState() === 'locating' ? 'Localitzant…' : (draftFilters().nearby ? 'Desactivar A prop meu' : '📍 A prop meu') }}
+        </button>
       </div>
-      <button type="button" [disabled]="geolocationState() === 'locating'" (click)="useMyLocation()">
-        {{ geolocationState() === 'locating' ? 'Localitzant…' : '📍 A prop meu' }}
-      </button>
+      <app-place-radius-control
+        [value]="draftFilters().radiusKm ?? 0"
+        [disabled]="!draftFilters().nearby"
+        (valueConfirmed)="onNearbyRadiusConfirmed($event)"
+      />
     </section>
+    <button type="button" class="places-page__clear-filters" (click)="clearAllFilters()">
+      Netejar filtres
+    </button>
     <button
       type="button"
       class="places-page__filters-toggle"
@@ -49,15 +70,7 @@
       />
     </div>
 
-    <section class="places-page__search-actions" aria-label="Accions de cerca">
-      <button type="submit" class="places-page__search-primary">
-        Cercar
-      </button>
-      <button type="button" class="places-page__search-secondary" (click)="clearAllFilters()">
-        Netejar
-      </button>
-    </section>
-  </form>
+  </section>
 
   <section class="places-page__map-block">
     <app-place-map
@@ -67,7 +80,8 @@
       [focusCenter]="cityMapFocus()"
       [municipality]="activeMunicipality()"
       [radiusKm]="filters().radiusKm ?? 0"
-      height="25rem"
+      [restoredViewport]="restoredViewport()"
+      height="42rem"
       emptyTitle="Cap resultat al mapa"
       emptyCopy="Quan els filtres retornin llocs, també els veuràs aquí."
       (placeSelected)="openPlaceFromMap($event)"
@@ -101,34 +115,34 @@
     </div>
   </section>
 
-  <section class="places-page__active-filters" aria-label="Filtres actius">
-    <div class="places-page__active-filters-header">
-      <strong>Filtres escollits</strong>
-      <button type="button" (click)="clearAllFilters()">Netejar tots els filtres</button>
-    </div>
+  <div class="places-page__listing">
+    <section class="places-page__active-filters" aria-label="Filtres actius">
+      <div class="places-page__active-filters-header">
+        <strong>Filtres escollits</strong>
+      </div>
 
-    <div class="places-page__active-filters-list">
-      @let filterChips = activeFilterChips();
-      @if (filterChips.length) {
-        @for (chip of filterChips; track chip.id) {
-          <span>{{ chip.label }}</span>
+      <div class="places-page__active-filters-list">
+        @let filterChips = activeFilterChips();
+        @if (filterChips.length) {
+          @for (chip of filterChips; track chip.id) {
+            <span>{{ chip.label }}</span>
+          }
+        } @else {
+          <span class="places-page__active-filters-empty">Cap filtre actiu</span>
         }
-      } @else {
-        <span class="places-page__active-filters-empty">Cap filtre actiu</span>
-      }
-    </div>
-  </section>
+      </div>
+    </section>
 
-  <section class="places-page__results" #resultsSection>
-    <div class="places-page__summary">
-      <strong>
-        {{ places().length }} de {{ listingTotal() }} llocs
-        @if (listingLoading()) {
-          <span class="places-page__loading"> · carregant</span>
-        }
-      </strong>
-      <a routerLink="/favorites">Veure favorits</a>
-    </div>
+    <section class="places-page__results" #resultsSection>
+      <div class="places-page__summary">
+        <strong>
+          {{ places().length }} de {{ listingTotal() }} llocs
+          @if (listingLoading()) {
+            <span class="places-page__loading"> · carregant</span>
+          }
+        </strong>
+        <a routerLink="/favorites">Veure favorits</a>
+      </div>
 
     <div class="places-page__grid">
       @for (place of places(); track place.id) {
@@ -174,6 +188,7 @@
       </form>
     }
 
-  </section>
+    </section>
+  </div>
 </main>
 

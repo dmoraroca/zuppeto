@@ -143,12 +143,22 @@ WHERE staging.country_iso2 = :'country'
   AND source.source_key = 'overture-maps-places'
 ON CONFLICT (source_id, external_id) DO UPDATE SET
     source_version = excluded.source_version,
-    normalized_payload = excluded.normalized_payload,
+    normalized_payload = CASE
+        WHEN place_source_records.state = 'Excluded'
+         AND place_source_records.verification_status = 'Rejected'
+        THEN place_source_records.normalized_payload
+        ELSE excluded.normalized_payload
+    END,
     content_hash = excluded.content_hash,
     evidence_uri = excluded.evidence_uri,
     retrieved_at_utc = excluded.retrieved_at_utc,
     last_seen_at_utc = excluded.last_seen_at_utc,
-    state = 'Active';
+    state = CASE
+        WHEN place_source_records.state = 'Excluded'
+         AND place_source_records.verification_status = 'Rejected'
+        THEN place_source_records.state
+        ELSE 'Active'
+    END;
 
 CREATE TEMP TABLE national_candidate_resolution ON COMMIT DROP AS
 SELECT

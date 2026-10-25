@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
 using Zuppeto.Application.Places;
 
 namespace Zuppeto.Infrastructure.Places;
@@ -11,6 +12,7 @@ internal sealed class HttpPlaceWebsitePageReader(
     ILogger<HttpPlaceWebsitePageReader> logger) : IPlaceWebsitePageReader
 {
     private const int MaxBytes = 350_000;
+    private readonly ConcurrentDictionary<string, Task<string?>> robotsCache = new(StringComparer.OrdinalIgnoreCase);
 
     private static readonly HashSet<string> SkippedHosts = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -36,6 +38,7 @@ internal sealed class HttpPlaceWebsitePageReader(
 
         try
         {
+            if (!await CanFetchAsync(startUri!, cancellationToken)) return null;
             var home = await ReadPageAsync(startUri!, cancellationToken);
             if (home is null)
             {
@@ -45,6 +48,7 @@ internal sealed class HttpPlaceWebsitePageReader(
             var child = HtmlVenuePageParser.FindSameHostPlaceLink(home.Html, startUri!, placeName);
             if (child is not null)
             {
+                if (!await CanFetchAsync(child, cancellationToken)) return home.PlainText;
                 var venue = await ReadPageAsync(child, cancellationToken);
                 if (venue is not null && PlaceWebsiteAmenityCatalog.MentionsPlace(venue.PlainText, placeName))
                 {
@@ -89,13 +93,38 @@ internal sealed class HttpPlaceWebsitePageReader(
         }
 
         var plain = HtmlVenuePageParser.ToPlainText(html);
+        var structuredFacts = HtmlVenuePageParser.ExtractJsonLdFacts(html);
         var meta = HtmlVenuePageParser.ExtractMetaDescription(html);
+        if (!string.IsNullOrWhiteSpace(structuredFacts))
+        {
+            plain = structuredFacts + " " + plain;
+        }
         if (!string.IsNullOrWhiteSpace(meta))
         {
             plain = meta.Trim() + " " + plain;
         }
 
         return new PageText(html, plain);
+    }
+
+    private async Task<bool> CanFetchAsync(Uri uri, CancellationToken cancellationToken)
+    {
+        var origin = uri.GetLeftPart(UriPartial.Authority);
+        var robots = await robotsCache.GetOrAdd(origin, _ => ReadRobotsAsync(origin, CancellationToken.None));
+        return robots is null || HtmlVenuePageParser.IsAllowedByRobotsTxt(robots, uri.AbsolutePath);
+    }
+
+    private async Task<string?> ReadRobotsAsync(string origin, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var response = await httpClient.GetAsync(new Uri(new Uri(origin), "/robots.txt"), cancellationToken);
+            return response.IsSuccessStatusCode ? await response.Content.ReadAsStringAsync(cancellationToken) : null;
+        }
+        catch (HttpRequestException)
+        {
+            return null;
+        }
     }
 
     private static bool TryCreateHttpUri(string websiteUrl, out Uri? uri)

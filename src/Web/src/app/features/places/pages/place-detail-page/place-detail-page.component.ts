@@ -3,6 +3,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 
 import { PlaceMapComponent } from '../../components/place-map/place-map.component';
+import { PlaceCoverImageComponent } from '../../components/place-cover-image/place-cover-image.component';
 import { PlaceShareMenuComponent } from '../../components/place-share-menu/place-share-menu.component';
 import { PlaceService } from '../../services/place.service';
 import { PlaceMediaAsset } from '../../models/place.model';
@@ -29,6 +30,7 @@ import {
     RouterLink,
     SiteHeaderComponent,
     PlaceMapComponent,
+    PlaceCoverImageComponent,
     PlaceShareMenuComponent
   ],
   templateUrl: './place-detail-page.component.html',
@@ -307,6 +309,18 @@ export class PlaceDetailPageComponent {
     ) return '';
     return this.buildDirectionsUrl(lat!, lng!);
   });
+  protected readonly officialWebsiteUrl = computed(() => {
+    const raw = this.place()?.website?.trim() ?? '';
+    if (!raw) return '';
+    const candidate = /^https?:\/\//iu.test(raw) ? raw : `https://${raw}`;
+    try {
+      const url = new URL(candidate);
+      return url.protocol === 'http:' || url.protocol === 'https:' ? url.href : '';
+    } catch {
+      return '';
+    }
+  });
+  protected readonly publicPhone = computed(() => this.place()?.phone?.trim() ?? '');
 
   private buildDirectionsUrl(latitude: number, longitude: number): string {
     const query = new URLSearchParams({ api: '1', destination: `${latitude},${longitude}` });

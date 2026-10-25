@@ -38,8 +38,13 @@
             </div>
           </div>
         } @else {
-          <div class="petiloc-detail__fallback">
-            <img src="/images/place-detail/editorial-fallback.webp" alt="Arquitectura orgànica i vegetació" />
+          <div class="petiloc-detail__fallback" role="group" aria-label="Aquest establiment encara no té fotografies verificades">
+            <app-place-cover-image
+              [placeName]="selectedPlace.name"
+              [category]="selectedPlace.categoryLabel || selectedPlace.type"
+              variant="hero"
+            />
+            <p>Aquest establiment encara no té fotografies verificades.</p>
           </div>
         }
       </div>
@@ -118,6 +123,21 @@
           <span class="petiloc-detail__chapter-icon" aria-hidden="true">▧</span>
           <div class="petiloc-detail__chapter-copy"><h2>Fotos</h2><p>{{ galleryMedia().length ? (galleryTotal() || galleryMedia().length) + ' fotografies verificades' : 'Encara no hi ha fotografies verificades' }}</p></div>
         </section>
+
+        @if (officialWebsiteUrl() || publicPhone()) {
+          <section class="petiloc-detail__chapter petiloc-detail__chapter--contact">
+            <span class="petiloc-detail__chapter-icon" aria-hidden="true">i</span>
+            <div class="petiloc-detail__chapter-copy">
+              <h2>Contacte</h2>
+              @if (officialWebsiteUrl()) {
+                <p><a [href]="officialWebsiteUrl()" target="_blank" rel="noopener noreferrer">Web oficial <span aria-hidden="true">↗</span></a></p>
+              }
+              @if (publicPhone()) {
+                <p><a [href]="'tel:' + publicPhone()">{{ publicPhone() }}</a></p>
+              }
+            </div>
+          </section>
+        }
       </div>
 
       <section id="petiloc-map" class="petiloc-detail__map-card" aria-labelledby="petiloc-map-title">

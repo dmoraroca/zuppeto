@@ -33,6 +33,8 @@ public sealed record PlaceSearchPageDto(
 public sealed record PlaceSearchMapDto(
     decimal? CenterLatitude,
     decimal? CenterLongitude,
+    decimal? MunicipalityLatitude,
+    decimal? MunicipalityLongitude,
     int RadiusKm,
     IReadOnlyCollection<PlaceMapAreaDto> Areas,
     IReadOnlyCollection<PlaceMapPointDto>? Points = null);
@@ -259,6 +261,8 @@ public sealed record PlacePublicSearchResult(
     IReadOnlyCollection<PlaceMapAreaDto> Areas,
     decimal? CenterLatitude,
     decimal? CenterLongitude,
+    decimal? MunicipalityLatitude,
+    decimal? MunicipalityLongitude,
     IReadOnlyCollection<PlaceMapPointDto>? MapPoints = null);
 
 public interface IPlacePublicSearchQuery

@@ -257,6 +257,7 @@ public static class DependencyInjection
         services.AddScoped<IPlaceRepository, PlaceRepository>();
         services.AddScoped<IPlaceMediaRepository, PlaceMediaRepository>();
         services.AddScoped<IPlacePublicSearchQuery, PlacePublicSearchQuery>();
+        services.AddScoped<IPlacePublicVisibilityQuery, PlacePublicVisibilityQuery>();
         services.AddScoped<IPlaceDataAttributionQuery, PlaceDataAttributionQuery>();
         services.AddScoped<IPetGovernanceRepository, PetGovernanceRepository>();
         services.AddScoped<IUserRepository, UserRepository>();

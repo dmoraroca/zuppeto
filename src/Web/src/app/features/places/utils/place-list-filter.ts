@@ -7,6 +7,7 @@ export const DEFAULT_PLACE_TYPES = [
   'restaurant', 'cafe', 'bar', 'pub', 'fast_food',
   'bakery', 'ice_cream', 'hotel', 'hostel', 'camping'
 ] as const;
+export const DEFAULT_PET_SPECIES: PetSpeciesFilter[] = ['dogs'];
 
 export const DEFAULT_PLACE_FILTERS: PlaceFilters = {
   search: '',
@@ -49,8 +50,16 @@ export function parsePetSpecies(
     .filter((value): value is PetSpeciesFilter => value === 'dogs' || value === 'cats');
   if (values.length > 0) return [...new Set(values)];
 
+  if (raw == null && legacyPet == null) return [...DEFAULT_PET_SPECIES];
+
   const legacy = parsePetFilter(legacyPet);
   return legacy === 'dogs' || legacy === 'cats' ? [legacy] : [];
+}
+
+export function serializePetSpecies(species: readonly PetSpeciesFilter[] | undefined): string | null {
+  const normalized = [...new Set(species ?? [])];
+  if (normalized.length === 0) return 'all';
+  return normalized.length === 1 && normalized[0] === 'dogs' ? null : normalized.join(',');
 }
 
 export function parsePlaceTypes(raw: string | null | undefined, legacyType?: string | null): string[] {

@@ -42,6 +42,7 @@ e2e/.playwright/
 e2e/.cache/ms-playwright/
 
 .fake
+.backups/
 
 # Scripts tooling (Excel generator, etc.)
 scripts/node_modules/

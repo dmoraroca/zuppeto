@@ -22,7 +22,8 @@ internal sealed class PlacePublicSearchQuery(ZuppetoDbContext dbContext) : IPlac
         var nowUtc = DateTimeOffset.UtcNow;
         var take = Math.Clamp(request.Take ?? 20, 1, 100);
         var skip = Math.Max(0, request.Skip);
-        var query = dbContext.Places.AsNoTracking().AsQueryable();
+        var geography = PlaceSearchGeographyPolicy.Normalize(request);
+        var query = dbContext.Places.AsNoTracking().ApplyPublicVisibility(dbContext);
 
         if (request.CountryId is not null)
             query = query.Where(place => place.TerritorialCountryId == request.CountryId);
@@ -62,7 +63,10 @@ internal sealed class PlacePublicSearchQuery(ZuppetoDbContext dbContext) : IPlac
         var dogsSelected = petCategories.Contains("Dogs", StringComparer.OrdinalIgnoreCase);
         var catsSelected = petCategories.Contains("Cats", StringComparer.OrdinalIgnoreCase);
 
-        var center = await ResolveCenterAsync(request, cancellationToken);
+        var municipalityCenter = await ResolveMunicipalityCenterAsync(request.TerritorialUnitId, cancellationToken);
+        var center = geography.CenterLatitude is not null && geography.CenterLongitude is not null
+            ? (geography.CenterLatitude.Value, geography.CenterLongitude.Value)
+            : municipalityCenter;
         decimal? longitudeScale = center is null
             ? null
             : KilometresPerLatitudeDegree * (decimal)Math.Cos((double)center.Value.Latitude * Math.PI / 180d);
@@ -90,11 +94,11 @@ internal sealed class PlacePublicSearchQuery(ZuppetoDbContext dbContext) : IPlac
                  (place.Longitude.Value - lon) * lonScale) <= radiusSquared);
         }
 
-        if (request.North is not null && request.South is not null && request.East is not null && request.West is not null)
+        if (geography.HasViewport)
         {
             query = query.Where(place => place.Latitude != null && place.Longitude != null &&
-                place.Latitude <= request.North && place.Latitude >= request.South &&
-                place.Longitude <= request.East && place.Longitude >= request.West);
+                place.Latitude <= geography.North && place.Latitude >= geography.South &&
+                place.Longitude <= geography.East && place.Longitude >= geography.West);
         }
 
         var closedPlaceIds = dbContext.PlaceLifecycleEvents.AsNoTracking()
@@ -255,20 +259,20 @@ internal sealed class PlacePublicSearchQuery(ZuppetoDbContext dbContext) : IPlac
             }).ToArray(),
             center?.Latitude,
             center?.Longitude,
+            municipalityCenter?.Latitude,
+            municipalityCenter?.Longitude,
             mapPoints);
     }
 
-    private async Task<(decimal Latitude, decimal Longitude)?> ResolveCenterAsync(
-        PlaceSearchRequest request,
+    private async Task<(decimal Latitude, decimal Longitude)?> ResolveMunicipalityCenterAsync(
+        Guid? territorialUnitId,
         CancellationToken cancellationToken)
     {
-        if (request.CenterLatitude is not null && request.CenterLongitude is not null)
-            return (request.CenterLatitude.Value, request.CenterLongitude.Value);
-        if (request.TerritorialUnitId is null)
+        if (territorialUnitId is null)
             return null;
 
         var unit = await dbContext.TerritorialUnits.AsNoTracking()
-            .Where(item => item.Id == request.TerritorialUnitId)
+            .Where(item => item.Id == territorialUnitId)
             .Select(item => new { item.Latitude, item.Longitude })
             .FirstOrDefaultAsync(cancellationToken);
         return unit?.Latitude is null || unit.Longitude is null ? null : (unit.Latitude.Value, unit.Longitude.Value);

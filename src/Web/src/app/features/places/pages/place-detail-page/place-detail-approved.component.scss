@@ -164,6 +164,38 @@
   object-position: center 51%;
 }
 
+.petiloc-detail__fallback {
+  position: relative;
+}
+
+.petiloc-detail__fallback app-place-cover-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.petiloc-detail__fallback > p {
+  position: absolute;
+  left: 50%;
+  bottom: 2.25rem;
+  z-index: 2;
+  width: min(30rem, calc(100% - 2rem));
+  margin: 0;
+  padding: .65rem .9rem;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .92);
+  color: #075b54;
+  font-weight: 850;
+  text-align: center;
+  box-shadow: 0 .4rem 1.2rem rgba(15, 23, 42, .12);
+}
+
+.petiloc-detail__chapter--contact a {
+  color: #075b54;
+  font-weight: 800;
+}
+
 .petiloc-detail__hero-gallery {
   position: absolute;
   right: clamp(1rem, 2.5vw, 2.5rem);
