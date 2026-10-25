@@ -437,8 +437,8 @@ Zusammenfassung des Diagramms:
 
 Technisches Dokument:
 
-- [`technisch-de.md`](/home/dmoraroca/Documents/_DATA/repos/zuppeto/docs/de/technisch-de.md)
+- [`technisch-de.md`](technisch-de.md)
 
 Phasen-Dokument:
 
-- [`project-phases.md`](/home/dmoraroca/Documents/_DATA/repos/zuppeto/docs/project-phases.md)
+- [`project-phases.md`](../project-phases.md)

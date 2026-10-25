@@ -2,15 +2,19 @@
 
 Aquest document defineix com s'organitza el desenvolupament de Zuppeto per fases, què s'espera de cada etapa i l'estat real de cadascuna.
 
+> **Navegació i estat consolidat (25.10.2026):** consulteu l'[índex mestre de documentació](ca/README.md). Aquest fitxer continua sent l'autoritat per a les **fases globals** i la numeració d'iteracions; els informes `iteracio-*` documenten subfases i talls temporals. Les fases internes de les iteracions 6 i 7 no són les fases globals V i VI.
+
 ## Objectiu general
 
-Zuppeto ha de créixer com una plataforma pet-friendly per descobrir llocs, estades i serveis que accepten mascotes. El desenvolupament es farà de manera incremental:
+Zuppeto ha de créixer com una plataforma pet-friendly per descobrir llocs, estades i serveis que accepten mascotes. El pla original va establir una evolució incremental:
 
 - primer validant experiència i estructura amb frontend i dades fake
 - després consolidant models i navegació funcional
 - i finalment passant a backend real, permisos i internacionalització
 
-## Principis de treball
+## Principis de treball originals — HISTÒRIC/SUBSTITUÏT PARCIALMENT
+
+Els punts següents expliquen l'arrencada del projecte. No descriuen l'arquitectura actual quan entren en conflicte amb les fases III–IV, que ja utilitzen backend real, PostgreSQL, DDD i fonts governades.
 
 - Frontend primer, backend després
 - Dades fake mentre validem UX i estructura
@@ -121,7 +125,7 @@ Separar clarament les zones públiques de les zones internes o controlades per p
 - autenticació pròpia i Google OAuth real (**FET**); `LinkedIn` queda descartat per decisió funcional de producte i `Facebook` continua pendent
 - rols i permisos (**FET**)
 - pàgines internes (**FET**): punt tancat amb el criteri definit per direcció de projecte, incloent base d'accés intern i manteniments d'administració ja operatius.
-- gestió de contingut o dades (**EN CURS**): la Iteració 6 territorial està completada amb 23.969 unitats publicades, contracte normalitzat validat i `cities` retirat. La Iteració 7 prepara el catàleg propi de llocs alimentat per fonts obertes i la retirada progressiva de Google Places API.
+- gestió de contingut o dades (**EN CURS**): la Iteració 6 territorial té tancament històric amb 23.969 unitats publicades, contracte normalitzat i `cities` retirat, però els punts 6–8 requereixen verificació actual. La Iteració 7 ha implementat el catàleg propi de Places amb fonts obertes i UX associada; en queden la verificació final i la retirada tècnica segura del codi Google Places bloquejat en runtime.
 - accessos restringits a determinades funcionalitats (**PENDENT**)
 - revisió de documentació pendent (comprovar opcions i buits) (**PENDENT**)
 - canvi de contrasenya i operativa bàsica de credencials (**PENDENT**; tot el treball de contrasenya queda empaquetat aquí, sense escindir-lo en un altre punt)
@@ -130,18 +134,24 @@ Separar clarament les zones públiques de les zones internes o controlades per p
 
 La plataforma ja diferencia entre usuaris públics, usuaris autenticats i àrees internes (**PENDENT**).
 
+### Gate funcional vigent de Fase IV
+
+El seguiment oficial consta de **21 punts consecutius**: **14 implementats** (1–4 i 6–15), **6 pendents o parcials** (16–21) i **1 descartat** (5). «Implementat» no equival necessàriament a «validat». La llista, els estats, la correspondència amb la numeració anterior i els criteris de tancament es mantenen a [`funcional-ca.md`, §3.18](ca/funcional-ca.md#318-criteri-oficial-de-tancament-funcional-de-fase-iv); l'[índex català](ca/README.md#gate-funcional-de-fase-iv--21-punts) en conserva l'estat acreditat sense duplicar aquí la matriu completa.
+
+La memòria de paginació 20 → 40 → 60 és un subrequisit del punt 13, no un punt independent. La revisió dels SKIP E2E forma part dels criteris de validació i tancament, no de la llista funcional. El punt 21 vigent és la definició funcional de la passarel·la de pagament i del model comercial; encara no autoritza escollir proveïdor ni implementar pagaments.
+
 ### Què s'ha fet en aquest tram de la Fase IV
 
 - `pàgines internes` queda **FET** (accés intern i manteniments principals operatius)
 - Fase IV, Iteració 4 — Google OAuth real: **🟢 VALIDADA I TANCADA el 2026-09-17**. Inclou alta Google nova amb rol `USER`, autovinculació segura d'un compte local activat per email verificat, `ExternalIdentity` única, TOTP sense bypass, logout/relogin, regressions, secrets, cleanup i registre Excel.
 - Fase IV, Iteració 5 — LinkedIn OAuth: **➖ DESCARTADA PER DECISIÓ FUNCIONAL DE PRODUCTE el 2026-09-18**. La integració es va estudiar i implementar tècnicament abans de la decisió; s'han retirat del producte UI, endpoints, adaptador OIDC i configuració LinkedIn, mantenint la infraestructura federada genèrica útil per Google i proveïdors futurs. No és `FAIL`, `PENDENT` ni `NO VALIDADA`.
 - La LinkedIn Page Petiloc es conserva com a canal corporatiu i queda separada del sistema d'autenticació.
-- Fase IV, Iteració 6 — **COMPLETADA I TANCADA EL 2026-10-12**. Espanya v2 (8.199 unitats; 8.132 amb coordenades) i Alemanya v1 (15.770 unitats; 10.939 amb coordenades) estan publicades i validades. INE, CNIG i GV-ISys consten aprovades. El model europeu, el contracte normalitzat, l'API, el selector compartit, la governança de fonts i la regressió Chrome/Firefox/WebKit estan validats. `cities` i GeoNames runtime s'han retirat, `countries` es conserva i el backfill User/Place s'ha descartat perquè els 119 registres auditats eren dades de prova; la neteja exacta autoritzada ha eliminat 135 files.
-- Fase V, Iteració 7 — **FASES 0–V COMPLETADES**. Catalunya disposa d'índex regional reutilitzable, generacions, rollback i diffs `.osc.gz` amb checkpoint; la migració real està aplicada i Arenys té 50 Places després de dues importacions idempotents. Wikidata CC0, matching, conflictes, lifecycle i ADMIN estan validats. Google Places continua desactivat. Roadmap: [Iteració 7 — Catàleg propi de llocs amb fonts obertes](ca/iteracio-7-roadmap-places-obertes-ca.md) i [informe de Fase V](ca/iteracio-7-fase-v-cobertura-enriquiment-deduplicacio-ca.md).
-- Fase VI, Iteració 7 — **TANCADA**. Cerca PostgreSQL amb municipi/radi/viewport, filtres visuals, ordenació i paginació server-side; GPS privat, mapa sincronitzat, fitxa ampliada i Chrome focalitzat PASS. PostGIS queda ajornat amb mètriques. La migració d'índexs ha quedat aplicada a PostgreSQL real amb backup restaurat i 50 Places intactes. [Informe](ca/iteracio-7-fase-vi-cercador-mapa-ux-ca.md).
+- Fase IV, Iteració 6 — **TANCAMENT HISTÒRIC EL 2026-10-12; IMPLEMENTAT — PENDENT DE VERIFICACIÓ ACTUAL**. Espanya v2 (8.199 unitats; 8.132 amb coordenades) i Alemanya v1 (15.770 unitats; 10.939 amb coordenades) consten publicades i validades en aquell tall. `cities` i GeoNames runtime es van retirar, `countries` es conserva. Els punts 6–8 del gate requereixen ara una verificació de coherència, no una reconstrucció.
+- Fase interna V, Iteració 7 — **TANCAMENT HISTÒRIC; IMPLEMENTADA**. Catalunya disposa d'índex regional reutilitzable, generacions, rollback i diffs `.osc.gz` amb checkpoint; el tall documentat acredita 50 Places d'Arenys després de dues importacions idempotents. Google Places continua bloquejat en runtime. Roadmap: [Iteració 7 — Catàleg propi de llocs amb fonts obertes](ca/iteracio-7-roadmap-places-obertes-ca.md) i [informe de Fase V](ca/iteracio-7-fase-v-cobertura-enriquiment-deduplicacio-ca.md).
+- Fase interna VI, Iteració 7 — **IMPLEMENTADA — PENDENT DE VERIFICACIÓ FINAL**. Cerca PostgreSQL amb municipi/radi/viewport, filtres visuals, ordenació i paginació server-side; GPS privat, mapa sincronitzat i fitxa ampliada. Les execucions documentades acrediten el seu tall, però la revalidació humana i E2E del codi actual continua pendent. [Informe](ca/iteracio-7-fase-vi-cercador-mapa-ux-ca.md).
 - Fase IV, Iteració 8 — **NO INICIADA**. Sense abast aprovat en aquest tancament; l'antic selector territorial previst ja es va implementar dins la Iteració 6 i no es trasllada com a tasca pendent.
 - login: destí per defecte **Inici** per a tots els rols (ZUP-004); ADMIN obre permisos des del menú, no a la primera pantalla
-- `gestió de contingut o dades` continua **EN CURS**: el focus passa a `llocs`, governança pet-friendly i fonts obertes. La integració Google Places existent és llegat a inventariar i substituir, no una capacitat a completar. Favorits, memòria 20/40/60, llistat editorial i Ajuda es conserven al backlog sense ampliar l'abast de la Fase 0. Vegeu `docs/ca/millores-pendents-ca.md`.
+- `gestió de contingut o dades` continua **EN CURS**: el focus passa a `llocs`, governança pet-friendly i fonts obertes. La integració Google Places existent és llegat a inventariar i substituir, no una capacitat a completar. Favorits, la memòria 20/40/60 integrada al punt funcional 13, el llistat i Ajuda es conserven al backlog sense ampliar l'abast de la Fase 0. Vegeu `docs/ca/millores-pendents-ca.md`.
 - detall funcional i tècnic del tram actual: `docs/ca/funcional-ca.md` (§3.17, §3.12, §12.5, §12.7) i `docs/ca/tecnic-ca.md` (§2.11.3, §2.11.3.1, §2.11.4 procedència `places`, §2.11.5 menús admin, §2.10.3 permisos de build local)
 
 ### Roadmap de proveïdors d'identitat

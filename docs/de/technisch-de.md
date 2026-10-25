@@ -531,8 +531,8 @@ src/Web/src/app/features/places/pages/place-detail-page/place-detail-page.compon
 
 Funktionales Dokument:
 
-- [`funktional-de.md`](/home/dmoraroca/Documents/_DATA/repos/zuppeto/docs/de/funktional-de.md)
+- [`funktional-de.md`](funktional-de.md)
 
 Phasen-Dokument:
 
-- [`project-phases.md`](/home/dmoraroca/Documents/_DATA/repos/zuppeto/docs/project-phases.md)
+- [`project-phases.md`](../project-phases.md)

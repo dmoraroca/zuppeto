@@ -1,5 +1,7 @@
 # Document funcional (CA)
 
+> **Funció documental (25.10.2026):** aquest fitxer és el contracte funcional ampliat, no l'índex d'estat. L'[índex mestre](README.md) preval per a l'estat consolidat i reconcilia els 21 punts del gate. Les narracions de Google Places, GeoNames, `cities`, mocks i proves antigues són històriques quan una decisió posterior les substitueix.
+
 > Zoom i recentrat (25.10.2026): ampliar o reduir el mapa conserva tots els filtres actius, inclosos municipi, «A prop meu» i radi. «Recentrar mapa» torna directament a la població seleccionada i, si no hi ha municipi o localitat, a Madrid; no desactiva filtres ni dispara una cerca de viewport addicional. Amb «A prop meu» actiu, una població resolta sempre preval sobre Madrid, fins i tot mentre l'API en execució encara omet el centre municipal separat. Validació Chrome real READ ONLY: PASS amb Arenys, Sant Vicenç de Montalt i fallback Madrid.
 
 > Consolidació de «Llocs» i detall (25.10.2026): tres columnes en escriptori, filtres compactes, categories en dues columnes, deu categories inicials amb `Bars`, `Gossos` per defecte, «A prop meu» restaurable i recentrat al municipi o a Madrid sense desactivar-lo. El detall conserva Google Maps per coordenades, Westie només de baix cap a dalt, dos lladrucs per activació i amplada compacta sense línia de vida. Els gates tècnics passen; la revalidació final Chrome, visual i auditiva continua pendent. [Informe consolidat](iteracio-7-depuracio-enriquiment-cataleg-espanyol-20261024.md#10-consolidació-dels-retocs-de-llocs-i-del-detall--25102026).
@@ -1312,21 +1314,21 @@ Aquest apartat és el **gate funcional vigent** de Fase IV. Consolida els penden
 
 #### 3.18.1 Regla general
 
-Fase IV **no** es considera tancada mentre existeixi cap punt obligatori classificat com a 🔴 **pendent/crític** o 🟠 **parcial, pendent de completar o validar**. Per arribar a `FASE IV — PASS`:
+Fase IV **no** es considera tancada mentre existeixi cap punt obligatori pendent, parcial o implementat sense la verificació exigida. Per arribar a `FASE IV — PASS`:
 
-- tots els punts 🔴 i 🟠 han de passar a 🟢 **VALIDAT**;
+- tots els punts obligatoris han de passar a **VALIDAT** o quedar tancats mitjançant una decisió funcional explícita;
 - cap funcionalitat obligatòria pot quedar només «implementada» sense validació;
 - s'han de revisar individualment els SKIP E2E vigents;
-- després dels canvis s'han d'executar les proves focalitzades i la regressió E2E corresponent;
+- durant la implementació s'han d'executar les comprovacions focalitzades no E2E que corresponguin; els E2E/Playwright només s'executen al final de la fase o iteració i amb autorització;
 - el refactor arquitectònic global no pot començar abans del tancament funcional de Fase IV.
 
 Quan correspongui al tipus de canvi, el recorregut obligatori és:
 
-`requisit funcional → implementació → prova focalitzada → E2E → documentació → regressió afectada → 🟢 VALIDAT`
+`requisit funcional → implementació → prova focalitzada no E2E → documentació → revisió de logs i qualitat → E2E finals autoritzats → informe → VALIDAT`
 
 #### 3.18.2 Preparació — pas 0
 
-Abans d'iniciar funcionalitat nova, cal auditar els **5 SKIP E2E actuals**, identificar els ZUP afectats, les dependències entre punts i establir el baseline funcional, de dades i d'evidència anterior als canvis. Aquesta preparació no substitueix la revisió definitiva del punt 21: permet planificar correctament els blocs A–F i detectar impactes abans d'implementar.
+Abans d'iniciar funcionalitat nova, cal identificar els ZUP afectats, les dependències entre punts i establir el baseline funcional, de dades i d'evidència anterior als canvis. La revisió individual dels **5 SKIP E2E històrics** forma part dels criteris de validació i tancament de fase, no és un punt funcional independent. Els E2E finals només s'executen al final de la fase o iteració i amb autorització.
 
 #### 3.18.3 Matriu vigent de pendents
 
@@ -1337,25 +1339,35 @@ Abans d'iniciar funcionalitat nova, cal auditar els **5 SKIP E2E actuals**, iden
 | 3 | Identitat i seguretat | TOTP / 2FA | 🟢 VALIDAT |
 | 4 | Identitat i seguretat | Google OAuth real | 🟢 VALIDAT |
 | 5 | Identitat i seguretat | LinkedIn OAuth real | ➖ DESCARTADA — decisió funcional de producte |
-| 6 | Territori | Remodelació territorial europea multicultural/multilingüe | 🟢 VALIDAT — Iteració 6 tancada |
-| 7 | Territori | API territorial sobre catàleg propi | 🟢 VALIDAT |
-| 8 | Territori | Selector territorial compartit sobre API pròpia | 🟢 VALIDAT |
-| 9 | Core Places | Catàleg propi amb fonts obertes i retirada de Google Places | 🔴 Iteració 7 preparada; Fase I no iniciada |
-| 10 | Core Places | Qualitat i governança pet-friendly | 🔴 Pendent / crític |
-| 11 | Core Places | Cobertura de bars | 🟠 Parcial / pendent de completar o validar |
-| 12 | Core Places | Admin Llocs | 🟠 Parcial / pendent de completar o validar |
-| 13 | UX Places | Llistat editorial de Places | 🔴 Pendent / crític |
-| 14 | UX Places | Memòria 20 → 40 → 60 per filtre | 🟠 Parcial / pendent de completar o validar |
-| 15 | UX Places | Flux mapa → detall → tornar | 🟠 Parcial / pendent de completar o validar |
-| 16 | UX Places | Revalidació completa de Favorits | 🟠 Parcial / pendent de completar o validar |
-| 17 | UX transversal | Accés denegat visible i comprensible | 🟠 Parcial / pendent de completar o validar |
-| 18 | UX transversal | Contacte | 🟠 Parcial / pendent de completar o validar |
-| 19 | UX transversal | Ajuda | 🟠 Parcial / pendent de completar o validar |
-| 20 | UX transversal | Rutes internes en anglès | 🟠 Parcial / pendent de completar o validar |
-| 21 | Tancament | Revisió definitiva dels SKIP E2E | 🔴 Pendent / crític |
-| 22 | Tancament | Baixa de compte autogestionada i sol·licitud per correu | 🟠 Parcial / pendent d'implementar i validar |
+| 6 | Territori | Remodelació territorial europea multicultural/multilingüe | IMPLEMENTAT — PENDENT DE VERIFICACIÓ ACTUAL |
+| 7 | Territori | API territorial sobre catàleg propi | IMPLEMENTAT — PENDENT DE VERIFICACIÓ ACTUAL |
+| 8 | Territori | Selector territorial compartit sobre API pròpia | IMPLEMENTAT — PENDENT DE VERIFICACIÓ ACTUAL |
+| 9 | Core Places | Catàleg propi amb fonts obertes i retirada de Google Places | IMPLEMENTAT — RETIRADA TÈCNICA PENDENT |
+| 10 | Core Places | Qualitat i governança pet-friendly | IMPLEMENTAT — PENDENT DE VERIFICACIÓ |
+| 11 | Core Places | Cobertura de bars | IMPLEMENTAT — PENDENT DE VERIFICACIÓ |
+| 12 | Core Places | Admin Llocs | IMPLEMENTAT — PENDENT DE VERIFICACIÓ |
+| 13 | UX Places | Llistat de llocs, filtres i paginació, inclosa la memòria 20 → 40 → 60 | IMPLEMENTAT — PENDENT DE VERIFICACIÓ |
+| 14 | UX Places | Flux mapa → detall → tornar | IMPLEMENTAT — PENDENT DE VERIFICACIÓ |
+| 15 | UX Places | Favorits | IMPLEMENTAT — PENDENT DE REVALIDACIÓ |
+| 16 | UX transversal | Accés denegat visible i comprensible | PENDENT DE VERIFICAR/CORREGIR |
+| 17 | UX transversal | Contacte | PENDENT DE MILLORES |
+| 18 | UX transversal | Ajuda | PENDENT DE MILLORES |
+| 19 | UX transversal | Rutes internes en anglès | PENDENT |
+| 20 | Compte | Baixa de compte | PENDENT PARCIAL |
+| 21 | Model comercial | Passarel·la de pagament i model comercial | PENDENT DE DEFINICIÓ FUNCIONAL |
 
-Per tant, l'estat oficial actual és de **4 punts 🔴, 10 punts 🟠, 7 punts 🟢 VALIDAT i 1 punt ➖ DESCARTAT** dins d'aquest gate (punts **1–22**). La Iteració 7 aborda el punt 9 i la governança del punt 10; el punt descartat no computa com a pendent, fallit ni no validat.
+La llista vigent té **21 punts consecutius**: **14 implementats** (1–4 i 6–15), **6 pendents o parcials** (16–21) i **1 descartat** (5). «Implementat» no significa necessàriament «validat». L'estat acreditat i les discrepàncies consten a la [taula mestra dels 21 punts](README.md#gate-funcional-de-fase-iv--21-punts).
+
+**Correspondència de la numeració anterior amb la vigent**
+
+| Numeració anterior | Numeració vigent | Tractament |
+|---:|---:|---|
+| 1–13 | 1–13 | Es conserva; l'antic 14 (memòria 20 → 40 → 60) queda integrat com a subrequisit del 13. |
+| 14 | — | Deixa de ser un punt independent; no s'eliminen el requisit, les proves ni les evidències associades. |
+| 15–20 | 14–19 | Renumeració consecutiva; es preserven els codis ZUP i els identificadors reals de prova. |
+| 21 | — | La revisió dels SKIP E2E passa als criteris de validació i tancament de fase. |
+| 22 | 20 | Baixa de compte. |
+| 23 | 21 | Passarel·la de pagament i model comercial. |
 
 #### 3.18.4 Bloc A — Identitat i seguretat
 
@@ -1371,53 +1383,51 @@ Per tant, l'estat oficial actual és de **4 punts 🔴, 10 punts 🟠, 7 punts �
 
 #### 3.18.5 Bloc B — Territori
 
-**6. Remodelació territorial europea multicultural/multilingüe — 🟢 VALIDADA I TANCADA.** Espanya v2 té 8.199 unitats publicades i Alemanya v1 en té 15.770. El contracte, fonts, importació, publicació, exploració, API i selector compartit estan validats; `cities` i GeoNames runtime s'han retirat i `countries` es conserva. No s'ha executat backfill: les dades de prova auditades es van eliminar mitjançant el manifest autoritzat. El detall final consta al [tancament de Fase IX](iteracio-6-fase-ix-tancament-ca.md).
+**6. Remodelació territorial europea multicultural/multilingüe — IMPLEMENTADA; VERIFICACIÓ ACTUAL PENDENT.** El tancament del 12.10.2026 acredita Espanya v2 amb 8.199 unitats i Alemanya v1 amb 15.770. `cities` i GeoNames runtime consten retirats i `countries` es conserva. Aquest tancament històric no substitueix la verificació de coherència actual acordada per als punts 6–8. El detall consta al [tancament de Fase IX](iteracio-6-fase-ix-tancament-ca.md).
 
-**7. API territorial sobre catàleg propi — IMPLEMENTADA.** Consulta `Country + TerritorialUnit`, valida la parella i integra `User`, `Place` i els filtres amb IDs. Els snapshots textuals es preserven; Fase IX retira GeoNames del runtime.
+**7. API territorial sobre catàleg propi — IMPLEMENTADA; VERIFICACIÓ ACTUAL PENDENT.** Consulta `Country + TerritorialUnit`, valida la parella i integra `User`, `Place` i els filtres amb IDs. Els snapshots textuals es preserven; Fase IX retira GeoNames del runtime. Falta comprovar de nou tots els consumidors de lectura.
 
-**8. Selector territorial compartit sobre API pròpia — IMPLEMENTAT I INTEGRAT.** El component mostra un `select` de País i un únic combobox/autocomplete asíncron de Localitat; no hi ha input, botó intern `Cercar` i segon `select` per a la mateixa propietat. Sense país queda deshabilitat; amb país aplica debounce, loading, buit, error i cancel·lació/ignoració de respostes antigues. Els homònims mostren context jeràrquic, i fletxes, Enter i Escape són operatius. Perfil, Admin Usuaris, Admin Llocs, Llocs, Favorits i explorador públic reutilitzen exactament el mateix component. Els snapshots es preserven mentre la dependència funcional City/GeoNames ja està retirada.
+**8. Selector territorial compartit sobre API pròpia — IMPLEMENTAT; VERIFICACIÓ ACTUAL PENDENT.** El component mostra un `select` de País i un únic combobox/autocomplete asíncron de Localitat; no hi ha input, botó intern `Cercar` i segon `select` per a la mateixa propietat. Sense país queda deshabilitat; amb país aplica debounce, loading, buit, error i cancel·lació/ignoració de respostes antigues. Els homònims mostren context jeràrquic, i fletxes, Enter i Escape són operatius. Cal comprovar de nou que totes les pantalles reutilitzen el component i que no queda cap manteniment runtime paral·lel.
 
 **8.1. Layout dels filtres territorials — IMPLEMENTAT I VALIDAT MANUALMENT.** A Llocs i Favorits, Cerca i Localitat reben més amplada relativa; País, Tipus i Mascota mantenen una amplada útil i tots els controls ocupen el 100% de la columna. En desktop ample comparteixen fila, a amplada intermèdia es distribueixen en dues columnes i a 600 px passen a una columna, sense solapaments ni overflow horitzontal. El mapa públic sense sessió no s’ha redissenyat i queda registrat al roadmap de Millores.
 
 #### 3.18.6 Bloc C — Core Places
 
-**9. Catàleg propi amb fonts obertes i retirada de Google Places — 🔴.** La Iteració 7 ha de consolidar el patró `PostgreSQL → cache → fonts obertes aprovades → normalització → deduplicació → persistència governada`. OpenStreetMap/Overpass, Geoapify i Wikidata són candidates, no fonts aprovades automàticament. Cal verificar llicència, ús comercial, atribució, retenció, quota i política d'actualització abans d'integrar-les. Google Places deixa de ser arquitectura objectiu i s'ha de retirar progressivament després d'inventariar i validar cada substitució. El contracte és [el roadmap de la Iteració 7](iteracio-7-roadmap-places-obertes-ca.md).
+**9. Catàleg propi amb fonts obertes i retirada de Google Places — IMPLEMENTAT; RETIRADA TÈCNICA PENDENT.** La Iteració 7 ha consolidat PostgreSQL com a catàleg de producte i ha incorporat fonts obertes governades. Google Places ha deixat de formar part de l'arquitectura objectiu i està bloquejat en runtime, però els adaptadors heretats Search/Details/Photos encara existeixen i requereixen una retirada tècnica posterior, inventariada i segura. Google OAuth i Leaflet/OpenStreetMap es mantenen. El contracte és [el roadmap de la Iteració 7](iteracio-7-roadmap-places-obertes-ca.md).
 
-**10. Qualitat pet-friendly — 🔴.** Zuppeto ha d'aportar valor propi amb `petFriendly`, `petNotes`, nivell o confiança, procedència, dades confirmades, informació útil per decidir, política pet quan existeixi i tractament explícit quan no hi hagi informació fiable. La regla obligatòria és `MANUAL > AUTO`: cap font externa ni procés automàtic pot sobreescriure silenciosament dades manuals protegides. Passa quan la governança queda implementada i provada.
+**10. Qualitat pet-friendly — IMPLEMENTADA; VERIFICACIÓ PENDENT.** Existeixen estats, evidències, confiança, revisió ADMIN i la precedència `MANUAL > AUTO`. Cal revalidar les dades reals i documentar els buits; cap font externa ni procés automàtic pot sobreescriure silenciosament dades manuals protegides.
 
-**11. Cobertura de bars — 🟠.** Cal revisar les categories reals de cada font aprovada, el mapping cap a `PlaceType`, la consulta específica, els límits i la paginació quan pertoqui, la qualitat i quantitat dels resultats i la deduplicació. Passa quan la cerca de bars aporta cobertura útil i coherent sense acoblar el domini a un proveïdor.
+**11. Cobertura de bars — IMPLEMENTADA; VERIFICACIÓ PENDENT.** El classificador i els filtres inclouen bars i pubs, però cal revisar cobertura, qualitat, deduplicació i falsos positius sobre dades reals. Agbar no pot aparèixer com a pub; una correcció del registre real requereix autorització separada.
 
-**12. Admin Llocs — 🟠.** L'alta i edició han de millorar layout, agrupació, copy, claredat i presentació de procedència sense exposar estructures de proveïdor. Descripció curta i llarga continuen opcionals; país i localitat són governats, la tipologia és un desplegable i les dades manuals estan protegides. La Fase V de la Iteració 7 n'ha de validar el CRUD sobre el contracte propi.
+**12. Admin Llocs — IMPLEMENTAT; VERIFICACIÓ PENDENT.** Hi ha CRUD, permisos, procedència, fotografies, moderació i propostes. Cal revalidar el conjunt i separar clarament funcions existents d'activacions o migracions pendents; les dades manuals continuen protegides. Funcionalment, una proposta d'establiment d'un usuari no es publica fins que un ADMIN la revisa. El formulari ha de recollir nom i email de contacte, telèfon opcional i una acceptació de privacitat situada al costat d'«Enviar proposta»; aquests criteris són una decisió funcional i no es declaren implementats sense prova.
 
 #### 3.18.7 Bloc D — UX Places
 
-**13. Llistat editorial de Places — 🔴.** `/places` ha d'evolucionar cap als blocs amplis acordats: foto gran i text, ritme editorial durant l'scroll, sense sensació de graella de targetes petites i amb selecció activa integrada en el mateix llenguatge visual. Ha de conservar mapa, filtres, sincronització mapa/llistat i responsive. Passa quan desktop i mòbil són funcionals i els E2E afectats passen.
+**13. Llistat de llocs, filtres i paginació — IMPLEMENTAT; VERIFICACIÓ PENDENT.** `/places` disposa de distribució en tres columnes, filtres compactes, radi semicircular, «A prop meu», cerca automàtica, targetes, mapa i comportament responsive. Inclou com a subrequisit la memòria de paginació per combinació de filtres: cada combinació comença a 20, recorda 40, 60 o més, un filtre nou torna a 20 i «Netejar» recupera l'estat inicial. Les proves tècniques documentades no substitueixen la verificació final Chrome, responsive, humana ni l'acreditació específica de la memòria.
 
-**14. Memòria 20 → 40 → 60 per filtre — 🟠.** Cada combinació de filtres comença a 20; si s'amplia a 40, 60 o més, ha de recordar la quantitat. Tornar al mateix filtre la restaura, un filtre nou torna a 20 i «Netejar» recupera el comportament inicial. Passa quan navegació i retorn preserven l'estat correcte.
+**14. Flux mapa → detall → tornar — IMPLEMENTAT; VERIFICACIÓ PENDENT.** Hi ha estat de navegació per conservar filtres, radi, ubicació, viewport i context. Cal revalidar selecció, popup i quantitat carregada sobre el tall actual.
 
-**15. Flux mapa → detall → tornar — 🟠.** Cal preservar, quan sigui coherent, selecció de pin, popup, filtres, quantitat carregada i context en entrar al detall i tornar; també cal evitar adreces redundants i mantenir coherent «Veure detall». Passa quan l'usuari torna sense perdre innecessàriament el context de descoberta.
-
-**16. Revalidació completa de Favorits — 🟠.** Quan Places quedi tancat, cal revalidar completament persistència, filtres, mapa, llistat, detall, cache i enriquiment des de les fonts aprovades, botó Favorit/Treure, context territorial i responsive. Passa quan el flux continua net després dels canvis de Places.
+**15. Favorits — IMPLEMENTAT; REVALIDACIÓ PENDENT.** Persistència, llistat, mapa, detall i botó Favorit/Treure tenen implementació significativa. Cal executar la regressió completa després de tancar Places, inclosos context territorial i responsive.
 
 #### 3.18.8 Bloc E — UX transversal
 
-**17. Accés denegat visible — 🟠.** Guards i backend han de continuar impedint accessos sense permís, però la UI ha de mostrar un avís clar i visible en lloc d'una redirecció silenciosa que sembli un error. Passa quan la denegació és segura i comprensible.
+**16. Accés denegat visible — PENDENT DE VERIFICAR/CORREGIR.** Guards i backend han de continuar impedint accessos sense permís, però la UI ha de mostrar un avís clar i visible en lloc d'una redirecció silenciosa que sembli un error. Passa quan la denegació és segura i comprensible.
 
-**18. Contacte — 🟠.** Cal eliminar dominis `.fake` i copy de prototip o fase; revisar suport, accés, recuperació, col·laboracions, canals reals, coherència amb els enllaços del Login i presentació. Passa quan és una pantalla real de producte.
+**17. Contacte — PENDENT DE MILLORES.** Cal eliminar dominis `.fake` i copy de prototip o fase; revisar suport, accés, recuperació, col·laboracions, canals reals, coherència amb els enllaços del Login i presentació. Passa quan és una pantalla real de producte.
 
-**19. Ajuda — 🟠.** Cal substituir textos interns, referències a fases i explicacions de desenvolupament per preguntes reals sobre guardar llocs, filtres, mapa, favorits, compte, accés, contacte i altres dubtes funcionals. Passa quan explica el producte vigent.
+**18. Ajuda — PENDENT DE MILLORES.** Cal substituir textos interns, referències a fases i explicacions de desenvolupament per preguntes reals sobre guardar llocs, filtres, mapa, favorits, compte, accés, contacte i altres dubtes funcionals. Passa quan explica el producte vigent.
 
-**20. Rutes internes en anglès — 🟠.** S'han de normalitzar els segments interns del router, links, menús, redirects, guards, documentació i E2E, mantenint la UI visible en l'idioma corresponent i compatibilitat temporal amb URL antigues quan calgui. Passa quan tota la navegació funciona sense regressions.
+**19. Rutes internes en anglès — PENDENT.** S'han de normalitzar els segments interns del router, links, menús, redirects, guards, documentació i E2E, mantenint la UI visible en l'idioma corresponent i compatibilitat temporal amb URL antigues quan calgui. Passa quan tota la navegació funciona sense regressions. Aquesta ordre només ho documenta i no autoritza modificar el router.
 
-#### 3.18.9 Bloc F — Tancament
+#### 3.18.9 Bloc F — Compte i model comercial
 
-**21. Revisió definitiva dels SKIP E2E — 🔴.** Cada SKIP actual s'ha d'auditar individualment: causa vigent, estabilitat i automatitzabilitat actuals. Si ja es pot automatitzar, s'ha d'eliminar el SKIP i implementar l'E2E; si depèn inevitablement d'un proveïdor extern, se n'ha de documentar exactament el boundary i la justificació. No es conserva cap SKIP només per inèrcia històrica ni es fixa artificialment l'objectiu en `172 PASS + 5 SKIP`.
+**20. Baixa de compte — PENDENT PARCIAL.** Cal diferenciar la baixa administrativa existent de la baixa autogestionada i de la sol·licitud per correu. L'usuari ha de poder iniciar la baixa des de Perfil/Compte, amb confirmació explícita, protecció contra eliminació accidental i verificació suficient de la seva identitat abans d'executar-la. Contacte/correu ofereix una via alternativa de sol·licitud, però cap missatge pot provocar una eliminació automàtica sense verificar el titular. El flux ha de tractar de forma coherent perfil, favorits, identitats externes, TOTP, recovery codes, tokens i sessions; abans d'implementar-lo cal definir la política aplicable d'eliminació, anonimització o conservació.
 
-**22. Baixa de compte autogestionada i sol·licitud per correu — 🟠.** L'usuari ha de poder iniciar la baixa des de Perfil/Compte, amb confirmació explícita, protecció contra eliminació accidental i verificació suficient de la seva identitat abans d'executar-la. Contacte/correu ofereix una via alternativa de sol·licitud, però cap missatge de correu pot provocar una eliminació automàtica sense verificar el titular. El flux ha de tractar de forma coherent perfil, favorits, identitats externes, TOTP, recovery codes, tokens i sessions; en executar-se ha d'invalidar immediatament credencials i sessions. Abans d'implementar-lo cal definir la política aplicable d'eliminació, anonimització o conservació de dades, i confirmar el resultat a l'usuari quan correspongui. Passa quan el flux complet, les proves persistents, l'E2E, el cleanup i l'auditoria de seguretat quedin validats.
+**21. Passarel·la de pagament i model comercial — PENDENT DE DEFINICIÓ FUNCIONAL.** Cal decidir què és gratuït i què entra o no entra a VIP, UltraVIP, packs i serveis comercials; definir preus, subscripcions o compres, relació amb XP i requisits de la futura passarel·la. Encara no s'ha d'escollir proveïdor ni implementar pagaments.
 
 #### 3.18.10 Gate final de Fase IV
 
-Quan els punts 1–22 i els blocs A–F estiguin completats, cal:
+Quan els punts 1–21 i els blocs A–F estiguin completats, cal:
 
 1. actualitzar els casos ZUP afectats;
 2. crear ZUP nous quan les funcionalitats ho requereixin;
@@ -1432,7 +1442,9 @@ Quan els punts 1–22 i els blocs A–F estiguin completats, cal:
 11. validar CI;
 12. validar documentació i revisar els SKIP restants.
 
-Fase IV només pot passar a `FASE IV — PASS` amb **0 punts 🔴**, **0 punts 🟠 obligatoris**, tots els punts en 🟢 **VALIDAT**, cap FAIL crític obert, SKIP restants justificats pel comportament vigent i regressió final neta.
+En aquest tancament cal revisar individualment cada SKIP E2E vigent: causa actual, estabilitat i automatitzabilitat. Si ja es pot automatitzar, s'ha d'eliminar el SKIP; si depèn inevitablement d'un proveïdor extern, se n'ha de documentar el límit i la justificació. No es conserva cap SKIP per inèrcia històrica ni es fixa artificialment un recompte objectiu. El procediment final acordat és: revisar logs → corregir errors → revisar o refactoritzar amb SOLID i patrons dins l'abast aprovat → executar els E2E finals amb autorització → emetre l'informe de tancament.
+
+Fase IV només pot passar a `FASE IV — PASS` amb tots els punts obligatoris validats o resolts per decisió funcional explícita, cap FAIL crític obert, SKIP restants justificats pel comportament vigent i regressió final neta.
 
 #### 3.18.11 Refactor i internacionalització posterior
 
@@ -2125,7 +2137,7 @@ Objectiu: al llistat i a la fitxa, dades **útils** (adreça, foto, gos sí/no, 
 
 **Entorn Development:** `GooglePlaces:Enabled=false` → **sense Text Search** (només catàleg BD). Si falta foto (o dades de fitxa) i hi ha `place_id` + `ApiKey`, sí que es crida **Place Details / Photos** als 20 visibles i a la fitxa.
 
-**Estat d’aquest tram (2026-09-01):** **OK** com a base funcional d'aquell lliurament, però no equival al tancament global de Places ni de Fase IV. Continuen dins el gate vigent de §3.18 el llistat editorial, la memòria 20 → 40 → 60, el flux mapa → detall → tornar, Admin Llocs, la cobertura de bars i la resta de validacions obligatòries.
+**Estat d’aquest tram (2026-09-01):** **OK** com a base funcional d'aquell lliurament, però no equival al tancament global de Places ni de Fase IV. Continuen dins el gate vigent de §3.18 el llistat i la memòria 20 → 40 → 60 integrada al punt 13, el flux mapa → detall → tornar, Admin Llocs, la cobertura de bars i la resta de validacions obligatòries.
 
 **Protecció de dades manuals (2026-09-10):** qualsevol dada introduïda o confirmada des del manteniment preval sobre Google. La sincronització externa només pot completar els grups no protegits i el procés de caducitat no pot eliminar coordenades manuals. La consulta del detall reutilitza primer el catàleg carregat durant la sessió Angular i no provoca per si sola una nova petició facturable; en accés directe, recupera la fitxa persistent del servidor.
 

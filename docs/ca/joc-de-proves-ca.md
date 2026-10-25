@@ -1,5 +1,7 @@
 # Joc de proves (CA)
 
+> **Abast temporal (25.10.2026):** aquest document conserva resultats de diversos talls. Només una execució identificable acredita PASS; no s'ha executat cap E2E durant l'auditoria documental. Consulteu l'[índex mestre](README.md) per als pendents actuals.
+
 **Iteració 7 — Fase VI (15.10.2026):** filtres, municipi, radi, distància, ordenació i paginació PostgreSQL han passat; Angular 99/99, backend 142/142, PostgreSQL focalitzat 1/1, builds i Chrome focalitzat PASS. La regressió Firefox/WebKit no s'ha executat. [Informe](iteracio-7-fase-vi-cercador-mapa-ux-ca.md).
 
 **Iteració 7 — Fase V (14.10.2026):** mapping OSM, Wikidata CC0, matching, reversibilitat, conflictes, autoritat manual, cicle de vida, fonts oficials i índex reutilitzable han passat. Resultats: backend 139/139, Wikidata real 1/1 amb 7 QID, Angular 96/96, build PASS, EF coherent i Chrome focalitzat PASS sobre PostgreSQL temporal. La migració no s'ha aplicat a la base real. [Informe](iteracio-7-fase-v-cobertura-enriquiment-deduplicacio-ca.md).

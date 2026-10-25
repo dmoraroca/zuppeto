@@ -21,6 +21,8 @@ internal sealed class AdminApplicationService(
 {
     private static readonly InternalDocumentSummaryDto[] InternalDocuments =
     [
+        new("documentacio-ca", "Documentació de PetiLoc — índex i estat actual"),
+        new("auditoria-documental-20261025", "Auditoria documental — 25.10.2026"),
         new("project-phases", "Fases del projecte"),
         new("tecnic-ca", "Documentació tècnica"),
         new("funcional-ca", "Documentació funcional"),
@@ -396,6 +398,8 @@ internal sealed class AdminApplicationService(
 
         var relativePath = key switch
         {
+            "documentacio-ca" => Path.Combine("docs", "ca", "README.md"),
+            "auditoria-documental-20261025" => Path.Combine("docs", "ca", "auditoria-documental-20261025.md"),
             "project-phases" => Path.Combine("docs", "project-phases.md"),
             "tecnic-ca" => Path.Combine("docs", "ca", "tecnic-ca.md"),
             "funcional-ca" => Path.Combine("docs", "ca", "funcional-ca.md"),

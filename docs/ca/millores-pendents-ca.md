@@ -1,5 +1,7 @@
 # Millores pendents (CA)
 
+> **Governança del backlog (25.10.2026):** aquest fitxer conserva idees, incidències i decisions cronològiques, incloses entrades ja resoltes o substituïdes. No és la font canònica de l'estat del projecte. L'[índex mestre](README.md) i els roadmaps d'iteració prevalen; cap entrada antiga reactiva Google Places, GeoNames, `cities` o funcionalitats descartades.
+
 ## 2026-10-25 — Revalidació final de «Llocs» i del detall
 
 **Estat:** implementació i gates tècnics PASS; validació humana i E2E final pendents.

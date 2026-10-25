@@ -653,4 +653,4 @@ La feina activa ara mateix correspon a la fase II:
 
 La planificacio detallada i l'estat viu de les fases es manté a:
 
-- [`project-phases.md`](/home/dmoraroca/Documents/_DATA/repos/zuppeto/docs/project-phases.md)
+- [`project-phases.md`](../project-phases.md)
