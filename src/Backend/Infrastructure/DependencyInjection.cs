@@ -22,6 +22,7 @@ using Zuppeto.Infrastructure.Places.MunicipalOpenData;
 using Zuppeto.Infrastructure.Places.OvertureMaps;
 using Zuppeto.Infrastructure.Places.PublicAdministration;
 using Zuppeto.Infrastructure.Perplexity;
+using Zuppeto.Application.ExternalIntelligence;
 
 namespace Zuppeto.Infrastructure;
 
@@ -80,6 +81,13 @@ public static class DependencyInjection
         services.AddSingleton<IValidateOptions<PerplexityOptions>, PerplexityOptionsValidator>();
         services.AddOptions<PerplexityOptions>()
             .ValidateOnStart();
+        services.AddHttpClient<IExternalIntelligenceProvider, PerplexityExternalIntelligenceProvider>((sp, client) =>
+        {
+            var options = sp.GetRequiredService<IOptions<PerplexityOptions>>().Value;
+            client.BaseAddress = new Uri(options.BaseUrl);
+            client.Timeout = TimeSpan.FromSeconds(Math.Clamp(options.TimeoutSeconds, 5, 120));
+            client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "PetiLoc-External-Intelligence/1.0");
+        }).RedactLoggedHeaders(["Authorization"]);
         services.AddDbContext<ZuppetoDbContext>((sp, options) =>
         {
             options.UseNpgsql(connectionString);
@@ -224,6 +232,7 @@ public static class DependencyInjection
         services.AddScoped<IFavoriteListRepository, FavoriteListRepository>();
         services.AddScoped<IPlaceReviewRepository, PlaceReviewRepository>();
         services.AddScoped<IPlaceSearchQueryRepository, PlaceSearchQueryRepository>();
+        services.AddScoped<IExternalIntelligenceStore, ExternalIntelligenceStore>();
         services.AddScoped<IGeographicCatalogRepository, GeographicCatalogRepository>();
         services.AddScoped<IRoleCatalogRepository, RoleCatalogRepository>();
         services.AddSingleton<ITerritorialWorkbookReader, XlsxTerritorialReader>();

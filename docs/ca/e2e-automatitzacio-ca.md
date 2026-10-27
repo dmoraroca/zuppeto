@@ -1388,3 +1388,9 @@ La CI incorpora un gate Gitleaks anterior al build, les proves unitàries i els 
 L'arrencada ordinària de l'API ja no aplica migracions ni executa seeders. El job E2E prepara la base temporal amb una ordre de manteniment explícita abans d'arrencar API i web; aquesta separació evita que un reinici modifiqui PostgreSQL de manera implícita. En aquesta actuació de seguretat no s'ha executat cap E2E, no s'han recreat contenidors i no s'ha consultat ni modificat PostgreSQL. Les comprovacions estàtiques i unitàries executades queden registrades a [Gestió de secrets](gestio-secrets-ca.md).
 
 El gate d'historial continua bloquejat perquè s'han detectat una clau històrica de Google Places i una coincidència documental. No s'ha reescrit Git ni creat cap excepció; cal revocar la clau i autoritzar separadament una resolució limitada als identificadors concrets.
+
+## Integració Perplexity i pantalles ADMIN — 27.10.2026
+
+S'han incorporat dues rutes ADMIN per al registre de peticions i el control de facturació, amb adaptador Angular separat i sense connectar Perplexity a cap flux públic. El build Angular passa i 12 proves unitàries backend acrediten la deduplicació sintètica per F5, usuaris diferents i concurrència, a més dels contractes HTTP simulats sense xarxa real.
+
+No s'ha executat cap E2E de navegador perquè la migració preparatòria no està aplicada i aquesta actuació no autoritza modificar PostgreSQL. Queden pendents, en una base temporal autoritzada, l'accés exclusiu ADMIN, filtres/paginació/detall, exportació, gràfics, canvi de pressupostos, simulador sense consum i verificació que un F5 no crea una petició externa. Perplexity continua desactivat i cap runner pot consumir crèdits.

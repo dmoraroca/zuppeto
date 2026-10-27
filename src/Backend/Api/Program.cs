@@ -300,6 +300,7 @@ app.MapPlaceMediaEndpoints();
 app.MapPetGovernanceEndpoints();
 app.MapPlaceImportEndpoints();
 app.MapPlaceCatalogGovernanceEndpoints();
+app.MapExternalIntelligenceEndpoints();
 app.MapFavoriteEndpoints();
 
 app.MapUserEndpoints();

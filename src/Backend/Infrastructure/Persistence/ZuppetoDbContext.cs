@@ -69,6 +69,11 @@ public sealed class ZuppetoDbContext(DbContextOptions<ZuppetoDbContext> options)
     public DbSet<PlaceLifecycleEventRecord> PlaceLifecycleEvents => Set<PlaceLifecycleEventRecord>();
     public DbSet<PlaceImportEnrichmentRecord> PlaceImportEnrichments => Set<PlaceImportEnrichmentRecord>();
     public DbSet<PlaceSourceCheckpointRecord> PlaceSourceCheckpoints => Set<PlaceSourceCheckpointRecord>();
+    public DbSet<ExternalIntelligenceRequestRecord> ExternalIntelligenceRequests => Set<ExternalIntelligenceRequestRecord>();
+    public DbSet<ExternalIntelligenceCacheRecord> ExternalIntelligenceCache => Set<ExternalIntelligenceCacheRecord>();
+    public DbSet<ExternalIntelligenceEvidenceRecord> ExternalIntelligenceEvidence => Set<ExternalIntelligenceEvidenceRecord>();
+    public DbSet<ExternalIntelligenceSearchRecord> ExternalIntelligenceSearches => Set<ExternalIntelligenceSearchRecord>();
+    public DbSet<ExternalIntelligenceBudgetRecord> ExternalIntelligenceBudget => Set<ExternalIntelligenceBudgetRecord>();
 
     public DbSet<PlaceReviewRecord> PlaceReviews => Set<PlaceReviewRecord>();
 

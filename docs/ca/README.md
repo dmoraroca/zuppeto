@@ -94,6 +94,7 @@ L'antic punt 14 queda absorbit pel punt 13 i l'antic punt 21, dedicat als SKIP E
 - [Persistència EF](ef-persistence-ca.md), [model de base de dades](database-model-ca.md) i [esquema](bbdd-esquema-ca.md)
 - [Mapatge de repositoris](mapping-repositories-ca.md), [necessitats de persistència](persistence-needs-ca.md) i [stack Docker](docker-stack-ca.md)
 - [Gestió de secrets i credencials](gestio-secrets-ca.md)
+- [Integració governada de Perplexity](perplexity-integracio-governada-ca.md)
 - [Retirada segura de Google Places](retirada-google-places-20261027.md)
 - [ADR de Places](adr/ADR-001-places-ports-pipeline-ca.md)
 

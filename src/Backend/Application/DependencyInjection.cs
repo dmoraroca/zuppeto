@@ -19,6 +19,7 @@ using Zuppeto.Application.Places.Validators;
 using Zuppeto.Application.TerritorialImports;
 using Zuppeto.Domain.Places.ProhibitedTerms;
 using Zuppeto.Domain.Places;
+using Zuppeto.Application.ExternalIntelligence;
 
 namespace Zuppeto.Application;
 
@@ -48,6 +49,7 @@ public static class DependencyInjection
         services.AddScoped<IFavoriteListApplicationService, FavoriteListApplicationService>();
         services.AddScoped<IUserApplicationService, UserApplicationService>();
         services.AddScoped<IPlaceReviewApplicationService, PlaceReviewApplicationService>();
+        services.AddScoped<IExternalIntelligenceService, ExternalIntelligenceService>();
         services.AddScoped<TerritorialImportService>();
         services.AddScoped<TerritorialAdminService>();
         services.AddScoped<TerritorialLocationService>();

@@ -602,3 +602,11 @@ No deixar la targeta buida. No implementar ara (cal font: Places Details, web de
 **Pendent:** no existeix cap cas d'ús ni endpoint públic perquè el contribuïdor retiri definitivament una fotografia ja publicada, ni un contracte que exposi a Angular l'autoria efectiva i el permís de retirada de cada asset. Cal definir-ho a domini, aplicació i permisos abans d'afegir l'acció, amb confirmació i auditoria. Fins aleshores no es mostra cap botó de retirada publicat, tampoc de manera només visual.
 
 **Estat:** pendent de disseny funcional i de backend; exclòs d'aquesta millora per no alterar la governança existent.
+
+## 2026-10-27 — Activació governada de Perplexity
+
+**Aplicat ara:** connector Search/Agent, deduplicació global persistent, memòria cau negativa, pressupostos transaccionals, ledger, evidències, simulador i pantalles ADMIN. La migració és només preparatòria i el proveïdor queda desactivat amb aturada d'emergència.
+
+**Pendent:** autoritzar i aplicar la migració en un entorn controlat, validar les pantalles amb E2E, revisar la primera resposta i el cost real sense publicar dades, i aprovar explícitament la primera activació. També cal aprovar cas per cas els prompts i esquemes que alimentaran la governança de Places.
+
+**Estat:** implementat i compilat; activació, peticions facturables i publicació no autoritzades.

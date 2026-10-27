@@ -264,6 +264,390 @@ namespace Infrastructure.Persistence.Migrations
                     b.ToTable("external_identities", (string)null);
                 });
 
+            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.ExternalIntelligenceBudgetRecord", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AlertThresholdsJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<decimal>("DailyLimitUsd")
+                        .HasPrecision(12, 6)
+                        .HasColumnType("numeric(12,6)");
+
+                    b.Property<bool>("EmergencyStop")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("MaximumRequestUsd")
+                        .HasPrecision(12, 6)
+                        .HasColumnType("numeric(12,6)");
+
+                    b.Property<decimal>("MonthlyLimitUsd")
+                        .HasPrecision(12, 6)
+                        .HasColumnType("numeric(12,6)");
+
+                    b.Property<bool>("PaidRetriesEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("RawResponseRetentionDays")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SearchLogRetentionDays")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ExternalIntelligenceBudget", (string)null);
+                });
+
+            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.ExternalIntelligenceCacheRecord", b =>
+                {
+                    b.Property<string>("QueryHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid>("CurrentRequestId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsNegative")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("LastCostUsd")
+                        .HasPrecision(12, 6)
+                        .HasColumnType("numeric(12,6)");
+
+                    b.Property<string>("ResponseJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("SourcesJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("ValidUntilUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("QueryHash");
+
+                    b.HasIndex("ValidUntilUtc");
+
+                    b.ToTable("ExternalIntelligenceCache", (string)null);
+                });
+
+            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.ExternalIntelligenceEvidenceRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AdminReviewStatus")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("AttributionRequirements")
+                        .HasColumnType("text");
+
+                    b.Property<string>("AuthorOrRightsHolder")
+                        .HasColumnType("text");
+
+                    b.Property<bool?>("CommercialUsePermitted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset>("ConsultedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EvidenceText")
+                        .HasColumnType("text");
+
+                    b.Property<string>("FieldName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("License")
+                        .HasColumnType("text");
+
+                    b.Property<string>("LicenseUrl")
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)");
+
+                    b.Property<bool?>("ModificationPermitted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("PlaceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ProposedValueJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTimeOffset?>("PublishedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("RequestId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ReuseConditions")
+                        .HasColumnType("text");
+
+                    b.Property<string>("SourceType")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("SourceUrl")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)");
+
+                    b.Property<string>("VerificationStatus")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlaceId");
+
+                    b.HasIndex("RequestId");
+
+                    b.ToTable("ExternalIntelligenceEvidence", (string)null);
+                });
+
+            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.ExternalIntelligenceRequestRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal?>("ActualCostUsd")
+                        .HasPrecision(12, 6)
+                        .HasColumnType("numeric(12,6)");
+
+                    b.Property<string>("Api")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("BlockReason")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("CachedTokens")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("CategoriesJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTimeOffset?>("CompletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DurationMs")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("ErrorCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<decimal>("EstimatedCostUsd")
+                        .HasPrecision(12, 6)
+                        .HasColumnType("numeric(12,6)");
+
+                    b.Property<string>("FunctionalStatus")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<int?>("HttpStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("InputTokens")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Model")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<Guid?>("MunicipalityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("NormalizedRequestJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Operation")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("OutputTokens")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("PlaceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ProcessId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PromptVersion")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("ProviderRequestId")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<string>("QueryHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("ResponseJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<int>("RetryCount")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("Reused")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("ReusedFromRequestId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SourcesJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTimeOffset?>("StartedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("ToolsJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTimeOffset?>("ValidUntilUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("VerificationStatus")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MunicipalityId");
+
+                    b.HasIndex("PlaceId");
+
+                    b.HasIndex("ProcessId");
+
+                    b.HasIndex("QueryHash", "CreatedAtUtc");
+
+                    b.HasIndex("Status", "CreatedAtUtc");
+
+                    b.ToTable("ExternalIntelligenceRequests", (string)null);
+                });
+
+            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.ExternalIntelligenceSearchRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("AttributedCostUsd")
+                        .HasPrecision(12, 6)
+                        .HasColumnType("numeric(12,6)");
+
+                    b.Property<string>("CategoriesJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DataOrigin")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<bool>("ExternalExecuted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("FiltersJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<Guid?>("MunicipalityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("QueryHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid?>("RequestId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("ResultCount")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("Reused")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ViewerHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAtUtc");
+
+                    b.HasIndex("MunicipalityId");
+
+                    b.HasIndex("QueryHash");
+
+                    b.HasIndex("RequestId");
+
+                    b.ToTable("ExternalIntelligenceSearches", (string)null);
+                });
+
             modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.FavoriteEntryRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -4462,6 +4846,46 @@ namespace Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.ExternalIntelligenceEvidenceRecord", b =>
+                {
+                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.PlaceRecord", null)
+                        .WithMany()
+                        .HasForeignKey("PlaceId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.ExternalIntelligenceRequestRecord", null)
+                        .WithMany()
+                        .HasForeignKey("RequestId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.ExternalIntelligenceRequestRecord", b =>
+                {
+                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.TerritorialUnitRecord", null)
+                        .WithMany()
+                        .HasForeignKey("MunicipalityId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.PlaceRecord", null)
+                        .WithMany()
+                        .HasForeignKey("PlaceId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.ExternalIntelligenceSearchRecord", b =>
+                {
+                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.TerritorialUnitRecord", null)
+                        .WithMany()
+                        .HasForeignKey("MunicipalityId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Zuppeto.Infrastructure.Persistence.Entities.ExternalIntelligenceRequestRecord", null)
+                        .WithMany()
+                        .HasForeignKey("RequestId")
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 
             modelBuilder.Entity("Zuppeto.Infrastructure.Persistence.Entities.FavoriteEntryRecord", b =>

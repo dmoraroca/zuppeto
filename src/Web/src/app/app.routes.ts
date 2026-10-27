@@ -295,5 +295,17 @@ export const routes: Routes = [
     path: 'admin/ciutats',
     redirectTo: 'admin/territori',
     pathMatch: 'full'
+  },
+  {
+    path: 'admin/intelligencia-externa/peticions',
+    canActivate: [adminGuard],
+    loadComponent: () => import('./features/external-intelligence/pages/external-intelligence-page/external-intelligence-page.component').then(m => m.ExternalIntelligencePageComponent),
+    data: { mode: 'requests' }
+  },
+  {
+    path: 'admin/intelligencia-externa/facturacio',
+    canActivate: [adminGuard],
+    loadComponent: () => import('./features/external-intelligence/pages/external-intelligence-page/external-intelligence-page.component').then(m => m.ExternalIntelligencePageComponent),
+    data: { mode: 'billing' }
   }
 ];
