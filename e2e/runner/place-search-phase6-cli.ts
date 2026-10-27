@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict';
 import { PilotChromeLauncher } from '../infrastructure/playwright/pilot-chrome-launcher.js';
+import { requiredEnvironment } from '../infrastructure/config/required-environment.js';
 
 const webBaseUrl = process.env.E2E_WEB_BASE_URL ?? 'http://localhost:4200';
 const apiBaseUrl = process.env.E2E_API_BASE_URL ?? 'http://localhost:5211';
 const countryId = process.env.E2E_COUNTRY_ID ?? '517bdd26-eea7-4281-979d-b910ab769a95';
 const territorialUnitId = '8680aa5a-292f-4201-8d52-d6381f438af4';
 const adminEmail = process.env.E2E_ADMIN_EMAIL ?? 'admin@admin.adm';
-const adminPassword = process.env.E2E_ADMIN_PASSWORD ?? 'Admin123';
+const adminPassword = requiredEnvironment('E2E_ADMIN_PASSWORD');
 
 async function main(): Promise<void> {
   const browser = await new PilotChromeLauncher().launch(false);

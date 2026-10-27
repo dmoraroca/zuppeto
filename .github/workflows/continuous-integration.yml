@@ -29,8 +29,21 @@ env:
   DOTNET_VERSION: '10.0.x'
 
 jobs:
+  secret_scan:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Scan Git history with Gitleaks
+        uses: docker://ghcr.io/gitleaks/gitleaks@sha256:b109bc5f8f76a38196a3e413704fc5b9e3c32360bce4e4b603bd6f45b3721dbb
+        with:
+          args: git /github/workspace --redact --verbose --exit-code 1 --log-opts=--all
+
   build:
     name: Build .NET and Angular
+    needs: [secret_scan]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -54,6 +67,7 @@ jobs:
 
   unit_tests:
     name: Existing unit tests
+    needs: [secret_scan]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -77,6 +91,7 @@ jobs:
 
   runner_tests:
     name: E2E runner tests
+    needs: [secret_scan]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -118,7 +133,6 @@ jobs:
       JWT_SIGNING_KEY: ${{ secrets.CI_JWT_SIGNING_KEY }}
       ASPNETCORE_ENVIRONMENT: CI
       ZUPPETO_FILE_LOGS: 'false'
-      ZUPPETO_AUTO_MIGRATE: 'true'
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7

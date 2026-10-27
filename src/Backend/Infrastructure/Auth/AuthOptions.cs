@@ -15,7 +15,7 @@ public sealed class AuthOptions
 
         public string Audience { get; init; } = "Zuppeto.Web";
 
-        public string SigningKey { get; init; } = "dev-only-zuppeto-signing-key-change-in-production-123456789";
+        public string SigningKey { get; init; } = string.Empty;
 
         public int ExpiresInMinutes { get; init; } = 480;
     }

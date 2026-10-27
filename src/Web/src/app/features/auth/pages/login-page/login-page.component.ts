@@ -60,7 +60,7 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
       .map((item) => item.displayLabel)
   );
   protected readonly previewTypes = this.placeService.getAvailableTypes();
-  /** Mosaic cards: API hits (BD first, Google Places fallback). */
+  /** Mosaic cards: public catalog API hits. */
   protected readonly samplePlaces = computed(() => this.previewPlacesState().slice(0, 8));
   /** Map markers: full API result set for the current public filters. */
   protected readonly mapPlaces = computed(() => this.previewPlacesState());
@@ -458,7 +458,7 @@ export class LoginPageComponent implements AfterViewInit, OnDestroy {
     }, 280);
   }
 
-  /** Discovery needs search or city (≥ 2 chars) so the API can use BD and Google Places fallback. */
+  /** The public preview only runs when search or city has enough context. */
   private hasPublicDiscoveryQuery(filters: PlaceFilters): boolean {
     const search = (filters.search ?? '').trim();
     const city = (filters.city ?? '').trim();

@@ -13,6 +13,10 @@ finish() {
 }
 trap finish EXIT
 
-"${compose[@]}" up -d --build --wait --wait-timeout 300 db rabbitmq api web
+"${compose[@]}" build api web
+"${compose[@]}" up -d --wait --wait-timeout 300 db rabbitmq
+"${compose[@]}" run --rm --no-deps --entrypoint /bin/bash api -lc \
+  'dotnet restore Zuppeto.sln --ignore-failed-sources && dotnet build src/Backend/Api/Api.csproj -c Debug --no-restore && cd src/Backend/Api && dotnet "${ZUPPETO_BUILD_ROOT}/Api/bin/Debug/net10.0/Api.dll" --database-maintenance=initialize-development-data'
+"${compose[@]}" up -d --wait --wait-timeout 300 api web
 npm run ci:accounts
 npm run "e2e:${browser}" -- "--profile=${profile}"

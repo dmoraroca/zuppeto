@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Options;
 using Zuppeto.Domain.Places;
 using Zuppeto.Domain.Places.ProhibitedTerms;
 
@@ -6,9 +5,6 @@ namespace Zuppeto.Application.Places;
 
 internal sealed class PlaceSearchPageAssembler(
     PlaceResponseMapper responseMapper,
-    IPlaceCoverEnrichmentQueue enrichmentQueue,
-    IOptions<PlaceExternalIntegrationOptions> externalIntegrationOptions,
-    IExternalPlaceCallPolicy externalCallPolicy,
     ProhibitedPlaceNameFilter prohibitedPlaceNameFilter)
 {
     internal PlaceSearchPageDto FromPlaces(IReadOnlyCollection<Place> places, PlaceSearchRequest request)
@@ -35,23 +31,7 @@ internal sealed class PlaceSearchPageAssembler(
 
     private PlaceSearchPageDto FromSummaries(IReadOnlyList<PlaceSummaryDto> items, PlaceSearchRequest request)
     {
-        var page = ToPage(items, request);
-        if (request.Take is null || !externalCallPolicy.AllowsBillableCalls)
-        {
-            return page;
-        }
-
-        var enrichmentCandidates = page.Items
-            .Where(item => item.Features.Count == 0)
-            .Select(item => item.Id)
-            .Take(Math.Clamp(externalIntegrationOptions.Value.MaxBackgroundEnrichmentsPerPage, 0, 10))
-            .ToArray();
-        if (enrichmentCandidates.Length > 0)
-        {
-            enrichmentQueue.Enqueue(enrichmentCandidates);
-        }
-
-        return page;
+        return ToPage(items, request);
     }
 
     private static PlaceSearchPageDto ToPage(IReadOnlyList<PlaceSummaryDto> items, PlaceSearchRequest request)

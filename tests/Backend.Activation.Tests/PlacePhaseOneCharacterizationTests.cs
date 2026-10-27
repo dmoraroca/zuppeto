@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Options;
 using Zuppeto.Application.Places;
 using Zuppeto.Application.TerritorialImports;
 using Zuppeto.Application.Validation;
@@ -13,10 +12,10 @@ namespace Backend.Activation.Tests;
 public sealed class PlacePhaseOneCharacterizationTests
 {
     [Fact]
-    public async Task Fresh_snapshot_is_resolved_before_the_catalog_and_external_provider()
+    public async Task Fresh_snapshot_is_resolved_before_the_catalog()
     {
         var place = PlaceFixture("Snapshot");
-        var fixture = new SearchFixture(allowExternalCalls: true)
+        var fixture = new SearchFixture()
         {
             SnapshotIds = [place.Id],
             PlacesById = [place]
@@ -26,14 +25,13 @@ public sealed class PlacePhaseOneCharacterizationTests
 
         Assert.Equal([place.Id], page.Items.Select(item => item.Id));
         Assert.Equal(0, fixture.CatalogSearchCount);
-        Assert.Equal(0, fixture.ExternalSearchCount);
     }
 
     [Fact]
-    public async Task PostgreSql_catalog_is_queried_before_the_simulated_external_fallback()
+    public async Task PostgreSql_catalog_is_queried_when_snapshot_is_missing()
     {
         var place = PlaceFixture("Catàleg");
-        var fixture = new SearchFixture(allowExternalCalls: true)
+        var fixture = new SearchFixture()
         {
             CatalogPlaces = [place]
         };
@@ -42,57 +40,25 @@ public sealed class PlacePhaseOneCharacterizationTests
 
         Assert.Equal([place.Id], page.Items.Select(item => item.Id));
         Assert.Equal(1, fixture.CatalogSearchCount);
-        Assert.Equal(0, fixture.ExternalSearchCount);
         Assert.Equal(1, fixture.SnapshotSaveCount);
     }
 
     [Fact]
-    public async Task Empty_catalog_can_use_a_simulated_fallback_and_persist_its_snapshot()
+    public async Task Empty_catalog_returns_an_empty_page_without_an_external_fallback()
     {
-        var fixture = new SearchFixture(allowExternalCalls: true)
-        {
-            ExternalCandidates =
-            [
-                new PlaceExternalCandidateDto(
-                    "Cafè Caní", "Carrer Major 1", "Barcelona", "Espanya",
-                    41.38m, 2.17m, "external-1", "simulated", true)
-            ]
-        };
-
-        var page = await fixture.Service.SearchAsync(Request(take: 20));
-
-        Assert.Single(page.Items);
-        Assert.Equal("Cafè Caní", page.Items.Single().Name);
-        Assert.Equal(1, fixture.CatalogSearchCount);
-        Assert.Equal(1, fixture.ExternalSearchCount);
-        Assert.Equal(1, fixture.AddCount);
-        Assert.Equal(1, fixture.SnapshotSaveCount);
-    }
-
-    [Fact]
-    public async Task Disabled_external_policy_returns_an_empty_page_without_calling_the_provider()
-    {
-        var fixture = new SearchFixture(allowExternalCalls: false)
-        {
-            ExternalCandidates =
-            [
-                new PlaceExternalCandidateDto(
-                    "No s'ha de consultar", "Carrer 1", "Barcelona", "Espanya",
-                    41m, 2m, "external-disabled", "simulated", true)
-            ]
-        };
+        var fixture = new SearchFixture();
 
         var page = await fixture.Service.SearchAsync(Request(take: 20));
 
         Assert.Empty(page.Items);
         Assert.Equal(1, fixture.CatalogSearchCount);
-        Assert.Equal(0, fixture.ExternalSearchCount);
+        Assert.Equal(0, fixture.SnapshotSaveCount);
     }
 
     [Fact]
     public void Current_pagination_occurs_after_receiving_the_complete_catalog_collection()
     {
-        var fixture = new SearchFixture(allowExternalCalls: false);
+        var fixture = new SearchFixture();
         var places = Enumerable.Range(1, 25).Select(index => PlaceFixture($"Lloc {index:00}")).ToArray();
 
         var page = fixture.Assembler.FromPlaces(places, Request(skip: 20, take: 10));
@@ -100,26 +66,6 @@ public sealed class PlacePhaseOneCharacterizationTests
         Assert.Equal(25, page.Total);
         Assert.Equal(5, page.Items.Count);
         Assert.False(page.HasMore);
-    }
-
-    [Fact]
-    public void Manual_fields_have_priority_over_simulated_external_details()
-    {
-        var original = PlaceFixture("Nom manual", PlaceManualFields.All);
-        var details = new PlaceExternalDetailsDto(
-            "external-1", "Nom extern", "Adreça externa", 10m, 20m, 5m, 999,
-            "€€€", "Descripció externa", false, true, true, true, true, true,
-            null, null, null);
-
-        var merged = new PlaceExternalDataMergePolicy().Merge(
-            original, details, "extern.jpg", "web externa", DateTimeOffset.UtcNow, 30);
-
-        Assert.Equal("Nom manual", merged.Name);
-        Assert.Equal(original.Address, merged.Address);
-        Assert.Equal(original.Location, merged.Location);
-        Assert.Equal(original.PetPolicy, merged.PetPolicy);
-        Assert.Equal(original.Rating, merged.Rating);
-        Assert.Equal(PlaceDataProvenance.Mixed, merged.DataProvenance);
     }
 
     [Fact]
@@ -139,6 +85,24 @@ public sealed class PlacePhaseOneCharacterizationTests
     }
 
     [Fact]
+    public async Task Admin_edit_preserves_historical_provenance_without_accepting_it_from_the_request()
+    {
+        var place = PlaceFixture("Històric");
+        var fixture = new SearchFixture { CatalogPlaces = [place] };
+        var request = new PlaceUpsertRequest(
+            place.Id, "Nom editat", "Restaurant", "Breu", "Descripció", "", "Carrer 2",
+            "Barcelona", "Espanya", "", 41m, 2m, false, false, "", "", "", 0m, 0, [], []);
+
+        await fixture.Service.SaveAsync(request);
+
+        Assert.NotNull(fixture.UpdatedPlace);
+        Assert.Equal(PlaceDataProvenance.GooglePlaces, fixture.UpdatedPlace.DataProvenance);
+        Assert.Equal("google-dto", fixture.UpdatedPlace.GooglePlaceId);
+        Assert.Equal(place.GoogleCoordinatesCachedUntil, fixture.UpdatedPlace.GoogleCoordinatesCachedUntil);
+        Assert.Equal(place.LastGoogleSyncAt, fixture.UpdatedPlace.LastGoogleSyncAt);
+    }
+
+    [Fact]
     public void Validator_accepts_a_place_with_unknown_pet_policy()
     {
         var request = new PlaceUpsertRequest(
@@ -155,7 +119,7 @@ public sealed class PlacePhaseOneCharacterizationTests
     {
         var place = PlaceFixture("Política revocada");
         var governance = new RevokedGovernanceStub(place.Id);
-        var fixture = new SearchFixture(allowExternalCalls: false, governance)
+        var fixture = new SearchFixture(governance)
         {
             CatalogPlaces = [place]
         };
@@ -174,7 +138,7 @@ public sealed class PlacePhaseOneCharacterizationTests
     public async Task Public_detail_hides_an_excluded_place_while_administration_can_still_read_it()
     {
         var place = PlaceFixture("Agbar");
-        var fixture = new SearchFixture(false, publicVisibility: new HiddenPlaceVisibility(place.Id))
+        var fixture = new SearchFixture(publicVisibility: new HiddenPlaceVisibility(place.Id))
         {
             CatalogPlaces = [place]
         };
@@ -207,35 +171,19 @@ public sealed class PlacePhaseOneCharacterizationTests
     }
 
     private sealed class SearchFixture : IPlaceRepository, IPlaceSearchQueryRepository,
-        IExternalPlaceSuggestionProvider, IPlaceExternalDataSynchronizer, IPlaceCoverEnrichmentQueue,
         ITerritorialLocationRepository
     {
-        private readonly CallPolicy callPolicy;
-        private readonly PlaceExternalIntegrationOptions options = new()
-        {
-            Enabled = true,
-            CoordinateCacheRetentionDays = 30,
-            MaxNewPlacesPerSearch = 3,
-            MaxBackgroundEnrichmentsPerPage = 3
-        };
-
         public SearchFixture(
-            bool allowExternalCalls,
             IPetGovernanceApplicationService? governance = null,
             IPlacePublicVisibilityQuery? publicVisibility = null)
         {
-            callPolicy = new CallPolicy(allowExternalCalls);
-            var optionsWrapper = Options.Create(options);
             var filter = new ProhibitedPlaceNameFilter(
                 new ProhibitedPlaceTermsCatalogFactory([new CatalanProhibitedPlaceTermsCatalog()]));
             var coverStorage = new MemoryCoverStorage();
             var mapper = new PlaceResponseMapper(coverStorage);
-            Assembler = new PlaceSearchPageAssembler(
-                mapper, this, optionsWrapper, callPolicy, filter);
-            var importer = new PlaceExternalSearchImporter(
-                this, this, this, this, optionsWrapper, callPolicy, filter);
+            Assembler = new PlaceSearchPageAssembler(mapper, filter);
             Service = new PlaceApplicationService(
-                this, this, this, importer, Assembler, mapper, optionsWrapper,
+                this, this, Assembler, mapper,
                 new TerritorialLocationService(this), petGovernance: governance,
                 publicVisibility: publicVisibility);
         }
@@ -245,11 +193,9 @@ public sealed class PlacePhaseOneCharacterizationTests
         public IReadOnlyList<Guid>? SnapshotIds { get; init; }
         public IReadOnlyCollection<Place> PlacesById { get; init; } = [];
         public IReadOnlyCollection<Place> CatalogPlaces { get; init; } = [];
-        public IReadOnlyCollection<PlaceExternalCandidateDto> ExternalCandidates { get; init; } = [];
         public int CatalogSearchCount { get; private set; }
-        public int ExternalSearchCount { get; private set; }
         public int SnapshotSaveCount { get; private set; }
-        public int AddCount { get; private set; }
+        public Place? UpdatedPlace { get; private set; }
 
         public Task<IReadOnlyList<Guid>?> TryGetFreshPlaceIdsAsync(
             IPlaceSearchQueryRepository.SearchSnapshotKey key, DateTimeOffset nowUtc,
@@ -281,9 +227,6 @@ public sealed class PlacePhaseOneCharacterizationTests
         public Task<Place?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
             Task.FromResult(CatalogPlaces.Concat(PlacesById).FirstOrDefault(place => place.Id == id));
 
-        public Task<Place?> GetByGooglePlaceIdAsync(string googlePlaceId, CancellationToken cancellationToken = default) =>
-            Task.FromResult<Place?>(null);
-
         public Task<IReadOnlyCollection<IPlaceRepository.CityCatalogItem>> GetAvailableCitiesAsync(
             CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlyCollection<IPlaceRepository.CityCatalogItem>>([]);
@@ -294,24 +237,15 @@ public sealed class PlacePhaseOneCharacterizationTests
 
         public Task AddAsync(Place place, CancellationToken cancellationToken = default)
         {
-            AddCount++;
             return Task.CompletedTask;
         }
 
-        public Task UpdateAsync(Place place, CancellationToken cancellationToken = default) => Task.CompletedTask;
-        public Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult(false);
-
-        public Task<IReadOnlyCollection<PlaceExternalCandidateDto>> SearchPlacesAsync(
-            PlaceExternalSearchRequest request, CancellationToken cancellationToken = default)
+        public Task UpdateAsync(Place place, CancellationToken cancellationToken = default)
         {
-            ExternalSearchCount++;
-            return Task.FromResult(ExternalCandidates);
+            UpdatedPlace = place;
+            return Task.CompletedTask;
         }
-
-        public Task<Place?> SynchronizeAsync(Guid placeId, CancellationToken cancellationToken = default) =>
-            Task.FromResult<Place?>(null);
-
-        public void Enqueue(IReadOnlyCollection<Guid> placeIds) { }
+        public Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult(false);
 
         public Task<IReadOnlyCollection<TerritorialAdminCountryDto>> ListCountriesAsync(CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlyCollection<TerritorialAdminCountryDto>>([]);
@@ -339,8 +273,6 @@ public sealed class PlacePhaseOneCharacterizationTests
             CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlySet<Guid>>(placeIds.Where(id => id != hiddenPlaceId).ToHashSet());
     }
-
-    private sealed record CallPolicy(bool AllowsBillableCalls) : IExternalPlaceCallPolicy;
 
     private sealed class MemoryCoverStorage : IPlaceCoverStorage
     {

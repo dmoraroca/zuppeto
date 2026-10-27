@@ -167,7 +167,7 @@ La migració `20261012092916_RetireLegacyCities` copia primer les quatre files a
 
 ## Iteració 7 — Fase 0: previsió de persistència de Places
 
-Aquesta fase no modifica l'esquema. El catàleg propi `places` continua sent la font de producte a PostgreSQL. La Fase I haurà d'auditar `google_place_id`, procedència, snapshots, TTL, coordenades, camps manuals i índexs per decidir quines peces es generalitzen a identitats i fonts neutrals i quines es retiren amb Google Places.
+Aquesta fase no modifica l'esquema. El catàleg propi `places` continua sent la font de producte a PostgreSQL. Des del 27.10.2026, `google_place_id`, procedència i dates Google només formen part de la compatibilitat històrica de lectura; el runtime del proveïdor ha estat retirat. Eliminar físicament aquests camps exigeix una migració futura expressament autoritzada.
 
 ### Resultat de la Fase I
 

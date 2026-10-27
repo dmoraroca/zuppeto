@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Zuppeto.Application.Auth;
 using Zuppeto.Infrastructure.Persistence;
 using Zuppeto.Infrastructure.Persistence.Entities;
@@ -7,7 +8,8 @@ namespace Zuppeto.Infrastructure.Auth;
 
 public sealed class DevelopmentIdentitySeeder(
     ZuppetoDbContext dbContext,
-    IPasswordHasher passwordHasher)
+    IPasswordHasher passwordHasher,
+    IOptions<DevelopmentIdentitySeedOptions> seedOptions)
 {
     private static readonly (string Key, string DisplayName)[] RoleSeeds =
     [
@@ -195,6 +197,8 @@ public sealed class DevelopmentIdentitySeeder(
 
     public async Task SeedAsync(CancellationToken cancellationToken = default)
     {
+        seedOptions.Value.EnsureConfigured();
+
         await EnsureRolesCatalogStorageAsync(cancellationToken);
         await EnsureRolesAsync(cancellationToken);
         await EnsurePermissionCatalogAsync(cancellationToken);
@@ -203,7 +207,7 @@ public sealed class DevelopmentIdentitySeeder(
 
         await EnsureUserAsync(
             email: "admin@admin.adm",
-            password: "Admin123",
+            password: seedOptions.Value.AdminPassword,
             role: "Admin",
             displayName: "Administrador PetiLoc",
             city: "Barcelona",
@@ -214,7 +218,7 @@ public sealed class DevelopmentIdentitySeeder(
 
         await EnsureUserAsync(
             email: "developer.e2e@zuppeto.local",
-            password: "Admin123",
+            password: seedOptions.Value.DeveloperPassword,
             role: "Developer",
             displayName: "Developer E2E",
             city: "Barcelona",

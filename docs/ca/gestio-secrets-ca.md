@@ -1,0 +1,133 @@
+# Gestió de secrets i credencials
+
+## Estat i abast
+
+Aquest document defineix el contracte vigent de secrets de PetiLoc. Cap secret pot residir al codi, als fitxers versionats, a Angular, als logs, als artefactes E2E ni a les respostes HTTP. La configuració pública conserva únicament noms de claus, valors no sensibles i exemples buits.
+
+La correcció de seguretat no modifica l'autenticació funcional, Places, Gestió territorial ni PostgreSQL. Les migracions i els seeders només poden executar-se mitjançant l'ordre de manteniment explícita i autoritzada.
+
+## Arquitectura per entorn
+
+| Entorn | Mecanisme | Regles |
+| --- | --- | --- |
+| Desenvolupament .NET fora de Docker | .NET User Secrets de `src/Backend/Api/Api.csproj` | Valors fora del repositori i del directori de treball; configuració interactiva amb `scripts/configure-development-secrets.sh` |
+| Desenvolupament Docker | `.env` local ignorat, mode `600`; Docker Secret separat per a Perplexity | Configuració interactiva amb `scripts/configure-docker-secrets.sh`; cap fallback de contrasenya al Compose |
+| Proves locals/E2E | Variables d'entorn injectades pel runner | Les contrasenyes són obligatòries; no hi ha credencials per defecte als runners |
+| GitHub Actions | GitHub Actions Secrets | Els jobs reben només els secrets necessaris; Gitleaks és un gate previ obligatori |
+| Producció | Gestor de secrets de la plataforma, pendent de selecció | No s'instal·la cap gestor en aquesta fase; cal injectar fitxers Docker Secrets o variables protegides des de l'orquestrador |
+
+## Configuració local segura
+
+### Backend .NET fora de Docker
+
+Executar:
+
+```bash
+scripts/configure-development-secrets.sh
+```
+
+L'script demana els valors amb entrada oculta, genera una clau JWT aleatòria i envia JSON per l'entrada estàndard de `dotnet user-secrets`. Els valors no formen part dels arguments dels processos i no es mostren. No s'ha de copiar cap credencial antiga: cal introduir credencials locals vigents o acabades de rotar.
+
+Claus configurades:
+
+- `ConnectionStrings:Zuppeto`
+- `Auth:Jwt:SigningKey`
+- `RabbitMq:Password`
+- `DevelopmentIdentitySeed:AdminPassword`
+- `DevelopmentIdentitySeed:DeveloperPassword`
+
+### Docker local
+
+Executar abans de la pròxima arrencada:
+
+```bash
+scripts/configure-docker-secrets.sh
+```
+
+L'script comprova que `.env` està ignorat, demana els valors sense eco, genera la clau JWT i deixa el fitxer amb permisos `600`. Per a volums PostgreSQL o RabbitMQ existents cal introduir la credencial que correspon al volum o coordinar-ne una rotació específica; l'script no recrea contenidors ni canvia dades.
+
+El Compose exigeix `POSTGRES_PASSWORD`, `RABBITMQ_PASSWORD` i `JWT_SIGNING_KEY`. Les credencials del seeder només s'utilitzen quan s'autoritza i s'executa explícitament el manteniment de dades.
+
+### Perplexity
+
+El backend accepta una única font quan `Perplexity:Enabled=true`:
+
+1. `PERPLEXITY_API_KEY_FILE`, preferida per Docker Secrets;
+2. `PERPLEXITY_API_KEY`, per a un orquestrador amb variables protegides;
+3. `Perplexity:ApiKey`, per a .NET User Secrets local.
+
+`docker-compose.perplexity.yml` munta el secret com a fitxer i només injecta la ruta. No activa Perplexity ni executa peticions. Si coincideixen diverses fonts, l'arrencada falla sense mostrar els valors.
+
+La clau compartida anteriorment s'ha de considerar exposada. El fitxer local `.env.perplexity.local` està ignorat i té permisos restrictius, però no converteix la clau en segura. Intervenció pendent: revocar-la al proveïdor, crear-ne una de nova amb límits adequats, configurar-la directament al magatzem local o de producció i eliminar el fitxer antic. No s'ha copiat aquesta clau a User Secrets ni a Docker Secrets.
+
+## Rotació i revocació
+
+1. Identificar el propietari, l'entorn, el servei i els consumidors de la credencial sense enganxar-ne el valor en incidències o xats.
+2. Revisar ús, restriccions, quota i facturació al proveïdor.
+3. Crear una credencial nova amb el mínim privilegi quan el servei continuï vigent.
+4. Injectar-la al magatzem correcte i validar-la amb una comprovació no facturable o sintètica quan sigui possible.
+5. Revocar o eliminar l'antiga.
+6. Confirmar que no hi ha ús inesperat i retirar còpies locals obsoletes.
+7. Registrar data, responsable, abast i evidència de la rotació, mai el valor.
+
+## Clau històrica de Google
+
+L'anàlisi local del commit històric identifica una clau de l'adaptador servidor de **Google Places API heretada**, amb base `maps.googleapis.com/maps/api/place/`. El mateix codi també conté compatibilitat posterior amb Places API (New), però la configuració del commit detectat correspon al servei legacy. No hi ha cap `project_id`, nom de projecte ni identificador de credencial al repositori; una cadena de clau, per si sola, no permet atribuir amb fiabilitat el projecte sense consultar Google. Google OAuth és una integració diferent i es manté.
+
+Comprovació manual a Google Cloud:
+
+1. Accedir a Google Cloud Console amb el compte propietari i revisar cada projecte candidat al selector de projecte.
+2. Anar a `APIs i serveis → Credencials` i localitzar la clau pel nom, data o identificador intern. No copiar-ne el valor a cap document.
+3. Obrir la credencial i comprovar estat, restriccions d'aplicació i restriccions d'API; revisar especialment `Places API` i `Places API (New)`.
+4. A Metrics Explorer, filtrar l'ús per `credential_id` i comprovar serveis, plataforma i trànsit recent.
+5. Revisar facturació i quotes per detectar ús inesperat.
+6. Com que la clau va quedar a l'historial Git, considerar-la compromesa: si continua activa, revocar-la o eliminar-la. PetiLoc no necessita substituir-la perquè la integració activa de Google Places ha estat retirada.
+7. Desactivar al projecte qualsevol servei Maps/Places que ja no s'utilitzi, sense afectar Google OAuth.
+
+Referències oficials: [gestió de claus API de Google Cloud](https://docs.cloud.google.com/docs/authentication/api-keys) i [guia de seguretat de Google Maps Platform](https://developers.google.com/maps/api-security-best-practices).
+
+## Prevenció i logs
+
+- `.dockerignore` exclou `.env*`, fitxers de secrets, configuracions privades, logs, storage i artefactes E2E del context de build.
+- `.gitignore` exclou els mateixos fitxers locals; `.env.example` només conté noms i valors buits.
+- el hook versionat `.githooks/pre-commit` executa Gitleaks sobre l'índex;
+- GitHub Actions executa Gitleaks sobre tot l'historial abans de build i proves;
+- Serilog redacciona propietats estructurades sensibles;
+- els clients HTTP antics que posen credencials al query string no tenen logging HTTP;
+- els missatges de validació i errors no inclouen valors secrets.
+
+## Bloqueig històric conegut
+
+L'escaneig complet detecta dos registres històrics: una clau Google probablement real i una coincidència genèrica dins documentació. No s'ha reescrit l'historial ni s'ha creat cap allowlist. Per tant, el gate de CI queda deliberadament bloquejat fins que la clau Google estigui revocada i s'autoritzi una decisió explícita sobre aquests dos identificadors concrets. No s'ha d'afegir cap excepció general.
+
+## Bloqueig d'arrencada detectat
+
+La prova amb PostgreSQL apuntant a un port local inabastable confirma que l'API pot publicar l'endpoint arrel sense migrar ni sembrar dades. Després de la retirada de Google Places només romanen els workers independents d'importació governada de Places i d'importació territorial; el worker de retenció Google ja no existeix. Aquests processos poden executar lectures o escriptures operatives quan hi ha una base disponible.
+
+No s'han modificat perquè l'ordre actual prohibeix canviar Places i Gestió territorial. Per garantir literalment que un reinici no modifica PostgreSQL cal una autorització específica per separar aquests workers de l'API o governar-ne l'activació mitjançant configuració fail-closed. Fins aleshores, la separació de migracions i seeders està implementada, però la garantia global d'absència d'escriptures en reiniciar queda **PENDENT**.
+
+## Operacions prohibides en aquesta fase
+
+- no executar migracions ni seeders;
+- no modificar PostgreSQL;
+- no recrear contenidors;
+- no provar claus amb peticions facturables;
+- no imprimir, copiar o registrar secrets;
+- no fer commit ni push.
+
+## Validació executada el 27.10.2026
+
+| Comprovació | Resultat |
+| --- | --- |
+| Build `Zuppeto.sln`, Debug, sense restore | PASS; 0 errors i 0 avisos |
+| Build de `Backend.Activation.Tests` | PASS; 0 errors i 0 avisos |
+| Proves `SecretManagementTests` | PASS; 14/14 amb credencials sintètiques i sense PostgreSQL |
+| Compilació TypeScript del runner E2E | PASS |
+| Sintaxi Bash, JSON i `git diff --check` | PASS |
+| `docker compose config --quiet`, base i override Perplexity, amb valors sintètics | PASS; no s'han creat contenidors |
+| Gitleaks sobre fitxers versionables actuals | PASS; 0 filtracions |
+| Gitleaks sobre 180 commits | FAIL esperat; 2 troballes històriques redaccionades, sense allowlist |
+| Cerca de patrons de Perplexity, Google, Bearer i `client_secret` als logs/artefactes locals | PASS; 0 fitxers coincidents |
+| Arrencada API amb PostgreSQL sintètic inabastable i RabbitMQ desactivat | PARCIAL; endpoint arrel operatiu, cap migració ni seeder, però els tres workers indicats intenten connexió |
+
+No s'han executat E2E de navegador perquè no són necessaris per validar la injecció de secrets i podrien activar dependències de dades. No s'ha executat cap petició Perplexity o Google.

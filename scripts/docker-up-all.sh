@@ -12,7 +12,8 @@ docker compose up -d --no-deps api
 
 # Evita recrear l'API a cada F5. Si el contenidor ja estava viu, només el
 # reinicia quan algun fitxer de backend és més nou que l'assembly carregat.
-# Un contenidor nou ja executa restore/build/migrate des del seu entrypoint.
+# Un contenidor nou només executa restore/build. Les migracions i els seeders
+# requereixen una ordre de manteniment explícita i autoritzada.
 if [[ "${api_was_running}" == "true" ]]; then
   changed_backend="$({
     docker compose exec -T api bash -lc '

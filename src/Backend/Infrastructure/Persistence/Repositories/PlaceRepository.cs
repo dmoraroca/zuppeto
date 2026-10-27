@@ -20,21 +20,6 @@ internal sealed class PlaceRepository(ZuppetoDbContext dbContext) : IPlaceReposi
         return record is null ? null : PlacePersistenceMapper.ToDomain(record);
     }
 
-    public async Task<Place?> GetByGooglePlaceIdAsync(string googlePlaceId, CancellationToken cancellationToken = default)
-    {
-        var normalized = googlePlaceId.Trim();
-        if (normalized.Length == 0)
-        {
-            return null;
-        }
-
-        var record = await BuildGraphQuery()
-            .AsNoTracking()
-            .FirstOrDefaultAsync(place => place.GooglePlaceId == normalized, cancellationToken);
-
-        return record is null ? null : PlacePersistenceMapper.ToDomain(record);
-    }
-
     public async Task<IReadOnlyCollection<Place>> SearchAsync(
         PlaceSearchCriteria criteria,
         CancellationToken cancellationToken = default)

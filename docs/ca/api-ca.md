@@ -165,9 +165,9 @@ Valors de `type` admesos actualment:
 
 La Fase 0 no modifica cap endpoint. Defineix que Angular continuarà consumint exclusivament contractes de PetiLoc i que els futurs adaptadors d'OpenStreetMap/Overpass, Geoapify, Wikidata o altres fonts no exposaran els seus esquemes a la web.
 
-L'API haurà de mantenir una resposta unificada sobre el catàleg propi PostgreSQL, amb procedència i governança, independentment de la font d'ingesta. Els endpoints i DTO heretats que expressen candidats, `google_place_id`, Search, Details o Photos s'auditaran a la Fase I. Google Places no és una integració a completar: es retirarà progressivament després de validar substituts funcionals i no s'afegeix cap ruta nova en aquesta Fase 0.
+L'API manté una resposta unificada sobre el catàleg propi PostgreSQL, amb procedència i governança, independentment de la font d'ingesta. Els camps històrics de `google_place_id` continuen als DTO només per compatibilitat de lectura; no existeixen endpoints Google Search, Details o Photos.
 
-Des del 2026-10-12 Google Places API està desactivada globalment abans d'iniciar la Fase I. `GET /api/places` consulta només snapshots i catàleg PostgreSQL; si no troba establiments retorna una pàgina buida. L'endpoint heretat `GET /api/places/external/search` es conserva per a l'auditoria però retorna una col·lecció buida. Details, Photos i l'enriquiment en segon pla queden bloquejats per política d'aplicació i pel tall no configurable del client. Cap d'aquests canvis afecta els endpoints de Google OAuth.
+Des del 2026-10-27 Google Places API està retirada del runtime. `GET /api/places` consulta només snapshots i catàleg PostgreSQL; si no troba establiments retorna una pàgina buida. L'endpoint heretat `GET /api/places/external/search`, els clients de Details/Photos i l'enriquiment associat ja no existeixen. Cap d'aquests canvis afecta els endpoints de Google OAuth. [Informe](retirada-google-places-20261027.md).
 
 Contracte de planificació: [Iteració 7 — Catàleg propi de llocs amb fonts obertes](iteracio-7-roadmap-places-obertes-ca.md).
 

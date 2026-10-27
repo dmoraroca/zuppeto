@@ -18,6 +18,12 @@ public static class RabbitMqDependencyInjection
             return services;
         }
 
+        if (string.IsNullOrWhiteSpace(snapshot.UserName) || string.IsNullOrWhiteSpace(snapshot.Password))
+        {
+            throw new InvalidOperationException(
+                "RabbitMQ està activat però falten les credencials. Configura-les fora de Git.");
+        }
+
         services.AddSingleton<IConnection>(sp =>
         {
             var options = sp.GetRequiredService<IOptions<RabbitMqOptions>>().Value;

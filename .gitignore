@@ -24,6 +24,11 @@
 !**/.env.example
 **/secrets.json
 **/*.secrets.json
+**/*credentials*.json
+**/*.pfx
+**/*.p12
+**/*private*.pem
+**/*private*.key
 config/google/*.json
 config/facebook/*.json
 config/data-protection/
@@ -51,7 +56,7 @@ scripts/node_modules/
 src/Backend/Api/logs/*.log
 src/Backend/Api/logs/*.txt
 
-# Place cover JPEGs downloaded from Google Places (keep the folder).
+# Place cover JPEGs managed by the backend (keep the folder).
 src/Backend/Api/storage/place-covers/*.jpg
 src/Backend/Api/storage/place-covers/*.json
 src/Backend/Api/storage/place-media/*.jpg

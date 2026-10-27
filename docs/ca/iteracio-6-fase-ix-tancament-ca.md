@@ -50,7 +50,7 @@ La comparació es va executar contra una restauració nova del backup. L'exporta
 
 `a7e2b9fbd21d7a4e3e7c701b5be4281487e1be88fe2b78e5dea8ebbde23926ad`
 
-La comparació va revelar que el seeder de configuració reescrivia `updated_at_utc` de països, fonts i tipus en cada arrencada sense cap canvi substantiu. S'ha corregit perquè només actualitzi el timestamp quan hi ha una alta o una modificació real. La prova PostgreSQL preserva els timestamps en una segona execució sense canvis; sobre la base real, el hash complet d'aquestes tres taules és idèntic abans i després de reiniciar l'API: `d97d39409d83b84be5b182a2d28df14ee06247e03c6bb2ad8f7df3ed79784530`.
+La comparació va revelar que el seeder de configuració reescrivia `updated_at_utc` de països, fonts i tipus en cada arrencada sense cap canvi substantiu. S'ha corregit perquè només actualitzi el timestamp quan hi ha una alta o una modificació real. La prova PostgreSQL preserva els timestamps en una segona execució sense canvis; sobre la base real, el hash complet d'aquestes tres taules és idèntic abans i després de reiniciar el servei backend (SHA-256): `d97d39409d83b84be5b182a2d28df14ee06247e03c6bb2ad8f7df3ed79784530`.
 
 Recomptes finals:
 

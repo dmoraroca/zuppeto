@@ -1,0 +1,11 @@
+services:
+  api:
+    environment:
+      Perplexity__Enabled: "true"
+      PERPLEXITY_API_KEY_FILE: /run/secrets/perplexity_api_key
+    secrets:
+      - perplexity_api_key
+
+secrets:
+  perplexity_api_key:
+    environment: PERPLEXITY_API_KEY

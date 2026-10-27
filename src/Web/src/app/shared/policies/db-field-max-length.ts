@@ -25,7 +25,6 @@ export const DB_FIELD_MAX = {
   placeNeighborhood: 120,
   placePetPolicyLabel: 120,
   placePricingLabel: 120,
-  placeGooglePlaceId: 256
 } as const;
 
 export const COUNTRY_CODE_MAX_LENGTH = DB_FIELD_MAX.countryCode;

@@ -1860,19 +1860,22 @@
               </section>
             }
 
-            @if (!placeIsNew()) {
+            @if (!placeIsNew() && (editablePlace().dataProvenance === 'GooglePlaces' || editablePlace().dataProvenance === 'Mixed' || editablePlace().googlePlaceId)) {
             <div class="admin-console-form admin-console-form--readonly" style="grid-column: 1 / -1">
-              <p class="admin-console-kicker">Google Places (compliment)</p>
+              <p class="admin-console-kicker">Procedència històrica — només lectura</p>
               <p style="margin: 0 0 12px; font-size: 0.9rem; opacity: 0.9">
-                Mantén el <strong>Place ID</strong> quan el local ve de Google per poder renovar coordenades després del període de caché.
-                «Sense canvi» no envia aquests camps: el servidor conserva el vincle en edicions normals.
+                Aquestes dades es conserven únicament com a evidència històrica. No permeten consultar, sincronitzar ni reactivar Google Places.
               </p>
                 <ul style="margin: 0 0 12px; padding-left: 1.2rem; font-size: 0.9rem">
+                  <li>Procedència: {{ editablePlace().dataProvenance || '—' }}</li>
+                  @if (editablePlace().googlePlaceId) {
+                    <li>Identificador històric: {{ editablePlace().googlePlaceId }}</li>
+                  }
                   @if (editablePlace().googleMetaCachedUntil) {
-                    <li>Caché coordenades fins (UTC): {{ editablePlace().googleMetaCachedUntil }}</li>
+                    <li>Caducitat històrica de coordenades (UTC): {{ editablePlace().googleMetaCachedUntil }}</li>
                   }
                   @if (editablePlace().googleMetaLastSync) {
-                    <li>Darrera sync Google (UTC): {{ editablePlace().googleMetaLastSync }}</li>
+                    <li>Darrera sincronització històrica (UTC): {{ editablePlace().googleMetaLastSync }}</li>
                   }
                   @if (editablePlace().googleMetaExcludeFromOsm !== undefined) {
                     <li>Exclòs del mapa OSM: {{ editablePlace().googleMetaExcludeFromOsm ? 'sí' : 'no' }}</li>
@@ -1881,31 +1884,6 @@
                     <li>Caché coordenades caducada: {{ editablePlace().googleMetaCacheExpired ? 'sí' : 'no' }}</li>
                   }
                 </ul>
-              <label>
-                <span>Procedència</span>
-                <select
-                  [disabled]="!placeDetailEditMode()"
-                  [ngModel]="editablePlace().dataProvenance"
-                  (ngModelChange)="editablePlace.set({ ...editablePlace(), dataProvenance: $event })"
-                >
-                  @for (opt of placeDataProvenanceSelectValues; track opt) {
-                    <option [value]="opt">{{ googleProvenanceOptionLabel(opt) }}</option>
-                  }
-                </select>
-              </label>
-              <label>
-                <span>Google Place ID</span>
-                <input
-                  type="text"
-                  [readonly]="!placeDetailEditMode()"
-                  [ngModel]="editablePlace().googlePlaceId"
-                  (ngModelChange)="editablePlace.set({ ...editablePlace(), googlePlaceId: $event })"
-                  [maxlength]="dbMax.placeGooglePlaceId"
-                  placeholder="p. ex. ChIJ…"
-                  autocomplete="off"
-                  spellcheck="false"
-                />
-              </label>
             </div>
             }
           </div>

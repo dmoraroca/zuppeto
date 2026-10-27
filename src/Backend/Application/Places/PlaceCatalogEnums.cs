@@ -31,22 +31,4 @@ internal static class PlaceCatalogEnums
             : PetCategory.All;
     }
 
-    internal static PlaceDataProvenance ParseUpsertDataProvenance(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return PlaceDataProvenance.Internal;
-        }
-
-        return Enum.TryParse<PlaceDataProvenance>(value.Trim(), ignoreCase: true, out var parsed)
-            ? parsed
-            : PlaceDataProvenance.Internal;
-    }
-
-    internal static bool ShouldAttemptGooglePlacesFallback(PlaceSearchRequest request)
-    {
-        var searchText = request.SearchText?.Trim() ?? string.Empty;
-        var city = request.City?.Trim() ?? string.Empty;
-        return searchText.Length >= 2 || city.Length >= 2;
-    }
 }

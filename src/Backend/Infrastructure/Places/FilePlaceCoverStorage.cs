@@ -2,7 +2,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Hosting;
 using Zuppeto.Application.Places;
 
-namespace Zuppeto.Infrastructure.GooglePlaces;
+namespace Zuppeto.Infrastructure.Places;
 
 internal sealed class FilePlaceCoverStorage : IPlaceCoverStorage
 {

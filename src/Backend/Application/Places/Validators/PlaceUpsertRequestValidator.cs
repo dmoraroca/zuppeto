@@ -72,31 +72,14 @@ public sealed class PlaceUpsertRequestValidator : IValidator<PlaceUpsertRequest>
             result.Add(nameof(request.TerritorialUnitId), "El país i la localitat territorial s’han d’informar conjuntament.");
         }
 
-        PlaceDataProvenance? parsedProvenance = null;
-        if (!string.IsNullOrWhiteSpace(request.DataProvenance))
+        var requestedProvenance = request.DataProvenance?.Trim();
+        if (!string.IsNullOrWhiteSpace(request.GooglePlaceId)
+            || request.GoogleCoordinatesCachedUntil is not null
+            || request.LastGoogleSyncAt is not null
+            || (!string.IsNullOrWhiteSpace(requestedProvenance)
+                && !string.Equals(requestedProvenance, nameof(PlaceDataProvenance.Internal), StringComparison.OrdinalIgnoreCase)))
         {
-            if (!Enum.TryParse<PlaceDataProvenance>(request.DataProvenance.Trim(), ignoreCase: true, out var pv))
-            {
-                result.Add(nameof(request.DataProvenance), "La procedència de dades no és vàlida.");
-            }
-            else
-            {
-                parsedProvenance = pv;
-            }
-        }
-
-        var hasGooglePlaceId = !string.IsNullOrWhiteSpace(request.GooglePlaceId);
-
-        if (hasGooglePlaceId && parsedProvenance is not (PlaceDataProvenance.GooglePlaces or PlaceDataProvenance.Mixed))
-        {
-            result.Add(
-                nameof(request.DataProvenance),
-                "Si s’indica Google Place ID, la procedència ha de ser GooglePlaces o Mixed.");
-        }
-
-        if (parsedProvenance is PlaceDataProvenance.GooglePlaces or PlaceDataProvenance.Mixed && !hasGooglePlaceId)
-        {
-            result.Add(nameof(request.GooglePlaceId), "El Google Place ID és obligatori quan la procedència és Google Places o mixta.");
+            result.Add(nameof(request.GooglePlaceId), "Les metadades històriques de Google Places són només de lectura.");
         }
 
         return result;

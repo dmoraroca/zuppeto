@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Options;
 using Zuppeto.Domain.Abstractions;
 using Zuppeto.Domain.Places;
 using Zuppeto.Domain.Places.ValueObjects;
@@ -10,11 +9,8 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
 {
     private readonly IPlaceRepository placeRepository;
     private readonly IPlaceSearchQueryRepository placeSearchQueryRepository;
-    private readonly IExternalPlaceSuggestionProvider externalPlaceSuggestionProvider;
-    private readonly PlaceExternalSearchImporter externalSearchImporter;
     private readonly PlaceSearchPageAssembler searchPageAssembler;
     private readonly PlaceResponseMapper responseMapper;
-    private readonly IOptions<PlaceExternalIntegrationOptions> externalIntegrationOptions;
     private readonly TerritorialLocationService territorialLocations;
     private readonly IPlacePublicSearchQuery? publicSearchQuery;
     private readonly IPlaceMediaRepository? placeMediaRepository;
@@ -25,11 +21,8 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
     public PlaceApplicationService(
         IPlaceRepository placeRepository,
         IPlaceSearchQueryRepository placeSearchQueryRepository,
-        IExternalPlaceSuggestionProvider externalPlaceSuggestionProvider,
-        PlaceExternalSearchImporter externalSearchImporter,
         PlaceSearchPageAssembler searchPageAssembler,
         PlaceResponseMapper responseMapper,
-        IOptions<PlaceExternalIntegrationOptions> externalIntegrationOptions,
         TerritorialLocationService territorialLocations,
         IPlaceMediaRepository? placeMediaRepository = null,
         IPlacePublicSearchQuery? publicSearchQuery = null,
@@ -39,11 +32,8 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
     {
         this.placeRepository = placeRepository;
         this.placeSearchQueryRepository = placeSearchQueryRepository;
-        this.externalPlaceSuggestionProvider = externalPlaceSuggestionProvider;
-        this.externalSearchImporter = externalSearchImporter;
         this.searchPageAssembler = searchPageAssembler;
         this.responseMapper = responseMapper;
-        this.externalIntegrationOptions = externalIntegrationOptions;
         this.territorialLocations = territorialLocations;
         this.placeMediaRepository = placeMediaRepository;
         this.publicSearchQuery = publicSearchQuery;
@@ -52,8 +42,7 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
         this.publicVisibility = publicVisibility;
     }
 
-    private int CoordinateCacheRetentionDays =>
-        Math.Clamp(externalIntegrationOptions.Value.CoordinateCacheRetentionDays, 1, 366);
+    private static readonly TimeSpan SearchSnapshotTtl = TimeSpan.FromHours(12);
 
     public async Task<PlaceDetailDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
@@ -128,21 +117,6 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
         }
 
         var nowUtc = DateTimeOffset.UtcNow;
-        var googlePlacesEnabled = externalIntegrationOptions.Value.Enabled;
-        var preferExternalFirst =
-            googlePlacesEnabled && externalIntegrationOptions.Value.PreferExternalSearchFirst;
-
-        if (preferExternalFirst &&
-            string.IsNullOrWhiteSpace(request.Country) &&
-            PlaceCatalogEnums.ShouldAttemptGooglePlacesFallback(request))
-        {
-            var externalFirst = await externalSearchImporter.ImportAsync(request, nowUtc, cancellationToken);
-            if (externalFirst.Count > 0)
-            {
-                return searchPageAssembler.FromPlaces(externalFirst, request);
-            }
-        }
-
         // Existing snapshot persistence has no country column; country searches must not reuse it.
         var useSnapshot = string.IsNullOrWhiteSpace(request.Country) && request.TerritorialUnitId is null;
         var searchSnapshotKey = new IPlaceSearchQueryRepository.SearchSnapshotKey(
@@ -189,7 +163,7 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
                 searchSnapshotKey,
                 ordered.Select(item => item.Id).ToArray(),
                 nowUtc,
-                PlaceExternalSearchImporter.SnapshotTtl,
+                SearchSnapshotTtl,
                 cancellationToken);
             return searchPageAssembler.FromPlaces(ordered, request);
         }
@@ -199,17 +173,7 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
             return searchPageAssembler.FromPlaces(ordered, request);
         }
 
-        if (!googlePlacesEnabled ||
-            preferExternalFirst ||
-            !string.IsNullOrWhiteSpace(request.Country) ||
-            !PlaceCatalogEnums.ShouldAttemptGooglePlacesFallback(request))
-        {
-            return searchPageAssembler.Empty(request);
-        }
-
-        return searchPageAssembler.FromPlaces(
-            await externalSearchImporter.ImportAsync(request, nowUtc, cancellationToken),
-            request);
+        return searchPageAssembler.Empty(request);
     }
 
     private async Task<PlaceSearchPageDto> SearchPublicCatalogAsync(
@@ -285,20 +249,6 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
                 item.ResultCount,
                 item.LastRunAtUtc))
             .ToArray();
-    }
-
-    public Task<IReadOnlyCollection<PlaceExternalCandidateDto>> SearchExternalPreviewAsync(
-        PlaceExternalSearchRequest request,
-        CancellationToken cancellationToken = default)
-    {
-        var normalized = request with
-        {
-            Query = request.Query?.Trim(),
-            City = request.City?.Trim(),
-            Type = request.Type?.Trim(),
-            Limit = Math.Clamp(request.Limit ?? 10, 1, 20)
-        };
-        return externalPlaceSuggestionProvider.SearchPlacesAsync(normalized, cancellationToken);
     }
 
     public async Task<IReadOnlyCollection<PlaceCitySuggestionDto>> GetAvailableCitiesAsync(CancellationToken cancellationToken = default)
@@ -382,7 +332,6 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
     public async Task<Guid> SaveAsync(PlaceUpsertRequest request, CancellationToken cancellationToken = default)
     {
         var placeId = request.Id ?? Guid.NewGuid();
-        var nowUtc = DateTimeOffset.UtcNow;
         var existing = await placeRepository.GetByIdAsync(placeId, cancellationToken);
         var city = request.City.Trim();
         var country = request.Country.Trim();
@@ -413,6 +362,10 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
             BuildPetPolicy(request),
             new Pricing(request.PricingLabel),
             new RatingSnapshot(request.RatingAverage, request.ReviewCount),
+            dataProvenance: existing?.DataProvenance ?? PlaceDataProvenance.Internal,
+            googlePlaceId: existing?.GooglePlaceId,
+            googleCoordinatesCachedUntil: existing?.GoogleCoordinatesCachedUntil,
+            lastGoogleSyncAt: existing?.LastGoogleSyncAt,
             excludeFromOsmMap: existing?.ExcludeFromOsmMap ?? false,
             territorialCountryId: countryId,
             territorialUnitId: unitId,
@@ -423,8 +376,6 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
         // Aquest cas d'ús és el manteniment humà del catàleg. Tot valor enviat
         // passa a ser autoritatiu i cap sincronització externa el pot substituir.
         place.ProtectManualFields(PlaceManualFields.All);
-        ApplyGoogleMetadataFromUpsert(place, request, existing, nowUtc);
-
         if (existing is null)
         {
             await placeRepository.AddAsync(place, cancellationToken);
@@ -460,43 +411,4 @@ internal sealed class PlaceApplicationService : IPlaceApplicationService
         return placeRepository.DeleteAsync(id, cancellationToken);
     }
 
-    private void ApplyGoogleMetadataFromUpsert(
-        Place place,
-        PlaceUpsertRequest request,
-        Place? existing,
-        DateTimeOffset nowUtc)
-    {
-        var requestGoogleId = request.GooglePlaceId?.Trim();
-        if (!string.IsNullOrWhiteSpace(requestGoogleId))
-        {
-            var provenance = PlaceCatalogEnums.ParseUpsertDataProvenance(request.DataProvenance);
-            if (provenance == PlaceDataProvenance.GooglePlaces && place.ManualFields != PlaceManualFields.None)
-            {
-                provenance = PlaceDataProvenance.Mixed;
-            }
-
-            var cachedUntil = request.GoogleCoordinatesCachedUntil ?? nowUtc.AddDays(CoordinateCacheRetentionDays);
-            var lastSync = request.LastGoogleSyncAt ?? nowUtc;
-            place.SetDataProvenance(provenance, requestGoogleId, cachedUntil, lastSync);
-            return;
-        }
-
-        // No Place ID: catalog-only. Do not start the 30-day Google coordinate cache.
-
-        if (string.Equals(request.DataProvenance?.Trim(), nameof(PlaceDataProvenance.Internal), StringComparison.OrdinalIgnoreCase))
-        {
-            place.SetDataProvenance(PlaceDataProvenance.Internal, null, null, null);
-            return;
-        }
-
-        if (existing?.DataProvenance is PlaceDataProvenance.GooglePlaces or PlaceDataProvenance.Mixed
-            && !string.IsNullOrWhiteSpace(existing.GooglePlaceId))
-        {
-            place.SetDataProvenance(
-                PlaceDataProvenance.Mixed,
-                existing.GooglePlaceId,
-                existing.GoogleCoordinatesCachedUntil,
-                existing.LastGoogleSyncAt);
-        }
-    }
 }

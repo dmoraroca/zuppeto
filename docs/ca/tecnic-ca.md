@@ -1,5 +1,7 @@
 # Document tecnic (CA)
 
+> **Estat vigent (27.10.2026):** la integració executable de Google Places ha estat retirada: no hi ha client, adaptadors, endpoint, fallback, sincronitzador, cua, worker, retenció, opcions ni configuració. Els camps i les procedències Google/Mixed romanen estrictament inerts per materialitzar dades històriques sense migrar PostgreSQL. Google OAuth i Google Maps per a indicacions són independents i es mantenen. [Informe verificable](retirada-google-places-20261027.md).
+
 > **Funció documental (25.10.2026):** contracte tècnic ampliat amb seccions històriques. L'[índex mestre](README.md) governa l'estat actual. Les integracions Google Places, GeoNames, `cities` i mocks descrites en talls antics no s'han d'interpretar com a arquitectura objectiu; Google OAuth sí que es manté.
 
 > Zoom i recentrat (25.10.2026): `withPlaceViewport` limita l'actualització a bounds/centre/zoom i preserva l'estat de cerca. `PlaceSearchMapDto` transporta per separat el centre de càmera i el centre territorial, evitant que el recentrat depengui de l'últim viewport. `resolvePlaceMunicipalityFocus` encapsula la prioritat centre canònic → catàleg local → coordenada de «A prop meu» validada; aquesta última només actua com a compatibilitat davant el contracte antic. El botó de recentrat usa `setView` explícit i queda separat del `fitBounds` del radi inicial. Proves Angular focalitzades 8/8, geografia .NET 2/2, builds Angular/API i E2E Chrome READ ONLY PASS, inclòs Sant Vicenç de Montalt.
@@ -585,7 +587,7 @@ La Fase 0 de la Iteració 7 substitueix l'objectiu anterior de completar Google 
 
 Ordre tècnic previst: repositori PostgreSQL → cache vàlida → ports de fonts aprovades → normalització → deduplicació centralitzada → merge amb protecció `MANUAL > AUTO` → persistència permesa per llicència. Cada dada externa ha de poder conservar font, instant de consulta, verificació, confiança i atribució. PostGIS és una decisió pendent de benchmark de Fase I, no una dependència autoritzada en aquesta Fase 0.
 
-Google Places continua documentat als apartats tècnics perquè el codi encara existeix. És una dependència heretada a inventariar i retirar sense trencar Search, Details, Photos, cache, procedència o proteccions manuals; no és arquitectura objectiu ni una integració pendent de completar. Vegeu [el roadmap de la Iteració 7](iteracio-7-roadmap-places-obertes-ca.md).
+Google Places continua documentat als apartats tècnics següents només com a traça històrica. El codi executable ja no existeix; les columnes de procedència es conserven temporalment i només en lectura. Vegeu [l'informe de retirada](retirada-google-places-20261027.md).
 
 ### Auditoria territorial i disseny objectiu europeu — Fase IV, Iteració 6
 

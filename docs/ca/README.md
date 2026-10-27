@@ -1,6 +1,6 @@
 # Documentació de PetiLoc — índex i estat actual
 
-**Tall documental:** 25.10.2026  
+**Tall documental:** 27.10.2026
 **Document canònic de navegació:** aquest índex  
 **Roadmap global:** [Fases del projecte](../project-phases.md)  
 **Diagnòstic de la reorganització:** [Auditoria documental](auditoria-documental-20261025.md)
@@ -26,7 +26,7 @@ Aquest document separa l'estat actual de l'històric. L'ordre de prevalença és
 | III | — | — | Backend real i persistència | TANCAT | [Roadmap global](../project-phases.md#fase-iii--backend-real-i-persistència-fet) | Cap dins l'abast original | històric |
 | IV | 1–5 | Identitat | Activació, recuperació, TOTP i OAuth | EN DESENVOLUPAMENT | [Autenticació](auth-ca.md), [gate funcional](funcional-ca.md#318-criteri-oficial-de-tancament-funcional-de-fase-iv) | Punts 16–21 i regressió final; LinkedIn descartat | 18.09.2026 |
 | IV | 6 | Fases internes I–IX | Gestió territorial europea | IMPLEMENTAT — PENDENT DE VERIFICACIÓ | [Tancament territorial](iteracio-6-fase-ix-tancament-ca.md) | Verificació de coherència actual; no reconstruir | 12.10.2026 |
-| IV | 7 | Fases internes 0–VI | Catàleg Places, governança i UX | IMPLEMENTAT — PENDENT DE VERIFICACIÓ | [Roadmap Places](iteracio-7-roadmap-places-obertes-ca.md), [correcció integral](iteracio-7-depuracio-enriquiment-cataleg-espanyol-20261024.md) | Revalidació final, retirada tècnica de Google Places i gate de Fase VII | 25.10.2026 |
+| IV | 7 | Fases internes 0–VI | Catàleg Places, governança i UX | IMPLEMENTAT — PENDENT DE VERIFICACIÓ | [Roadmap Places](iteracio-7-roadmap-places-obertes-ca.md), [retirada Google Places](retirada-google-places-20261027.md) | Revalidació final i gate de Fase VII; columnes històriques pendents d'una migració futura autoritzada | 27.10.2026 |
 | IV | 8 | — | Sense abast aprovat | NO INICIAT | [Roadmap global](../project-phases.md#què-sha-fet-en-aquest-tram-de-la-fase-iv) | Definir abast només amb decisió explícita | 25.10.2026 |
 | V | — | — | Internacionalització | NO INICIAT | [Roadmap global](../project-phases.md#fase-v--internacionalització-pendent) | Estratègia i execució i18n | 25.10.2026 |
 | VI | — | — | Poliment i desplegament | NO INICIAT | [Roadmap global](../project-phases.md#fase-vi--poliment-i-desplegament-pendent) | Responsive final, rendiment, QA, desplegament i observabilitat | 25.10.2026 |
@@ -43,7 +43,7 @@ La **Fase IV global continua oberta**. Les fases internes de les iteracions 6 i 
 | 4 | Google OAuth real | Identitat federada Google segura | No documentades | TANCAT | Alta, vinculació, TOTP i logout | No confondre amb Google Places | [Gate funcional](funcional-ca.md#3184-bloc-a--identitat-i-seguretat) |
 | 5 | LinkedIn OAuth | Avaluar un segon proveïdor federat | No documentades | DESCARTAT | Infraestructura compartida preservada; adaptador retirat | No reintroduir | [Roadmap global](../project-phases.md#roadmap-de-proveïdors-didentitat) |
 | 6 | Gestió territorial europea | Catàleg territorial propi d'Espanya i Alemanya | I–IX | IMPLEMENTAT — PENDENT DE VERIFICACIÓ | Model, fonts, importació, API, selector i retirada de `cities`/GeoNames runtime | Verificació actual dels punts 6–8 | [Contracte](iteracio-6-model-territorial-ca.md), [tancament](iteracio-6-fase-ix-tancament-ca.md) |
-| 7 | Catàleg propi de llocs amb fonts obertes | Places, fonts, pet-friendly, mapa, fotos, UX i ADMIN | 0–VI documentades; VII pendent | IMPLEMENTAT — PENDENT DE VERIFICACIÓ | Catàleg PostgreSQL, OSM/Geofabrik, governança, cerca i UX | Revalidació humana/E2E final i retirada tècnica Google Places | [Roadmap](iteracio-7-roadmap-places-obertes-ca.md), [informe actual](iteracio-7-depuracio-enriquiment-cataleg-espanyol-20261024.md) |
+| 7 | Catàleg propi de llocs amb fonts obertes | Places, fonts, pet-friendly, mapa, fotos, UX i ADMIN | 0–VI documentades; VII pendent | IMPLEMENTAT — PENDENT DE VERIFICACIÓ | Catàleg PostgreSQL, OSM/Geofabrik, governança, cerca i UX; integració activa Google Places retirada | Revalidació humana/E2E final | [Roadmap](iteracio-7-roadmap-places-obertes-ca.md), [retirada Google Places](retirada-google-places-20261027.md) |
 | 8 | No documentat | No hi ha abast aprovat | Cap | NO INICIAT | Res | Decisió de producte | [Roadmap global](../project-phases.md) |
 
 ## Gate funcional de Fase IV — 21 punts
@@ -60,7 +60,7 @@ La taula següent conserva separats l'**estat acordat** i l'**estat acreditat**.
 | 6 | Gestió territorial europea | IMPLEMENTAT — VERIFICACIÓ | Implementació i tancament històric acreditats; verificació actual no executada | `Application/TerritorialImports`, `Infrastructure/TerritorialImports` | [Fase IX](iteracio-6-fase-ix-tancament-ca.md), 12.10.2026 | Verificació de coherència actual |
 | 7 | API territorial pròpia | IMPLEMENTAT — VERIFICACIÓ | Implementada; verificació actual no executada | `TerritorialLocationEndpoints.cs`, `TerritorialCountryQuery.cs` | `TerritorialPhase6PostgreSqlTests.cs`; [Fase IX](iteracio-6-fase-ix-tancament-ca.md) | Verificar consumidors de lectura |
 | 8 | Selector territorial compartit | IMPLEMENTAT — VERIFICACIÓ | Implementat; `countries` es conserva i `cities`/GeoNames runtime consten retirats | `territorial-location-selector`, `territorial-location.service.ts` | Proves del component; [Fase IX](iteracio-6-fase-ix-tancament-ca.md) | Verificar totes les pantalles |
-| 9 | Catàleg propi de Places | IMPLEMENTAT — RETIRADA TÈCNICA PENDENT | Catàleg propi acreditat. Google Places està bloquejat en runtime, però el codi heretat continua present | `Domain/Places`, `Infrastructure/Places`, `Infrastructure/GooglePlaces` | `GooglePlacesDisabledTests.cs`; [Fases IV–VI](iteracio-7-roadmap-places-obertes-ca.md), 25.10.2026 | Inventariar i retirar codi Search/Details/Photos amb ordre posterior |
+| 9 | Catàleg propi de Places | IMPLEMENTAT — REVALIDACIÓ | Catàleg propi acreditat i integració activa Google Places retirada; només roman compatibilitat històrica inert | `Domain/Places`, `Infrastructure/Places` | `GooglePlacesRemovalTests.cs`; [informe de retirada](retirada-google-places-20261027.md), 27.10.2026 | Revalidació final; retirada de columnes només amb migració i autorització noves |
 | 10 | Governança pet-friendly | IMPLEMENTAT — VERIFICACIÓ | Implementada; validació final actual no executada | `PetFriendlyGovernance.cs`, `PetGovernanceApplicationService.cs` | `PetGovernanceWorkflowTests.cs`; [Fase III](iteracio-7-fase-iii-governanca-pet-friendly-ca.md), 13.10.2026 | Verificar dades, ADMIN i buits reals |
 | 11 | Bars i pubs | IMPLEMENTAT — VERIFICACIÓ | Classificador corregit; falsos positius requereixen revalidació i Agbar pot requerir actualització autoritzada de dades | `PlaceCommercialClassification.cs`, `PlacePublicVisibilityQuery.cs` | `PlaceCoverageCorrectionTests.cs`; [correcció integral](iteracio-7-depuracio-enriquiment-cataleg-espanyol-20261024.md), 24.10.2026 | Verificar catàleg real; no escriure PostgreSQL sense autorització |
 | 12 | Administració de llocs | IMPLEMENTAT — VERIFICACIÓ | Implementació significativa acreditada; publicació de propostes condicionada a revisió ADMIN | `PlaceApplicationService.cs`, components `features/admin` | `admin-place-scenarios.ts`; [Fase VI](iteracio-7-fase-vi-cercador-mapa-ux-ca.md) | Revalidar CRUD, permisos, procedència, fotos i proposta amb contacte/privacitat |
@@ -93,6 +93,8 @@ L'antic punt 14 queda absorbit pel punt 13 i l'antic punt 21, dedicat als SKIP E
 - [Integració frontend/API](frontend-api-integration-ca.md)
 - [Persistència EF](ef-persistence-ca.md), [model de base de dades](database-model-ca.md) i [esquema](bbdd-esquema-ca.md)
 - [Mapatge de repositoris](mapping-repositories-ca.md), [necessitats de persistència](persistence-needs-ca.md) i [stack Docker](docker-stack-ca.md)
+- [Gestió de secrets i credencials](gestio-secrets-ca.md)
+- [Retirada segura de Google Places](retirada-google-places-20261027.md)
 - [ADR de Places](adr/ADR-001-places-ports-pipeline-ca.md)
 
 ### Fases, iteracions, dades i governança
@@ -120,5 +122,5 @@ L'antic punt 14 queda absorbit pel punt 13 i l'antic punt 21, dedicat als SKIP E
 2. Aquest índex governa la navegació i l'estat consolidat.
 3. Els documents funcionals/tècnics descriuen el contracte vigent; els informes d'iteració acrediten un tall concret.
 4. Les proves només es declaren PASS quan hi ha execució identificable; una prova històrica no certifica automàticament el codi actual.
-5. Google OAuth es manté. Google Places és llegat bloquejat en runtime i pendent de retirada tècnica; Leaflet/OpenStreetMap es mantenen.
+5. Google OAuth es manté. La integració activa de Google Places està retirada; només es conserva procedència històrica inert. Leaflet/OpenStreetMap es mantenen.
 6. `countries` es conserva; `cities` i GeoNames runtime consten retirats.

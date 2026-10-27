@@ -39,7 +39,7 @@ public sealed class Place : AggregateRoot<Guid>
         PetPolicy = petPolicy;
         Pricing = pricing;
         Rating = rating;
-        SetDataProvenance(dataProvenance, googlePlaceId, googleCoordinatesCachedUntil, lastGoogleSyncAt);
+        RestoreHistoricalDataProvenance(dataProvenance, googlePlaceId, googleCoordinatesCachedUntil, lastGoogleSyncAt);
         ExcludeFromOsmMap = excludeFromOsmMap;
         ManualFields = manualFields;
         SetTerritorialLocation(territorialCountryId, territorialUnitId);
@@ -73,12 +73,12 @@ public sealed class Place : AggregateRoot<Guid>
     public PlaceDataProvenance DataProvenance { get; private set; } = PlaceDataProvenance.Internal;
 
     /// <summary>
-    /// Google Places <c>place_id</c> for this record. Keep it stored so Places Details can refresh coordinates after the cache window.
+    /// Identificador històric de Google Places. Es conserva només per traçabilitat i no activa cap integració.
     /// </summary>
     public string? GooglePlaceId { get; private set; }
 
     /// <summary>
-    /// Upper bound for caching Google-sourced coordinates; past this instant, refresh coordinates via Places API using <see cref="GooglePlaceId"/>.
+    /// Data històrica de caducitat de les coordenades atribuïdes a Google Places.
     /// </summary>
     public DateTimeOffset? GoogleCoordinatesCachedUntil { get; private set; }
 
@@ -135,7 +135,7 @@ public sealed class Place : AggregateRoot<Guid>
 
     public void SetCoverImage(string coverImageUrl)
     {
-        // Google Places cache rows may not include a photo URL yet.
+        // Imported and historical rows may not include a photo URL.
         CoverImageUrl = string.IsNullOrWhiteSpace(coverImageUrl) ? string.Empty : coverImageUrl.Trim();
     }
 
@@ -172,7 +172,7 @@ public sealed class Place : AggregateRoot<Guid>
         _features.AddRange(NormalizeLabels(features));
     }
 
-    public void SetDataProvenance(
+    private void RestoreHistoricalDataProvenance(
         PlaceDataProvenance dataProvenance,
         string? googlePlaceId,
         DateTimeOffset? googleCoordinatesCachedUntil,

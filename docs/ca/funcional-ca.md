@@ -2012,22 +2012,22 @@ Rutes internes actuals:
 
 ## 12. Política de contingut extern
 
-> **Decisió posterior — Iteració 7, Fase 0 (2026-10-12):** Google Places API deixa de formar part de l'arquitectura objectiu. Els apartats 12.1–12.5.1 conserven el contracte de la implementació heretada per poder auditar-la i retirar-la sense perdre requisits. No constitueixen una integració pendent de completar. El criteri vigent és el [roadmap de fonts obertes de la Iteració 7](iteracio-7-roadmap-places-obertes-ca.md).
+> **Decisió executada (27.10.2026):** Google Places API ha estat retirada del runtime. Els apartats 12.1–12.5.1 conserven exclusivament el contracte històric; no descriuen funcionalitats disponibles. Només romanen camps de procedència inerts fins a una futura migració autoritzada. [Informe de retirada](retirada-google-places-20261027.md).
 
 Per al bloc de llocs, es defineix aquesta regla funcional de compliment:
 
 - el **cataleg de producte** es basa en llocs persistits a `Zuppeto` (dades pròpies i regles de governança), amb suport extern quan calgui cobertura o enriquiment.
-- la implementació heretada pot consultar `Google Places`, però s'ha d'inventariar i retirar progressivament; cap funcionalitat nova n'ha d'ampliar la dependència.
+- PetiLoc no consulta `Google Places`; la cobertura i l'enriquiment provenen de fonts públiques governades.
 - `Google Search` es pot usar com a suport de context (snippets/enllaços), no com a font de veritat unica per al camp `pet friendly`.
 - qualsevol contingut de tercers es mostra subjecte als termes vigents del proveidor i amb atribucio quan sigui requerida.
 
 ### 12.1 Text base per a politica de privacitat (esborrany funcional)
 
-`Zuppeto` pot consultar APIs externes de Google (`Google Places` i, quan pertoqui, `Google Search`) per enriquir resultats de locals. Aquestes consultes es fan amb finalitat de descoberta i millora de qualitat del cataleg, aplicant minimitzacio de dades i sense enviar mes dades personals de les estrictament necessaries per al servei.
+`Zuppeto` no consulta Google Places per descobrir ni enriquir locals. Les dades externes del catàleg provenen de fonts públiques governades, amb minimització, traçabilitat i condicions de reutilització verificades.
 
 ### 12.2 Text base per a avis legal / copyright (esborrany funcional)
 
-Part de la informacio de fitxa i del contingut visual dels locals pot provenir de serveis de Google. Aquest contingut es mostra d'acord amb els termes de `Google Maps Platform` i/o dels serveis de cerca aplicables, incloent atribucio quan sigui obligatoria. `Zuppeto` mantindra mecanismes de revisio i retirada de contingut davant reclamacions justificades de drets.
+Alguns registres antics poden conservar metadades de procedència Google com a evidència històrica, sense noves consultes ni sincronitzacions. El contingut visual publicable segueix el pipeline governat de fonts, llicències, revisió i retirada.
 
 ### 12.3 Regles funcionals per a imatges de locals
 

@@ -2,6 +2,12 @@
 
 > **Governança del backlog (25.10.2026):** aquest fitxer conserva idees, incidències i decisions cronològiques, incloses entrades ja resoltes o substituïdes. No és la font canònica de l'estat del projecte. L'[índex mestre](README.md) i els roadmaps d'iteració prevalen; cap entrada antiga reactiva Google Places, GeoNames, `cities` o funcionalitats descartades.
 
+## 2026-10-27 — Retirada de Google Places
+
+**Estat:** integració activa retirada; compatibilitat històrica inert conservada. **FET dins l'abast autoritzat.**
+
+Clients, adaptadors, endpoint extern, fallback, sincronització, cues, workers, retenció, opcions, configuració Docker i controls ADMIN d'escriptura han estat retirats. Les columnes i procedències històriques es mantenen només en lectura. La seva eliminació física continua pendent d'una migració específica i d'autorització expressa. [Informe](retirada-google-places-20261027.md).
+
 ## 2026-10-25 — Revalidació final de «Llocs» i del detall
 
 **Estat:** implementació i gates tècnics PASS; validació humana i E2E final pendents.

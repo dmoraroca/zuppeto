@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import { PilotChromeLauncher } from '../infrastructure/playwright/pilot-chrome-launcher.js';
+import { requiredEnvironment } from '../infrastructure/config/required-environment.js';
 
 const webBaseUrl = process.env.E2E_BASE_URL ?? 'http://127.0.0.1:4200';
 const apiBaseUrl = process.env.E2E_API_URL ?? 'http://127.0.0.1:5211';
 const adminEmail = process.env.E2E_ADMIN_EMAIL ?? 'admin@admin.adm';
-const adminPassword = process.env.E2E_ADMIN_PASSWORD ?? 'Admin123';
+const adminPassword = requiredEnvironment('E2E_ADMIN_PASSWORD');
 const externalRequests: string[] = [];
 
 void run().catch((error: unknown) => {

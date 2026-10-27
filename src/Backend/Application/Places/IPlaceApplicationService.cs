@@ -14,10 +14,6 @@ public interface IPlaceApplicationService
         int limit = 20,
         CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyCollection<PlaceExternalCandidateDto>> SearchExternalPreviewAsync(
-        PlaceExternalSearchRequest request,
-        CancellationToken cancellationToken = default);
-
     Task<IReadOnlyCollection<PlaceCitySuggestionDto>> GetAvailableCitiesAsync(CancellationToken cancellationToken = default);
 
     Task<IReadOnlyCollection<PlaceCitySuggestionDto>> SearchAvailableCitiesAsync(

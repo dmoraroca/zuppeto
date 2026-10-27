@@ -6,7 +6,7 @@ public sealed class Pricing : ValueObject
 {
     public Pricing(string displayLabel)
     {
-        // Optional: Google Places rows often have no product price copy.
+        // Optional: imported and historical rows may not have product price copy.
         DisplayLabel = string.IsNullOrWhiteSpace(displayLabel) ? string.Empty : displayLabel.Trim();
     }
 

@@ -48,7 +48,7 @@ internal sealed class PlaceResponseMapper(IPlaceCoverStorage coverStorage, Place
             visit.Hours,
             visit.Phone,
             visit.Website,
-            PlaceGoogleHighlights.CategoryLabel(place.Features, CommercialCategoryLabels.From(place.CommercialCategory, place.Type)),
+            PlaceFeatureCategoryResolver.Resolve(place.Features, CommercialCategoryLabels.From(place.CommercialCategory, place.Type)),
             primaryMedia?.Attribution ?? attribution?.AuthorName,
             primaryMedia?.EvidenceUri?.ToString() ?? attribution?.SourceUri,
             place.TerritorialCountryId,

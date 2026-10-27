@@ -24,7 +24,7 @@ public sealed class PostalAddress : ValueObject
         Line1 = line1.Trim();
         City = city.Trim();
         Country = country.Trim();
-        // Neighborhood is optional (Google Places often omits it).
+        // Neighborhood is optional because not every catalog source provides it.
         Neighborhood = string.IsNullOrWhiteSpace(neighborhood) ? string.Empty : neighborhood.Trim();
     }
 

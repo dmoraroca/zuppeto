@@ -8,7 +8,6 @@ using Zuppeto.Application.Users;
 using Zuppeto.Application.Places;
 using Zuppeto.Domain.Abstractions;
 using Zuppeto.Infrastructure.Auth;
-using Zuppeto.Infrastructure.GooglePlaces;
 using Zuppeto.Infrastructure.Places.Wikidata;
 using Zuppeto.Infrastructure.Persistence;
 using Zuppeto.Infrastructure.Persistence.Repositories;
@@ -22,6 +21,7 @@ using Zuppeto.Infrastructure.Places.Mapillary;
 using Zuppeto.Infrastructure.Places.MunicipalOpenData;
 using Zuppeto.Infrastructure.Places.OvertureMaps;
 using Zuppeto.Infrastructure.Places.PublicAdministration;
+using Zuppeto.Infrastructure.Perplexity;
 
 namespace Zuppeto.Infrastructure;
 
@@ -32,47 +32,18 @@ public static class DependencyInjection
         IConfiguration configuration,
         IHostEnvironment hostEnvironment)
     {
-        var connectionString = configuration.GetConnectionString("Zuppeto")
-            ?? "Host=localhost;Port=5433;Database=zuppeto;Username=app;Password=app";
-        var expiresInMinutes = int.TryParse(configuration["Auth:Jwt:ExpiresInMinutes"], out var parsedExpiresInMinutes)
-            ? parsedExpiresInMinutes
-            : 480;
-        var authOptions = new AuthOptions
+        var connectionString = configuration.GetConnectionString("Zuppeto");
+        if (string.IsNullOrWhiteSpace(connectionString))
         {
-            FrontendBaseUrl = configuration["Auth:FrontendBaseUrl"] ?? "http://localhost:4200",
-            Jwt = new AuthOptions.JwtOptions
-            {
-                Issuer = configuration["Auth:Jwt:Issuer"] ?? "Zuppeto",
-                Audience = configuration["Auth:Jwt:Audience"] ?? "Zuppeto.Web",
-                SigningKey = configuration["Auth:Jwt:SigningKey"]
-                    ?? "dev-only-zuppeto-signing-key-change-in-production-123456789",
-                ExpiresInMinutes = expiresInMinutes
-            },
-            Google = new AuthOptions.GoogleOptions
-            {
-                ClientId = configuration["Auth:Google:ClientId"] ?? string.Empty,
-                AdminEmails = configuration.GetSection("Auth:Google:AdminEmails")
-                    .GetChildren()
-                    .Select(section => section.Value)
-                    .Where(value => !string.IsNullOrWhiteSpace(value))
-                    .Select(value => value!)
-                    .ToArray()
-            },
-            Facebook = new AuthOptions.FacebookOptions
-            {
-                AppId = configuration["Auth:Facebook:AppId"] ?? string.Empty,
-                AppSecret = configuration["Auth:Facebook:AppSecret"] ?? string.Empty,
-                RedirectUri = configuration["Auth:Facebook:RedirectUri"] ?? string.Empty,
-                AdminEmails = configuration.GetSection("Auth:Facebook:AdminEmails")
-                    .GetChildren()
-                    .Select(section => section.Value)
-                    .Where(value => !string.IsNullOrWhiteSpace(value))
-                    .Select(value => value!)
-                    .ToArray()
-            }
-        };
+            throw new InvalidOperationException(
+                "Falta ConnectionStrings:Zuppeto. Configura la connexió fora de Git.");
+        }
+
+        var authOptions = AuthOptionsFactory.Create(configuration);
 
         services.AddSingleton(Options.Create(authOptions));
+        services.Configure<DevelopmentIdentitySeedOptions>(
+            configuration.GetSection(DevelopmentIdentitySeedOptions.SectionName));
         services.AddRabbitMq(configuration);
         services.Configure<AccountActivationOptions>(configuration.GetSection(AccountActivationOptions.SectionName));
         services.AddSingleton<DevelopmentActivationInbox>();
@@ -90,9 +61,6 @@ public static class DependencyInjection
         }
         services.AddMemoryCache();
         services.AddDataProtection();
-        services.Configure<GooglePlacesOptions>(configuration.GetSection(GooglePlacesOptions.SectionName));
-        services.Configure<GooglePlacesComplianceOptions>(
-            configuration.GetSection(GooglePlacesComplianceOptions.SectionName));
         services.Configure<OverpassOptions>(configuration.GetSection(OverpassOptions.SectionName));
         services.Configure<GeofabrikExtractOptions>(configuration.GetSection(GeofabrikExtractOptions.SectionName));
         services.Configure<OsmDirectMapOptions>(configuration.GetSection(OsmDirectMapOptions.SectionName));
@@ -108,10 +76,10 @@ public static class DependencyInjection
         services.AddOptions<MapillaryOptions>()
             .Bind(configuration.GetSection(MapillaryOptions.SectionName))
             .ValidateOnStart();
-        services.AddHostedService<GooglePlacesComplianceRetentionHostedService>();
-        services.AddSingleton<PlaceCoverEnrichmentQueue>();
-        services.AddSingleton<IPlaceCoverEnrichmentQueue>(sp => sp.GetRequiredService<PlaceCoverEnrichmentQueue>());
-        services.AddHostedService<PlaceCoverEnrichmentHostedService>();
+        services.AddSingleton<IConfigureOptions<PerplexityOptions>, PerplexityOptionsSetup>();
+        services.AddSingleton<IValidateOptions<PerplexityOptions>, PerplexityOptionsValidator>();
+        services.AddOptions<PerplexityOptions>()
+            .ValidateOnStart();
         services.AddDbContext<ZuppetoDbContext>((sp, options) =>
         {
             options.UseNpgsql(connectionString);
@@ -125,21 +93,10 @@ public static class DependencyInjection
                 }
             }
         });
-        services.AddHttpClient<IFacebookOAuthClient, FacebookOAuthClient>();
-        services.AddHttpClient<GooglePlacesApiClient>((sp, client) =>
-        {
-            var placesOptions = sp.GetRequiredService<IOptions<GooglePlacesOptions>>().Value;
-            client.BaseAddress = new Uri(placesOptions.BaseUrl);
-            client.Timeout = TimeSpan.FromSeconds(Math.Max(20, placesOptions.TimeoutSeconds));
-        })
-        .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
-        {
-            AllowAutoRedirect = true,
-            MaxAutomaticRedirections = 5
-        });
-        services.AddScoped<IExternalPlaceSuggestionProvider, GooglePlacesSearchAdapter>();
-        services.AddScoped<IExternalPlaceDetailsProvider, GooglePlacesDetailsAdapter>();
-        services.AddScoped<IExternalPlacePhotoProvider, GooglePlacesPhotoAdapter>();
+        // Facebook encara exigeix credencials al query string en aquests endpoints.
+        // Desactivem els loggers HTTP per impedir que la URL sensible arribi als logs.
+        services.AddHttpClient<IFacebookOAuthClient, FacebookOAuthClient>()
+            .RemoveAllLoggers();
         services.AddHttpClient<IPlaceWebsitePageReader, HttpPlaceWebsitePageReader>(client =>
         {
             client.Timeout = TimeSpan.FromSeconds(8);
@@ -267,7 +224,6 @@ public static class DependencyInjection
         services.AddScoped<IFavoriteListRepository, FavoriteListRepository>();
         services.AddScoped<IPlaceReviewRepository, PlaceReviewRepository>();
         services.AddScoped<IPlaceSearchQueryRepository, PlaceSearchQueryRepository>();
-        services.AddScoped<IPlaceCacheRetentionService, PlaceCacheRetentionService>();
         services.AddScoped<IGeographicCatalogRepository, GeographicCatalogRepository>();
         services.AddScoped<IRoleCatalogRepository, RoleCatalogRepository>();
         services.AddSingleton<ITerritorialWorkbookReader, XlsxTerritorialReader>();

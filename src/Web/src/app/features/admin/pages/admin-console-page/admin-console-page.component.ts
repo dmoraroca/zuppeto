@@ -353,7 +353,6 @@ export class AdminConsolePageComponent {
     }
     return { value: current, label: current };
   });
-  protected readonly placeDataProvenanceSelectValues = ['', 'Internal', 'GooglePlaces', 'Mixed'] as const;
 
   constructor() {
     merge(of<void>(undefined), this.router.events.pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd)))
@@ -2442,17 +2441,6 @@ export class AdminConsolePageComponent {
     const reviewCount = Number.parseInt(place.reviewCount, 10);
     if (!Number.isFinite(reviewCount) || reviewCount < 0) return 'El nombre de ressenyes no pot ser negatiu.';
 
-    const dp = place.dataProvenance?.trim() ?? '';
-    const gid = place.googlePlaceId?.trim() ?? '';
-    if (!this.placeIsNew()) {
-      if (gid && dp !== 'GooglePlaces' && dp !== 'Mixed') {
-        return 'Si hi ha Google Place ID, cal triar procedència «GooglePlaces» o «Mixed».';
-      }
-      if ((dp === 'GooglePlaces' || dp === 'Mixed') && !gid) {
-        return 'Amb procedència Google Places o mixta cal omplir el Google Place ID.';
-      }
-    }
-
     return null;
   }
 
@@ -2531,50 +2519,7 @@ export class AdminConsolePageComponent {
       features: this.splitCsv(place.features)
     };
 
-    this.applyGoogleLinkageToUpsertPayload(place, payload);
     return payload;
-  }
-
-  /**
-   * Mirrors backend rules: omit keys to preserve existing Google metadata on update;
-   * send `Internal` to clear linkage; send GooglePlaces/Mixed + place id to set or refresh link.
-   */
-  private applyGoogleLinkageToUpsertPayload(
-    draft: { dataProvenance: string; googlePlaceId: string },
-    payload: AdminPlaceUpsertRequest
-  ): void {
-    const dp = draft.dataProvenance?.trim() ?? '';
-    const gid = draft.googlePlaceId?.trim() ?? '';
-
-    if (!payload.id || !gid) {
-      payload.dataProvenance = 'Internal';
-      return;
-    }
-
-    if (dp === 'Internal') {
-      payload.dataProvenance = 'Internal';
-      return;
-    }
-
-    if (dp === 'GooglePlaces' || dp === 'Mixed') {
-      payload.dataProvenance = dp;
-      payload.googlePlaceId = gid;
-    }
-  }
-
-  protected googleProvenanceOptionLabel(value: string): string {
-    switch (value) {
-      case '':
-        return 'Sense canvi (nou: catàleg intern; edició: manté vincle Google si existeix)';
-      case 'Internal':
-        return 'Intern — elimina vincle Google';
-      case 'GooglePlaces':
-        return 'Google Places';
-      case 'Mixed':
-        return 'Mixt (intern + Google)';
-      default:
-        return value || '—';
-    }
   }
 
   private async loadGeographicCountries(): Promise<void> {

@@ -1,0 +1,10 @@
+title = "PetiLoc secret scanning"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "perplexity-api-key"
+description = "Perplexity API key"
+regex = '''pplx-[A-Za-z0-9_-]{20,}'''
+keywords = ["pplx-"]

@@ -159,7 +159,7 @@ public sealed class DibaMunicipalPlaceDiscoveryTests(ITestOutputHelper output)
     {
         if (!string.Equals(Environment.GetEnvironmentVariable("ZUPPETO_DIBA_REAL"), "true", StringComparison.OrdinalIgnoreCase)) return;
         var connectionString = Environment.GetEnvironmentVariable("ZUPPETO_DIBA_CONNECTION")
-            ?? "Host=localhost;Port=5433;Database=zuppeto;Username=app;Password=app";
+            ?? throw new InvalidOperationException("Falta ZUPPETO_DIBA_CONNECTION per a la prova real opt-in.");
         var dbOptions = new DbContextOptionsBuilder<ZuppetoDbContext>().UseNpgsql(connectionString).Options;
         await using var db = new ZuppetoDbContext(dbOptions);
         await db.Database.OpenConnectionAsync();
@@ -221,7 +221,7 @@ public sealed class DibaMunicipalPlaceDiscoveryTests(ITestOutputHelper output)
     {
         if (!string.Equals(Environment.GetEnvironmentVariable("ZUPPETO_DIBA_REAL"), "true", StringComparison.OrdinalIgnoreCase)) return;
         var connectionString = Environment.GetEnvironmentVariable("ZUPPETO_DIBA_CONNECTION")
-            ?? "Host=localhost;Port=5433;Database=zuppeto;Username=app;Password=app";
+            ?? throw new InvalidOperationException("Falta ZUPPETO_DIBA_CONNECTION per a la prova real opt-in.");
         var dbOptions = new DbContextOptionsBuilder<ZuppetoDbContext>().UseNpgsql(connectionString).Options;
         await using var db = new ZuppetoDbContext(dbOptions);
         await db.Database.OpenConnectionAsync();

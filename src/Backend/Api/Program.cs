@@ -2,7 +2,6 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Reflection;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
@@ -19,6 +18,7 @@ using Zuppeto.Domain.Abstractions;
 using System.Security.Claims;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
+using Zuppeto.Api.Startup;
 
 /// <summary>Carpeta <c>logs</c> al costat de <c>Api.csproj</c> (no depèn del ContentRoot).</summary>
 static string ApiProjectLogsDirectory()
@@ -91,6 +91,7 @@ builder.Host.UseSerilog((context, services, loggerConfiguration) =>
 
     loggerConfiguration
         .Enrich.FromLogContext()
+        .Enrich.With<SensitiveLogPropertyEnricher>()
         .Enrich.WithProperty("Application", "Zuppeto.Api")
         .Enrich.WithProperty("Environment", context.HostingEnvironment.EnvironmentName);
 
@@ -125,13 +126,11 @@ builder.Host.UseSerilog((context, services, loggerConfiguration) =>
             outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {SourceContext}: {Message:lj} {Properties:j}{NewLine}{Exception}");
 });
 
-builder.Services.Configure<PlaceExternalIntegrationOptions>(
-    builder.Configuration.GetSection(PlaceExternalIntegrationOptions.SectionName));
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration, builder.Environment);
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddProblemDetails();
-var authOptions = builder.Configuration.GetSection(AuthOptions.SectionName).Get<AuthOptions>() ?? new AuthOptions();
+var authOptions = AuthOptionsFactory.Create(builder.Configuration);
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -178,7 +177,7 @@ builder.Services
             },
             OnAuthenticationFailed = context =>
             {
-                Log.Warning(context.Exception, "JWT: autenticació fallida");
+                Log.Warning("JWT: autenticació fallida ({ExceptionType})", context.Exception.GetType().Name);
                 return Task.CompletedTask;
             }
         };
@@ -224,6 +223,14 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+var databaseMaintenanceMode = DatabaseMaintenanceRequest.Parse(args);
+if (databaseMaintenanceMode != DatabaseMaintenanceMode.None)
+{
+    await DatabaseMaintenanceCommand.RunAsync(databaseMaintenanceMode, app.Services);
+    Log.CloseAndFlush();
+    return;
+}
+
 var apiLogsPath = ApiProjectLogsDirectory();
 var fileLogsActive = app.Environment.IsDevelopment()
     || app.Configuration.GetValue("Zuppeto:WriteLogsToFile", false)
@@ -255,31 +262,6 @@ app.UseSerilogRequestLogging(options =>
         diagnosticContext.Set("ContentLength", httpContext.Request.ContentLength ?? 0L);
     };
 });
-
-await using (var scope = app.Services.CreateAsyncScope())
-{
-    var autoMigrate =
-        app.Environment.IsDevelopment()
-        || string.Equals(
-            Environment.GetEnvironmentVariable("ZUPPETO_AUTO_MIGRATE"),
-            "true",
-            StringComparison.OrdinalIgnoreCase);
-
-    if (autoMigrate)
-    {
-        var db = scope.ServiceProvider.GetRequiredService<ZuppetoDbContext>();
-        await db.Database.MigrateAsync();
-    }
-
-    var seeder = scope.ServiceProvider.GetRequiredService<DevelopmentIdentitySeeder>();
-    await seeder.SeedAsync();
-
-    var placesSeeder = scope.ServiceProvider.GetRequiredService<DevelopmentPlacesSeeder>();
-    await placesSeeder.SeedAsync();
-
-    var territorialPilotSeeder = scope.ServiceProvider.GetRequiredService<TerritorialPilotConfigurationSeeder>();
-    await territorialPilotSeeder.SeedAsync();
-}
 
 app.UseExceptionHandler();
 app.UseCors("web");

@@ -17,7 +17,6 @@ internal static class PlaceEndpoints
 
         group.MapGet("/", SearchAsync).AllowAnonymous();
         group.MapGet("/searches/recent", GetRecentSearchesAsync);
-        group.MapGet("/external/search", SearchExternalPlacesPreviewAsync);
         group.MapGet("/cities/search", SearchAvailableCitiesAsync)
             .AllowAnonymous()
             .WithName("SearchAvailablePlaceCities")
@@ -121,17 +120,6 @@ internal static class PlaceEndpoints
         CancellationToken cancellationToken)
     {
         var result = await service.GetRecentSearchesAsync(limit ?? 20, cancellationToken);
-        return TypedResults.Ok(result);
-    }
-
-    private static async Task<Ok<IReadOnlyCollection<PlaceExternalCandidateDto>>> SearchExternalPlacesPreviewAsync(
-        [AsParameters] PlaceExternalSearchQuery query,
-        IPlaceApplicationService service,
-        CancellationToken cancellationToken)
-    {
-        var result = await service.SearchExternalPreviewAsync(
-            new PlaceExternalSearchRequest(query.Query, query.City, query.Type, query.Limit),
-            cancellationToken);
         return TypedResults.Ok(result);
     }
 
@@ -371,12 +359,6 @@ internal static class PlaceEndpoints
         decimal? South,
         decimal? East,
         decimal? West);
-
-    internal sealed record PlaceExternalSearchQuery(
-        string? Query,
-        string? City,
-        string? Type,
-        int? Limit);
 
     private static IReadOnlyCollection<string>? Split(string? values) =>
         string.IsNullOrWhiteSpace(values)

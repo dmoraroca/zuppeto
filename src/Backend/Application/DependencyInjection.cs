@@ -33,13 +33,8 @@ public static class DependencyInjection
         services.AddScoped<IAdminApplicationService, AdminApplicationService>();
         services.AddScoped<IGeographicAdminAppService, GeographicAdminAppService>();
         services.AddScoped<INavigationApplicationService, NavigationApplicationService>();
-        services.AddScoped<PlaceCoverPhotoStore>();
         services.AddScoped<PlaceResponseMapper>();
         services.AddScoped<PlaceSearchPageAssembler>();
-        services.AddScoped<PlaceExternalSearchImporter>();
-        services.AddSingleton<PlaceExternalDataMergePolicy>();
-        services.AddScoped<IPlaceExternalDataSynchronizer, PlaceExternalDataSynchronizer>();
-        services.AddSingleton<IExternalPlaceCallPolicy, DisabledExternalPlaceCallsPolicy>();
         services.AddScoped<IPlaceApplicationService, PlaceApplicationService>();
         services.AddScoped<IPlaceMediaApplicationService, PlaceMediaApplicationService>();
         services.AddScoped<IMissingPlaceProposalService, MissingPlaceProposalService>();

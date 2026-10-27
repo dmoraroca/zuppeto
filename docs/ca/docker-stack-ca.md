@@ -39,6 +39,14 @@ Resum del diagrama:
 
 ## Arrencada
 
+La primera vegada, o després d'una rotació, cal preparar els secrets locals sense copiar credencials versionades:
+
+```bash
+scripts/configure-docker-secrets.sh
+```
+
+Després:
+
 ```bash
 docker compose up -d --build
 ```
@@ -46,12 +54,13 @@ docker compose up -d --build
 ## Notes
 
 - l'API espera que `db` i `rabbitmq` estiguin saludables abans d'arrencar quan la stack s'aixeca completa
-- `RabbitMQ`: usuari i contrasenya per defecte del contenidor coincideixen amb `guest` / `guest` si no es sobreescriuen amb `RABBITMQ_USER` i `RABBITMQ_PASSWORD`
+- `RabbitMQ`: l'usuari pot conservar el valor local configurat, però `RABBITMQ_PASSWORD` és obligatori i no té fallback versionat
 - la UI de gestió de cues es pot obrir a `http://localhost:15672` quan el servei està en marxa
-- l'API executa `dotnet ef database update` a l'inici
+- l'API no aplica migracions ni seeders durant l'arrencada ordinària; `scripts/database-maintenance.sh` exigeix autorització explícita i una ordre concreta
 - l'API arrenca des de `src/Backend/Api` perquè el `content root` carregui correctament `appsettings.Development.json`
 - la web conserva hot reload i watch amb polling dins del contenidor
-- el `design-time DbContextFactory` ja respecta `__ConnectionStrings_Zuppeto__`, de manera que `dotnet ef` funciona igual en host i en Docker
+- el `design-time DbContextFactory` exigeix `ConnectionStrings__Zuppeto` o `ZUPPETO_DB_CONNECTION_STRING` i no incorpora cap contrasenya per defecte
+- JWT, PostgreSQL i RabbitMQ fallen de forma explícita si falta configuració segura; vegeu [Gestió de secrets](gestio-secrets-ca.md)
 
 ## Run and Debug a VS Code
 

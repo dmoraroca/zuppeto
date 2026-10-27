@@ -240,7 +240,7 @@ public sealed class OvertureMapsPlaceDiscoveryTests(ITestOutputHelper output)
         Assert.Equal(640, discovery.Value!.Metrics!.SourceRecords);
 
         var connectionString = Environment.GetEnvironmentVariable("ZUPPETO_OVERTURE_CONNECTION")
-            ?? "Host=localhost;Port=5433;Database=zuppeto;Username=app;Password=app";
+            ?? throw new InvalidOperationException("Falta ZUPPETO_OVERTURE_CONNECTION per a la prova real opt-in.");
         var dbOptions = new DbContextOptionsBuilder<ZuppetoDbContext>().UseNpgsql(connectionString).Options;
         await using var db = new ZuppetoDbContext(dbOptions);
         await db.Database.OpenConnectionAsync();
