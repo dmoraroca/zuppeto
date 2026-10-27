@@ -11,6 +11,7 @@
 **/*.p12
 **/*private*.pem
 **/*private*.key
+.secrets
 config/google
 config/facebook
 src/Backend/Api/logs

@@ -25,6 +25,23 @@ read_secret() {
   printf -v "$target_variable" '%s' "$value"
 }
 
+read_optional_secret() {
+  local prompt="$1"
+  local target_variable="$2"
+  local value
+  read -r -s -p "$prompt (opcional, Enter per ometre): " value
+  printf '\n'
+  if [[ "$value" == *$'\n'* || "$value" == *$'\r'* ]]; then
+    printf 'El valor de %s no pot contenir salts de línia.\n' "$prompt" >&2
+    exit 1
+  fi
+  if [[ -n "$value" && ! "$value" =~ ^[A-Za-z0-9._~!@%+=:,/-]+$ ]]; then
+    printf 'El valor de %s conté caràcters no segurs per al format .env.\n' "$prompt" >&2
+    exit 1
+  fi
+  printf -v "$target_variable" '%s' "$value"
+}
+
 set_env_value() {
   local key="$1"
   local value="$2"
@@ -57,8 +74,8 @@ fi
 printf 'No es copiarà cap credencial versionada. Introdueix valors locals vàlids i coordinats amb els volums existents.\n'
 read_secret 'Contrasenya local de PostgreSQL' postgres_password
 read_secret 'Contrasenya local de RabbitMQ' rabbit_password
-read_secret 'Contrasenya ADMIN del seeder explícit' seed_admin_password
-read_secret 'Contrasenya Developer del seeder explícit' seed_developer_password
+read_optional_secret 'Contrasenya ADMIN del seeder explícit' seed_admin_password
+read_optional_secret 'Contrasenya Developer del seeder explícit' seed_developer_password
 jwt_signing_key="$(openssl rand -base64 48)"
 
 temporary_file="$(mktemp "$repo_root/.env.tmp.XXXXXX")"

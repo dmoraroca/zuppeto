@@ -74,7 +74,7 @@ La construcció del domini pot restaurar aquests camps quan materialitza una fil
 
 ## Revocació manual de la clau antiga
 
-La revocació no es pot executar des del repositori ni identificar amb certesa el projecte Cloud sense consultar el compte del titular.
+La persona titular ha confirmat el 27.10.2026 que la clau antiga de Google Places ja ha estat revocada. Aquesta dada queda documentada com a confirmació administrativa; no s'ha comprovat accedint al compte de Google Cloud. El projecte associat no es pot identificar amb certesa des del repositori.
 
 1. Accedir a Google Cloud Console amb el compte propietari.
 2. Seleccionar cada projecte candidat i obrir **APIs & Services → Credentials**.
@@ -83,7 +83,7 @@ La revocació no es pot executar des del repositori ni identificar amb certesa e
 5. Revocar o eliminar la clau antiga i, si cap altre consumidor la necessita, desactivar Places API.
 6. Revisar mètriques, facturació i registres d'ús per confirmar que no hi ha trànsit posterior.
 
-No s'ha reescrit l'historial Git. Gitleaks continua actiu; la troballa històrica resta bloquejada fins que el titular confirmi la revocació.
+No s'ha reescrit l'historial Git. Gitleaks continua actiu i manté visible la troballa històrica encara que la credencial consti com a revocada; qualsevol tractament específic del detector requerirà una autorització separada.
 
 ## Pendent expressament separat
 

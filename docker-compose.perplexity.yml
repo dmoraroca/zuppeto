@@ -1,11 +1,11 @@
 services:
   api:
     environment:
-      Perplexity__Enabled: "true"
+      Perplexity__Enabled: "${PERPLEXITY_ENABLED:-false}"
       PERPLEXITY_API_KEY_FILE: /run/secrets/perplexity_api_key
     secrets:
       - perplexity_api_key
 
 secrets:
   perplexity_api_key:
-    environment: PERPLEXITY_API_KEY
+    file: ${PERPLEXITY_API_KEY_FILE_HOST:-./.secrets/perplexity_api_key}

@@ -11,7 +11,7 @@ La correcció de seguretat no modifica l'autenticació funcional, Places, Gesti�
 | Entorn | Mecanisme | Regles |
 | --- | --- | --- |
 | Desenvolupament .NET fora de Docker | .NET User Secrets de `src/Backend/Api/Api.csproj` | Valors fora del repositori i del directori de treball; configuració interactiva amb `scripts/configure-development-secrets.sh` |
-| Desenvolupament Docker | `.env` local ignorat, mode `600`; Docker Secret separat per a Perplexity | Configuració interactiva amb `scripts/configure-docker-secrets.sh`; cap fallback de contrasenya al Compose |
+| Desenvolupament Docker | `.env` local ignorat, mode `600`; Docker Secret separat per a Perplexity | Configuració interactiva amb `scripts/configure-docker-secrets.sh` i `scripts/configure-perplexity-secrets.sh`; cap fallback de contrasenya al Compose |
 | Proves locals/E2E | Variables d'entorn injectades pel runner | Les contrasenyes són obligatòries; no hi ha credencials per defecte als runners |
 | GitHub Actions | GitHub Actions Secrets | Els jobs reben només els secrets necessaris; Gitleaks és un gate previ obligatori |
 | Producció | Gestor de secrets de la plataforma, pendent de selecció | No s'instal·la cap gestor en aquesta fase; cal injectar fitxers Docker Secrets o variables protegides des de l'orquestrador |
@@ -56,9 +56,17 @@ El backend accepta una única font quan `Perplexity:Enabled=true`:
 2. `PERPLEXITY_API_KEY`, per a un orquestrador amb variables protegides;
 3. `Perplexity:ApiKey`, per a .NET User Secrets local.
 
-`docker-compose.perplexity.yml` munta el secret com a fitxer i només injecta la ruta. No activa Perplexity ni executa peticions. Si coincideixen diverses fonts, l'arrencada falla sense mostrar els valors.
+`docker-compose.perplexity.yml` munta el secret com a fitxer de només lectura i només injecta la ruta interna `/run/secrets/perplexity_api_key`. L'origen local per defecte és `.secrets/perplexity_api_key`, ignorat tant per Git com pel context de construcció Docker. `PERPLEXITY_API_KEY_FILE_HOST` permet indicar una ruta segura diferent sense versionar-la.
 
-La clau compartida anteriorment s'ha de considerar exposada. El fitxer local `.env.perplexity.local` està ignorat i té permisos restrictius, però no converteix la clau en segura. Intervenció pendent: revocar-la al proveïdor, crear-ne una de nova amb límits adequats, configurar-la directament al magatzem local o de producció i eliminar el fitxer antic. No s'ha copiat aquesta clau a User Secrets ni a Docker Secrets.
+La integració queda **desactivada per defecte** amb `PERPLEXITY_ENABLED=false`, fins i tot quan el secret està preparat. Activar-la exigeix una autorització posterior i explícita; preparar o muntar el secret no executa cap petició.
+
+Per instal·lar exclusivament la clau nova conservada a Bitwarden, executar:
+
+```bash
+scripts/configure-perplexity-secrets.sh
+```
+
+L'script demana la clau una sola vegada amb entrada oculta, la desa a `Perplexity:ApiKey` de .NET User Secrets i crea el fitxer local del Docker Secret amb permisos `600`. No l'afegeix a `.env`, als arguments dels processos ni als logs. El fitxer heretat `.env.perplexity.local`, que contenia la credencial antiga, s'ha retirat sense reutilitzar-ne ni mostrar-ne el valor.
 
 ## Rotació i revocació
 
@@ -81,7 +89,7 @@ Comprovació manual a Google Cloud:
 3. Obrir la credencial i comprovar estat, restriccions d'aplicació i restriccions d'API; revisar especialment `Places API` i `Places API (New)`.
 4. A Metrics Explorer, filtrar l'ús per `credential_id` i comprovar serveis, plataforma i trànsit recent.
 5. Revisar facturació i quotes per detectar ús inesperat.
-6. Com que la clau va quedar a l'historial Git, considerar-la compromesa: si continua activa, revocar-la o eliminar-la. PetiLoc no necessita substituir-la perquè la integració activa de Google Places ha estat retirada.
+6. La persona titular ha confirmat el 27.10.2026 que la clau antiga de Google Places ja ha estat revocada. Aquesta confirmació és administrativa; no s'ha validat accedint al compte de Google Cloud. PetiLoc no necessita substituir-la perquè la integració activa de Google Places ha estat retirada.
 7. Desactivar al projecte qualsevol servei Maps/Places que ja no s'utilitzi, sense afectar Google OAuth.
 
 Referències oficials: [gestió de claus API de Google Cloud](https://docs.cloud.google.com/docs/authentication/api-keys) i [guia de seguretat de Google Maps Platform](https://developers.google.com/maps/api-security-best-practices).
@@ -98,7 +106,7 @@ Referències oficials: [gestió de claus API de Google Cloud](https://docs.cloud
 
 ## Bloqueig històric conegut
 
-L'escaneig complet detecta dos registres històrics: una clau Google probablement real i una coincidència genèrica dins documentació. No s'ha reescrit l'historial ni s'ha creat cap allowlist. Per tant, el gate de CI queda deliberadament bloquejat fins que la clau Google estigui revocada i s'autoritzi una decisió explícita sobre aquests dos identificadors concrets. No s'ha d'afegir cap excepció general.
+L'escaneig complet detecta dos registres històrics: la clau Google revocada segons confirmació del titular i una coincidència genèrica dins documentació. No s'ha reescrit l'historial ni s'ha creat cap allowlist. El gate de CI continua detectant aquests antecedents fins que s'autoritzi una decisió explícita sobre els dos identificadors concrets; la revocació redueix el risc operatiu, però no elimina la troballa de l'historial. No s'ha d'afegir cap excepció general.
 
 ## Bloqueig d'arrencada detectat
 
@@ -131,3 +139,22 @@ No s'han modificat perquè l'ordre actual prohibeix canviar Places i Gestió ter
 | Arrencada API amb PostgreSQL sintètic inabastable i RabbitMQ desactivat | PARCIAL; endpoint arrel operatiu, cap migració ni seeder, però els tres workers indicats intenten connexió |
 
 No s'han executat E2E de navegador perquè no són necessaris per validar la injecció de secrets i podrien activar dependències de dades. No s'ha executat cap petició Perplexity o Google.
+
+### Validació de la configuració integral
+
+| Comprovació | Resultat |
+| --- | --- |
+| `.env` local i .NET User Secrets | PASS; PostgreSQL i RabbitMQ s'han reutilitzat dels contenidors existents sense mostrar-ne els valors; s'han generat només claus JWT locals |
+| Permisos i exclusions | PASS; `.env` i el magatzem de User Secrets tenen mode `600`; `.env*` i `.secrets/` estan exclosos de Git i del context Docker |
+| Fitxer Perplexity heretat | PASS; `.env.perplexity.local` retirat sense llegir, copiar ni reutilitzar la credencial antiga |
+| Docker Compose base | PASS amb `docker compose config --quiet` |
+| Docker Compose + Perplexity | PASS amb secret sintètic; muntatge a `/run/secrets/perplexity_api_key` i `Perplexity__Enabled=false` |
+| Build .NET | PASS; 0 errors i 0 avisos |
+| Proves .NET sense PostgreSQL | PASS; 235/235 |
+| Migracions i seeders a l'arrencada ordinària | PASS; absents de `Program.cs` i protegits per l'ordre explícita de manteniment |
+| Perplexity desactivat | PASS; `appsettings`, Development i Compose queden en `false`; cap client ni petició executats |
+| Gitleaks sobre l'arbre versionable actual | PASS; cap filtració detectada |
+| Valors secrets presents en logs i artefactes locals | PASS; 0 coincidències |
+| `git diff --check` i sintaxi Bash | PASS |
+
+Intervenció manual pendent: executar `scripts/configure-perplexity-secrets.sh` i enganxar amb entrada oculta la clau nova des de Bitwarden. Aquesta és l'única operació no executada perquè la credencial només la coneix la persona titular. L'script no activa Perplexity.
